@@ -16,4 +16,10 @@ export const COLORS = {
   sanityBar: 0x3b8fd1,
   hudBg: 0x000000,
   hitFlash: 0xffffff,
+  faxineiro: 0x3b8c5a,
+  copaBg: 0x232a2a,
+  copaFloor: 0x2f3a3a,
+  copaAccent: 0x6ec1a6,
+  ponto: 0xf2c14e,
+  door: 0x7a5a3c,
 };

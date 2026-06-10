@@ -18,6 +18,10 @@ export class BootScene extends Phaser.Scene {
     this.makeRect("tex-floor", 32, 16, COLORS.floor);
     this.makeRect("tex-baia", 64, 40, COLORS.baia);
     this.makeRect("tex-hitbox", 28, 24, 0xffffff);
+    this.makeRect("tex-faxineiro", 32, 44, COLORS.faxineiro, 0xeeeeee);
+    this.makeRect("tex-door", 36, 60, COLORS.door, 0xc9a36a);
+    this.makeRect("tex-coffee", 28, 40, 0x6a4a3a, 0xeac08a);
+    this.makeRect("tex-ponto", 28, 40, COLORS.ponto, 0x222222);
 
     this.scene.start("OpenSpaceScene");
   }
