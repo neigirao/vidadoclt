@@ -38,9 +38,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevJumpDown = false;
   private prevAttackDown = false;
   private prevDashDown = false;
+  private lastSanityDrainAt = 0;
 
   onAttack?: (hitbox: Phaser.Geom.Rectangle, step: number) => void;
-  onDeath?: () => void;
+  onDeath?: (cause: "burnout" | "energy") => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "tex-player");
@@ -74,10 +75,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return now < this.invulnUntil || now < this.dashUntil;
   }
 
-  takeDamage(amount: number) {
+  takeDamage(amount: number, sanityHit = 0) {
     const now = this.scene.time.now;
     if (this.isInvulnerable(now)) return;
     this.energy = Math.max(0, this.energy - amount);
+    if (sanityHit) this.sanity = Math.max(0, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
     this.setTint(0xff8888);
     this.scene.time.delayedCall(120, () => this.clearTint());
@@ -86,17 +88,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setVelocityY(-200);
     body.setVelocityX(-this.facing * 220);
 
-    if (this.energy <= 0) {
-      this.onDeath?.();
-    }
+    if (this.energy <= 0) this.onDeath?.("energy");
+    else if (this.sanity <= 0) this.onDeath?.("burnout");
   }
 
   drainSanity(amount: number) {
     this.sanity = Math.max(0, this.sanity - amount);
+    if (this.sanity <= 0) this.onDeath?.("burnout");
   }
 
   addVR(n: number) {
     this.vr += n;
+  }
+
+  /** Passive sanity drain to simulate the long shift. */
+  tickPassive(time: number) {
+    if (time - this.lastSanityDrainAt > 4000) {
+      this.lastSanityDrainAt = time;
+      this.drainSanity(1);
+    }
   }
 
   update(time: number, _delta: number) {
