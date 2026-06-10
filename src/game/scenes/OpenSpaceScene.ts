@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../config";
+import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { Player } from "../entities/Player";
 import { EstagiarioDesesperado, AnalistaJunior } from "../entities/Enemies";
 

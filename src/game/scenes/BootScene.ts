@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { COLORS } from "../config";
+import { COLORS } from "../constants";
 
 /**
  * Generates colored-rectangle textures used as placeholders for sprites.

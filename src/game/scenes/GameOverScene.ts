@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH } from "../config";
+import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
