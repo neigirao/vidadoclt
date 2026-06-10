@@ -8,16 +8,10 @@ export function GameMount() {
     let destroyed = false;
     let game: import("phaser").Game | null = null;
 
-    // Dynamic import keeps Phaser out of the SSR bundle.
-    Promise.all([import("phaser"), import("./config")]).then(([, { buildGameConfig }]) => {
+    Promise.all([import("phaser"), import("./config")]).then(([PhaserMod, { buildGameConfig }]) => {
       if (destroyed || !ref.current) return;
-      const Phaser = (window as unknown as { Phaser?: unknown }).Phaser;
-      // Use the imported namespace directly
-      // (Phaser is also the default export of the package)
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const PhaserNS = require("phaser");
-      game = new PhaserNS.Game(buildGameConfig(ref.current));
-      void Phaser;
+      const Phaser = PhaserMod.default ?? PhaserMod;
+      game = new Phaser.Game(buildGameConfig(ref.current));
     });
 
     return () => {
@@ -27,11 +21,5 @@ export function GameMount() {
     };
   }, []);
 
-  return (
-    <div
-      ref={ref}
-      className="w-full h-full"
-      style={{ width: "100%", height: "100%" }}
-    />
-  );
+  return <div ref={ref} className="w-full h-full" style={{ width: "100%", height: "100%" }} />;
 }

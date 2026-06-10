@@ -48,7 +48,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   swingDamage = 20;
   speed = 80;
   dir: 1 | -1 = -1;
-  private state: "walk" | "telegraph" | "swing" | "recover" = "walk";
+  private aiState: "walk" | "telegraph" | "swing" | "recover" = "walk";
   private stateUntil = 0;
   swingHitbox: Phaser.Geom.Rectangle | null = null;
   swingActive = false;
@@ -78,11 +78,11 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
     }
     this.setFlipX(this.dir === -1);
 
-    switch (this.state) {
+    switch (this.aiState) {
       case "walk": {
         body.setVelocityX(this.dir * this.speed);
         if (this.target && Math.abs(this.target.x - this.x) < 44) {
-          this.state = "telegraph";
+          this.aiState = "telegraph";
           this.stateUntil = t + 400;
           this.setTint(0xffdd66);
           body.setVelocityX(0);
@@ -92,7 +92,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
       case "telegraph": {
         body.setVelocityX(0);
         if (t >= this.stateUntil) {
-          this.state = "swing";
+          this.aiState = "swing";
           this.stateUntil = t + 140;
           this.clearTint();
           this.setTint(0xff5555);
@@ -110,7 +110,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
       case "swing": {
         body.setVelocityX(0);
         if (t >= this.stateUntil) {
-          this.state = "recover";
+          this.aiState = "recover";
           this.stateUntil = t + 400;
           this.swingActive = false;
           this.swingHitbox = null;
@@ -121,7 +121,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
       case "recover": {
         body.setVelocityX(0);
         if (t >= this.stateUntil) {
-          this.state = "walk";
+          this.aiState = "walk";
         }
         break;
       }
@@ -135,8 +135,8 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
     body.setVelocityY(-180);
     this.setTint(0xffffff);
     this.scene.time.delayedCall(80, () => this.clearTint());
-    if (this.state === "swing" || this.state === "telegraph") {
-      this.state = "recover";
+    if (this.aiState === "swing" || this.aiState === "telegraph") {
+      this.aiState = "recover";
       this.stateUntil = this.scene.time.now + 300;
       this.swingActive = false;
       this.swingHitbox = null;
