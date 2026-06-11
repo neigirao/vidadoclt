@@ -1,4 +1,4 @@
-# ROADMAP — A Vida do CLT
+# ROADMAP — Corporate Escape
 
 Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a anterior.
 
@@ -17,30 +17,12 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 - [x] Área 1 hardcoded: chão + 6 plataformas + decoração "baias"
 - [x] HUD: barra Energia, barra Sanidade, contador VR, relógio cosmético
 - [x] Morte → "Rescisão da tentativa" → conversão VR → Reconhecimento → restart
-- [x] Efeitos visuais de Sanidade: vinheta + aberração cromática (`SanityFx`)
-- [x] Persistência de estado entre cenas via `PlayerState` / `scene.registry`
-
----
-
-## Sprint 1.5 — UX e novos inimigos ✅ CONCLUÍDO
-
-**Entregável:** menu de entrada, HUD profissional, 4 novos inimigos com mecânicas únicas.
-
-- [x] **MenuScene** com título "VIDA DO CLT", 5 itens (JOGAR, RANKING, ARSENAL, CONQUISTAS, CONFIGURAÇÕES), navegação teclado + mouse, fade de entrada
-- [x] **HUD redesenhado**: portrait do jogador, barra Energia, barra Sanidade, VR em formato R$, nome da fase, objetivo, relógio, barra de boss (oculta por padrão), barra de ação inferior (arma + especial + skills + minimapa)
-- [x] **FacilitadorDeWorkshop** (HP 2): walk → telegraph → shoot → cooldown; dispara PostIts que causam dano de Sanidade
-- [x] **PostIt** (projétil): voa em linha reta, sem gravidade, 12 de dano de Sanidade
-- [x] **ScrumMasterCaotico** (HP 2): walk → charge → shout → recover; grito puxa o jogador
-- [x] **CoordenadorDeSinergia** (HP 4): suporte; pulso de buff acelera inimigos num raio de 160px a cada 3,2s
-- [x] **AnalistaSeniorExausto** (HP 8, tanque): walk → telegraph 650ms → slam 35 dano → exhausted; quasi-imune a knockback
-- [x] Spawn organizado em 4 áreas progressivas na Área 1 do Open Space
-- [x] Copa básica (cena separada, navegação via porta com tecla E)
 
 ---
 
 ## Sprint 2 — Loop de run
 
-**Entregável:** run com início, área segura completa, checkpoint e fail state alternativo de Burnout.
+**Entregável:** run com início, área segura, checkpoint e fail state alternativo de Burnout.
 
 - [ ] **Sistema de Sanidade por faixas**
   - 75–51%: notificações falsas na HUD (ruído visual)
@@ -49,7 +31,8 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
   - 10–1%: distorção forte, input lag leve
   - 0%: **BURNOUT** — run termina, mantém 50% VR convertido com bônus
 - [ ] **Persistência de Reconhecimento** entre runs (`localStorage`)
-- [ ] **Copa Corporativa** completa (Área 3 do Open Space)
+- [ ] **Copa Corporativa** (Área 3 do Open Space)
+  - Área segura: sem inimigos
   - NPC Faxineiro: cura +10 Sanidade, diálogo que muda a cada loop
   - Café disponível para compra (+20 Energia)
 - [ ] **Ponto Eletrônico** entre fases
@@ -67,9 +50,11 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 
 **Entregável:** Fase 1 (Open Space) jogável do início ao fim, com todos os inimigos e chefe.
 
-- [x] Inimigos Área 2 — Corredor das Reuniões: Facilitador de Workshop, Scrum Master Caótico
-- [x] Inimigos Área 4 — Ala da Gestão: Coordenador de Sinergia, Analista Sênior Exausto
-- [ ] **Armadilha Área 2**: Convites de Reunião (pop-ups flutuantes, toque = lentidão 2s + −10 sanidade)
+- [ ] **Área 2** — Corredor das Reuniões
+  - Armadilha: Convites de Reunião (pop-ups flutuantes, toque = lentidão 2s + −10 sanidade)
+  - Inimigos: Facilitador de Workshop, Scrum Master Caótico
+- [ ] **Área 4** — Ala da Gestão
+  - Inimigos: Coordenador de Sinergia (buffa outros), Analista Sênior Exausto (lento, resistente, forte)
 - [ ] **Chefe: Gerente Microgestor**
   - Frase de entrada: *"Antes de você sair precisamos alinhar algumas coisas."*
   - Ataques:
@@ -82,7 +67,7 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
   - Recompensa: perk Autonomia + VR extra
 - [ ] **Perk Autonomia** funcional: −50% efeitos de lentidão/controle
 - [ ] **Transição de fase**: acesso ao Ponto Eletrônico após derrotar o chefe
-- [ ] **Barra de HP do boss** no HUD (infraestrutura já existe em `Hud.showBoss()`)
+- [ ] **Resolução visual de UI de chefe**: barra de HP do boss no HUD
 
 ---
 
@@ -244,9 +229,8 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 | Sprint | Status | Entregável |
 |--------|--------|-----------|
 | Sprint 1 | ✅ Concluído | Protótipo jogável (Área 1) |
-| Sprint 1.5 | ✅ Concluído | Menu, HUD redesenhado, 4 novos inimigos |
-| Sprint 2 | ⬜ Pendente | Sistema de Sanidade + loop de run completo |
-| Sprint 3 | 🔄 Parcial | Fase 1 completa com chefe (inimigos ✅, armadilhas + chefe ⬜) |
+| Sprint 2 | ⬜ Pendente | Sistema de Sanidade + loop de run |
+| Sprint 3 | ⬜ Pendente | Fase 1 completa com chefe |
 | Sprint 4 | ⬜ Pendente | Meta-progressão rogue-lite |
 | Sprint 5 | ⬜ Pendente | Fases 2 e 3 |
 | Sprint 6 | ⬜ Pendente | Fases 4 e 5 + CEO + vitória |

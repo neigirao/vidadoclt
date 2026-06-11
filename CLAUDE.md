@@ -1,4 +1,4 @@
-# CLAUDE.md — A Vida do CLT
+# CLAUDE.md — Corporate Escape (A Vida do CLT)
 
 Contexto para assistentes de IA trabalhando neste projeto.
 
@@ -30,23 +30,13 @@ src/
   game/
     config.ts              # GAME_WIDTH, GAME_HEIGHT, COLORS, buildGameConfig()
     GameMount.tsx          # Componente React que instancia/destrói Phaser.Game
-    constants.ts           # COLORS, GAME_WIDTH=960, GAME_HEIGHT=540
     scenes/
       BootScene.ts         # Gera texturas placeholder (retângulos coloridos)
-      MenuScene.ts         # Tela inicial — título "VIDA DO CLT", 5 itens de menu
-      OpenSpaceScene.ts    # Fase 1 — Área 1: gameplay principal (1920×540)
-      CopaScene.ts         # Área segura — Copa Corporativa
+      OpenSpaceScene.ts    # Fase 1 — Área 1: gameplay principal
       GameOverScene.ts     # Tela de "Rescisão da tentativa"
     entities/
       Player.ts            # Controller do jogador
-      Enemies.ts           # EstagiarioDesesperado, AnalistaJunior,
-                           # FacilitadorDeWorkshop, PostIt,
-                           # ScrumMasterCaotico, CoordenadorDeSinergia,
-                           # AnalistaSeniorExausto
-    systems/
-      Hud.ts               # HUD completo: portrait, barras, VR, boss bar, ação
-      SanityFx.ts          # Efeitos visuais de Sanidade (vinheta, câmera)
-      PlayerState.ts       # Estado da run via scene.registry (RunState)
+      Enemies.ts           # EstagiarioDesesperado, AnalistaJunior
   routes/
     __root.tsx             # Layout raiz (QueryClient, error boundary)
     index.tsx              # Rota "/" — monta GameMount full-screen
@@ -82,81 +72,52 @@ HIT_INVULN_MS   = 600   // i-frames após tomar dano
 | Dash | Shift |
 | Atacar | J |
 | Ataque especial | K *(não implementado)* |
-| Interagir | E |
+| Interagir | E *(não implementado)* |
 
 ## Fluxo de cenas
 
 ```
-BootScene → MenuScene → OpenSpaceScene ↔ CopaScene
-                  ↓
-            GameOverScene → OpenSpaceScene (restart)
+BootScene → OpenSpaceScene ↔ GameOverScene
 ```
 
-BootScene gera texturas e inicia MenuScene.
-JOGAR no menu → fade → `scene.start("OpenSpaceScene")`.
-Porta COPA (tecla E) → `scene.start("CopaScene")`.
-Morte → `scene.start("GameOverScene", { vr, cause })`.
+BootScene gera texturas e imediatamente inicia OpenSpaceScene.
+Morte do jogador → `scene.start("GameOverScene", { vr })`.
 Restart → `scene.start("OpenSpaceScene")`.
 
-## Catálogo de inimigos implementados
-
-| Classe | HP | Dano | Mecânica | VR drop |
-|--------|----|------|----------|---------|
-| `EstagiarioDesesperado` | 1 | 15 contato | Patrulha, inverte direção em parede | 1 |
-| `AnalistaJunior` | 3 | 20 swing | walk → telegraph 400ms → swing → recover | 3 |
-| `FacilitadorDeWorkshop` | 2 | 0 contato | walk → telegraph 350ms → shoot → cooldown; dispara `PostIt` via `onShoot` | 2 |
-| `PostIt` | — | 12 sanidade | Projétil do Facilitador, voa em linha reta, sem gravidade | — |
-| `ScrumMasterCaotico` | 2 | 8 contato | walk → charge 500ms → shout → recover; grito puxa o jogador via `onShout` | 2 |
-| `CoordenadorDeSinergia` | 4 | 5 contato | Lento; pulso de buff a cada 3,2s acelera inimigos num raio 160px | 4 |
-| `AnalistaSeniorExausto` | 8 | 35 slam | walk → telegraph 650ms → slam → exhausted 1,6s; knockback 0,25× | 6 |
-
-## Estado atual
+## Estado atual (Sprint 1 concluída)
 
 ### Implementado
 - Player controller completo: andar, pular (coyote + buffer), dash (i-frames), combo 3 hits
-- **Menu** com título "VIDA DO CLT", 5 itens navegáveis (teclado + mouse)
-- **HUD redesenhado**: portrait, barra Energia, barra Sanidade, VR em R$, fase/objetivo, relógio, barra de boss (oculta), barra de ação inferior com slots de arma/especial/skills + minimapa
-- **6 inimigos + 1 projétil** (ver catálogo acima)
-- Fase 1 — Open Space hardcoded (1920×540): chão + 6 plataformas + 4 áreas de spawn progressivas
-- Copa básica (cena existente, sem NPC ainda)
-- Drop de VR ao matar inimigos (proporcional ao HP)
+- 2 inimigos: EstagiarioDesesperado (patrulha simples), AnalistaJunior (state machine: walk → telegraph → swing → recover)
+- Nível hardcoded: Área 1 do Open Space (1920×540), 1 chão + 6 plataformas
+- HUD: barra Energia, barra Sanidade, contador VR, relógio cosmético
+- Drop de VR ao matar inimigos
 - Game Over com conversão VR → Reconhecimento (×0.25)
-- Efeitos de Sanidade: vinheta + aberração cromática via `SanityFx`
-- Persistência de estado entre cenas via `PlayerState` / `scene.registry`
 
 ### Não implementado (próximos sprints)
 - Efeitos de Sanidade por faixa (50%, 25%, 0% → burnout)
 - Persistência de Reconhecimento entre runs (`localStorage`)
-- Faxineiro na Copa (cura de sanidade + diálogo)
-- Café disponível para compra na Copa
+- Copa + Faxineiro (área segura, cura de sanidade)
 - Ponto Eletrônico (checkpoint + loja)
-- FGTS (meta-recurso acumulado entre runs)
 - Burnout como fail state alternativo
 - Classes (Estagiário, Analista Pleno, Terceirizado)
 - Sistema de armas (12 armas temáticas)
 - Perks (8 no MVP)
 - Chefe: Gerente Microgestor
-- Armadilhas: Convites de Reunião (Área 2)
-- Áreas 2–4 do Open Space com layout próprio
+- Áreas 2–4 do Open Space
 - Fases 2–5 e CEO
 - Cultura Corporativa (modificadores de run)
-- NPCs narrativos (Faxineiro com diálogos, Estagiário Conspiracionista, Analista LinkedIn)
+- NPCs (Faxineiro, Estagiário Conspiracionista, Analista LinkedIn)
 - Áudio
 
 ## Padrões e convenções
 
 ### Adicionar novo inimigo
 1. Criar classe em `src/game/entities/Enemies.ts` estendendo `Phaser.Physics.Arcade.Sprite`
-2. Implementar `preUpdate(t, dt)` para lógica de IA (state machine recomendada)
+2. Implementar `preUpdate(t, dt)` para lógica de IA
 3. Implementar `hit(damage, knockback): boolean` retornando `true` se morreu
-4. Para efeitos que precisam de mediação da cena (projéteis, pull do jogador): usar callbacks (`onShoot`, `onShout`, etc.) — o inimigo NÃO acessa a cena diretamente
-5. Registrar textura no `BootScene.create()` via `makeRect()`
-6. Em `OpenSpaceScene`:
-   - Declarar `private grupo!: Phaser.Physics.Arcade.Group`
-   - Instanciar em `create()`, adicionar collider com `platforms`
-   - Se contato com jogador causa dano, adicionar `physics.add.overlap`
-   - Se tem hitbox especial de ataque: checar em `update()` com `Phaser.Geom.Intersects.RectangleToRectangle`
-   - Adicionar ao `resolveAttack()` para receber golpes do jogador
+4. Registrar textura no `BootScene.create()` via `makeRect()`
+5. Criar grupo em `OpenSpaceScene`, adicionar collider com platforms, registrar no `resolveAttack()`
 
 ### Adicionar nova cena
 1. Criar `src/game/scenes/NomeDaCena.ts` estendendo `Phaser.Scene`
@@ -166,12 +127,8 @@ Restart → `scene.start("OpenSpaceScene")`.
 ### Texturas
 Todas as texturas são geradas em runtime em `BootScene` via `makeRect()`. Quando sprites reais forem adicionados, carregar em `BootScene.preload()` e remover o `makeRect` correspondente. Chave de textura: prefixo `tex-` + nome (ex: `tex-player`, `tex-analista`).
 
-### HUD (`src/game/systems/Hud.ts`)
-Instanciar com `new Hud(this, LEVEL_WIDTH)`. Chamar `hud.update({...})` no `update()` da cena.
-Constantes exportadas: `HUD_TOP_H = 68`, `HUD_BOT_H = 56`, `HUD_BOT_Y = GAME_HEIGHT - HUD_BOT_H`.
-Para boss: `hud.showBoss(name, maxHp)` / `hud.updateBoss(hp)` / `hud.hideBoss()`.
-Para objetivo: `hud.setObjective(text)`.
-Todos os elementos usam `setScrollFactor(0)` e `setDepth(1000+)`.
+### HUD
+O HUD usa `setScrollFactor(0)` para fixar à câmera. Sempre adicionar ao container `hud` em `OpenSpaceScene.buildHud()` ou criar container análogo em novas cenas.
 
 ### Nomenclatura
 - Arquivos de cena: `NomeDaFaseScene.ts`
@@ -208,5 +165,3 @@ bun format    # Prettier
 - **Arcade physics**: suficiente para o estilo de jogo. Não mudar para Matter.js sem necessidade concreta.
 - **pixelArt: true** no config Phaser: desativa antialiasing. Não remover.
 - **Hitboxes manuais no resolveAttack**: o ataque não usa `physics.add.overlap` — usa `Phaser.Geom.Intersects.RectangleToRectangle` com hitbox calculada pelo Player. Mantém controle preciso sobre timing do combo.
-- **Callbacks de efeitos especiais em inimigos**: inimigos como `FacilitadorDeWorkshop` e `ScrumMasterCaotico` expõem callbacks (`onShoot`, `onShout`) que a cena implementa, em vez de o inimigo acessar a cena diretamente. Isso mantém os inimigos reutilizáveis entre cenas.
-- **HUD como classe separada**: `Hud` em `src/game/systems/Hud.ts` é independente da cena. Qualquer cena pode instanciar um `Hud` sem duplicar código.
