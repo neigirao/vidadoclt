@@ -2,9 +2,10 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { Player } from "../entities/Player";
 import { Faxineiro } from "../entities/Faxineiro";
-import { getRun } from "../systems/PlayerState";
+import { getRun, savePersisted } from "../systems/PlayerState";
 import { SanityFx } from "../systems/SanityFx";
 import { ShopUI } from "../systems/Shop";
+import { Hud } from "../systems/Hud";
 
 const LEVEL_WIDTH = 1280;
 const FLOOR_Y = GAME_HEIGHT - 32;
@@ -15,17 +16,15 @@ export class CopaScene extends Phaser.Scene {
   private faxineiros!: Phaser.Physics.Arcade.Group;
   private drops!: Phaser.Physics.Arcade.Group;
   private fx!: SanityFx;
+  private hud!: Hud;
   private shop!: ShopUI;
   private ponto!: Phaser.GameObjects.Image;
   private coffee!: Phaser.GameObjects.Image;
   private coffeeReadyAt = 0;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private hintText!: Phaser.GameObjects.Text;
-
-  // HUD
-  private hudEnergy!: Phaser.GameObjects.Graphics;
-  private hudSanity!: Phaser.GameObjects.Graphics;
-  private hudVR!: Phaser.GameObjects.Text;
+  private startTimeMs = 0;
+  private lastHealAt = 0;
 
   constructor() {
     super("CopaScene");
@@ -33,11 +32,22 @@ export class CopaScene extends Phaser.Scene {
 
   create() {
     const run = getRun(this);
+    this.startTimeMs = this.time.now;
+
+    // FGTS: +10 when player reaches Copa from OpenSpace for the first time this run
+    if (run.cameFrom === "openspace" && !run.fgts) {
+      run.fgts += 10;
+      savePersisted(run.reconhecimento, run.fgts, run.loopCount);
+    } else if (run.cameFrom === "openspace") {
+      run.fgts += 10;
+      savePersisted(run.reconhecimento, run.fgts, run.loopCount);
+    }
+
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.copaBg);
 
-    // Tile backdrop — kitchen tiles
+    // Tile backdrop
     const bg = this.add.graphics();
     for (let x = 0; x < LEVEL_WIDTH; x += 48) {
       for (let y = 60; y < GAME_HEIGHT - 32; y += 48) {
@@ -51,34 +61,38 @@ export class CopaScene extends Phaser.Scene {
     const floor = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 16, LEVEL_WIDTH, 32, COLORS.copaFloor);
     this.physics.add.existing(floor, true);
     this.platforms.add(floor);
-    // Two small platforms (mesas)
-    [
+    ([
       [320, FLOOR_Y - 90, 4],
       [720, FLOOR_Y - 90, 4],
       [1000, FLOOR_Y - 140, 3],
-    ].forEach(([x, y, t]) => {
-      const w = (t as number) * 32;
-      const plat = this.add.rectangle((x as number) + w / 2, y as number, w, 14, COLORS.copaAccent);
+    ] as [number, number, number][]).forEach(([x, y, t]) => {
+      const w = t * 32;
+      const plat = this.add.rectangle(x + w / 2, y, w, 14, COLORS.copaAccent);
       this.physics.add.existing(plat, true);
       this.platforms.add(plat);
     });
 
     // Coffee machine
     this.coffee = this.add.image(180, FLOOR_Y - 20, "tex-coffee");
-    this.add.text(180, FLOOR_Y - 56, "CAFÉ", { fontFamily: "monospace", fontSize: "10px", color: "#eac08a" }).setOrigin(0.5);
+    this.add.text(180, FLOOR_Y - 56, "CAFE", {
+      fontFamily: "monospace", fontSize: "10px", color: "#eac08a",
+    }).setOrigin(0.5);
 
     // Ponto eletrônico
     this.ponto = this.add.image(LEVEL_WIDTH - 140, FLOOR_Y - 20, "tex-ponto");
-    this.add.text(LEVEL_WIDTH - 140, FLOOR_Y - 56, "PONTO", { fontFamily: "monospace", fontSize: "10px", color: "#f2c14e" }).setOrigin(0.5);
+    this.add.text(LEVEL_WIDTH - 140, FLOOR_Y - 56, "PONTO", {
+      fontFamily: "monospace", fontSize: "10px", color: "#f2c14e",
+    }).setOrigin(0.5);
 
-    // Door back to OpenSpace (left)
+    // Door back to OpenSpace
     const doorBack = this.add.image(40, FLOOR_Y - 30, "tex-door");
-    this.add.text(40, FLOOR_Y - 70, "VOLTAR", { fontFamily: "monospace", fontSize: "9px", color: "#c9a36a" }).setOrigin(0.5);
+    this.add.text(40, FLOOR_Y - 70, "VOLTAR", {
+      fontFamily: "monospace", fontSize: "9px", color: "#c9a36a",
+    }).setOrigin(0.5);
     doorBack.setData("door", "back");
 
     // Player
-    const spawnX = run.cameFrom === "next" ? 80 : 80;
-    this.player = new Player(this, spawnX, FLOOR_Y - 60);
+    this.player = new Player(this, 80, FLOOR_Y - 60);
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;
@@ -91,7 +105,7 @@ export class CopaScene extends Phaser.Scene {
     };
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
 
-    // Faxineiros (2)
+    // Faxineiros
     this.faxineiros = this.physics.add.group({ classType: Faxineiro, runChildUpdate: false });
     [520, 880].forEach((x) => {
       const f = new Faxineiro(this, x, FLOOR_Y - 80);
@@ -107,11 +121,13 @@ export class CopaScene extends Phaser.Scene {
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
-    // FX + Shop
+    // FX + HUD + Shop
     this.fx = new SanityFx(this);
+    this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setObjective("Descanse, compre no Ponto e volte ao escritorio");
+
     this.shop = new ShopUI(this);
     this.shop.onAdvance = () => {
-      // Sprint 2 ends with "next area" hook — for now restart the loop one step further (placeholder).
       this.persist();
       const r = getRun(this);
       r.reconhecimento += Math.floor(r.vr * 0.5);
@@ -122,11 +138,9 @@ export class CopaScene extends Phaser.Scene {
 
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
-    this.buildHud();
-
     this.hintText = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 18,
-        "E para interagir  •  Café restaura Energia  •  Ponto abre a loja",
+        "E para interagir  •  Cafe restaura Energia  •  Ponto abre a loja",
         { fontFamily: "monospace", fontSize: "11px", color: "#aaaaaa" })
       .setOrigin(0.5).setScrollFactor(0).setDepth(1000);
 
@@ -167,8 +181,7 @@ export class CopaScene extends Phaser.Scene {
       const f = c as Faxineiro;
       if (!f.active) return;
       if (Phaser.Geom.Intersects.RectangleToRectangle(hb, f.getBounds())) {
-        const dead = f.hit(damage, knockback);
-        if (dead) {
+        if (f.hit(damage, knockback)) {
           this.dropVR(f.x, f.y, 5);
           f.destroy();
         }
@@ -186,33 +199,11 @@ export class CopaScene extends Phaser.Scene {
     }
   }
 
-  private buildHud() {
-    const hud = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
-    hud.add(this.add.rectangle(0, 0, GAME_WIDTH, 56, 0x000000, 0.55).setOrigin(0, 0));
-    this.hudEnergy = this.add.graphics();
-    this.hudSanity = this.add.graphics();
-    hud.add([this.hudEnergy, this.hudSanity]);
-    hud.add(this.add.text(16, 8, "ENERGIA", { fontFamily: "monospace", fontSize: "10px", color: "#ffd0d0" }));
-    hud.add(this.add.text(16, 30, "SANIDADE", { fontFamily: "monospace", fontSize: "10px", color: "#cfe2ff" }));
-    this.hudVR = this.add.text(GAME_WIDTH - 16, 12, "VR: 0", {
-      fontFamily: "monospace", fontSize: "16px", color: "#f2c14e",
-    }).setOrigin(1, 0);
-    hud.add(this.hudVR);
-  }
-
-  private drawBar(g: Phaser.GameObjects.Graphics, x: number, y: number, value: number, max: number, color: number) {
-    const w = 180; const h = 10;
-    g.clear();
-    g.fillStyle(0x222222, 0.9); g.fillRect(x, y, w, h);
-    g.fillStyle(color, 1); g.fillRect(x, y, Math.max(0, (value / max) * w), h);
-    g.lineStyle(1, 0x000000, 0.6); g.strokeRect(x, y, w, h);
-  }
-
   update(time: number, delta: number) {
     this.player.update(time, delta);
     this.player.tickPassive(time);
 
-    // Faxineiro swings
+    // Faxineiro swings check
     this.faxineiros.getChildren().forEach((c) => {
       const f = c as Faxineiro;
       if (f.swingActive && f.swingHitbox) {
@@ -224,19 +215,37 @@ export class CopaScene extends Phaser.Scene {
       }
     });
 
-    // Interact: coffee
+    // Faxineiro proximity healing (+5 Sanidade a cada 2s quando perto e em paz)
+    if (time - this.lastHealAt > 2000) {
+      this.faxineiros.getChildren().forEach((c) => {
+        const f = c as Faxineiro;
+        if (!f.active || f.swingActive) return;
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, f.x, f.y);
+        if (dist < 90) {
+          this.lastHealAt = time;
+          this.player.sanity = Math.min(100, this.player.sanity + 5);
+          const fx = this.add.text(f.x, f.y - 40, "+5 SANIDADE", {
+            fontFamily: "monospace", fontSize: "11px", color: "#44ffaa",
+          }).setOrigin(0.5).setDepth(500);
+          this.tweens.add({ targets: fx, y: fx.y - 28, alpha: 0, duration: 750, onComplete: () => fx.destroy() });
+        }
+      });
+    }
+
+    // Interact: coffee and ponto
     const nearCoffee = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.coffee.x, this.coffee.y) < 40;
     const nearPonto = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.ponto.x, this.ponto.y) < 40;
+
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
       if (nearCoffee && time >= this.coffeeReadyAt && this.player.vr >= 2) {
         this.player.vr -= 2;
         this.player.energy = Math.min(100, this.player.energy + 25);
-        this.player.sanity = Math.max(0, this.player.sanity - 5); // cafeína corrói
+        this.player.sanity = Math.max(0, this.player.sanity - 5);
         this.coffeeReadyAt = time + 3000;
-        const fx = this.add.text(this.coffee.x, this.coffee.y - 50, "+25 ENERGIA", {
+        const fxt = this.add.text(this.coffee.x, this.coffee.y - 50, "+25 ENERGIA  -5 SANIDADE", {
           fontFamily: "monospace", fontSize: "11px", color: "#eac08a",
         }).setOrigin(0.5);
-        this.tweens.add({ targets: fx, y: fx.y - 24, alpha: 0, duration: 700, onComplete: () => fx.destroy() });
+        this.tweens.add({ targets: fxt, y: fxt.y - 24, alpha: 0, duration: 700, onComplete: () => fxt.destroy() });
       } else if (nearPonto) {
         this.persist();
         this.shop.toggle();
@@ -244,16 +253,30 @@ export class CopaScene extends Phaser.Scene {
     }
     this.shop.update();
 
-    // HUD
-    this.drawBar(this.hudEnergy, 88, 8, this.player.energy, 100, COLORS.energyBar);
-    this.drawBar(this.hudSanity, 88, 30, this.player.sanity, 100, COLORS.sanityBar);
-    this.hudVR.setText(`VR: ${this.player.vr}`);
-
     this.fx.update(time, this.player.sanity);
 
-    // Contextual hint
-    if (nearCoffee) this.hintText.setText(time < this.coffeeReadyAt ? "Cafeteira recarregando…" : "E: Café Triplo (2 VR · +25 Energia · -5 Sanidade)");
-    else if (nearPonto) this.hintText.setText("E: abrir Ponto Eletrônico (loja)");
-    else this.hintText.setText("E para interagir  •  ← voltar pelo escritório");
+    const run = getRun(this);
+    this.hud.update({
+      energy: Math.ceil(this.player.energy),
+      maxEnergy: 100,
+      sanity: Math.ceil(this.player.sanity),
+      maxSanity: 100,
+      vr: this.player.vr,
+      reconhecimento: run.reconhecimento,
+      time,
+      startTime: this.startTimeMs,
+      playerX: this.player.x,
+      interactHint: nearCoffee
+        ? (time < this.coffeeReadyAt ? "Cafeteira recarregando..." : "[ E ]  Cafe Triplo (2 VR)")
+        : nearPonto ? "[ E ]  Ponto Eletronico (loja)"
+        : undefined,
+    });
+
+    this.hintText.setText(
+      nearCoffee
+        ? (time < this.coffeeReadyAt ? "Cafeteira recarregando..." : "E: Cafe Triplo (2 VR  +25 Energia  -5 Sanidade)")
+        : nearPonto ? "E: abrir Ponto Eletronico (loja)"
+        : "E para interagir  •  <- voltar pelo escritorio",
+    );
   }
 }

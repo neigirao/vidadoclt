@@ -2,14 +2,27 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { sanityBand } from "./PlayerState";
 
-/**
- * Vignette + camera jitter overlay driven by sanity bands.
- */
+const NOTIFS = [
+  "[Teams] Re: RE: Fw: alinhamento estrategico",
+  "[Outlook] URGENTE: action needed ate 18h",
+  "[Slack] @here reuniao em 5 minutos",
+  "[Teams] Voce tem 12 mensagens nao lidas",
+  "[Outlook] Prazo antecipado. Favor confirmar.",
+  "[Slack] Pode me dar 5 min? Eh rapido",
+  "[Calendario] Lembrete: 1:1 com gestor - AGORA",
+  "[Teams] Voce viu o meu e-mail de ontem?",
+  "[Outlook] RE: RE: RE: Urgente: ver isso",
+  "[Jira] 47 tickets atribuidos a voce",
+  "[Teams] Vc esta disponivel? E importante",
+  "[Outlook] FW: FW: Nova diretriz aprovada",
+];
+
 export class SanityFx {
   private vignette: Phaser.GameObjects.Graphics;
   private noise: Phaser.GameObjects.Graphics;
   private currentBand: ReturnType<typeof sanityBand> = "ok";
   private nextNoiseAt = 0;
+  private nextNotifAt = 0;
 
   constructor(private scene: Phaser.Scene) {
     this.vignette = scene.add.graphics().setScrollFactor(0).setDepth(900);
@@ -24,37 +37,75 @@ export class SanityFx {
       this.redraw(band);
     }
 
-    // Camera jitter / phantom noise
+    // Camera jitter + pixel noise for anxious/burnout
     if (band === "anxious" || band === "burnout") {
       const cam = this.scene.cameras.main;
-      const j = band === "burnout" ? 1.2 : 0.5;
-      cam.setScroll(cam.scrollX + Phaser.Math.FloatBetween(-j, j), cam.scrollY + Phaser.Math.FloatBetween(-j, j));
+      const j = band === "burnout" ? 1.6 : 0.7;
+      cam.setScroll(
+        cam.scrollX + Phaser.Math.FloatBetween(-j, j),
+        cam.scrollY + Phaser.Math.FloatBetween(-j, j),
+      );
 
       if (time >= this.nextNoiseAt) {
-        this.nextNoiseAt = time + Phaser.Math.Between(80, 180);
+        this.nextNoiseAt = time + Phaser.Math.Between(60, 150);
         this.noise.clear();
-        const dots = band === "burnout" ? 80 : 30;
-        this.noise.fillStyle(0xffffff, 0.06);
+        const dots = band === "burnout" ? 100 : 40;
+        this.noise.fillStyle(0xffffff, 0.05);
         for (let i = 0; i < dots; i++) {
           this.noise.fillRect(
             Phaser.Math.Between(0, GAME_WIDTH),
             Phaser.Math.Between(0, GAME_HEIGHT),
-            2,
-            2,
+            2, 2,
           );
         }
       }
     } else {
       this.noise.clear();
     }
+
+    // Fake notification popups at stressed + anxious
+    if ((band === "stressed" || band === "anxious") && time >= this.nextNotifAt) {
+      const interval = band === "anxious"
+        ? Phaser.Math.Between(2000, 4000)
+        : Phaser.Math.Between(5000, 9000);
+      this.nextNotifAt = time + interval;
+      this.spawnNotif();
+    }
+  }
+
+  private spawnNotif() {
+    const msg = Phaser.Utils.Array.GetRandom(NOTIFS) as string;
+    const pw = 284, ph = 30;
+    const px = GAME_WIDTH - pw - 8;
+    const py = 74;
+
+    const panel = this.scene.add.graphics().setScrollFactor(0).setDepth(950);
+    panel.fillStyle(0x0a1f0a, 0.93);
+    panel.fillRect(px, py, pw, ph);
+    panel.lineStyle(1, 0x33aa33, 0.85);
+    panel.strokeRect(px, py, pw, ph);
+    // accent strip on left
+    panel.fillStyle(0x33aa33, 1);
+    panel.fillRect(px, py, 3, ph);
+
+    const txt = this.scene.add.text(px + 10, py + 9, msg, {
+      fontFamily: "monospace", fontSize: "10px", color: "#88ee88",
+    }).setScrollFactor(0).setDepth(951);
+
+    this.scene.tweens.add({
+      targets: [panel, txt],
+      alpha: 0,
+      duration: 500,
+      delay: 2600,
+      onComplete: () => { panel.destroy(); txt.destroy(); },
+    });
   }
 
   private redraw(band: ReturnType<typeof sanityBand>) {
     this.vignette.clear();
-    const alpha = band === "ok" ? 0 : band === "stressed" ? 0.18 : band === "anxious" ? 0.36 : 0.58;
+    const alpha = band === "ok" ? 0 : band === "stressed" ? 0.14 : band === "anxious" ? 0.34 : 0.56;
     if (alpha === 0) return;
     const color = band === "burnout" ? 0x6b0a0a : 0x000000;
-    // Layered radial-ish vignette using stacked rectangles with growing transparency.
     for (let i = 0; i < 6; i++) {
       const inset = 30 + i * 16;
       this.vignette.fillStyle(color, alpha * 0.18);

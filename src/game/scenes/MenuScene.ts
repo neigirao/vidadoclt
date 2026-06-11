@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from "../constants";
+import { getRun } from "../systems/PlayerState";
 
 const ACCENT = 0xf2a800;
 const ACCENT_DIM = 0xb87a00;
@@ -39,6 +40,7 @@ export class MenuScene extends Phaser.Scene {
     this.drawMenuItems();
     this.drawTopBar();
     this.drawBottomBar();
+    this.drawStats();
 
     const kb = this.input.keyboard!;
     this.cursors = kb.createCursorKeys();
@@ -401,6 +403,31 @@ export class MenuScene extends Phaser.Scene {
     this.prevUpDown = upDown;
     this.prevDownDown = downDown;
     this.prevEnterDown = enterDown;
+  }
+
+  private drawStats() {
+    const run = getRun(this);
+    const g = this.add.graphics();
+    g.fillStyle(0x000000, 0.4);
+    g.fillRect(12, 430, 296, 52);
+    g.lineStyle(1, 0x333333, 0.7);
+    g.strokeRect(12, 430, 296, 52);
+
+    if (run.reconhecimento > 0 || run.loopCount > 0) {
+      this.add.text(20, 437, "FICHA DO FUNCIONARIO", {
+        fontFamily: "monospace", fontSize: "9px", color: TEXT_ACCENT,
+      });
+      this.add.text(20, 450, `Reconhecimento:  ${run.reconhecimento.toLocaleString("pt-BR")}`, {
+        fontFamily: "monospace", fontSize: "11px", color: TEXT_LIGHT,
+      });
+      this.add.text(20, 464, `FGTS: ${run.fgts} pts   Loops: ${run.loopCount}`, {
+        fontFamily: "monospace", fontSize: "10px", color: TEXT_DIM,
+      });
+    } else {
+      this.add.text(154, 456, "Primeiro dia de trabalho.", {
+        fontFamily: "monospace", fontSize: "11px", color: TEXT_DIM,
+      }).setOrigin(0.5);
+    }
   }
 
   private confirm() {
