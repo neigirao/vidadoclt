@@ -4,6 +4,7 @@ import { Player } from "../entities/Player";
 import { EstagiarioDesesperado, AnalistaJunior } from "../entities/Enemies";
 import { getRun } from "../systems/PlayerState";
 import { SanityFx } from "../systems/SanityFx";
+import { Hud } from "../systems/Hud";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = GAME_HEIGHT - 32;
@@ -16,14 +17,9 @@ export class OpenSpaceScene extends Phaser.Scene {
   private drops!: Phaser.Physics.Arcade.Group;
   private startTimeMs = 0;
   private fx!: SanityFx;
+  private hud!: Hud;
   private doorCopa!: Phaser.GameObjects.Image;
   private interactKey!: Phaser.Input.Keyboard.Key;
-
-  private hudEnergy!: Phaser.GameObjects.Graphics;
-  private hudSanity!: Phaser.GameObjects.Graphics;
-  private hudVR!: Phaser.GameObjects.Text;
-  private hudClock!: Phaser.GameObjects.Text;
-  private hudHint!: Phaser.GameObjects.Text;
 
   constructor() {
     super("OpenSpaceScene");
@@ -109,13 +105,15 @@ export class OpenSpaceScene extends Phaser.Scene {
     });
 
     this.fx = new SanityFx(this);
-    this.buildHud();
+    this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setObjective("Chegue ao elevador e desça para o próximo andar");
 
     const title = this.add
-      .text(GAME_WIDTH / 2, 80, "18:00 — Quarta-feira\nÁrea 1: Estações de Trabalho", {
+      .text(GAME_WIDTH / 2, 110, "18:00 — Quarta-feira\nÁrea 1: Estações de Trabalho", {
         fontFamily: "monospace", fontSize: "18px", color: "#eaeaea", align: "center",
+        stroke: "#000000", strokeThickness: 3,
       })
-      .setOrigin(0.5).setScrollFactor(0);
+      .setOrigin(0.5).setScrollFactor(0).setDepth(999);
     this.tweens.add({ targets: title, alpha: 0, duration: 800, delay: 2200, onComplete: () => title.destroy() });
   }
 
@@ -187,37 +185,6 @@ export class OpenSpaceScene extends Phaser.Scene {
     }
   }
 
-  private buildHud() {
-    const hud = this.add.container(0, 0).setScrollFactor(0).setDepth(1000);
-    hud.add(this.add.rectangle(0, 0, GAME_WIDTH, 56, 0x000000, 0.55).setOrigin(0, 0));
-    this.hudEnergy = this.add.graphics();
-    this.hudSanity = this.add.graphics();
-    hud.add([this.hudEnergy, this.hudSanity]);
-    hud.add(this.add.text(16, 8, "ENERGIA", { fontFamily: "monospace", fontSize: "10px", color: "#ffd0d0" }));
-    hud.add(this.add.text(16, 30, "SANIDADE", { fontFamily: "monospace", fontSize: "10px", color: "#cfe2ff" }));
-    this.hudVR = this.add.text(GAME_WIDTH - 16, 12, "VR: 0", {
-      fontFamily: "monospace", fontSize: "16px", color: "#f2c14e",
-    }).setOrigin(1, 0);
-    hud.add(this.hudVR);
-    this.hudClock = this.add.text(GAME_WIDTH - 16, 32, "18:00", {
-      fontFamily: "monospace", fontSize: "14px", color: "#eaeaea",
-    }).setOrigin(1, 0);
-    hud.add(this.hudClock);
-
-    this.hudHint = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 18,
-      "← → andar  •  ESPAÇO pular  •  SHIFT dash  •  J atacar  •  E interagir", {
-        fontFamily: "monospace", fontSize: "11px", color: "#aaaaaa",
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-  }
-
-  private drawBar(g: Phaser.GameObjects.Graphics, x: number, y: number, value: number, max: number, color: number) {
-    const w = 180; const h = 10;
-    g.clear();
-    g.fillStyle(0x222222, 0.9); g.fillRect(x, y, w, h);
-    g.fillStyle(color, 1); g.fillRect(x, y, Math.max(0, (value / max) * w), h);
-    g.lineStyle(1, 0x000000, 0.6); g.strokeRect(x, y, w, h);
-  }
-
   update(time: number, delta: number) {
     this.player.update(time, delta);
     this.player.tickPassive(time);
@@ -233,19 +200,24 @@ export class OpenSpaceScene extends Phaser.Scene {
       }
     });
 
-    this.drawBar(this.hudEnergy, 88, 8, this.player.energy, 100, COLORS.energyBar);
-    this.drawBar(this.hudSanity, 88, 30, this.player.sanity, 100, COLORS.sanityBar);
-    this.hudVR.setText(`VR: ${this.player.vr}`);
-
-    const minutes = Math.floor((time - this.startTimeMs) / 1000);
-    const hh = 18 + Math.floor(minutes / 60);
-    const mm = minutes % 60;
-    this.hudClock.setText(`${hh.toString().padStart(2, "0")}:${mm.toString().padStart(2, "0")}`);
-
     this.fx.update(time, this.player.sanity);
 
-    const nearDoor = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorCopa.x, this.doorCopa.y) < 40;
-    if (nearDoor) this.hudHint.setText("E: entrar na Copa");
-    else this.hudHint.setText("← → andar  •  ESPAÇO pular  •  SHIFT dash  •  J atacar  •  E interagir");
+    const nearDoor = Phaser.Math.Distance.Between(
+      this.player.x, this.player.y, this.doorCopa.x, this.doorCopa.y
+    ) < 40;
+
+    const run = getRun(this);
+    this.hud.update({
+      energy: Math.ceil(this.player.energy),
+      maxEnergy: 100,
+      sanity: Math.ceil(this.player.sanity),
+      maxSanity: 100,
+      vr: this.player.vr,
+      reconhecimento: run.reconhecimento,
+      time,
+      startTime: this.startTimeMs,
+      playerX: this.player.x,
+      interactHint: nearDoor ? "[ E ]  Entrar na Copa" : undefined,
+    });
   }
 }
