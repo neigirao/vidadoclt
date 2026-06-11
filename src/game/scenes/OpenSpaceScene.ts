@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
+import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import {
   EstagiarioDesesperado, AnalistaJunior,
@@ -17,7 +18,7 @@ import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
 
 const LEVEL_WIDTH = 1920;
-const FLOOR_Y = GAME_HEIGHT - 32;
+const FLOOR_Y = HUD_BOT_Y - 32;
 
 export class OpenSpaceScene extends Phaser.Scene {
   private player!: Player;

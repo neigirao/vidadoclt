@@ -30,7 +30,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   contactDamage = 10;
   dir: 1 | -1 = -1;
 
-  private state: "waiting" | "enter" | "idle" | "telegraph" | "attack" | "recover" = "waiting";
+  private bossState: "waiting" | "enter" | "idle" | "telegraph" | "attack" | "recover" = "waiting";
   private currentAttack: BossAttack = "follow_up";
   private stateUntil = 0;
   private phase2 = false;
@@ -76,11 +76,11 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       this.onPhase2?.();
     }
 
-    switch (this.state) {
+    switch (this.bossState) {
       case "waiting":
         body.setVelocityX(0);
         if (this.target && Math.abs(this.target.x - this.x) < 480) {
-          this.state = "enter";
+          this.bossState = "enter";
           this.clearTint();
           this.onActivate?.();
           this.showIntroText();
@@ -90,7 +90,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
       case "enter":
         body.setVelocityX(0);
-        if (t >= this.stateUntil) { this.state = "idle"; this.stateUntil = t + 200; }
+        if (t >= this.stateUntil) { this.bossState = "idle"; this.stateUntil = t + 200; }
         break;
 
       case "idle":
@@ -115,7 +115,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       case "recover":
         body.setVelocityX(0);
         if (t >= this.stateUntil) {
-          this.state = "idle";
+          this.bossState = "idle";
           this.stateUntil = t + (this.phase2 ? 320 : 520);
         }
         break;
@@ -167,7 +167,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     };
 
     const factor = this.phase2 ? 0.82 : 1;
-    this.state = "telegraph";
+    this.bossState = "telegraph";
     this.stateUntil = t + durations[this.currentAttack] * factor;
     this.setTint(colors[this.currentAttack]);
 
@@ -184,7 +184,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private doAttack(t: number) {
-    this.state = "attack";
+    this.bossState = "attack";
     this.clearTint();
 
     switch (this.currentAttack) {
@@ -251,7 +251,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private endAttack(t: number) {
-    this.state = "recover";
+    this.bossState = "recover";
     this.stateUntil = t + (this.phase2 ? 680 : 920);
     this.swingActive = false;
     this.swingHitbox = null;
@@ -259,7 +259,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number): boolean {
-    if (this.state === "waiting") return false;
+    if (this.bossState === "waiting") return false;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.08);
