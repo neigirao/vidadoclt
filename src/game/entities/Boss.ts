@@ -84,23 +84,23 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
           this.clearTint();
           this.onActivate?.();
           this.showIntroText();
-          this.bossStateUntil = t + 2800;
+          this.stateUntil = t + 2800;
         }
         break;
 
       case "enter":
         body.setVelocityX(0);
-        if (t >= this.bossStateUntil) { this.bossState = "idle"; this.bossStateUntil = t + 200; }
+        if (t >= this.stateUntil) { this.bossState = "idle"; this.stateUntil = t + 200; }
         break;
 
       case "idle":
         body.setVelocityX(0);
-        if (t >= this.bossStateUntil) this.startTelegraph(t);
+        if (t >= this.stateUntil) this.startTelegraph(t);
         break;
 
       case "telegraph":
         body.setVelocityX(0);
-        if (t >= this.bossStateUntil) this.doAttack(t);
+        if (t >= this.stateUntil) this.doAttack(t);
         break;
 
       case "attack":
@@ -108,15 +108,15 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
           this.tickDash(t, body);
         } else {
           body.setVelocityX(0);
-          if (t >= this.bossStateUntil) this.endAttack(t);
+          if (t >= this.stateUntil) this.endAttack(t);
         }
         break;
 
       case "recover":
         body.setVelocityX(0);
-        if (t >= this.bossStateUntil) {
+        if (t >= this.stateUntil) {
           this.bossState = "idle";
-          this.bossStateUntil = t + (this.phase2 ? 320 : 520);
+          this.stateUntil = t + (this.phase2 ? 320 : 520);
         }
         break;
     }
@@ -168,7 +168,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
     const factor = this.phase2 ? 0.82 : 1;
     this.bossState = "telegraph";
-    this.bossStateUntil = t + durations[this.currentAttack] * factor;
+    this.stateUntil = t + durations[this.currentAttack] * factor;
     this.setTint(colors[this.currentAttack]);
 
     const lbl = this.scene.add
@@ -190,41 +190,41 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     switch (this.currentAttack) {
       case "follow_up":
         if (this.target) this.onShoot?.(this.x, this.y - 14, this.target.x, this.target.y);
-        this.bossStateUntil = t + 260;
+        this.stateUntil = t + 260;
         break;
 
       case "alinhamento":
         this.onPull?.(this.x);
-        this.bossStateUntil = t + 320;
+        this.stateUntil = t + 320;
         break;
 
       case "atualizacao":
         this.dashCount = 0;
         this.nextDashAt = t;
-        this.bossStateUntil = t + 1700;
+        this.stateUntil = t + 1700;
         break;
 
       case "reuniao":
         this.onSpawn?.(this.x - 90, this.y);
         this.onSpawn?.(this.x + 90, this.y);
-        this.bossStateUntil = t + 460;
+        this.stateUntil = t + 460;
         break;
 
       case "freeze":
         this.onFreeze?.(2500);
-        this.bossStateUntil = t + 320;
+        this.stateUntil = t + 320;
         break;
 
       case "deadline":
         this.onPull?.(this.x);
         this.onFreeze?.(1100);
-        this.bossStateUntil = t + 360;
+        this.stateUntil = t + 360;
         break;
     }
   }
 
   private tickDash(t: number, body: Phaser.Physics.Arcade.Body) {
-    if (this.dashCount >= 3 || t >= this.bossStateUntil) {
+    if (this.dashCount >= 3 || t >= this.stateUntil) {
       this.endAttack(t);
       return;
     }
@@ -252,7 +252,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
   private endAttack(t: number) {
     this.bossState = "recover";
-    this.bossStateUntil = t + (this.phase2 ? 680 : 920);
+    this.stateUntil = t + (this.phase2 ? 680 : 920);
     this.swingActive = false;
     this.swingHitbox = null;
     this.clearTint();
