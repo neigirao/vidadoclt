@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
+import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import {
   EstagiarioDesesperado, AnalistaJunior,
