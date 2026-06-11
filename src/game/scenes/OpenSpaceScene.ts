@@ -59,10 +59,10 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
-    const bg = this.add.graphics();
-    bg.fillStyle(COLORS.bgDark, 1);
-    for (let x = 0; x < LEVEL_WIDTH; x += 120) bg.fillRect(x, 60, 60, GAME_HEIGHT - 120);
-    bg.setScrollFactor(0.4);
+    // Full level background image
+    const HUD_TOP_H = 68;
+    this.add.image(LEVEL_WIDTH / 2, (HUD_TOP_H + FLOOR_Y) / 2, "bg-openspace")
+      .setDisplaySize(LEVEL_WIDTH, FLOOR_Y - HUD_TOP_H);
 
     for (let x = 80; x < LEVEL_WIDTH; x += 260) {
       const baia = this.add.image(x, FLOOR_Y - 28, "tex-baia");

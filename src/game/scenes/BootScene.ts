@@ -9,6 +9,11 @@ export class BootScene extends Phaser.Scene {
     super("BootScene");
   }
 
+  preload() {
+    this.load.image("bg-menu", "/assets/bg-menu.png");
+    this.load.image("bg-openspace", "/assets/bg-openspace.png");
+  }
+
   create() {
     this.makePlayerSprites();
     this.makeRect("tex-estagiario", 22, 30, COLORS.estagiario);
