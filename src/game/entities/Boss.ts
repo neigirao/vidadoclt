@@ -30,7 +30,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   contactDamage = 10;
   dir: 1 | -1 = -1;
 
-  private state: "waiting" | "enter" | "idle" | "telegraph" | "attack" | "recover" = "waiting";
+  private bossState: "waiting" | "enter" | "idle" | "telegraph" | "attack" | "recover" = "waiting";
   private currentAttack: BossAttack = "follow_up";
   private stateUntil = 0;
   private phase2 = false;
