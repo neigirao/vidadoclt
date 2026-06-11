@@ -12,12 +12,27 @@ export class BootScene extends Phaser.Scene {
   preload() {
     this.load.image("bg-menu", "/assets/bg-menu.png");
     this.load.image("bg-openspace", "/assets/bg-openspace.png");
+    // Real character sprites (PNG with transparency)
+    this.load.image("tex-player-idle",   "/assets/sprites/player-idle.png");
+    this.load.image("tex-player",        "/assets/sprites/player-idle.png"); // HUD alias
+    this.load.image("tex-player-walk0",  "/assets/sprites/player-walk0.png");
+    this.load.image("tex-player-walk1",  "/assets/sprites/player-walk1.png");
+    this.load.image("tex-player-jump",   "/assets/sprites/player-jump.png");
+    this.load.image("tex-player-fall",   "/assets/sprites/player-jump.png"); // reuse jump for fall
+    this.load.image("tex-player-attack", "/assets/sprites/player-attack.png");
+    this.load.image("tex-player-dash",   "/assets/sprites/player-dash.png");
+    // Real enemy sprites
+    this.load.image("tex-estagiario",    "/assets/sprites/enemy-estagiario.png");
+    this.load.image("tex-analista",      "/assets/sprites/enemy-analista.png");
+    this.load.image("tex-facilitador",   "/assets/sprites/enemy-facilitador.png");
+    this.load.image("tex-scrum",         "/assets/sprites/enemy-scrum.png");
+    this.load.image("tex-coordenador",   "/assets/sprites/enemy-coordenador.png");
+    this.load.image("tex-senior",        "/assets/sprites/enemy-senior.png");
   }
 
   create() {
-    this.makePlayerSprites();
-    this.makeRect("tex-estagiario", 22, 30, COLORS.estagiario);
-    this.makeRect("tex-analista", 28, 38, COLORS.analista);
+    // Player and enemy sprites are loaded from PNG in preload() above.
+    // Only generate placeholder rects for items that don't have real sprites yet.
     this.makeRect("tex-vr", 12, 12, COLORS.vr);
     this.makeRect("tex-platform", 32, 16, COLORS.platform);
     this.makeRect("tex-floor", 32, 16, COLORS.floor);
@@ -26,35 +41,29 @@ export class BootScene extends Phaser.Scene {
     this.makeRect("tex-faxineiro", 32, 44, COLORS.faxineiro, 0xeeeeee);
     this.makeRect("tex-door", 36, 60, COLORS.door, 0xc9a36a);
     this.makeRect("tex-coffee", 28, 40, 0x6a4a3a, 0xeac08a);
-    this.makeRect("tex-ponto", 28, 40, COLORS.ponto, 0x222222);
-    // novos inimigos
-    this.makeRect("tex-facilitador", 24, 36, 0x3a6a2a, 0xfff066); // verde com post-it amarelo
-    this.makeRect("tex-scrum",       26, 34, 0x6a2a4a, 0xff8800); // roxo com laranja
-    this.makeRect("tex-coordenador", 28, 40, 0x1a4a6a, 0x44ff88); // azul com verde neón
-    this.makeRect("tex-senior",      32, 46, 0x3a3a3a, 0x884444); // cinza escuro com vermelho
-    this.makeRect("tex-postit",      14, 14, 0xffee22, 0xffaa00); // post-it amarelo
-    // boss + traps
-    this.makeRect("tex-gerente",     36, 52, 0x1a0a2a, 0xf2c14e); // roxo escuro, gravata dourada
-    this.makeRect("tex-convite",     46, 30, 0xf4f8f4, 0x22aa22); // papel branco com badge verde
-    this.makeRect("tex-email",       22, 16, 0xf2c14e, 0x1a1a1a); // envelope dourado
+    this.makeRect("tex-ponto",    28, 40, COLORS.ponto, 0x222222);
+    this.makeRect("tex-postit",   14, 14, 0xffee22, 0xffaa00);
+    // boss + traps (no real sprites yet)
+    this.makeRect("tex-gerente",  36, 52, 0x1a0a2a, 0xf2c14e);
+    this.makeRect("tex-convite",  46, 30, 0xf4f8f4, 0x22aa22);
+    this.makeRect("tex-email",    22, 16, 0xf2c14e, 0x1a1a1a);
     // weapons / projectiles
-    this.makeRect("tex-inkproj",     10,  5, 0x2244cc, 0x88aaff); // ink projectile (caneta)
+    this.makeRect("tex-inkproj",  10,  5, 0x2244cc, 0x88aaff);
 
     this.scene.start("MenuScene");
   }
 
-  private makePlayerSprites() {
+  private makePlayerSprites_UNUSED() {
     const W = 32, H = 48;
-    // Palette
-    const SK = 0xd4a07a; // skin
-    const HR = 0x1a0c06; // hair (dark brown)
-    const SH = 0xe8e8e0; // shirt (off-white)
-    const TI = 0x1a2a5a; // tie (navy)
-    const BT = 0x2a1a08; // belt/buckle
-    const PT = 0x1a2030; // pants (dark navy)
-    const SO = 0x0c0808; // shoes (black)
-    const GL = 0x111111; // glasses frame
-    const GS = 0xaabbcc; // glass lens tint
+    const SK = 0xd4a07a;
+    const HR = 0x1a0c06;
+    const SH = 0xe8e8e0;
+    const TI = 0x1a2a5a;
+    const BT = 0x2a1a08;
+    const PT = 0x1a2030;
+    const SO = 0x0c0808;
+    const GL = 0x111111;
+    const GS = 0xaabbcc;
 
     // Draw head (hair + face + glasses) at (hx, hy) offset
     const dHead = (g: Phaser.GameObjects.Graphics, hx: number, hy: number) => {
