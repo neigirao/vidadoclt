@@ -1,7 +1,13 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { Player } from "../entities/Player";
-import { EstagiarioDesesperado, AnalistaJunior } from "../entities/Enemies";
+import {
+  EstagiarioDesesperado, AnalistaJunior,
+  FacilitadorDeWorkshop, PostIt,
+  ScrumMasterCaotico,
+  CoordenadorDeSinergia,
+  AnalistaSeniorExausto,
+} from "../entities/Enemies";
 import { getRun } from "../systems/PlayerState";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
@@ -14,6 +20,11 @@ export class OpenSpaceScene extends Phaser.Scene {
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private estagiarios!: Phaser.Physics.Arcade.Group;
   private analistas!: Phaser.Physics.Arcade.Group;
+  private facilitadores!: Phaser.Physics.Arcade.Group;
+  private scrums!: Phaser.Physics.Arcade.Group;
+  private coordenadores!: Phaser.Physics.Arcade.Group;
+  private seniors!: Phaser.Physics.Arcade.Group;
+  private postits!: Phaser.Physics.Arcade.Group;
   private drops!: Phaser.Physics.Arcade.Group;
   private startTimeMs = 0;
   private fx!: SanityFx;
@@ -73,18 +84,53 @@ export class OpenSpaceScene extends Phaser.Scene {
 
     this.estagiarios = this.physics.add.group({ classType: EstagiarioDesesperado, runChildUpdate: false });
     this.analistas = this.physics.add.group({ classType: AnalistaJunior, runChildUpdate: false });
+    this.facilitadores = this.physics.add.group({ classType: FacilitadorDeWorkshop, runChildUpdate: false });
+    this.scrums = this.physics.add.group({ classType: ScrumMasterCaotico, runChildUpdate: false });
+    this.coordenadores = this.physics.add.group({ classType: CoordenadorDeSinergia, runChildUpdate: false });
+    this.seniors = this.physics.add.group({ classType: AnalistaSeniorExausto, runChildUpdate: false });
+    this.postits = this.physics.add.group();
     this.drops = this.physics.add.group();
 
     if (run.cameFrom !== "copa") this.spawnEnemies();
 
     this.physics.add.collider(this.estagiarios, this.platforms);
     this.physics.add.collider(this.analistas, this.platforms);
+    this.physics.add.collider(this.facilitadores, this.platforms);
+    this.physics.add.collider(this.scrums, this.platforms);
+    this.physics.add.collider(this.coordenadores, this.platforms);
+    this.physics.add.collider(this.seniors, this.platforms);
     this.physics.add.collider(this.drops, this.platforms);
 
     this.physics.add.overlap(this.player, this.estagiarios, (_p, eObj) => {
       const e = eObj as EstagiarioDesesperado;
       if (this.player.isInvulnerable(this.time.now)) return;
       this.player.takeDamage(e.contactDamage, 4);
+    });
+
+    this.physics.add.overlap(this.player, this.scrums, (_p, eObj) => {
+      const e = eObj as ScrumMasterCaotico;
+      if (this.player.isInvulnerable(this.time.now)) return;
+      this.player.takeDamage(e.contactDamage, 4);
+    });
+
+    this.physics.add.overlap(this.player, this.coordenadores, (_p, eObj) => {
+      const e = eObj as CoordenadorDeSinergia;
+      if (this.player.isInvulnerable(this.time.now)) return;
+      this.player.takeDamage(e.contactDamage, 3);
+    });
+
+    this.physics.add.overlap(this.player, this.seniors, (_p, eObj) => {
+      const e = eObj as AnalistaSeniorExausto;
+      if (this.player.isInvulnerable(this.time.now)) return;
+      this.player.takeDamage(e.contactDamage, 3);
+    });
+
+    this.physics.add.overlap(this.player, this.postits, (_p, pObj) => {
+      const p = pObj as PostIt;
+      if (!p.active) return;
+      if (this.player.isInvulnerable(this.time.now)) return;
+      this.player.sanity = Math.max(0, this.player.sanity - p.sanityDamage);
+      p.destroy();
     });
 
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
@@ -138,15 +184,65 @@ export class OpenSpaceScene extends Phaser.Scene {
   }
 
   private spawnEnemies() {
-    [380, 700, 980, 1240, 1500, 1780].forEach((x) => {
+    // Area 1 (x 300-700): Estagiários básicos
+    [380, 560, 700].forEach((x) => {
       const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
       this.estagiarios.add(e);
     });
-    [600, 1150, 1620].forEach((x) => {
+
+    // Area 2 (x 700-1100): Facilitadores + Scrums
+    [820, 1020].forEach((x) => {
+      const f = new FacilitadorDeWorkshop(this, x, FLOOR_Y - 60);
+      f.target = this.player;
+      f.onShoot = (fx, fy, tx, ty) => this.spawnPostIt(fx, fy, tx, ty);
+      this.facilitadores.add(f);
+    });
+    [950].forEach((x) => {
+      const s = new ScrumMasterCaotico(this, x, FLOOR_Y - 60);
+      s.target = this.player;
+      s.onShout = (fromX, fromY) => this.handleScrumShout(fromX, fromY);
+      this.scrums.add(s);
+    });
+
+    // Area 3 (x 1100-1500): Mix com AnalistaJunior
+    [600, 1150, 1350].forEach((x) => {
       const a = new AnalistaJunior(this, x, FLOOR_Y - 60);
       a.target = this.player;
       this.analistas.add(a);
     });
+
+    // Area 4 (x 1500-1900): Coordenadores + Seniors (elite)
+    [1500, 1700].forEach((x) => {
+      const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
+      this.estagiarios.add(e);
+    });
+    [1620].forEach((x) => {
+      const c = new CoordenadorDeSinergia(this, x, FLOOR_Y - 60);
+      c.target = this.player;
+      this.coordenadores.add(c);
+    });
+    [1780].forEach((x) => {
+      const sr = new AnalistaSeniorExausto(this, x, FLOOR_Y - 60);
+      sr.target = this.player;
+      this.seniors.add(sr);
+    });
+  }
+
+  private spawnPostIt(fx: number, fy: number, tx: number, ty: number) {
+    const p = new PostIt(this, fx, fy);
+    this.postits.add(p);
+    p.fire(tx, ty);
+  }
+
+  private handleScrumShout(fromX: number, fromY: number) {
+    // Pull player toward scrum master if close enough
+    const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, fromX, fromY);
+    if (dist < 260) {
+      const dir = fromX < this.player.x ? -1 : 1;
+      const body = this.player.body as Phaser.Physics.Arcade.Body;
+      body.setVelocityX(dir * -220);
+      this.player.takeDamage(0, 0); // trigger flash without damage
+    }
   }
 
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
@@ -171,6 +267,38 @@ export class OpenSpaceScene extends Phaser.Scene {
       if (!a.active) return;
       if (tryHit(a)) {
         if (a.hit(damage, knockback)) { this.dropVR(a.x, a.y, 3); a.destroy(); }
+      }
+    });
+
+    this.facilitadores.getChildren().forEach((c) => {
+      const f = c as FacilitadorDeWorkshop;
+      if (!f.active) return;
+      if (tryHit(f)) {
+        if (f.hit(damage, knockback)) { this.dropVR(f.x, f.y, 2); f.destroy(); }
+      }
+    });
+
+    this.scrums.getChildren().forEach((c) => {
+      const s = c as ScrumMasterCaotico;
+      if (!s.active) return;
+      if (tryHit(s)) {
+        if (s.hit(damage, knockback)) { this.dropVR(s.x, s.y, 2); s.destroy(); }
+      }
+    });
+
+    this.coordenadores.getChildren().forEach((c) => {
+      const coord = c as CoordenadorDeSinergia;
+      if (!coord.active) return;
+      if (tryHit(coord)) {
+        if (coord.hit(damage, knockback)) { this.dropVR(coord.x, coord.y, 4); coord.destroy(); }
+      }
+    });
+
+    this.seniors.getChildren().forEach((c) => {
+      const sr = c as AnalistaSeniorExausto;
+      if (!sr.active) return;
+      if (tryHit(sr)) {
+        if (sr.hit(damage, knockback)) { this.dropVR(sr.x, sr.y, 6); sr.destroy(); }
       }
     });
   }
@@ -198,6 +326,39 @@ export class OpenSpaceScene extends Phaser.Scene {
           a.swingActive = false; a.swingHitbox = null;
         }
       }
+    });
+
+    this.seniors.getChildren().forEach((c) => {
+      const sr = c as AnalistaSeniorExausto;
+      if (sr.swingActive && sr.swingHitbox) {
+        const pb = this.player.getBounds();
+        if (Phaser.Geom.Intersects.RectangleToRectangle(sr.swingHitbox, pb)) {
+          if (!this.player.isInvulnerable(time)) {
+            this.player.takeDamage(sr.swingDamage, 3);
+            sr.swingActive = false; sr.swingHitbox = null;
+          }
+        }
+      }
+    });
+
+    // Coordenador buff: speed up nearby enemies when isBuffing
+    this.coordenadores.getChildren().forEach((c) => {
+      const coord = c as CoordenadorDeSinergia;
+      if (!coord.active || !coord.isBuffing) return;
+      const buffAllInRange = (group: Phaser.Physics.Arcade.Group) => {
+        group.getChildren().forEach((e) => {
+          const enemy = e as Phaser.Physics.Arcade.Sprite & { speed?: number };
+          if (!enemy.active) return;
+          const dist = Phaser.Math.Distance.Between(coord.x, coord.y, enemy.x, enemy.y);
+          if (dist < 160 && enemy.speed !== undefined) {
+            const body = enemy.body as Phaser.Physics.Arcade.Body;
+            body.setVelocityX(body.velocity.x * 1.4);
+          }
+        });
+      };
+      buffAllInRange(this.estagiarios);
+      buffAllInRange(this.analistas);
+      buffAllInRange(this.scrums);
     });
 
     this.fx.update(time, this.player.sanity);
