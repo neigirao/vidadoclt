@@ -435,7 +435,7 @@ export class MenuScene extends Phaser.Scene {
     if (item.label === "JOGAR") {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
-        this.scene.start("OpenSpaceScene");
+        this.scene.start("ClassSelectScene");
       });
     }
     // Outros itens: no-op por enquanto (ranking, arsenal, conquistas, config)

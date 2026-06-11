@@ -32,6 +32,8 @@ export class BootScene extends Phaser.Scene {
     this.makeRect("tex-gerente",     36, 52, 0x1a0a2a, 0xf2c14e); // roxo escuro, gravata dourada
     this.makeRect("tex-convite",     46, 30, 0xf4f8f4, 0x22aa22); // papel branco com badge verde
     this.makeRect("tex-email",       22, 16, 0xf2c14e, 0x1a1a1a); // envelope dourado
+    // weapons / projectiles
+    this.makeRect("tex-inkproj",     10,  5, 0x2244cc, 0x88aaff); // ink projectile (caneta)
 
     this.scene.start("MenuScene");
   }

@@ -8,9 +8,11 @@ import {
   CoordenadorDeSinergia,
   AnalistaSeniorExausto,
   ConviteReuniao,
+  InkProjectile,
 } from "../entities/Enemies";
 import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { getRun, savePersisted } from "../systems/PlayerState";
+import { CLASSES, WEAPONS, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
 
@@ -28,6 +30,7 @@ export class OpenSpaceScene extends Phaser.Scene {
   private seniors!: Phaser.Physics.Arcade.Group;
   private postits!: Phaser.Physics.Arcade.Group;
   private emails!: Phaser.Physics.Arcade.Group;
+  private inkProjectiles!: Phaser.Physics.Arcade.Group;
   private drops!: Phaser.Physics.Arcade.Group;
   private convites: ConviteReuniao[] = [];
   private boss?: GerenteMicrogestor;
@@ -81,10 +84,28 @@ export class OpenSpaceScene extends Phaser.Scene {
       fontFamily: "monospace", fontSize: "9px", color: "#666666", align: "center",
     }).setOrigin(0.5);
 
+    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
+    const weaponDef = WEAPONS[classDef.startWeapon];
+
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
     this.player = new Player(this, spawnX, FLOOR_Y - 60);
-    this.player.energy = run.energy;
-    this.player.sanity = run.sanity;
+
+    // Apply class base stats
+    this.player.maxEnergy   = classDef.maxEnergy;
+    this.player.maxSanity   = classDef.maxSanity;
+    this.player.walkSpeed   = 200 * classDef.speedMult;
+    this.player.damageMult  = classDef.damageMult;
+    this.player.vrDropMult  = classDef.vrMult;
+    this.player.weaponId    = classDef.startWeapon;
+    this.player.attackRange = weaponDef.attackRange;
+
+    if (run.cameFrom === "copa") {
+      this.player.energy = run.energy;
+      this.player.sanity = run.sanity;
+    } else {
+      this.player.energy = classDef.maxEnergy;
+      this.player.sanity = classDef.maxSanity;
+    }
     this.player.vr = run.vr;
     this.player.autonomia = run.autonomia ?? false;
     this.physics.add.collider(this.player, this.platforms);
@@ -95,6 +116,11 @@ export class OpenSpaceScene extends Phaser.Scene {
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
+    this.player.onRangedAttack = (fx, fy, facing) => {
+      const ink = new InkProjectile(this, fx, fy - 8);
+      this.inkProjectiles.add(ink);
+      ink.fire(facing);
+    };
 
     // Enemy groups
     this.estagiarios  = this.physics.add.group({ classType: EstagiarioDesesperado, runChildUpdate: false });
@@ -103,9 +129,10 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.scrums       = this.physics.add.group({ classType: ScrumMasterCaotico,     runChildUpdate: false });
     this.coordenadores = this.physics.add.group({ classType: CoordenadorDeSinergia, runChildUpdate: false });
     this.seniors      = this.physics.add.group({ classType: AnalistaSeniorExausto,  runChildUpdate: false });
-    this.postits      = this.physics.add.group();
-    this.emails       = this.physics.add.group();
-    this.drops        = this.physics.add.group();
+    this.postits         = this.physics.add.group();
+    this.emails          = this.physics.add.group();
+    this.inkProjectiles  = this.physics.add.group();
+    this.drops           = this.physics.add.group();
 
     if (run.cameFrom !== "copa") this.spawnEnemies();
 
@@ -139,6 +166,26 @@ export class OpenSpaceScene extends Phaser.Scene {
       if (!e.active || this.player.isInvulnerable(this.time.now)) return;
       this.player.takeDamage(e.damage, 0);
       e.destroy();
+    });
+
+    // Ink projectile (Caneta Bic) hits enemies
+    this.physics.add.collider(this.inkProjectiles, this.platforms, (inkObj) => {
+      (inkObj as Phaser.Physics.Arcade.Sprite).destroy();
+    });
+    const inkDmgGroups: [Phaser.Physics.Arcade.Group, number][] = [
+      [this.estagiarios, 1], [this.analistas, 3], [this.facilitadores, 2],
+      [this.scrums, 2], [this.coordenadores, 4], [this.seniors, 6],
+    ];
+    inkDmgGroups.forEach(([group, vrDrop]) => {
+      this.physics.add.overlap(this.inkProjectiles, group, (inkObj, enemyObj) => {
+        const ink = inkObj as InkProjectile;
+        if (!ink.active) return;
+        const enemy = enemyObj as Phaser.Physics.Arcade.Sprite & { hit?: (d: number, k: number) => boolean };
+        if (!enemy.active || !enemy.hit) return;
+        const died = enemy.hit(Math.round(ink.damage * this.player.damageMult), 0);
+        ink.destroy();
+        if (died) { this.dropVR(enemy.x, enemy.y, vrDrop); enemy.destroy(); }
+      });
     });
 
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
@@ -322,7 +369,9 @@ export class OpenSpaceScene extends Phaser.Scene {
   }
 
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
-    const damage   = step === 3 ? 15 : 10;
+    const weaponBaseDmg = WEAPONS[(this.player.weaponId ?? "grampeador") as "grampeador" | "caneta" | "regua"].hitDamage;
+    const stepMult = step === 3 ? 1.5 : 1.0;
+    const damage = Math.round(weaponBaseDmg * stepMult * this.player.damageMult);
     const knockback = (step === 3 ? 320 : 120) * this.player.facing;
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
@@ -340,7 +389,10 @@ export class OpenSpaceScene extends Phaser.Scene {
       group.getChildren().forEach((c) => {
         const e = cast(c);
         if (!e.active || !tryHit(e)) return;
-        if (e.hit(damage, knockback)) { this.dropVR(e.x, e.y, vrDrop); e.destroy(); }
+        if (e.hit(damage, knockback)) {
+          this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
+          e.destroy();
+        }
       });
     };
 
@@ -458,9 +510,9 @@ export class OpenSpaceScene extends Phaser.Scene {
     const run = getRun(this);
     this.hud.update({
       energy: Math.ceil(this.player.energy),
-      maxEnergy: 100,
+      maxEnergy: this.player.maxEnergy,
       sanity: Math.ceil(this.player.sanity),
-      maxSanity: 100,
+      maxSanity: this.player.maxSanity,
       vr: this.player.vr,
       reconhecimento: run.reconhecimento,
       time,

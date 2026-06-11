@@ -13,6 +13,7 @@ export type RunState = {
   loopCount: number;
   autonomia: boolean;
   cameFrom?: string;
+  characterClass?: string;
 };
 
 function lsGet(key: string): number {
@@ -54,6 +55,7 @@ export function resetRun(scene: Phaser.Scene): RunState {
     fgts: old.fgts,
     loopCount: old.loopCount,
     autonomia: false,
+    characterClass: old.characterClass,
   };
   scene.registry.set("run", fresh);
   return fresh;

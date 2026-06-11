@@ -1,5 +1,24 @@
 import Phaser from "phaser";
 
+// ─── InkProjectile (Caneta Bic ranged attack) ────────────────────────────────
+export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
+  damage = 12;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "tex-inkproj");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setAllowGravity(false);
+    body.setSize(10, 5);
+    scene.time.delayedCall(1800, () => { if (this.active) this.destroy(); });
+  }
+
+  fire(facing: 1 | -1) {
+    (this.body as Phaser.Physics.Arcade.Body).setVelocityX(facing * 380);
+  }
+}
+
 // ─── Convite de Reunião (trap) ───────────────────────────────────────────────
 export class ConviteReuniao extends Phaser.GameObjects.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {

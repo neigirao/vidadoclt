@@ -83,6 +83,6 @@ export class GameOverScene extends Phaser.Scene {
     const keep = { reconhecimento: run.reconhecimento, fgts: run.fgts, loopCount: run.loopCount };
     const fresh = resetRun(this);
     Object.assign(fresh, keep);
-    this.scene.start("OpenSpaceScene");
+    this.scene.start("ClassSelectScene");
   }
 }

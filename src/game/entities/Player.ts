@@ -21,13 +21,23 @@ export type PlayerKeys = {
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   energy = 100;
+  maxEnergy = 100;
   sanity = 100;
+  maxSanity = 100;
   vr = 0;
 
   facing: 1 | -1 = 1;
 
   autonomia = false;
   frozenUntil = 0;
+  walkSpeed = WALK_SPEED;
+  attackRange = 28;
+  damageMult = 1.0;
+  vrDropMult = 1.0;
+  weaponId = "grampeador";
+
+  onRangedAttack?: (fromX: number, fromY: number, facing: 1 | -1) => void;
+
   private speedMultUntil = 0;
   private speedMult = 0.4;
 
@@ -140,7 +150,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
     this.clearTint();
 
-    const curSpeed = time < this.speedMultUntil ? WALK_SPEED * this.speedMult : WALK_SPEED;
+    const curSpeed = time < this.speedMultUntil ? this.walkSpeed * this.speedMult : this.walkSpeed;
 
     const left = this.keys.left.isDown || this.holdA;
     const right = this.keys.right.isDown || this.holdD;
@@ -201,12 +211,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.lastAttackAt = time;
       this.nextAttackReadyAt = time + 220;
       const hb = new Phaser.Geom.Rectangle(
-        this.facing === 1 ? this.x + 6 : this.x - 34,
+        this.facing === 1 ? this.x + 6 : this.x - 6 - this.attackRange,
         this.y - 12,
-        28,
+        this.attackRange,
         28,
       );
       this.onAttack?.(hb, this.comboStep);
+      if (this.weaponId === "caneta") this.onRangedAttack?.(this.x, this.y, this.facing);
     }
 
     this.prevJumpDown = jumpDown;
