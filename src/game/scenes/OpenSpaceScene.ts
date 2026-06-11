@@ -184,7 +184,10 @@ export class OpenSpaceScene extends Phaser.Scene {
         if (!enemy.active || !enemy.hit) return;
         const died = enemy.hit(Math.round(ink.damage * this.player.damageMult), 0);
         ink.destroy();
-        if (died) { this.dropVR(enemy.x, enemy.y, vrDrop); enemy.destroy(); }
+        if (died) {
+          this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
+          enemy.destroy();
+        }
       });
     });
 
@@ -319,6 +322,14 @@ export class OpenSpaceScene extends Phaser.Scene {
     boss.onDied = () => this.handleBossDefeat(boss);
     this.boss = boss;
     this.physics.add.collider(boss, this.platforms);
+
+    // Ink projectiles can also hit the boss
+    this.physics.add.overlap(this.inkProjectiles, boss, (inkObj) => {
+      const ink = inkObj as InkProjectile;
+      if (!ink.active || !this.boss?.active) return;
+      this.boss.hit(Math.round(ink.damage * this.player.damageMult), 0);
+      ink.destroy();
+    });
   }
 
   private spawnPostIt(fx: number, fy: number, tx: number, ty: number) {
