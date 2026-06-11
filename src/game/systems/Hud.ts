@@ -78,22 +78,55 @@ export class Hud {
     bg.lineBetween(0, HUD_TOP_H, GAME_WIDTH, HUD_TOP_H);
     this.topLeft.add(bg);
 
-    // portrait
+    // portrait panel
     const portrait = this.scene.add.graphics();
     portrait.fillStyle(0x1a1d23, 1);
     portrait.fillRect(6, 5, 48, 58);
     portrait.lineStyle(1, 0x445566, 1);
     portrait.strokeRect(6, 5, 48, 58);
-    // character silhouette (head + body stripe like tex-player)
-    portrait.fillStyle(COLORS.player, 1);
-    portrait.fillRect(15, 10, 30, 22);
-    portrait.fillStyle(COLORS.playerAccent, 1);
-    portrait.fillRect(15, 32, 30, 24);
-    // face dots
-    portrait.fillStyle(0x1a1d23, 1);
-    portrait.fillRect(20, 16, 5, 5);
-    portrait.fillRect(31, 16, 5, 5);
-    portrait.fillRect(21, 25, 13, 3);
+    // character (CLT) — head, glasses, shirt, tie, pants
+    // hair
+    portrait.fillStyle(0x1a0c06, 1);
+    portrait.fillRect(18, 9,  18, 4);
+    portrait.fillRect(16, 11, 22, 5);
+    // face / skin
+    portrait.fillStyle(0xd4a07a, 1);
+    portrait.fillRect(15, 14, 22, 16);
+    // hair fringe
+    portrait.fillStyle(0x1a0c06, 1);
+    portrait.fillRect(18, 14, 18, 3);
+    // glasses
+    portrait.fillStyle(0x111111, 1);
+    portrait.fillRect(15, 18,  8, 5);
+    portrait.fillRect(27, 18,  8, 5);
+    portrait.fillRect(23, 19,  4, 1); // bridge
+    // lens tint
+    portrait.fillStyle(0xaabbcc, 0.35);
+    portrait.fillRect(16, 19,  6, 3);
+    portrait.fillRect(28, 19,  6, 3);
+    // mouth
+    portrait.fillStyle(0x8a6040, 1);
+    portrait.fillRect(20, 27,  8, 2);
+    // neck
+    portrait.fillStyle(0xd4a07a, 1);
+    portrait.fillRect(22, 30,  6, 4);
+    // shirt
+    portrait.fillStyle(0xe8e8e0, 1);
+    portrait.fillRect(13, 33, 28, 18);
+    // collar
+    portrait.fillRect(14, 33,  7,  6);
+    portrait.fillRect(33, 33,  7,  6);
+    // tie
+    portrait.fillStyle(0x1a2a5a, 1);
+    portrait.fillRect(21, 33,  8, 18);
+    portrait.fillRect(20, 40, 10,  8);
+    // belt
+    portrait.fillStyle(0x2a1a08, 1);
+    portrait.fillRect(13, 50, 28,  3);
+    // pants (cropped at bottom of portrait)
+    portrait.fillStyle(0x1a2030, 1);
+    portrait.fillRect(14, 53, 12,  8);
+    portrait.fillRect(28, 53, 12,  8);
     this.topLeft.add(portrait);
 
     // ENERGIA label

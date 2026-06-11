@@ -59,12 +59,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   onDeath?: (cause: "burnout" | "energy") => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-player");
+    super(scene, x, y, "tex-player-idle");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(20, 34);
-    body.setOffset(2, 2);
+    body.setOffset(6, 14); // 32×48 sprite — skip head, align feet
     body.setMaxVelocity(800, 1400);
 
     const kb = scene.input.keyboard!;
@@ -223,5 +223,28 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.prevJumpDown = jumpDown;
     this.prevAttackDown = attackDown;
     this.prevDashDown = dashDown;
+
+    this.updateTexture(time);
+  }
+
+  private updateTexture(time: number) {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const onGround = body.blocked.down || body.touching.down;
+
+    let state: string;
+    if (time < this.dashUntil) {
+      state = "dash";
+    } else if (time - this.lastAttackAt < 280) {
+      state = "attack";
+    } else if (!onGround) {
+      state = body.velocity.y < 0 ? "jump" : "fall";
+    } else if (Math.abs(body.velocity.x) > 20) {
+      state = Math.floor(time / 180) % 2 === 0 ? "walk0" : "walk1";
+    } else {
+      state = "idle";
+    }
+
+    const key = `tex-player-${state}`;
+    if (this.texture.key !== key) this.setTexture(key);
   }
 }
