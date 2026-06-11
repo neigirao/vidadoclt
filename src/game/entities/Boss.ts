@@ -76,31 +76,31 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       this.onPhase2?.();
     }
 
-    switch (this.state) {
+    switch (this.bossState) {
       case "waiting":
         body.setVelocityX(0);
         if (this.target && Math.abs(this.target.x - this.x) < 480) {
-          this.state = "enter";
+          this.bossState = "enter";
           this.clearTint();
           this.onActivate?.();
           this.showIntroText();
-          this.stateUntil = t + 2800;
+          this.bossStateUntil = t + 2800;
         }
         break;
 
       case "enter":
         body.setVelocityX(0);
-        if (t >= this.stateUntil) { this.state = "idle"; this.stateUntil = t + 200; }
+        if (t >= this.bossStateUntil) { this.bossState = "idle"; this.bossStateUntil = t + 200; }
         break;
 
       case "idle":
         body.setVelocityX(0);
-        if (t >= this.stateUntil) this.startTelegraph(t);
+        if (t >= this.bossStateUntil) this.startTelegraph(t);
         break;
 
       case "telegraph":
         body.setVelocityX(0);
-        if (t >= this.stateUntil) this.doAttack(t);
+        if (t >= this.bossStateUntil) this.doAttack(t);
         break;
 
       case "attack":
@@ -108,15 +108,15 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
           this.tickDash(t, body);
         } else {
           body.setVelocityX(0);
-          if (t >= this.stateUntil) this.endAttack(t);
+          if (t >= this.bossStateUntil) this.endAttack(t);
         }
         break;
 
       case "recover":
         body.setVelocityX(0);
-        if (t >= this.stateUntil) {
-          this.state = "idle";
-          this.stateUntil = t + (this.phase2 ? 320 : 520);
+        if (t >= this.bossStateUntil) {
+          this.bossState = "idle";
+          this.bossStateUntil = t + (this.phase2 ? 320 : 520);
         }
         break;
     }
@@ -167,8 +167,8 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     };
 
     const factor = this.phase2 ? 0.82 : 1;
-    this.state = "telegraph";
-    this.stateUntil = t + durations[this.currentAttack] * factor;
+    this.bossState = "telegraph";
+    this.bossStateUntil = t + durations[this.currentAttack] * factor;
     this.setTint(colors[this.currentAttack]);
 
     const lbl = this.scene.add
@@ -184,47 +184,47 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private doAttack(t: number) {
-    this.state = "attack";
+    this.bossState = "attack";
     this.clearTint();
 
     switch (this.currentAttack) {
       case "follow_up":
         if (this.target) this.onShoot?.(this.x, this.y - 14, this.target.x, this.target.y);
-        this.stateUntil = t + 260;
+        this.bossStateUntil = t + 260;
         break;
 
       case "alinhamento":
         this.onPull?.(this.x);
-        this.stateUntil = t + 320;
+        this.bossStateUntil = t + 320;
         break;
 
       case "atualizacao":
         this.dashCount = 0;
         this.nextDashAt = t;
-        this.stateUntil = t + 1700;
+        this.bossStateUntil = t + 1700;
         break;
 
       case "reuniao":
         this.onSpawn?.(this.x - 90, this.y);
         this.onSpawn?.(this.x + 90, this.y);
-        this.stateUntil = t + 460;
+        this.bossStateUntil = t + 460;
         break;
 
       case "freeze":
         this.onFreeze?.(2500);
-        this.stateUntil = t + 320;
+        this.bossStateUntil = t + 320;
         break;
 
       case "deadline":
         this.onPull?.(this.x);
         this.onFreeze?.(1100);
-        this.stateUntil = t + 360;
+        this.bossStateUntil = t + 360;
         break;
     }
   }
 
   private tickDash(t: number, body: Phaser.Physics.Arcade.Body) {
-    if (this.dashCount >= 3 || t >= this.stateUntil) {
+    if (this.dashCount >= 3 || t >= this.bossStateUntil) {
       this.endAttack(t);
       return;
     }
@@ -251,15 +251,15 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private endAttack(t: number) {
-    this.state = "recover";
-    this.stateUntil = t + (this.phase2 ? 680 : 920);
+    this.bossState = "recover";
+    this.bossStateUntil = t + (this.phase2 ? 680 : 920);
     this.swingActive = false;
     this.swingHitbox = null;
     this.clearTint();
   }
 
   hit(damage: number, knockback: number): boolean {
-    if (this.state === "waiting") return false;
+    if (this.bossState === "waiting") return false;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.08);
