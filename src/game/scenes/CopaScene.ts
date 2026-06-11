@@ -9,7 +9,7 @@ import { ShopUI } from "../systems/Shop";
 import { Hud } from "../systems/Hud";
 
 const LEVEL_WIDTH = 1280;
-const FLOOR_Y = GAME_HEIGHT - 32;
+const FLOOR_Y = HUD_BOT_Y - 32;
 
 export class CopaScene extends Phaser.Scene {
   private player!: Player;
