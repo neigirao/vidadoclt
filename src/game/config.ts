@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { BootScene } from "./scenes/BootScene";
+import { MenuScene } from "./scenes/MenuScene";
 import { OpenSpaceScene } from "./scenes/OpenSpaceScene";
 import { CopaScene } from "./scenes/CopaScene";
 import { GameOverScene } from "./scenes/GameOverScene";
@@ -26,6 +27,6 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
         debug: false,
       },
     },
-    scene: [BootScene, OpenSpaceScene, CopaScene, GameOverScene],
+    scene: [BootScene, MenuScene, OpenSpaceScene, CopaScene, GameOverScene],
   };
 }

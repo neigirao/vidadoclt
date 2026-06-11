@@ -23,7 +23,7 @@ export class BootScene extends Phaser.Scene {
     this.makeRect("tex-coffee", 28, 40, 0x6a4a3a, 0xeac08a);
     this.makeRect("tex-ponto", 28, 40, COLORS.ponto, 0x222222);
 
-    this.scene.start("OpenSpaceScene");
+    this.scene.start("MenuScene");
   }
 
   private makeRect(key: string, w: number, h: number, fill: number, accent?: number) {
