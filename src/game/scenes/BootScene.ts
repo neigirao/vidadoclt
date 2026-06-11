@@ -21,34 +21,54 @@ export class BootScene extends Phaser.Scene {
     this.load.image("tex-player-fall",   "/assets/sprites/player-jump.png"); // reuse jump for fall
     this.load.image("tex-player-attack", "/assets/sprites/player-attack.png");
     this.load.image("tex-player-dash",   "/assets/sprites/player-dash.png");
-    // Real enemy sprites
+    // Enemies (fase 1 — já implementados)
     this.load.image("tex-estagiario",    "/assets/sprites/enemy-estagiario.png");
     this.load.image("tex-analista",      "/assets/sprites/enemy-analista.png");
     this.load.image("tex-facilitador",   "/assets/sprites/enemy-facilitador.png");
     this.load.image("tex-scrum",         "/assets/sprites/enemy-scrum.png");
     this.load.image("tex-coordenador",   "/assets/sprites/enemy-coordenador.png");
     this.load.image("tex-senior",        "/assets/sprites/enemy-senior.png");
+    // Boss
+    this.load.image("tex-gerente",       "/assets/sprites/enemy-gerente.png");
+    // NPCs
+    this.load.image("tex-faxineiro",     "/assets/sprites/npc-faxineiro.png");
+    // Futuros inimigos (fases 2-5)
+    this.load.image("tex-telemarketer",  "/assets/sprites/enemy-telemarketer.png");
+    this.load.image("tex-impressora",    "/assets/sprites/enemy-impressora.png");
+    this.load.image("tex-cabo",          "/assets/sprites/enemy-cabo.png");
+    this.load.image("tex-evangelista",   "/assets/sprites/enemy-evangelista.png");
+    this.load.image("tex-seguranca",     "/assets/sprites/enemy-seguranca.png");
+    this.load.image("tex-ti-suporte",    "/assets/sprites/enemy-ti-suporte.png");
+    this.load.image("tex-coletor",       "/assets/sprites/enemy-coletor.png");
+    this.load.image("tex-noticeboard",   "/assets/sprites/enemy-noticeboard.png");
+    this.load.image("tex-drone",         "/assets/sprites/enemy-drone.png");
+    this.load.image("tex-carimbador",    "/assets/sprites/enemy-carimbador.png");
+    this.load.image("tex-planilha",      "/assets/sprites/enemy-planilha.png");
+    this.load.image("tex-arquivo",       "/assets/sprites/enemy-arquivo.png");
+    this.load.image("tex-bateria",       "/assets/sprites/enemy-bateria.png");
+    // Objetos interativos
+    this.load.image("tex-cafe-machine",  "/assets/sprites/obj-cafe-machine.png");
+    this.load.image("tex-bebedouro",     "/assets/sprites/obj-bebedouro.png");
+    this.load.image("tex-obj-impressora","/assets/sprites/obj-impressora.png");
+    this.load.image("tex-elevador",      "/assets/sprites/obj-elevador.png");
+    this.load.image("tex-porta-reuniao", "/assets/sprites/obj-porta-reuniao.png");
   }
 
   create() {
-    // Player and enemy sprites are loaded from PNG in preload() above.
-    // Only generate placeholder rects for items that don't have real sprites yet.
-    this.makeRect("tex-vr", 12, 12, COLORS.vr);
-    this.makeRect("tex-platform", 32, 16, COLORS.platform);
-    this.makeRect("tex-floor", 32, 16, COLORS.floor);
-    this.makeRect("tex-baia", 64, 40, COLORS.baia);
-    this.makeRect("tex-hitbox", 28, 24, 0xffffff);
-    this.makeRect("tex-faxineiro", 32, 44, COLORS.faxineiro, 0xeeeeee);
-    this.makeRect("tex-door", 36, 60, COLORS.door, 0xc9a36a);
-    this.makeRect("tex-coffee", 28, 40, 0x6a4a3a, 0xeac08a);
-    this.makeRect("tex-ponto",    28, 40, COLORS.ponto, 0x222222);
-    this.makeRect("tex-postit",   14, 14, 0xffee22, 0xffaa00);
-    // boss + traps (no real sprites yet)
-    this.makeRect("tex-gerente",  36, 52, 0x1a0a2a, 0xf2c14e);
-    this.makeRect("tex-convite",  46, 30, 0xf4f8f4, 0x22aa22);
-    this.makeRect("tex-email",    22, 16, 0xf2c14e, 0x1a1a1a);
-    // weapons / projectiles
-    this.makeRect("tex-inkproj",  10,  5, 0x2244cc, 0x88aaff);
+    // Sprites com arte real são carregados via preload() acima.
+    // makeRect() apenas para itens pequenos sem sprite PNG ainda.
+    this.makeRect("tex-vr",      12, 12, COLORS.vr);
+    this.makeRect("tex-platform",32, 16, COLORS.platform);
+    this.makeRect("tex-floor",   32, 16, COLORS.floor);
+    this.makeRect("tex-baia",    64, 40, COLORS.baia);
+    this.makeRect("tex-hitbox",  28, 24, 0xffffff);
+    this.makeRect("tex-door",    36, 60, COLORS.door, 0xc9a36a);
+    this.makeRect("tex-coffee",  28, 40, 0x6a4a3a, 0xeac08a);
+    this.makeRect("tex-ponto",   28, 40, COLORS.ponto, 0x222222);
+    this.makeRect("tex-postit",  14, 14, 0xffee22, 0xffaa00);
+    this.makeRect("tex-convite", 46, 30, 0xf4f8f4, 0x22aa22);
+    this.makeRect("tex-email",   22, 16, 0xf2c14e, 0x1a1a1a);
+    this.makeRect("tex-inkproj", 10,  5, 0x2244cc, 0x88aaff);
 
     this.scene.start("MenuScene");
   }
