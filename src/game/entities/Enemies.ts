@@ -1,5 +1,18 @@
 import Phaser from "phaser";
 
+// ─── Convite de Reunião (trap) ───────────────────────────────────────────────
+export class ConviteReuniao extends Phaser.GameObjects.Sprite {
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "tex-convite");
+    scene.add.existing(this);
+    scene.tweens.add({
+      targets: this, y: y + 14,
+      duration: Phaser.Math.Between(850, 1150),
+      yoyo: true, repeat: -1, ease: "Sine.easeInOut",
+    });
+  }
+}
+
 // ─── PostIt projectile (used by FacilitadorDeWorkshop) ────────────────────────
 export class PostIt extends Phaser.Physics.Arcade.Sprite {
   sanityDamage = 12;

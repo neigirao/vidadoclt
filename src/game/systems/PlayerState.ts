@@ -11,6 +11,7 @@ export type RunState = {
   reconhecimento: number;
   fgts: number;
   loopCount: number;
+  autonomia: boolean;
   cameFrom?: string;
 };
 
@@ -37,6 +38,7 @@ export function getRun(scene: Phaser.Scene): RunState {
       reconhecimento: lsGet(LS_RECNH),
       fgts: lsGet(LS_FGTS),
       loopCount: lsGet(LS_LOOPS),
+      autonomia: false,
     };
     scene.registry.set("run", fresh);
     return fresh;
@@ -51,6 +53,7 @@ export function resetRun(scene: Phaser.Scene): RunState {
     reconhecimento: old.reconhecimento,
     fgts: old.fgts,
     loopCount: old.loopCount,
+    autonomia: false,
   };
   scene.registry.set("run", fresh);
   return fresh;

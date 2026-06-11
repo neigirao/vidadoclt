@@ -26,6 +26,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   facing: 1 | -1 = 1;
 
+  autonomia = false;
+  frozenUntil = 0;
+  private speedMultUntil = 0;
+  private speedMult = 0.4;
+
   private keys: PlayerKeys;
   private lastGroundedAt = 0;
   private lastJumpPressedAt = -9999;
@@ -75,6 +80,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return now < this.invulnUntil || now < this.dashUntil;
   }
 
+  applyFreeze(ms: number) {
+    const dur = this.autonomia ? Math.ceil(ms * 0.5) : ms;
+    this.frozenUntil = Math.max(this.frozenUntil, this.scene.time.now + dur);
+  }
+
+  applySlowdown(ms: number) {
+    const dur = this.autonomia ? Math.ceil(ms * 0.5) : ms;
+    this.speedMultUntil = Math.max(this.speedMultUntil, this.scene.time.now + dur);
+  }
+
   takeDamage(amount: number, sanityHit = 0) {
     const now = this.scene.time.now;
     if (this.isInvulnerable(now)) return;
@@ -114,6 +129,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const onGround = body.blocked.down || body.touching.down;
     if (onGround) this.lastGroundedAt = time;
 
+    // Freeze: no input, only gravity
+    if (time < this.frozenUntil) {
+      body.setVelocityX(0);
+      this.setTint(0xaaaaff);
+      this.prevJumpDown = false;
+      this.prevAttackDown = false;
+      this.prevDashDown = false;
+      return;
+    }
+    this.clearTint();
+
+    const curSpeed = time < this.speedMultUntil ? WALK_SPEED * this.speedMult : WALK_SPEED;
+
     const left = this.keys.left.isDown || this.holdA;
     const right = this.keys.right.isDown || this.holdD;
     const jumpDown = this.keys.jump.isDown || this.keys.jumpAlt.isDown;
@@ -129,11 +157,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityX(this.facing * DASH_SPEED);
     } else {
       if (left && !right) {
-        body.setVelocityX(-WALK_SPEED);
+        body.setVelocityX(-curSpeed);
         this.facing = -1;
         this.setFlipX(true);
       } else if (right && !left) {
-        body.setVelocityX(WALK_SPEED);
+        body.setVelocityX(curSpeed);
         this.facing = 1;
         this.setFlipX(false);
       } else {

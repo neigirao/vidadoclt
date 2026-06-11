@@ -7,8 +7,10 @@ import {
   ScrumMasterCaotico,
   CoordenadorDeSinergia,
   AnalistaSeniorExausto,
+  ConviteReuniao,
 } from "../entities/Enemies";
-import { getRun } from "../systems/PlayerState";
+import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
+import { getRun, savePersisted } from "../systems/PlayerState";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
 
@@ -25,11 +27,17 @@ export class OpenSpaceScene extends Phaser.Scene {
   private coordenadores!: Phaser.Physics.Arcade.Group;
   private seniors!: Phaser.Physics.Arcade.Group;
   private postits!: Phaser.Physics.Arcade.Group;
+  private emails!: Phaser.Physics.Arcade.Group;
   private drops!: Phaser.Physics.Arcade.Group;
+  private convites: ConviteReuniao[] = [];
+  private boss?: GerenteMicrogestor;
+  private bossDefeated = false;
+  private phase2Active = false;
   private startTimeMs = 0;
   private fx!: SanityFx;
   private hud!: Hud;
   private doorCopa!: Phaser.GameObjects.Image;
+  private doorLabel!: Phaser.GameObjects.Text;
   private interactKey!: Phaser.Input.Keyboard.Key;
 
   constructor() {
@@ -39,6 +47,10 @@ export class OpenSpaceScene extends Phaser.Scene {
   create() {
     const run = getRun(this);
     this.startTimeMs = this.time.now;
+    this.bossDefeated = false;
+    this.phase2Active = false;
+    this.convites = [];
+
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
@@ -62,10 +74,11 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.buildPlatform(1300, FLOOR_Y - 120, 6);
     this.buildPlatform(1580, FLOOR_Y - 180, 5);
 
-    // Door to Copa at end
+    // Copa door — locked until boss defeated
     this.doorCopa = this.add.image(LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door");
-    this.add.text(LEVEL_WIDTH - 60, FLOOR_Y - 72, "COPA", {
-      fontFamily: "monospace", fontSize: "10px", color: "#c9a36a",
+    this.doorCopa.setTint(0x555555);
+    this.doorLabel = this.add.text(LEVEL_WIDTH - 60, FLOOR_Y - 72, "COPA\n[BLOQUEADO]", {
+      fontFamily: "monospace", fontSize: "9px", color: "#666666", align: "center",
     }).setOrigin(0.5);
 
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
@@ -73,6 +86,7 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;
+    this.player.autonomia = run.autonomia ?? false;
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
@@ -82,55 +96,49 @@ export class OpenSpaceScene extends Phaser.Scene {
     };
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
 
-    this.estagiarios = this.physics.add.group({ classType: EstagiarioDesesperado, runChildUpdate: false });
-    this.analistas = this.physics.add.group({ classType: AnalistaJunior, runChildUpdate: false });
+    // Enemy groups
+    this.estagiarios  = this.physics.add.group({ classType: EstagiarioDesesperado, runChildUpdate: false });
+    this.analistas    = this.physics.add.group({ classType: AnalistaJunior,         runChildUpdate: false });
     this.facilitadores = this.physics.add.group({ classType: FacilitadorDeWorkshop, runChildUpdate: false });
-    this.scrums = this.physics.add.group({ classType: ScrumMasterCaotico, runChildUpdate: false });
+    this.scrums       = this.physics.add.group({ classType: ScrumMasterCaotico,     runChildUpdate: false });
     this.coordenadores = this.physics.add.group({ classType: CoordenadorDeSinergia, runChildUpdate: false });
-    this.seniors = this.physics.add.group({ classType: AnalistaSeniorExausto, runChildUpdate: false });
-    this.postits = this.physics.add.group();
-    this.drops = this.physics.add.group();
+    this.seniors      = this.physics.add.group({ classType: AnalistaSeniorExausto,  runChildUpdate: false });
+    this.postits      = this.physics.add.group();
+    this.emails       = this.physics.add.group();
+    this.drops        = this.physics.add.group();
 
     if (run.cameFrom !== "copa") this.spawnEnemies();
 
-    this.physics.add.collider(this.estagiarios, this.platforms);
-    this.physics.add.collider(this.analistas, this.platforms);
-    this.physics.add.collider(this.facilitadores, this.platforms);
-    this.physics.add.collider(this.scrums, this.platforms);
-    this.physics.add.collider(this.coordenadores, this.platforms);
-    this.physics.add.collider(this.seniors, this.platforms);
-    this.physics.add.collider(this.drops, this.platforms);
+    // Colliders
+    [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
+     this.coordenadores, this.seniors, this.drops].forEach((g) =>
+      this.physics.add.collider(g, this.platforms)
+    );
 
-    this.physics.add.overlap(this.player, this.estagiarios, (_p, eObj) => {
-      const e = eObj as EstagiarioDesesperado;
-      if (this.player.isInvulnerable(this.time.now)) return;
-      this.player.takeDamage(e.contactDamage, 4);
-    });
-
-    this.physics.add.overlap(this.player, this.scrums, (_p, eObj) => {
-      const e = eObj as ScrumMasterCaotico;
-      if (this.player.isInvulnerable(this.time.now)) return;
-      this.player.takeDamage(e.contactDamage, 4);
-    });
-
-    this.physics.add.overlap(this.player, this.coordenadores, (_p, eObj) => {
-      const e = eObj as CoordenadorDeSinergia;
-      if (this.player.isInvulnerable(this.time.now)) return;
-      this.player.takeDamage(e.contactDamage, 3);
-    });
-
-    this.physics.add.overlap(this.player, this.seniors, (_p, eObj) => {
-      const e = eObj as AnalistaSeniorExausto;
-      if (this.player.isInvulnerable(this.time.now)) return;
-      this.player.takeDamage(e.contactDamage, 3);
-    });
+    // Player ↔ enemy contacts
+    const contactDamage = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
+      this.physics.add.overlap(this.player, group, (_p, eObj) => {
+        if (this.player.isInvulnerable(this.time.now)) return;
+        this.player.takeDamage(dmg(eObj as Phaser.Physics.Arcade.Sprite), 4);
+      });
+    };
+    contactDamage(this.estagiarios,  (e) => (e as EstagiarioDesesperado).contactDamage);
+    contactDamage(this.scrums,       (e) => (e as ScrumMasterCaotico).contactDamage);
+    contactDamage(this.coordenadores,(e) => (e as CoordenadorDeSinergia).contactDamage);
+    contactDamage(this.seniors,      (e) => (e as AnalistaSeniorExausto).contactDamage);
 
     this.physics.add.overlap(this.player, this.postits, (_p, pObj) => {
       const p = pObj as PostIt;
-      if (!p.active) return;
-      if (this.player.isInvulnerable(this.time.now)) return;
+      if (!p.active || this.player.isInvulnerable(this.time.now)) return;
       this.player.sanity = Math.max(0, this.player.sanity - p.sanityDamage);
       p.destroy();
+    });
+
+    this.physics.add.overlap(this.player, this.emails, (_p, eObj) => {
+      const e = eObj as EmailProjectil;
+      if (!e.active || this.player.isInvulnerable(this.time.now)) return;
+      this.player.takeDamage(e.damage, 0);
+      e.destroy();
     });
 
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
@@ -138,10 +146,12 @@ export class OpenSpaceScene extends Phaser.Scene {
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
+    // Copa door zone (locked until boss death)
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     const doorZone = this.add.zone(this.doorCopa.x, this.doorCopa.y, 40, 60);
     this.physics.add.existing(doorZone, true);
     this.physics.add.overlap(this.player, doorZone, () => {
+      if (!this.bossDefeated) return;
       if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
         this.persist();
         const r = getRun(this);
@@ -150,12 +160,12 @@ export class OpenSpaceScene extends Phaser.Scene {
       }
     });
 
-    this.fx = new SanityFx(this);
+    this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
-    this.hud.setObjective("Chegue ao elevador e desça para o próximo andar");
+    this.hud.setObjective("Derrote o Gerente e acesse a Copa");
 
     const title = this.add
-      .text(GAME_WIDTH / 2, 110, "18:00 — Quarta-feira\nÁrea 1: Estações de Trabalho", {
+      .text(GAME_WIDTH / 2, 110, "18:00 — Quarta-feira\nArea 1: Estacoes de Trabalho", {
         fontFamily: "monospace", fontSize: "18px", color: "#eaeaea", align: "center",
         stroke: "#000000", strokeThickness: 3,
       })
@@ -165,9 +175,10 @@ export class OpenSpaceScene extends Phaser.Scene {
 
   private persist() {
     const r = getRun(this);
-    r.energy = this.player.energy;
-    r.sanity = this.player.sanity;
-    r.vr = this.player.vr;
+    r.energy    = this.player.energy;
+    r.sanity    = this.player.sanity;
+    r.vr        = this.player.vr;
+    r.autonomia = this.player.autonomia;
   }
 
   private buildFloor() {
@@ -190,42 +201,77 @@ export class OpenSpaceScene extends Phaser.Scene {
       this.estagiarios.add(e);
     });
 
-    // Area 2 (x 700-1100): Facilitadores + Scrums
+    // Area 2 (x 700-1100): Facilitadores + Scrums + Convites de Reunião
     [820, 1020].forEach((x) => {
       const f = new FacilitadorDeWorkshop(this, x, FLOOR_Y - 60);
       f.target = this.player;
       f.onShoot = (fx, fy, tx, ty) => this.spawnPostIt(fx, fy, tx, ty);
       this.facilitadores.add(f);
     });
-    [950].forEach((x) => {
-      const s = new ScrumMasterCaotico(this, x, FLOOR_Y - 60);
-      s.target = this.player;
-      s.onShout = (fromX, fromY) => this.handleScrumShout(fromX, fromY);
-      this.scrums.add(s);
+    const scrum = new ScrumMasterCaotico(this, 950, FLOOR_Y - 60);
+    scrum.target = this.player;
+    scrum.onShout = (fromX, fromY) => this.handleScrumShout(fromX, fromY);
+    this.scrums.add(scrum);
+
+    // Convites de Reunião (traps) — Area 2
+    [740, 840, 920, 1060].forEach((x) => {
+      const y = Phaser.Math.Between(FLOOR_Y - 200, FLOOR_Y - 100);
+      this.convites.push(new ConviteReuniao(this, x, y));
     });
 
-    // Area 3 (x 1100-1500): Mix com AnalistaJunior
+    // Area 3 (x 1100-1500): AnalistaJunior
     [600, 1150, 1350].forEach((x) => {
       const a = new AnalistaJunior(this, x, FLOOR_Y - 60);
       a.target = this.player;
       this.analistas.add(a);
     });
 
-    // Area 4 (x 1500-1900): Coordenadores + Seniors (elite)
+    // Area 4 (x 1500-1900): Coordenadores + Seniors + boss
     [1500, 1700].forEach((x) => {
       const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
       this.estagiarios.add(e);
     });
-    [1620].forEach((x) => {
-      const c = new CoordenadorDeSinergia(this, x, FLOOR_Y - 60);
-      c.target = this.player;
-      this.coordenadores.add(c);
-    });
-    [1780].forEach((x) => {
-      const sr = new AnalistaSeniorExausto(this, x, FLOOR_Y - 60);
-      sr.target = this.player;
-      this.seniors.add(sr);
-    });
+    const coord = new CoordenadorDeSinergia(this, 1620, FLOOR_Y - 60);
+    coord.target = this.player;
+    this.coordenadores.add(coord);
+
+    const sr = new AnalistaSeniorExausto(this, 1700, FLOOR_Y - 60);
+    sr.target = this.player;
+    this.seniors.add(sr);
+
+    // Boss — Gerente Microgestor
+    const boss = new GerenteMicrogestor(this, 1820, FLOOR_Y - 60);
+    boss.target = this.player;
+    boss.onActivate = () => {
+      this.hud.showBoss("Gerente Microgestor", boss.maxHp);
+      this.hud.setObjective("Derrote o Gerente Microgestor!");
+    };
+    boss.onHpChange = (hp) => this.hud.updateBoss(hp);
+    boss.onShoot = (fx, fy, tx, ty) => {
+      const e = new EmailProjectil(this, fx, fy);
+      this.emails.add(e);
+      e.fire(tx, ty);
+    };
+    boss.onPull = (targetX) => {
+      const dir = targetX < this.player.x ? -1 : 1;
+      (this.player.body as Phaser.Physics.Arcade.Body).setVelocityX(dir * -360);
+    };
+    boss.onFreeze = (ms) => this.player.applyFreeze(ms);
+    boss.onSpawn  = (x, y) => {
+      const e = new EstagiarioDesesperado(this, x, y, Math.random() > 0.5 ? 1 : -1);
+      this.estagiarios.add(e);
+      this.physics.add.collider(e, this.platforms);
+    };
+    boss.onPhase2 = () => {
+      this.phase2Active = true;
+      this.hud.setObjective("FASE 2 — Deadline Inadiavel!");
+      const flash = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0.35)
+        .setScrollFactor(0).setDepth(990);
+      this.tweens.add({ targets: flash, alpha: 0, duration: 600, onComplete: () => flash.destroy() });
+    };
+    boss.onDied = () => this.handleBossDefeat(boss);
+    this.boss = boss;
+    this.physics.add.collider(boss, this.platforms);
   }
 
   private spawnPostIt(fx: number, fy: number, tx: number, ty: number) {
@@ -235,71 +281,86 @@ export class OpenSpaceScene extends Phaser.Scene {
   }
 
   private handleScrumShout(fromX: number, fromY: number) {
-    // Pull player toward scrum master if close enough
     const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, fromX, fromY);
     if (dist < 260) {
       const dir = fromX < this.player.x ? -1 : 1;
-      const body = this.player.body as Phaser.Physics.Arcade.Body;
-      body.setVelocityX(dir * -220);
-      this.player.takeDamage(0, 0); // trigger flash without damage
+      (this.player.body as Phaser.Physics.Arcade.Body).setVelocityX(dir * -220);
     }
   }
 
+  private handleBossDefeat(boss: GerenteMicrogestor) {
+    this.bossDefeated = true;
+    this.hud.hideBoss();
+    this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
+
+    // Drop VR shower
+    for (let i = 0; i < 18; i++) {
+      this.time.delayedCall(i * 60, () => {
+        if (!boss.active) this.dropVR(boss.x + Phaser.Math.Between(-70, 70), boss.y - 20);
+      });
+    }
+    boss.destroy();
+
+    // Grant Autonomia perk
+    const run = getRun(this);
+    run.autonomia = true;
+    this.player.autonomia = true;
+    savePersisted(run.reconhecimento, run.fgts, run.loopCount);
+
+    // Unlock Copa door
+    this.doorCopa.clearTint();
+    this.doorLabel.setText("COPA").setColor("#c9a36a");
+
+    // Victory message
+    const msg = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30,
+        "GERENTE DERROTADO!\n\nPerk: AUTONOMIA ativado\n-50% duracao de controles\n\nPorta da Copa desbloqueada  ->",
+        { fontFamily: "monospace", fontSize: "15px", color: "#f2c14e",
+          stroke: "#000000", strokeThickness: 3, align: "center" })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(999);
+    this.tweens.add({ targets: msg, alpha: 0, duration: 900, delay: 4500, onComplete: () => msg.destroy() });
+  }
+
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
-    const damage = step === 3 ? 15 : 10;
+    const damage   = step === 3 ? 15 : 10;
     const knockback = (step === 3 ? 320 : 120) * this.player.facing;
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
 
-    const tryHit = (sprite: Phaser.Physics.Arcade.Sprite) =>
-      Phaser.Geom.Intersects.RectangleToRectangle(hb, sprite.getBounds());
+    const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
+      Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
+    const tryHitGO = (s: Phaser.GameObjects.Sprite) =>
+      Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
 
-    this.estagiarios.getChildren().forEach((c) => {
-      const e = c as EstagiarioDesesperado;
-      if (!e.active) return;
-      if (tryHit(e)) {
-        if (e.hit(damage, knockback)) { this.dropVR(e.x, e.y); e.destroy(); }
-      }
-    });
+    const hitGroup = (
+      group: Phaser.Physics.Arcade.Group,
+      vrDrop: number,
+      cast: (c: Phaser.GameObjects.GameObject) => Phaser.Physics.Arcade.Sprite & { hit: (d: number, k: number) => boolean },
+    ) => {
+      group.getChildren().forEach((c) => {
+        const e = cast(c);
+        if (!e.active || !tryHit(e)) return;
+        if (e.hit(damage, knockback)) { this.dropVR(e.x, e.y, vrDrop); e.destroy(); }
+      });
+    };
 
-    this.analistas.getChildren().forEach((c) => {
-      const a = c as AnalistaJunior;
-      if (!a.active) return;
-      if (tryHit(a)) {
-        if (a.hit(damage, knockback)) { this.dropVR(a.x, a.y, 3); a.destroy(); }
-      }
-    });
+    hitGroup(this.estagiarios,   1, (c) => c as EstagiarioDesesperado);
+    hitGroup(this.analistas,     3, (c) => c as AnalistaJunior);
+    hitGroup(this.facilitadores, 2, (c) => c as FacilitadorDeWorkshop);
+    hitGroup(this.scrums,        2, (c) => c as ScrumMasterCaotico);
+    hitGroup(this.coordenadores, 4, (c) => c as CoordenadorDeSinergia);
+    hitGroup(this.seniors,       6, (c) => c as AnalistaSeniorExausto);
 
-    this.facilitadores.getChildren().forEach((c) => {
-      const f = c as FacilitadorDeWorkshop;
-      if (!f.active) return;
-      if (tryHit(f)) {
-        if (f.hit(damage, knockback)) { this.dropVR(f.x, f.y, 2); f.destroy(); }
-      }
-    });
+    // Boss
+    if (this.boss && this.boss.active && tryHit(this.boss)) {
+      this.boss.hit(damage, knockback);
+    }
 
-    this.scrums.getChildren().forEach((c) => {
-      const s = c as ScrumMasterCaotico;
-      if (!s.active) return;
-      if (tryHit(s)) {
-        if (s.hit(damage, knockback)) { this.dropVR(s.x, s.y, 2); s.destroy(); }
-      }
-    });
-
-    this.coordenadores.getChildren().forEach((c) => {
-      const coord = c as CoordenadorDeSinergia;
-      if (!coord.active) return;
-      if (tryHit(coord)) {
-        if (coord.hit(damage, knockback)) { this.dropVR(coord.x, coord.y, 4); coord.destroy(); }
-      }
-    });
-
-    this.seniors.getChildren().forEach((c) => {
-      const sr = c as AnalistaSeniorExausto;
-      if (!sr.active) return;
-      if (tryHit(sr)) {
-        if (sr.hit(damage, knockback)) { this.dropVR(sr.x, sr.y, 6); sr.destroy(); }
-      }
+    // Convites (1 hit destroys, +1 VR bonus)
+    this.convites = this.convites.filter((c) => {
+      if (!c.active) return false;
+      if (tryHitGO(c)) { c.destroy(); this.player.addVR(1); return false; }
+      return true;
     });
   }
 
@@ -317,55 +378,82 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.player.update(time, delta);
     this.player.tickPassive(time);
 
+    // AnalistaJunior swing
     this.analistas.getChildren().forEach((c) => {
       const a = c as AnalistaJunior;
       if (a.swingActive && a.swingHitbox) {
-        const pb = this.player.getBounds();
-        if (Phaser.Geom.Intersects.RectangleToRectangle(a.swingHitbox, pb)) {
+        if (Phaser.Geom.Intersects.RectangleToRectangle(a.swingHitbox, this.player.getBounds())) {
           this.player.takeDamage(a.swingDamage, 6);
           a.swingActive = false; a.swingHitbox = null;
         }
       }
     });
 
+    // AnalistaSenior slam
     this.seniors.getChildren().forEach((c) => {
       const sr = c as AnalistaSeniorExausto;
       if (sr.swingActive && sr.swingHitbox) {
-        const pb = this.player.getBounds();
-        if (Phaser.Geom.Intersects.RectangleToRectangle(sr.swingHitbox, pb)) {
-          if (!this.player.isInvulnerable(time)) {
-            this.player.takeDamage(sr.swingDamage, 3);
-            sr.swingActive = false; sr.swingHitbox = null;
-          }
+        if (!this.player.isInvulnerable(time) &&
+            Phaser.Geom.Intersects.RectangleToRectangle(sr.swingHitbox, this.player.getBounds())) {
+          this.player.takeDamage(sr.swingDamage, 3);
+          sr.swingActive = false; sr.swingHitbox = null;
         }
       }
     });
 
-    // Coordenador buff: speed up nearby enemies when isBuffing
+    // Boss dash contact
+    if (this.boss?.active) {
+      if (this.boss.swingActive && this.boss.swingHitbox) {
+        if (!this.player.isInvulnerable(time) &&
+            Phaser.Geom.Intersects.RectangleToRectangle(this.boss.swingHitbox, this.player.getBounds())) {
+          this.player.takeDamage(this.boss.swingDamage, 5);
+          this.boss.swingActive = false; this.boss.swingHitbox = null;
+        }
+      }
+      // Boss contact walk damage
+      if (!this.player.isInvulnerable(time) &&
+          Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
+        this.player.takeDamage(this.boss.contactDamage, 3);
+      }
+    }
+
+    // Convites de Reunião collision
+    this.convites = this.convites.filter((c) => c.active);
+    this.convites.forEach((c) => {
+      if (!this.player.isInvulnerable(time) &&
+          Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), c.getBounds())) {
+        this.player.sanity = Math.max(0, this.player.sanity - 10);
+        this.player.applySlowdown(2000);
+        c.destroy();
+      }
+    });
+
+    // Coordenador buff
     this.coordenadores.getChildren().forEach((c) => {
       const coord = c as CoordenadorDeSinergia;
       if (!coord.active || !coord.isBuffing) return;
-      const buffAllInRange = (group: Phaser.Physics.Arcade.Group) => {
-        group.getChildren().forEach((e) => {
+      [this.estagiarios, this.analistas, this.scrums].forEach((g) =>
+        g.getChildren().forEach((e) => {
           const enemy = e as Phaser.Physics.Arcade.Sprite & { speed?: number };
           if (!enemy.active) return;
-          const dist = Phaser.Math.Distance.Between(coord.x, coord.y, enemy.x, enemy.y);
-          if (dist < 160 && enemy.speed !== undefined) {
-            const body = enemy.body as Phaser.Physics.Arcade.Body;
-            body.setVelocityX(body.velocity.x * 1.4);
+          if (Phaser.Math.Distance.Between(coord.x, coord.y, enemy.x, enemy.y) < 160) {
+            (enemy.body as Phaser.Physics.Arcade.Body).setVelocityX(
+              (enemy.body as Phaser.Physics.Arcade.Body).velocity.x * 1.4,
+            );
           }
-        });
-      };
-      buffAllInRange(this.estagiarios);
-      buffAllInRange(this.analistas);
-      buffAllInRange(this.scrums);
+        })
+      );
     });
 
     this.fx.update(time, this.player.sanity);
 
-    const nearDoor = Phaser.Math.Distance.Between(
-      this.player.x, this.player.y, this.doorCopa.x, this.doorCopa.y
-    ) < 40;
+    // Phase 2: extra sanity drain
+    if (this.phase2Active && time % 1200 < delta) {
+      this.player.sanity = Math.max(0, this.player.sanity - 1);
+    }
+
+    const nearDoor = this.bossDefeated &&
+      Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorCopa.x, this.doorCopa.y) < 40;
 
     const run = getRun(this);
     this.hud.update({

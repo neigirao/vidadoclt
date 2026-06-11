@@ -28,6 +28,10 @@ export class BootScene extends Phaser.Scene {
     this.makeRect("tex-coordenador", 28, 40, 0x1a4a6a, 0x44ff88); // azul com verde neón
     this.makeRect("tex-senior",      32, 46, 0x3a3a3a, 0x884444); // cinza escuro com vermelho
     this.makeRect("tex-postit",      14, 14, 0xffee22, 0xffaa00); // post-it amarelo
+    // boss + traps
+    this.makeRect("tex-gerente",     36, 52, 0x1a0a2a, 0xf2c14e); // roxo escuro, gravata dourada
+    this.makeRect("tex-convite",     46, 30, 0xf4f8f4, 0x22aa22); // papel branco com badge verde
+    this.makeRect("tex-email",       22, 16, 0xf2c14e, 0x1a1a1a); // envelope dourado
 
     this.scene.start("MenuScene");
   }
