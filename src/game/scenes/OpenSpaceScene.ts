@@ -9,7 +9,6 @@ import {
   CoordenadorDeSinergia,
   AnalistaSeniorExausto,
   ConviteReuniao,
-  InkProjectile,
 } from "../entities/Enemies";
 import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { getRun, savePersisted } from "../systems/PlayerState";

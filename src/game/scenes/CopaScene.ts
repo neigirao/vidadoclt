@@ -128,6 +128,11 @@ export class CopaScene extends Phaser.Scene {
     this.hud.setObjective("Descanse, compre no Ponto e volte ao escritorio");
 
     this.shop = new ShopUI(this);
+    this.shop.setPlayer(this.player);
+    this.shop.onWeaponChange = (id) => {
+      const r = getRun(this);
+      r.weaponId = id;
+    };
     this.shop.onAdvance = () => {
       this.persist();
       const r = getRun(this);
