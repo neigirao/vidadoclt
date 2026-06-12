@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
-import { HUD_BOT_Y } from "../systems/Hud";
+import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
+import { addPhaseBackground } from "../systems/Background";
 import { Player } from "../entities/Player";
 import { AnalistaSeniorExausto } from "../entities/Enemies";
 import {
@@ -53,15 +54,7 @@ export class Phase3Scene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
-    const HUD_TOP_H = 68;
-    {
-      const midY = (HUD_TOP_H + FLOOR_Y) / 2;
-      const targetH = FLOOR_Y - HUD_TOP_H;
-      const bg = this.add.image(GAME_WIDTH / 2, midY, "bg-comercial").setScrollFactor(0);
-      const scaleX = GAME_WIDTH / (bg.width || GAME_WIDTH);
-      const scaleY = targetH / (bg.height || targetH);
-      bg.setScale(Math.max(scaleX, scaleY));
-    }
+    addPhaseBackground(this, "bg-comercial", HUD_TOP_H, FLOOR_Y);
 
     this.platforms = this.physics.add.staticGroup();
     this.platBodyG = this.add.graphics().setDepth(8);
@@ -452,10 +445,7 @@ export class Phase3Scene extends Phaser.Scene {
   }
 
   private buildFloor() {
-    const tileCount = Math.ceil(LEVEL_WIDTH / 32);
-    for (let i = 0; i < tileCount; i++) {
-      this.add.image(i * 32 + 16, FLOOR_Y + 8, "tex-floor").setDisplaySize(32, 16);
-    }
+    this.add.tileSprite(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, "tex-floor");
     const floorPhys = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, 0x000000, 0);
     this.physics.add.existing(floorPhys, true);
     this.platforms.add(floorPhys);
