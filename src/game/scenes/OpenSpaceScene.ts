@@ -118,14 +118,135 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
     this.player.onDeath = (cause) => {
+      const run = getRun(this);
+      if ((run.extraLives ?? 0) > 0) {
+        run.extraLives!--;
+        this.player.energy = 30;
+        this.player.setTint(0xff4444);
+        this.time.delayedCall(500, () => this.player.clearTint());
+        return;
+      }
       this.persist();
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
     this.player.onRangedAttack = (fx, fy, facing) => {
-      const ink = new InkProjectile(this, fx, fy - 8);
-      this.inkProjectiles.add(ink);
-      ink.fire(facing);
+      const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
+      this.spawnProjectile({
+        x: fx + facing * 20, y: fy - 5,
+        velX: facing * (def.rangedSpeed || 500),
+        damage: def.rangedDamage || def.hitDamages[0],
+        piercing: def.rangedPiercing,
+        bounces: def.rangedBounce,
+        homing: def.rangedHoming,
+      });
+    };
+
+    this.player.onSpecialAttack = (type, fx, fy, facing) => {
+      const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
+      switch (type) {
+        case "burst_ranged":
+          for (let i = 0; i < 2; i++) {
+            this.time.delayedCall(i * 100, () => {
+              this.spawnProjectile({ x: fx + facing * 20, y: fy - 5, velX: facing * (def.rangedSpeed || 500), damage: def.rangedDamage || def.hitDamages[0] });
+            });
+          }
+          break;
+        case "wide_sweep": {
+          const hb = new Phaser.Geom.Rectangle(
+            facing > 0 ? fx : fx - 100, fy - 24, 100, 48
+          );
+          this.resolveAttack(hb, 3);
+          break;
+        }
+        case "aerial_spike": {
+          const hb = new Phaser.Geom.Rectangle(fx - 20, fy - 50, 40, 50);
+          this.resolveAttack(hb, 3);
+          this.player.body && ((this.player.body as Phaser.Physics.Arcade.Body).setVelocityY(-300));
+          break;
+        }
+        case "throw_weapon": {
+          this.spawnProjectile({ x: fx + facing * 20, y: fy - 10, velX: facing * 700, damage: def.hitDamages[1] * 2 });
+          break;
+        }
+        case "emp_pulse": {
+          const stun = (sprite: Phaser.GameObjects.GameObject) => {
+            if (sprite instanceof Phaser.Physics.Arcade.Sprite) {
+              const s = sprite as any;
+              if (s.applyFreeze) s.applyFreeze(900);
+            }
+          };
+          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g => g?.getChildren().forEach(stun));
+          (this.boss as any)?.applyFreeze?.(900);
+          const ring = this.add.circle(this.player.x, this.player.y, 8, 0x88aaff, 0.6);
+          this.tweens.add({ targets: ring, scaleX: 15, scaleY: 15, alpha: 0, duration: 400, onComplete: () => ring.destroy() });
+          break;
+        }
+        case "paper_spread": {
+          const angles = [-0.25, 0, 0.25];
+          angles.forEach(a => {
+            const spd = def.rangedSpeed || 500;
+            this.spawnProjectile({
+              x: fx + facing * 20, y: fy - 5,
+              velX: facing * spd * Math.cos(a),
+              velY: spd * Math.sin(a),
+              damage: def.rangedDamage || def.hitDamages[0],
+              piercing: def.rangedPiercing,
+            });
+          });
+          break;
+        }
+        case "caneca_arc": {
+          this.spawnProjectile({
+            x: fx + facing * 20, y: fy - 20,
+            velX: facing * 400, velY: -350,
+            damage: def.hitDamages[2],
+            arc: true,
+          });
+          break;
+        }
+        case "wide_beam": {
+          const beamY = fy - 10;
+          const beamRect = new Phaser.Geom.Rectangle(
+            facing > 0 ? fx : 0,
+            beamY - 15,
+            facing > 0 ? this.levelWidth - fx : fx,
+            30
+          );
+          this.resolveAttack(beamRect, 3);
+          const lineW = facing > 0 ? (this.levelWidth - fx) : fx;
+          const lineX = facing > 0 ? fx + lineW / 2 : fx / 2;
+          const line = this.add.rectangle(lineX, beamY, lineW, 6, 0x88aaff, 0.8);
+          this.tweens.add({ targets: line, alpha: 0, duration: 300, onComplete: () => line.destroy() });
+          break;
+        }
+        case "spray_knockback": {
+          const hb = new Phaser.Geom.Rectangle(facing > 0 ? fx : fx - 120, fy - 30, 120, 60);
+          this.resolveAttack(hb, 3);
+          const cloud = this.add.circle(fx + facing * 60, fy, 12, 0xffffff, 0.5);
+          this.tweens.add({ targets: cloud, scaleX: 5, scaleY: 4, alpha: 0, duration: 500, onComplete: () => cloud.destroy() });
+          break;
+        }
+        case "chain_lightning": {
+          const allEnemies: Phaser.Physics.Arcade.Sprite[] = [];
+          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g => {
+            g?.getChildren().forEach(e => allEnemies.push(e as Phaser.Physics.Arcade.Sprite));
+          });
+          const sorted = allEnemies
+            .filter(e => e.active)
+            .sort((a, b) => Phaser.Math.Distance.Between(fx, fy, a.x, a.y) - Phaser.Math.Distance.Between(fx, fy, b.x, b.y));
+          sorted.slice(0, 3).forEach((enemy, i) => {
+            this.time.delayedCall(i * 80, () => {
+              const e = enemy as any;
+              if (e.hit) e.hit(def.hitDamages[2], 150);
+              const flash = this.add.rectangle(enemy.x, enemy.y, 6, 40, 0xffff44, 0.9);
+              this.time.delayedCall(150, () => flash.destroy());
+            });
+          });
+          (this.boss as any)?.hit?.(def.hitDamages[2], 150);
+          break;
+        }
+      }
     };
 
     // Enemy groups
@@ -174,9 +295,18 @@ export class OpenSpaceScene extends Phaser.Scene {
       e.destroy();
     });
 
-    // Ink projectile (Caneta Bic) hits enemies
+    // Ink projectile hits enemies
     this.physics.add.collider(this.inkProjectiles, this.platforms, (inkObj) => {
-      (inkObj as Phaser.Physics.Arcade.Sprite).destroy();
+      const ink = inkObj as Phaser.Physics.Arcade.Sprite;
+      const bounces = (ink.getData("bounces") as number) ?? 0;
+      if (bounces > 0) {
+        ink.setData("bounces", bounces - 1);
+        const ibody = ink.body as Phaser.Physics.Arcade.Body;
+        ibody.setVelocityX(-ibody.velocity.x);
+        ibody.setVelocityY(-Math.abs(ibody.velocity.y) * 0.5);
+      } else {
+        ink.destroy();
+      }
     });
     const inkDmgGroups: [Phaser.Physics.Arcade.Group, number][] = [
       [this.estagiarios, 1], [this.analistas, 3], [this.facilitadores, 2],
@@ -184,12 +314,14 @@ export class OpenSpaceScene extends Phaser.Scene {
     ];
     inkDmgGroups.forEach(([group, vrDrop]) => {
       this.physics.add.overlap(this.inkProjectiles, group, (inkObj, enemyObj) => {
-        const ink = inkObj as InkProjectile;
+        const ink = inkObj as Phaser.Physics.Arcade.Sprite;
         if (!ink.active) return;
         const enemy = enemyObj as Phaser.Physics.Arcade.Sprite & { hit?: (d: number, k: number) => boolean };
         if (!enemy.active || !enemy.hit) return;
-        const died = enemy.hit(Math.round(ink.damage * this.player.damageMult), 0);
-        ink.destroy();
+        const dmg = (ink.getData("damage") as number) ?? 10;
+        const piercing = (ink.getData("piercing") as boolean) ?? false;
+        const died = enemy.hit(Math.round(dmg * this.player.damageMult), 0);
+        if (!piercing) ink.destroy();
         if (died) {
           this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
           enemy.destroy();
@@ -337,10 +469,12 @@ export class OpenSpaceScene extends Phaser.Scene {
 
     // Ink projectiles can also hit the boss
     this.physics.add.overlap(this.inkProjectiles, boss, (inkObj) => {
-      const ink = inkObj as InkProjectile;
+      const ink = inkObj as Phaser.Physics.Arcade.Sprite;
       if (!ink.active || !this.boss?.active) return;
-      this.boss.hit(Math.round(ink.damage * this.player.damageMult), 0);
-      ink.destroy();
+      const dmg = (ink.getData("damage") as number) ?? 10;
+      const piercing = (ink.getData("piercing") as boolean) ?? false;
+      this.boss.hit(Math.round(dmg * this.player.damageMult), 0);
+      if (!piercing) ink.destroy();
     });
   }
 
@@ -392,11 +526,14 @@ export class OpenSpaceScene extends Phaser.Scene {
   }
 
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
-    const def = WEAPONS[(this.player.weaponId as WeaponId)] ?? WEAPONS.grampeador;
-    const damage = Math.round((def.hitDamages[step - 1] ?? def.hitDamages[0]) * this.player.damageMult);
-    const isLastHit = def.hitDamages[2] === 0 ? step >= 2 : step >= 3;
-    const knockback = (isLastHit ? def.comboKnockback : 80) * this.player.facing;
-    if (def.hitSlow > 0) this.player.scene.time.delayedCall(0, () => {}); // hitSlow applied per enemy below
+    const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
+    const comboHits = def.hitDamages[2] === 0 ? 2 : 3;
+    const dmgIndex = Math.min(step - 1, def.hitDamages.length - 1);
+    const baseDmg = def.hitDamages[dmgIndex] || def.hitDamages[0];
+    const damage = Math.round(baseDmg * this.player.damageMult);
+    const knockback = (step >= comboHits ? def.comboKnockback : 80) * this.player.facing;
+    const slowMs = def.hitSlow;
+
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
 
@@ -408,11 +545,12 @@ export class OpenSpaceScene extends Phaser.Scene {
     const hitGroup = (
       group: Phaser.Physics.Arcade.Group,
       vrDrop: number,
-      cast: (c: Phaser.GameObjects.GameObject) => Phaser.Physics.Arcade.Sprite & { hit: (d: number, k: number) => boolean },
+      cast: (c: Phaser.GameObjects.GameObject) => Phaser.Physics.Arcade.Sprite & { hit: (d: number, k: number) => boolean; applySlowdown?: (ms: number) => void },
     ) => {
       group.getChildren().forEach((c) => {
         const e = cast(c);
         if (!e.active || !tryHit(e)) return;
+        if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
         if (e.hit(damage, knockback)) {
           this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
           e.destroy();
@@ -440,6 +578,28 @@ export class OpenSpaceScene extends Phaser.Scene {
     });
   }
 
+  private spawnProjectile(opts: {
+    x: number; y: number;
+    velX: number; velY?: number;
+    damage: number;
+    piercing?: boolean;
+    bounces?: number;
+    homing?: boolean;
+    arc?: boolean;
+    textureKey?: string;
+  }) {
+    const ink = this.inkProjectiles.create(opts.x, opts.y, opts.textureKey ?? "tex-inkproj") as Phaser.Physics.Arcade.Sprite;
+    const body = ink.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(opts.velX, opts.velY ?? 0);
+    if (opts.arc) body.setGravityY(400);
+    ink.setData("damage", opts.damage);
+    ink.setData("piercing", opts.piercing ?? false);
+    ink.setData("bounces", opts.bounces ?? 0);
+    ink.setData("homing", opts.homing ?? false);
+    ink.setData("lifetime", this.time.now + 4000);
+    return ink;
+  }
+
   private dropVR(x: number, y: number, count = 1) {
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(x + (i - count / 2) * 8, y - 10, "tex-vr") as Phaser.Physics.Arcade.Sprite;
@@ -453,6 +613,30 @@ export class OpenSpaceScene extends Phaser.Scene {
   update(time: number, delta: number) {
     this.player.update(time, delta);
     this.player.tickPassive(time);
+
+    // Homing projectiles
+    this.inkProjectiles.getChildren().forEach(obj => {
+      const ink = obj as Phaser.Physics.Arcade.Sprite;
+      if (!ink.active) return;
+      // Expire old projectiles
+      const lifetime = ink.getData("lifetime") as number;
+      if (lifetime && lifetime < time) { ink.destroy(); return; }
+      if (!ink.getData("homing")) return;
+      // Find nearest active enemy
+      const allEnemies: Phaser.Physics.Arcade.Sprite[] = [];
+      [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g => {
+        g?.getChildren().forEach(e => allEnemies.push(e as Phaser.Physics.Arcade.Sprite));
+      });
+      const nearest = allEnemies.filter(e => e.active).sort((a, b) =>
+        Phaser.Math.Distance.Between(ink.x, ink.y, a.x, a.y) - Phaser.Math.Distance.Between(ink.x, ink.y, b.x, b.y)
+      )[0];
+      if (nearest) {
+        const ibody = ink.body as Phaser.Physics.Arcade.Body;
+        const angle = Phaser.Math.Angle.Between(ink.x, ink.y, nearest.x, nearest.y);
+        const spd = 480;
+        ibody.setVelocity(Math.cos(angle) * spd, Math.sin(angle) * spd);
+      }
+    });
 
     // AnalistaJunior swing
     this.analistas.getChildren().forEach((c) => {
