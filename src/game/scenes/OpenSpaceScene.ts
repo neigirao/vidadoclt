@@ -368,6 +368,7 @@ export class OpenSpaceScene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
 
     const title = this.add

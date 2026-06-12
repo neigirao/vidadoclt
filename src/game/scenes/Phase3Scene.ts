@@ -312,6 +312,7 @@ export class Phase3Scene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle("FASE 3 — RH / ENDOMARKETING");
     this.hud.setObjective("Derrote o Analista Sênior e avance");
 
     const title = this.add.text(GAME_WIDTH / 2, 110, "FASE 3 — COMERCIAL", {

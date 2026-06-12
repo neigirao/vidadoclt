@@ -154,6 +154,7 @@ export class Phase4Scene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle("FASE 4 — TI / SERVIDORES");
     this.hud.setObjective("Derrote o Scrum Master e avance");
 
     this.spawnEnemies();

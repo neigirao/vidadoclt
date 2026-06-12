@@ -325,6 +325,7 @@ export class Phase2Scene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle("FASE 2 — REUNIAO INFINITA");
     this.hud.setObjective("Derrote o Coordenador e avance");
 
     const title = this.add
