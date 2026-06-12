@@ -91,7 +91,9 @@ export class Phase4Scene extends Phaser.Scene {
     this.player.specialCooldown = weaponDef.specialCooldown;
     this.player.specialType = weaponDef.specialType;
     this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.isRangedPrimary = weaponDef.type === "ranged";
     this.player.comboHits = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
     this.player.autonomia = run.autonomia ?? false;
 
     if (run.cameFrom === "copa") {
@@ -112,6 +114,8 @@ export class Phase4Scene extends Phaser.Scene {
       if ((r.extraLives ?? 0) > 0) {
         r.extraLives!--;
         this.player.energy = 30;
+        this.player.sanity = Math.max(this.player.sanity, 25);
+        (this.player as any).invulnUntil = this.time.now + 1500;
         this.player.setTint(0xff4444);
         this.time.delayedCall(500, () => this.player.clearTint());
         return;
@@ -161,7 +165,8 @@ export class Phase4Scene extends Phaser.Scene {
     const contactDmg = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
       this.physics.add.overlap(this.player, group, (_p, eObj) => {
         if (this.player.isInvulnerable(this.time.now)) return;
-        this.player.takeDamage(dmg(eObj as Phaser.Physics.Arcade.Sprite), 4);
+        const e = eObj as Phaser.Physics.Arcade.Sprite;
+        this.player.takeDamage(dmg(e), 4, e.x);
       });
     };
     contactDmg(this.cabos,      (e) => (e as CaboDeRede).contactDamage);
@@ -254,7 +259,7 @@ export class Phase4Scene extends Phaser.Scene {
       e.onCable = (player) => {
         if (!this.player.isInvulnerable(this.time.now)) {
           this.player.applyFreeze(700);
-          this.player.takeDamage(8, 5);
+          this.player.takeDamage(8, 5, e.x);
         }
       };
       this.cabos.add(e);
@@ -297,7 +302,7 @@ export class Phase4Scene extends Phaser.Scene {
       seg.onTase = (player) => {
         if (!this.player.isInvulnerable(this.time.now)) {
           this.player.applyFreeze(1200);
-          this.player.takeDamage(6, 8);
+          this.player.takeDamage(6, 8, seg.x);
         }
       };
       this.segurancas.add(seg);
@@ -311,7 +316,7 @@ export class Phase4Scene extends Phaser.Scene {
     boss.onShout = (bx, by) => {
       if (!this.player.isInvulnerable(this.time.now) &&
         Phaser.Math.Distance.Between(this.player.x, this.player.y, bx, by) < 160) {
-        this.player.takeDamage(12, 10);
+        this.player.takeDamage(12, 10, bx);
         this.player.applyFreeze(600);
       }
     };
@@ -519,7 +524,13 @@ export class Phase4Scene extends Phaser.Scene {
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
         if (e.hit(damage, knockback)) {
           this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
-          e.destroy();
+          this.tweens.add({
+            targets: e,
+            scaleX: 1.6, scaleY: 0.2, alpha: 0,
+            duration: 120,
+            onComplete: () => e.destroy(),
+          });
+          e.setActive(false);
         }
       });
     };
@@ -566,11 +577,7 @@ export class Phase4Scene extends Phaser.Scene {
     this.player.update(time, delta);
     this.player.tickPassive(time);
 
-    this.cabos.getChildren().forEach(c => (c as CaboDeRede).preUpdate(time, delta));
-    this.tiSuportes.getChildren().forEach(c => (c as TiSuporte).preUpdate(time, delta));
-    this.drones.getChildren().forEach(c => (c as DroneDeVigilancia).preUpdate(time, delta));
-    this.segurancas.getChildren().forEach(c => (c as SegurancaCorporativa).preUpdate(time, delta));
-    this.scrums.getChildren().forEach(c => (c as ScrumMasterCaotico).preUpdate(time, delta));
+    // NOTE: preUpdate is called automatically by Phaser for scene children — no manual calls needed
 
     this.inkProjectiles.getChildren().forEach(obj => {
       const ink = obj as Phaser.Physics.Arcade.Sprite;
@@ -595,7 +602,7 @@ export class Phase4Scene extends Phaser.Scene {
     if (this.boss?.active) {
       if (!this.player.isInvulnerable(time) &&
         Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
-        this.player.takeDamage(this.boss.contactDamage, 3);
+        this.player.takeDamage(this.boss.contactDamage, 3, this.boss.x);
       }
     }
 

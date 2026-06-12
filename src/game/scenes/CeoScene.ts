@@ -71,7 +71,9 @@ export class CeoScene extends Phaser.Scene {
     this.player.specialCooldown = weaponDef.specialCooldown;
     this.player.specialType = weaponDef.specialType;
     this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.isRangedPrimary = weaponDef.type === "ranged";
     this.player.comboHits = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
     this.player.autonomia = run.autonomia ?? false;
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
@@ -196,7 +198,7 @@ export class CeoScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.minions, (_p, mObj) => {
       const m = mObj as Phaser.Physics.Arcade.Sprite;
       if (!m.active || this.player.isInvulnerable(this.time.now)) return;
-      this.player.takeDamage(6, 3);
+      this.player.takeDamage(6, 3, m.x);
     });
 
     this.physics.add.collider(this.inkProjectiles, this.platforms, (inkObj) => {
@@ -469,15 +471,13 @@ export class CeoScene extends Phaser.Scene {
     this.player.update(time, delta);
     this.player.tickPassive(time);
 
-    if (this.boss.active) this.boss.preUpdate(time, delta);
-
-    this.minions.getChildren().forEach(c => (c as EstagiarioDesesperado).preUpdate(time, delta));
+    // NOTE: preUpdate is called automatically by Phaser for scene children — no manual calls needed
 
     // Boss melee check
     if (this.boss.active && this.boss.swingActive && this.boss.swingHitbox) {
       if (!this.player.isInvulnerable(time) &&
         Phaser.Geom.Intersects.RectangleToRectangle(this.boss.swingHitbox, this.player.getBounds())) {
-        this.player.takeDamage(this.boss.swingDamage, 8);
+        this.player.takeDamage(this.boss.swingDamage, 8, this.boss.x);
         this.boss.swingActive = false;
         this.boss.swingHitbox = null;
       }
@@ -486,7 +486,7 @@ export class CeoScene extends Phaser.Scene {
     // Boss contact damage
     if (this.boss.active && !this.player.isInvulnerable(time) &&
       Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
-      this.player.takeDamage(this.boss.contactDamage, 5);
+      this.player.takeDamage(this.boss.contactDamage, 5, this.boss.x);
     }
 
     // Ink projectile homing + lifetime

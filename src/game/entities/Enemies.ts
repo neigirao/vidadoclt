@@ -76,7 +76,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     if (body.blocked.left) {
       this.dir = 1;
       this.setFlipX(false);
@@ -126,7 +126,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 300) this.dir = dx >= 0 ? 1 : -1;
@@ -219,7 +219,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 340) this.dir = dx >= 0 ? 1 : -1;
@@ -355,7 +355,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 420) this.dir = dx >= 0 ? 1 : -1;
@@ -420,7 +420,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 380) this.dir = dx >= 0 ? 1 : -1;
@@ -534,7 +534,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
 
     if (this.target) {
       const dx = this.target.x - this.x;

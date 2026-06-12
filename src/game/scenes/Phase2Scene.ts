@@ -78,7 +78,7 @@ export class Phase2Scene extends Phaser.Scene {
 
     const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
     const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
-    const weaponDef = WEAPONS[weaponId];
+    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
 
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
     this.player = new Player(this, spawnX, FLOOR_Y - 60);
@@ -93,7 +93,9 @@ export class Phase2Scene extends Phaser.Scene {
     this.player.specialCooldown = weaponDef.specialCooldown;
     this.player.specialType = weaponDef.specialType;
     this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.isRangedPrimary = weaponDef.type === "ranged";
     this.player.comboHits = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
 
     if (run.cameFrom === "copa") {
       this.player.energy = run.energy;
@@ -238,7 +240,8 @@ export class Phase2Scene extends Phaser.Scene {
     const contactDamage = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
       this.physics.add.overlap(this.player, group, (_p, eObj) => {
         if (this.player.isInvulnerable(this.time.now)) return;
-        this.player.takeDamage(dmg(eObj as Phaser.Physics.Arcade.Sprite), 4);
+        const e = eObj as Phaser.Physics.Arcade.Sprite;
+        this.player.takeDamage(dmg(e), 4, e.x);
       });
     };
     contactDamage(this.telemarketers,  (e) => (e as TelemarketerZumbi).contactDamage);
@@ -555,14 +558,7 @@ export class Phase2Scene extends Phaser.Scene {
         if (e.target !== undefined) e.target = this.player;
       });
     });
-    this.nuvens.getChildren().forEach(c => {
-      const e = c as NuvemBoardSentinela;
-      e.preUpdate(time, delta);
-    });
-    this.telemarketers.getChildren().forEach(c => (c as TelemarketerZumbi).preUpdate(time, delta));
-    this.impressoras.getChildren().forEach(c => (c as ImpressoraAssombrada).preUpdate(time, delta));
-    this.guardioes.getChildren().forEach(c => (c as GuardiaoDoCafe).preUpdate(time, delta));
-    this.coordenadores.getChildren().forEach(c => (c as CoordenadorDeSinergia).preUpdate(time, delta));
+    // NOTE: preUpdate is called automatically by Phaser for scene children — no manual calls needed
 
     // Expire ink projectiles
     this.inkProjectiles.getChildren().forEach(obj => {
@@ -590,7 +586,7 @@ export class Phase2Scene extends Phaser.Scene {
     if (this.boss?.active) {
       if (!this.player.isInvulnerable(time) &&
         Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
-        this.player.takeDamage(this.boss.contactDamage, 3);
+        this.player.takeDamage(this.boss.contactDamage, 3, this.boss.x);
       }
     }
 

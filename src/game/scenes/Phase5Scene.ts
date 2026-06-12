@@ -83,12 +83,14 @@ export class Phase5Scene extends Phaser.Scene {
     this.player.walkSpeed   = 200 * classDef.speedMult;
     this.player.damageMult  = classDef.damageMult;
     this.player.vrDropMult  = classDef.vrMult;
-    this.player.weaponId    = run.weaponId ?? classDef.startWeapon;
+    this.player.weaponId    = (run.weaponId ?? classDef.startWeapon) as WeaponId;
     this.player.attackRange = weaponDef.attackRange;
     this.player.specialCooldown = weaponDef.specialCooldown;
     this.player.specialType = weaponDef.specialType;
     this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.isRangedPrimary = weaponDef.type === "ranged";
     this.player.comboHits = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
     this.player.autonomia = run.autonomia ?? false;
 
     if (run.cameFrom === "copa") {
@@ -152,7 +154,8 @@ export class Phase5Scene extends Phaser.Scene {
     const contactDmg = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
       this.physics.add.overlap(this.player, group, (_p, eObj) => {
         if (this.player.isInvulnerable(this.time.now)) return;
-        this.player.takeDamage(dmg(eObj as Phaser.Physics.Arcade.Sprite), 5);
+        const e = eObj as Phaser.Physics.Arcade.Sprite;
+        this.player.takeDamage(dmg(e), 5, e.x);
       });
     };
     contactDmg(this.carimbadores, (e) => (e as CarimbadorAutomatico).contactDamage);
@@ -476,9 +479,7 @@ export class Phase5Scene extends Phaser.Scene {
     this.player.update(time, delta);
     this.player.tickPassive(time);
 
-    this.carimbadores.getChildren().forEach(c => (c as CarimbadorAutomatico).preUpdate(time, delta));
-    this.arquivos.getChildren().forEach(c => (c as ArquivoAmbulante).preUpdate(time, delta));
-    this.baterias.getChildren().forEach(c => (c as BateriaSocial).preUpdate(time, delta));
+    // NOTE: preUpdate is called automatically by Phaser for scene children — no manual calls needed
 
     // BateriaSocial aura: nearby enemies slow recovery from hits
     // (cosmetic — no mechanical effect needed beyond what's in the entity)

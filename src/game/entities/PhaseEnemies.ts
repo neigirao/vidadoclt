@@ -32,7 +32,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -67,7 +67,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
 
 // ─── ImpressoraAssombrada ─────────────────────────────────────────────────────
 export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
-  hp = 40;
+  hp = 400;
   contactDamage = 8;
   vrReward = 8;
 
@@ -121,7 +121,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
 
 // ─── GuardiaoDoCafe ───────────────────────────────────────────────────────────
 export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
-  hp = 35;
+  hp = 280;
   speed = 90;
   contactDamage = 20;
   vrReward = 4;
@@ -150,7 +150,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -191,7 +191,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
 
 // ─── NuvemBoardSentinela ──────────────────────────────────────────────────────
 export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
-  hp = 25;
+  hp = 250;
   vrReward = 3;
 
   onFire?: (x: number, y: number) => void;
@@ -219,7 +219,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (body.blocked.left) this._driftDir = 1;
@@ -251,7 +251,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
 
 // ─── EvangelistaCorporativo ───────────────────────────────────────────────────
 export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
-  hp = 28;
+  hp = 224;
   speed = 60;
   contactDamage = 8;
   vrReward = 3;
@@ -281,7 +281,7 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (!this.target) { body.setVelocityX(0); return; }
@@ -340,7 +340,7 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
 
 // ─── ColetorDeDados ───────────────────────────────────────────────────────────
 export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
-  hp = 15;
+  hp = 150;
   speed = 130;
   vrReward = 1;
 
@@ -366,7 +366,7 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocity(0, 0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -395,8 +395,8 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
 
 // ─── PlanilhaViva ─────────────────────────────────────────────────────────────
 export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
-  hp = 50;
-  maxHp = 50;
+  hp = 400;
+  maxHp = 400;
   speed = 40;
   contactDamage = 10;
   vrReward = 6;
@@ -426,7 +426,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -452,7 +452,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
-    if (this.hp <= 25 && !this.split) {
+    if (this.hp <= this.maxHp * 0.5 && !this.split) {
       this.split = true;
       this.onSplit?.(this.x, this.y);
     }
@@ -465,7 +465,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
 
 // ─── CaboDeRede ───────────────────────────────────────────────────────────────
 export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
-  hp = 22;
+  hp = 176;
   speed = 80;
   contactDamage = 10;
   vrReward = 2;
@@ -494,7 +494,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.cableUsed && t >= this._cableResetAt) {
@@ -548,7 +548,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
 
 // ─── TiSuporte ────────────────────────────────────────────────────────────────
 export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
-  hp = 30;
+  hp = 300;
   speed = 90;
   contactDamage = 12;
   vrReward = 3;
@@ -576,7 +576,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -611,7 +611,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
 
 // ─── DroneDeVigilancia ────────────────────────────────────────────────────────
 export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
-  hp = 18;
+  hp = 144;
   vrReward = 3;
   private _floatY: number;
 
@@ -640,7 +640,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocity(0, 0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     // Track player X, maintain float Y
@@ -677,7 +677,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
 
 // ─── SegurancaCorporativa ─────────────────────────────────────────────────────
 export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
-  hp = 28;
+  hp = 280;
   speed = 120;
   contactDamage = 10;
   vrReward = 4;
@@ -709,7 +709,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.taseUsed && t >= this._taseResetAt) {
@@ -771,7 +771,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
 
 // ─── CarimbadorAutomatico ─────────────────────────────────────────────────────
 export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
-  hp = 32;
+  hp = 256;
   speed = 50;
   contactDamage = 8;
   vrReward = 4;
@@ -799,7 +799,7 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -834,7 +834,7 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
 
 // ─── ArquivoAmbulante ─────────────────────────────────────────────────────────
 export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
-  hp = 80;
+  hp = 800;
   speed = 30;
   contactDamage = 35;
   vrReward = 15;
@@ -859,7 +859,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -889,7 +889,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
 
 // ─── BateriaSocial ────────────────────────────────────────────────────────────
 export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
-  hp = 25;
+  hp = 200;
   speed = 60;
   contactDamage = 8;
   vrReward = 4;
@@ -920,7 +920,7 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.x < this._startX - 100) this._patrolDir = 1;

@@ -75,7 +75,7 @@ export class Phase3Scene extends Phaser.Scene {
 
     const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
     const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
-    const weaponDef = WEAPONS[weaponId];
+    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
 
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
     this.player = new Player(this, spawnX, FLOOR_Y - 60);
@@ -90,7 +90,9 @@ export class Phase3Scene extends Phaser.Scene {
     this.player.specialCooldown = weaponDef.specialCooldown;
     this.player.specialType = weaponDef.specialType;
     this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.isRangedPrimary = weaponDef.type === "ranged";
     this.player.comboHits = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
 
     if (run.cameFrom === "copa") {
       this.player.energy = run.energy;
@@ -230,7 +232,8 @@ export class Phase3Scene extends Phaser.Scene {
     const contactDamage = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
       this.physics.add.overlap(this.player, group, (_p, eObj) => {
         if (this.player.isInvulnerable(this.time.now)) return;
-        this.player.takeDamage(dmg(eObj as Phaser.Physics.Arcade.Sprite), 4);
+        const e = eObj as Phaser.Physics.Arcade.Sprite;
+        this.player.takeDamage(dmg(e), 4, e.x);
       });
     };
     contactDamage(this.evangelistas, (e) => (e as EvangelistaCorporativo).contactDamage);
@@ -358,8 +361,8 @@ export class Phase3Scene extends Phaser.Scene {
       planilha.onSplit = (sx, sy) => {
         for (let i = 0; i < 2; i++) {
           const mini = new PlanilhaViva(this, sx + (i === 0 ? -40 : 40), sy);
-          mini.hp = 20;
-          mini.maxHp = 20;
+          mini.hp = 160;
+          mini.maxHp = 160;
           mini.target = this.player;
           this.planilhas.add(mini);
           this.physics.add.collider(mini, this.platforms);
@@ -561,10 +564,7 @@ export class Phase3Scene extends Phaser.Scene {
     this.player.update(time, delta);
     this.player.tickPassive(time);
 
-    this.evangelistas.getChildren().forEach(c => (c as EvangelistaCorporativo).preUpdate(time, delta));
-    this.coletores.getChildren().forEach(c => (c as ColetorDeDados).preUpdate(time, delta));
-    this.planilhas.getChildren().forEach(c => (c as PlanilhaViva).preUpdate(time, delta));
-    this.seniors.getChildren().forEach(c => (c as AnalistaSeniorExausto).preUpdate(time, delta));
+    // NOTE: preUpdate is called automatically by Phaser for scene children — no manual calls needed
 
     // ColetorDeDados steals VR drops nearby
     this.coletores.getChildren().forEach(c => {
@@ -585,7 +585,7 @@ export class Phase3Scene extends Phaser.Scene {
       if (sr.swingActive && sr.swingHitbox) {
         if (!this.player.isInvulnerable(time) &&
           Phaser.Geom.Intersects.RectangleToRectangle(sr.swingHitbox, this.player.getBounds())) {
-          this.player.takeDamage(sr.swingDamage, 3);
+          this.player.takeDamage(sr.swingDamage, 3, sr.x);
           sr.swingActive = false; sr.swingHitbox = null;
         }
       }
@@ -595,13 +595,13 @@ export class Phase3Scene extends Phaser.Scene {
       if (this.boss.swingActive && this.boss.swingHitbox) {
         if (!this.player.isInvulnerable(time) &&
           Phaser.Geom.Intersects.RectangleToRectangle(this.boss.swingHitbox, this.player.getBounds())) {
-          this.player.takeDamage(this.boss.swingDamage, 3);
+          this.player.takeDamage(this.boss.swingDamage, 3, this.boss.x);
           this.boss.swingActive = false; this.boss.swingHitbox = null;
         }
       }
       if (!this.player.isInvulnerable(time) &&
         Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
-        this.player.takeDamage(this.boss.contactDamage, 3);
+        this.player.takeDamage(this.boss.contactDamage, 3, this.boss.x);
       }
     }
 

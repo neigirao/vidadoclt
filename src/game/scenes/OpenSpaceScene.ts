@@ -108,7 +108,9 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.player.specialCooldown = weaponDef.specialCooldown;
     this.player.specialType = weaponDef.specialType;
     this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.isRangedPrimary = weaponDef.type === "ranged";
     this.player.comboHits = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
 
     if (run.cameFrom === "copa") {
       this.player.energy = run.energy;
@@ -128,6 +130,8 @@ export class OpenSpaceScene extends Phaser.Scene {
       if ((run.extraLives ?? 0) > 0) {
         run.extraLives!--;
         this.player.energy = 30;
+        this.player.sanity = Math.max(this.player.sanity, 25);
+        (this.player as any).invulnUntil = this.time.now + 1500;
         this.player.setTint(0xff4444);
         this.time.delayedCall(500, () => this.player.clearTint());
         return;
@@ -285,7 +289,8 @@ export class OpenSpaceScene extends Phaser.Scene {
     const contactDamage = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
       this.physics.add.overlap(this.player, group, (_p, eObj) => {
         if (this.player.isInvulnerable(this.time.now)) return;
-        this.player.takeDamage(dmg(eObj as Phaser.Physics.Arcade.Sprite), 4);
+        const e = eObj as Phaser.Physics.Arcade.Sprite;
+        this.player.takeDamage(dmg(e), 4, e.x);
       });
     };
     contactDamage(this.estagiarios,  (e) => (e as EstagiarioDesesperado).contactDamage);
@@ -477,8 +482,9 @@ export class OpenSpaceScene extends Phaser.Scene {
       e.fire(tx, ty);
     };
     boss.onPull = (targetX) => {
-      const dir = targetX < this.player.x ? -1 : 1;
-      (this.player.body as Phaser.Physics.Arcade.Body).setVelocityX(dir * -360);
+      // Pull player toward boss: positive dir means boss is to the right of player
+      const dir = targetX > this.player.x ? 1 : -1;
+      (this.player.body as Phaser.Physics.Arcade.Body).setVelocityX(dir * 360);
     };
     boss.onFreeze = (ms) => this.player.applyFreeze(ms);
     boss.onSpawn  = (x, y) => {
@@ -589,9 +595,21 @@ export class OpenSpaceScene extends Phaser.Scene {
         const e = cast(c);
         if (!e.active || !tryHit(e)) return;
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
+        const dmgText = this.add.text(e.x, e.y - 20, `-${damage}`, {
+          fontFamily: "monospace", fontSize: "11px", fontStyle: "bold",
+          color: step >= comboHits ? "#ff4444" : "#ffcc44",
+          stroke: "#000000", strokeThickness: 2,
+        }).setOrigin(0.5).setDepth(600);
+        this.tweens.add({ targets: dmgText, y: dmgText.y - 28, alpha: 0, duration: 500, onComplete: () => dmgText.destroy() });
         if (e.hit(damage, knockback)) {
           this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
-          e.destroy();
+          this.tweens.add({
+            targets: e,
+            scaleX: 1.6, scaleY: 0.2, alpha: 0,
+            duration: 120,
+            onComplete: () => e.destroy(),
+          });
+          e.setActive(false);
         }
       });
     };
@@ -605,6 +623,12 @@ export class OpenSpaceScene extends Phaser.Scene {
 
     // Boss
     if (this.boss && this.boss.active && tryHit(this.boss)) {
+      const bossDmgText = this.add.text(this.boss.x, this.boss.y - 20, `-${damage}`, {
+        fontFamily: "monospace", fontSize: "11px", fontStyle: "bold",
+        color: step >= comboHits ? "#ff4444" : "#ffcc44",
+        stroke: "#000000", strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(600);
+      this.tweens.add({ targets: bossDmgText, y: bossDmgText.y - 28, alpha: 0, duration: 500, onComplete: () => bossDmgText.destroy() });
       this.boss.hit(damage, knockback);
     }
 
@@ -681,7 +705,7 @@ export class OpenSpaceScene extends Phaser.Scene {
       const a = c as AnalistaJunior;
       if (a.swingActive && a.swingHitbox) {
         if (Phaser.Geom.Intersects.RectangleToRectangle(a.swingHitbox, this.player.getBounds())) {
-          this.player.takeDamage(a.swingDamage, 6);
+          this.player.takeDamage(a.swingDamage, 6, a.x);
           a.swingActive = false; a.swingHitbox = null;
         }
       }
@@ -693,7 +717,7 @@ export class OpenSpaceScene extends Phaser.Scene {
       if (sr.swingActive && sr.swingHitbox) {
         if (!this.player.isInvulnerable(time) &&
             Phaser.Geom.Intersects.RectangleToRectangle(sr.swingHitbox, this.player.getBounds())) {
-          this.player.takeDamage(sr.swingDamage, 3);
+          this.player.takeDamage(sr.swingDamage, 3, sr.x);
           sr.swingActive = false; sr.swingHitbox = null;
         }
       }
@@ -704,14 +728,14 @@ export class OpenSpaceScene extends Phaser.Scene {
       if (this.boss.swingActive && this.boss.swingHitbox) {
         if (!this.player.isInvulnerable(time) &&
             Phaser.Geom.Intersects.RectangleToRectangle(this.boss.swingHitbox, this.player.getBounds())) {
-          this.player.takeDamage(this.boss.swingDamage, 5);
+          this.player.takeDamage(this.boss.swingDamage, 5, this.boss.x);
           this.boss.swingActive = false; this.boss.swingHitbox = null;
         }
       }
       // Boss contact walk damage
       if (!this.player.isInvulnerable(time) &&
           Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
-        this.player.takeDamage(this.boss.contactDamage, 3);
+        this.player.takeDamage(this.boss.contactDamage, 3, this.boss.x);
       }
     }
 
@@ -726,22 +750,7 @@ export class OpenSpaceScene extends Phaser.Scene {
       }
     });
 
-    // Coordenador buff
-    this.coordenadores.getChildren().forEach((c) => {
-      const coord = c as CoordenadorDeSinergia;
-      if (!coord.active || !coord.isBuffing) return;
-      [this.estagiarios, this.analistas, this.scrums].forEach((g) =>
-        g.getChildren().forEach((e) => {
-          const enemy = e as Phaser.Physics.Arcade.Sprite & { speed?: number };
-          if (!enemy.active) return;
-          if (Phaser.Math.Distance.Between(coord.x, coord.y, enemy.x, enemy.y) < 160) {
-            (enemy.body as Phaser.Physics.Arcade.Body).setVelocityX(
-              (enemy.body as Phaser.Physics.Arcade.Body).velocity.x * 1.4,
-            );
-          }
-        })
-      );
-    });
+    // Coordenador buff — no per-frame velocity multiplication (causes compounding)
 
     this.fx.update(time, this.player.sanity);
 
