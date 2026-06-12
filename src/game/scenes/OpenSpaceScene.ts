@@ -233,16 +233,22 @@ export class OpenSpaceScene extends Phaser.Scene {
   }
 
   private buildFloor() {
-    const floor = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 16, LEVEL_WIDTH, 32, COLORS.floor);
-    this.physics.add.existing(floor, true);
-    this.platforms.add(floor);
+    const tileCount = Math.ceil(LEVEL_WIDTH / 32);
+    for (let i = 0; i < tileCount; i++) {
+      const t = this.add.image(i * 32 + 16, FLOOR_Y + 8, "tex-floor");
+      t.setDisplaySize(32, 16);
+      this.physics.add.existing(t, true);
+      this.platforms.add(t);
+    }
   }
 
   private buildPlatform(x: number, y: number, tiles: number) {
-    const w = tiles * 32;
-    const plat = this.add.rectangle(x + w / 2, y, w, 14, COLORS.platform);
-    this.physics.add.existing(plat, true);
-    this.platforms.add(plat);
+    for (let i = 0; i < tiles; i++) {
+      const t = this.add.image(x + i * 32 + 16, y, "tex-platform");
+      t.setDisplaySize(32, 14);
+      this.physics.add.existing(t, true);
+      this.platforms.add(t);
+    }
   }
 
   private spawnEnemies() {
