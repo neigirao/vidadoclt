@@ -1,0 +1,167 @@
+import Phaser from "phaser";
+
+const HIT_INVULN_MS = 400;
+
+export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
+  hp = 500;
+  maxHp = 500;
+  contactDamage = 18;
+  speed = 60;
+  phase: 1 | 2 | 3 = 1;
+
+  target?: Phaser.Physics.Arcade.Sprite;
+  onDeath?: () => void;
+  onSummon?: (x: number, y: number) => void;
+  onGoldenParachute?: (x: number, y: number) => void;
+  onDemissao?: () => void;
+  onSpread?: (x: number, y: number, facing: number) => void;
+  onMelee?: (hb: Phaser.Geom.Rectangle) => void;
+  onHpChange?: (hp: number, maxHp: number) => void;
+
+  swingHitbox: Phaser.Geom.Rectangle | null = null;
+  swingActive = false;
+  swingDamage = 25;
+
+  private _invulnUntil = 0;
+  private _frozen = 0;
+  private _slow = 0;
+  private _dir: 1 | -1 = -1;
+
+  // Phase 1 timers
+  private _nextMeleeAt = 0;
+  private _nextSummonAt = 0;
+  // Phase 2 timers
+  private _nextChargeAt = 0;
+  private _nextParachuteAt = 0;
+  private _chargeUntil = 0;
+  private _charging = false;
+  // Phase 3 timers
+  private _nextDemissaoAt = 0;
+  private _nextSpreadAt = 0;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "tex-gerente");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(34, 52);
+    body.setOffset(2, 2);
+    body.setCollideWorldBounds(true);
+    this.setScale(1.4);
+
+    const now = scene.time.now;
+    this._nextMeleeAt = now + 2500;
+    this._nextSummonAt = now + 5000;
+    this._nextChargeAt = now + 2000;
+    this._nextParachuteAt = now + 4000;
+    this._nextDemissaoAt = now + 6000;
+    this._nextSpreadAt = now + 3000;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    if (!this.active || !this.body) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+
+    // Phase transitions
+    if (this.phase === 1 && this.hp <= 350) {
+      this.phase = 2;
+      this.speed = 100;
+      this.setTint(0xff8800);
+      this.scene.time.delayedCall(400, () => { if (this.active) this.clearTint(); });
+      this._nextChargeAt = t + 500;
+      this._nextParachuteAt = t + 2000;
+    }
+    if (this.phase === 2 && this.hp <= 150) {
+      this.phase = 3;
+      this.speed = 130;
+      this.setTint(0xff0000);
+      this.scene.time.delayedCall(600, () => { if (this.active) this.clearTint(); });
+      this._nextDemissaoAt = t + 1000;
+      this._nextSpreadAt = t + 1500;
+    }
+
+    if (t < this._frozen) { body.setVelocityX(0); return; }
+    const speedMult = t < this._slow ? 0.4 : 1;
+
+    if (this.target) {
+      this._dir = this.target.x < this.x ? -1 : 1;
+    }
+    this.setFlipX(this._dir === -1);
+
+    // Charging (phase 2)
+    if (this._charging) {
+      if (t >= this._chargeUntil) {
+        this._charging = false;
+        body.setVelocityX(0);
+      }
+      return;
+    }
+
+    // Walk toward target
+    body.setVelocityX(this._dir * this.speed * speedMult);
+
+    // Phase 1 attacks
+    if (this.phase >= 1) {
+      if (t >= this._nextMeleeAt) {
+        this._nextMeleeAt = t + 2500;
+        const hbX = this._dir === 1 ? this.x + 4 : this.x - 60;
+        const hb = new Phaser.Geom.Rectangle(hbX, this.y - 20, 60, 40);
+        this.swingHitbox = hb;
+        this.swingActive = true;
+        this.scene.time.delayedCall(200, () => { this.swingActive = false; this.swingHitbox = null; });
+        this.onMelee?.(hb);
+      }
+      if (t >= this._nextSummonAt) {
+        this._nextSummonAt = t + 5000;
+        const spawnX = this.x + (Math.random() > 0.5 ? 200 : -200);
+        this.onSummon?.(spawnX, this.y);
+      }
+    }
+
+    // Phase 2 attacks
+    if (this.phase >= 2) {
+      if (t >= this._nextChargeAt) {
+        this._nextChargeAt = t + 2000;
+        this._charging = true;
+        this._chargeUntil = t + 300;
+        body.setVelocityX(this._dir * 400);
+      }
+      if (t >= this._nextParachuteAt) {
+        this._nextParachuteAt = t + 4000;
+        this.onGoldenParachute?.(this.x, this.y - 20);
+      }
+    }
+
+    // Phase 3 attacks
+    if (this.phase >= 3) {
+      if (t >= this._nextDemissaoAt) {
+        this._nextDemissaoAt = t + 6000;
+        this.onDemissao?.();
+      }
+      if (t >= this._nextSpreadAt) {
+        this._nextSpreadAt = t + 3000;
+        this.onSpread?.(this.x, this.y - 10, this._dir);
+      }
+    }
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this._invulnUntil = now + HIT_INVULN_MS;
+    this.hp -= damage;
+    this.onHpChange?.(this.hp, this.maxHp);
+    this.setTint(0xff8888);
+    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocityX(knockback * 0.2); // resistant to knockback
+    if (this.hp <= 0) {
+      this.onDeath?.();
+    }
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+}

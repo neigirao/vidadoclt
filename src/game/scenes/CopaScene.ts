@@ -138,8 +138,10 @@ export class CopaScene extends Phaser.Scene {
       const r = getRun(this);
       r.reconhecimento += Math.floor(r.vr * 0.5);
       r.vr = 0;
+      const dest = r.nextScene ?? "OpenSpaceScene";
       r.cameFrom = "next";
-      this.scene.start("OpenSpaceScene");
+      r.nextScene = undefined;
+      this.scene.start(dest);
     };
 
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -150,15 +152,23 @@ export class CopaScene extends Phaser.Scene {
         { fontFamily: "monospace", fontSize: "11px", color: "#aaaaaa" })
       .setOrigin(0.5).setScrollFactor(0).setDepth(1000);
 
-    // Door back trigger
+    // Door back trigger — returns to the phase the player came from
+    const phaseBackMap: Record<string, string> = {
+      openspace: "OpenSpaceScene",
+      phase2:    "Phase2Scene",
+      phase3:    "Phase3Scene",
+      phase4:    "Phase4Scene",
+      phase5:    "Phase5Scene",
+    };
     const doorBackZone = this.add.zone(40, FLOOR_Y - 30, 40, 60);
     this.physics.add.existing(doorBackZone, true);
     this.physics.add.overlap(this.player, doorBackZone, () => {
       if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
         this.persist();
         const r = getRun(this);
+        const dest = phaseBackMap[r.cameFrom ?? "openspace"] ?? "OpenSpaceScene";
         r.cameFrom = "copa";
-        this.scene.start("OpenSpaceScene");
+        this.scene.start(dest);
       }
     });
 
