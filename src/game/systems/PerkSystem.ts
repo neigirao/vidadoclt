@@ -64,15 +64,15 @@ export function applyPerk(id: PerkId, player: Player, run: RunState) {
 }
 
 export function reapplyAllPerks(player: Player, run: RunState) {
-  // Reset to base then re-apply (called after revive/area transition)
-  // Note: only re-apply perks that modify boolean/flag state
+  // Called after each scene creates a fresh Player — re-applies all purchased perks
+  // on top of the already-set class base stats (so multipliers apply once, not stacked)
   for (const id of (run.perks ?? [])) {
     switch (id) {
       case "autonomia":       player.autonomia = true; break;
-      case "hora_extra":      /* already in damageMult, don't stack */ break;
-      case "vale_transporte": /* already in walkSpeed, don't stack */ break;
-      case "seguro_de_vida":  /* handled by run.extraLives */ break;
-      case "plr":             /* already in vrDropMult */ break;
+      case "hora_extra":      player.damageMult *= 1.2; break;
+      case "vale_transporte": player.walkSpeed  *= 1.15; break;
+      case "seguro_de_vida":  /* run.extraLives already persisted */ break;
+      case "plr":             player.vrDropMult *= 1.25; break;
       case "cafe_forte":      run.cafeForte = true; break;
       case "piso_de_vidro":   player.doubleJump = true; break;
       case "sindrome_impostor": player.aggroRadius = 100; break;

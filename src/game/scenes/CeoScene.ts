@@ -8,6 +8,7 @@ import { getRun, savePersisted } from "../systems/PlayerState";
 import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
+import { reapplyAllPerks } from "../systems/PerkSystem";
 
 const LEVEL_WIDTH = 960; // single screen fight
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -71,6 +72,7 @@ export class CeoScene extends Phaser.Scene {
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr     = run.vr;
+    reapplyAllPerks(this.player, run);
 
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);

@@ -133,7 +133,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
   private _dir: 1 | -1 = 1;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-npc-faxineiro");
+    super(scene, x, y, "tex-faxineiro");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;

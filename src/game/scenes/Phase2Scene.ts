@@ -13,6 +13,7 @@ import { getRun, savePersisted } from "../systems/PlayerState";
 import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
+import { reapplyAllPerks } from "../systems/PerkSystem";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -98,6 +99,7 @@ export class Phase2Scene extends Phaser.Scene {
     }
     this.player.vr = run.vr;
     this.player.autonomia = run.autonomia ?? false;
+    reapplyAllPerks(this.player, run);
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
