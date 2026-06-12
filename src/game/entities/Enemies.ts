@@ -59,6 +59,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   contactDamage = 15;
   speed = 200;
   dir: 1 | -1;
+  private _frozen = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, dir: 1 | -1 = -1) {
     super(scene, x, y, "tex-estagiario");
@@ -75,6 +76,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) { body.setVelocityX(0); return; }
     if (body.blocked.left) {
       this.dir = 1;
       this.setFlipX(false);
@@ -86,6 +88,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -94,6 +97,8 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(80, () => this.clearTint());
     return this.hp <= 0;
   }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
 
 // ─── Facilitador de Workshop ─────────────────────────────────────────────────
@@ -104,6 +109,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
   dir: 1 | -1 = -1;
   private aiState: "walk" | "telegraph" | "shoot" | "cooldown" = "walk";
   private stateUntil = 0;
+  private _frozen = 0;
 
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
   onShoot?: (fx: number, fy: number, tx: number, ty: number) => void;
@@ -120,6 +126,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) { body.setVelocityX(0); return; }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 300) this.dir = dx >= 0 ? 1 : -1;
@@ -167,6 +174,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -179,6 +187,8 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
     }
     return this.hp <= 0;
   }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
 
 // ─── Scrum Master Caótico ────────────────────────────────────────────────────
@@ -189,6 +199,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   dir: 1 | -1 = -1;
   private aiState: "walk" | "charge" | "shout" | "recover" = "walk";
   private stateUntil = 0;
+  private _frozen = 0;
 
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
   onShout?: (fromX: number, fromY: number) => void;
@@ -205,6 +216,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) { body.setVelocityX(0); return; }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 340) this.dir = dx >= 0 ? 1 : -1;
@@ -260,6 +272,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -272,6 +285,8 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
     }
     return this.hp <= 0;
   }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
 
 // ─── Coordenador de Sinergia ─────────────────────────────────────────────────
@@ -280,6 +295,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   contactDamage = 5;
   speed = 60;
   dir: 1 | -1 = -1;
+  private _frozen = 0;
 
   // Buff aura: set by preUpdate, consumed by OpenSpaceScene
   isBuffing = false;
@@ -299,6 +315,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) { body.setVelocityX(0); return; }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 420) this.dir = dx >= 0 ? 1 : -1;
@@ -322,6 +339,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.6);
@@ -330,6 +348,8 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(80, () => this.clearTint());
     return this.hp <= 0;
   }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
 
 // ─── Analista Sênior Exausto ─────────────────────────────────────────────────
@@ -340,6 +360,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   dir: 1 | -1 = -1;
   private aiState: "walk" | "telegraph" | "slam" | "exhausted" = "walk";
   private stateUntil = 0;
+  private _frozen = 0;
 
   swingHitbox: Phaser.Geom.Rectangle | null = null;
   swingActive = false;
@@ -359,6 +380,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) { body.setVelocityX(0); return; }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 380) this.dir = dx >= 0 ? 1 : -1;
@@ -424,6 +446,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     // Tanky: muito resistente a knockback
@@ -439,6 +462,8 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
     }
     return this.hp <= 0;
   }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
 
 export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
@@ -449,6 +474,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   dir: 1 | -1 = -1;
   private aiState: "walk" | "telegraph" | "swing" | "recover" = "walk";
   private stateUntil = 0;
+  private _frozen = 0;
   swingHitbox: Phaser.Geom.Rectangle | null = null;
   swingActive = false;
   private lastSeenAt = 0;
@@ -468,6 +494,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) { body.setVelocityX(0); return; }
 
     if (this.target) {
       const dx = this.target.x - this.x;
@@ -528,6 +555,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -542,4 +570,6 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
     }
     return this.hp <= 0;
   }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }

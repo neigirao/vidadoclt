@@ -51,6 +51,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -104,6 +105,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -173,6 +175,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -232,6 +235,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -320,6 +324,7 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -374,6 +379,7 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -439,6 +445,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -525,6 +532,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -587,6 +595,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -652,6 +661,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -745,6 +755,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -807,6 +818,7 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -861,6 +873,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
@@ -919,6 +932,7 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
   hit(damage: number, knockback: number): boolean {
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.setTint(0xff8888);
