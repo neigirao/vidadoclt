@@ -141,7 +141,21 @@ export class CopaScene extends Phaser.Scene {
     // FX + HUD + Shop
     this.fx = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle("COPA — AREA DE DESCANSO");
     this.hud.setObjective("Descanse, compre no Ponto e volte ao escritorio");
+
+    // Remember which phase the player came from (set by phase scenes via cameFrom).
+    // Persist into sourcePhase so it survives subsequent transitions.
+    const phaseBackMap: Record<string, string> = {
+      openspace: "OpenSpaceScene",
+      phase2:    "Phase2Scene",
+      phase3:    "Phase3Scene",
+      phase4:    "Phase4Scene",
+      phase5:    "Phase5Scene",
+    };
+    if (run.cameFrom && phaseBackMap[run.cameFrom]) {
+      run.sourcePhase = run.cameFrom;
+    }
 
     this.shop = new ShopUI(this);
     this.shop.setPlayer(this.player);
@@ -155,7 +169,7 @@ export class CopaScene extends Phaser.Scene {
       r.reconhecimento += Math.floor(r.vr * 0.5);
       r.vr = 0;
       const dest = r.nextScene ?? "OpenSpaceScene";
-      r.cameFrom = "next";
+      r.cameFrom = "copa"; // preserve energy/sanity on the next phase
       r.nextScene = undefined;
       this.scene.start(dest);
     };
@@ -169,20 +183,14 @@ export class CopaScene extends Phaser.Scene {
       .setOrigin(0.5).setScrollFactor(0).setDepth(1000);
 
     // Door back trigger — returns to the phase the player came from
-    const phaseBackMap: Record<string, string> = {
-      openspace: "OpenSpaceScene",
-      phase2:    "Phase2Scene",
-      phase3:    "Phase3Scene",
-      phase4:    "Phase4Scene",
-      phase5:    "Phase5Scene",
-    };
     const doorBackZone = this.add.zone(40, FLOOR_Y - 30, 40, 60);
     this.physics.add.existing(doorBackZone, true);
     this.physics.add.overlap(this.player, doorBackZone, () => {
       if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
         this.persist();
         const r = getRun(this);
-        const dest = phaseBackMap[r.cameFrom ?? "openspace"] ?? "OpenSpaceScene";
+        const src = r.sourcePhase ?? "openspace";
+        const dest = phaseBackMap[src] ?? "OpenSpaceScene";
         r.cameFrom = "copa";
         this.scene.start(dest);
       }

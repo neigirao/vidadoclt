@@ -46,6 +46,7 @@ export class Hud {
   // top-center
   private clockT!: Phaser.GameObjects.Text;
   private objectiveT!: Phaser.GameObjects.Text;
+  private phaseTitleT!: Phaser.GameObjects.Text;
 
   // top-right boss
   private bossContainer!: Phaser.GameObjects.Container;
@@ -181,11 +182,10 @@ export class Hud {
     bg.fillRect(0, 0, W, HUD_TOP_H);
     ctr.add(bg);
 
-    ctr.add(
-      this.scene.add.text(W / 2, 5, "FASE 1 — OPEN SPACE", {
-        fontFamily: F, fontSize: "12px", fontStyle: "bold", color: "#eaeaea",
-      }).setOrigin(0.5, 0)
-    );
+    this.phaseTitleT = this.scene.add.text(W / 2, 5, "FASE 1 — OPEN SPACE", {
+      fontFamily: F, fontSize: "12px", fontStyle: "bold", color: "#eaeaea",
+    }).setOrigin(0.5, 0);
+    ctr.add(this.phaseTitleT);
 
     this.objectiveT = this.scene.add.text(W / 2, 21, "OBJETIVO: Chegue ao elevador e desça", {
       fontFamily: F, fontSize: "9px", color: "#888888",
@@ -474,6 +474,10 @@ export class Hud {
 
   setObjective(text: string) {
     this.objectiveT.setText(`OBJETIVO: ${text}`);
+  }
+
+  setPhaseTitle(text: string) {
+    this.phaseTitleT.setText(text);
   }
 
   setInteractHint(text: string | null) {

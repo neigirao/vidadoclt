@@ -15,6 +15,7 @@ export type RunState = {
   loopCount: number;
   autonomia: boolean;
   cameFrom?: string;
+  sourcePhase?: string;
   nextScene?: string;
   characterClass?: string;
   weaponId?: string;
