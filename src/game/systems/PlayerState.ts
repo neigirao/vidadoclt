@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import { PerkId } from "./PerkSystem";
+import { WeaponId } from "./WeaponSystem";
 
 const LS_RECNH = "vidadoclt_recnh";
 const LS_FGTS  = "vidadoclt_fgts";
@@ -14,6 +16,12 @@ export type RunState = {
   autonomia: boolean;
   cameFrom?: string;
   characterClass?: string;
+  weaponId?: string;
+  perks?: PerkId[];
+  extraLives?: number;
+  cafeForte?: boolean;
+  shopWeapons?: WeaponId[];
+  shopPerks?: PerkId[];
 };
 
 function lsGet(key: string): number {
@@ -40,6 +48,11 @@ export function getRun(scene: Phaser.Scene): RunState {
       fgts: lsGet(LS_FGTS),
       loopCount: lsGet(LS_LOOPS),
       autonomia: false,
+      perks: [],
+      extraLives: 0,
+      cafeForte: false,
+      shopWeapons: undefined,
+      shopPerks: undefined,
     };
     scene.registry.set("run", fresh);
     return fresh;
@@ -56,6 +69,11 @@ export function resetRun(scene: Phaser.Scene): RunState {
     loopCount: old.loopCount,
     autonomia: false,
     characterClass: old.characterClass,
+    perks: [],
+    extraLives: 0,
+    cafeForte: false,
+    shopWeapons: undefined,
+    shopPerks: undefined,
   };
   scene.registry.set("run", fresh);
   return fresh;

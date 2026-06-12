@@ -1,51 +1,72 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
-import { getRun } from "./PlayerState";
+import { getRun, RunState } from "./PlayerState";
+import { WEAPONS, WeaponId, WeaponDef } from "./WeaponSystem";
+import { PERKS, PerkId, applyPerk } from "./PerkSystem";
+import { Player } from "../entities/Player";
 
-export type ShopItem = {
-  key: string;
-  label: string;
-  cost: number;
-  apply: (scene: Phaser.Scene) => string | void; // returns optional message
+const RARITY_COLORS: Record<string, string> = {
+  comum:    "#aaaaaa",
+  raro:     "#4488ff",
+  epico:    "#aa44ff",
+  lendario: "#ffaa00",
 };
 
-const ITEMS: ShopItem[] = [
-  {
-    key: "cafe",
-    label: "Café Triplo (+30 Energia)",
-    cost: 4,
-    apply: (s) => {
-      const r = getRun(s);
-      r.energy = Math.min(100, r.energy + 30);
-    },
-  },
-  {
-    key: "pausa",
-    label: "Pausa de 5min (+40 Sanidade)",
-    cost: 6,
-    apply: (s) => {
-      const r = getRun(s);
-      r.sanity = Math.min(100, r.sanity + 40);
-    },
-  },
-  {
-    key: "bater_ponto",
-    label: "Bater o ponto e avançar (próxima área)",
-    cost: 0,
-    apply: () => "next",
-  },
-];
+function rollShopWeapon(currentWeaponId: string): WeaponId {
+  const pool: Array<{ id: WeaponId; weight: number }> = [];
+  for (const [id, def] of Object.entries(WEAPONS) as [WeaponId, WeaponDef][]) {
+    if (def.shopCost === 0) continue; // not sold (starter / lendário)
+    if (id === currentWeaponId) continue;
+    let weight = 0;
+    if (def.rarity === "raro")   weight = 60;
+    if (def.rarity === "epico")  weight = 30;
+    if (def.rarity === "lendario") weight = 10;
+    if (def.rarity === "comum")  weight = 0; // comum not in shop
+    if (weight > 0) pool.push({ id, weight });
+  }
+  if (pool.length === 0) return "regua"; // fallback
+  const total = pool.reduce((s, e) => s + e.weight, 0);
+  let r = Math.random() * total;
+  for (const entry of pool) {
+    r -= entry.weight;
+    if (r <= 0) return entry.id;
+  }
+  return pool[pool.length - 1].id;
+}
+
+function rollShopPerk(ownedPerks: PerkId[]): PerkId | null {
+  const all = Object.keys(PERKS) as PerkId[];
+  const available = all.filter(p => !ownedPerks.includes(p));
+  if (available.length === 0) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+type DynamicItem = {
+  key: string;
+  label: string;
+  description: string;
+  cost: number;
+  rarityColor?: string;
+  apply: (run: RunState, shop: ShopUI) => string | "next" | void;
+};
 
 export class ShopUI {
   private container?: Phaser.GameObjects.Container;
   private msg?: Phaser.GameObjects.Text;
   private keys: Phaser.Input.Keyboard.Key[] = [];
   private escKey?: Phaser.Input.Keyboard.Key;
-  private prevDown = [false, false, false, false];
+  private prevDown: boolean[] = [];
+  private items: DynamicItem[] = [];
   open = false;
   onAdvance?: () => void;
+  onWeaponChange?: (id: WeaponId) => void;
+  private player?: Player;
 
   constructor(private scene: Phaser.Scene) {}
+
+  setPlayer(player: Player) {
+    this.player = player;
+  }
 
   toggle() {
     if (this.open) this.close();
@@ -57,40 +78,124 @@ export class ShopUI {
     this.open = true;
     const run = getRun(this.scene);
 
+    // Roll shop inventory if not already rolled
+    if (run.shopWeapons === undefined) {
+      const wid = rollShopWeapon(run.weaponId ?? "grampeador");
+      run.shopWeapons = [wid];
+    }
+    if (run.shopPerks === undefined) {
+      const pid = rollShopPerk(run.perks ?? []);
+      run.shopPerks = pid ? [pid] : [];
+    }
+
+    // Build item list
+    this.items = [];
+
+    // Consumíveis
+    const cafeBase = 4;
+    const cafeHeal = run.cafeForte ? 45 : 30;
+    this.items.push({
+      key: "cafe",
+      label: `Café Triplo (+${cafeHeal} Energia)`,
+      description: run.cafeForte ? "Café Forte ativo: cura bônus!" : "Restaura Energia.",
+      cost: cafeBase,
+      apply: (r) => {
+        r.energy = Math.min(r.energy + cafeHeal, 100);
+      },
+    });
+
+    const pausaBase = 6;
+    const pausaHeal = run.cafeForte ? 60 : 40;
+    this.items.push({
+      key: "pausa",
+      label: `Pausa de 5min (+${pausaHeal} Sanidade)`,
+      description: run.cafeForte ? "Café Forte ativo: cura bônus!" : "Restaura Sanidade.",
+      cost: pausaBase,
+      apply: (r) => {
+        r.sanity = Math.min(r.sanity + pausaHeal, 100);
+      },
+    });
+
+    // Weapon slot
+    if (run.shopWeapons.length > 0) {
+      const wid = run.shopWeapons[0];
+      const wdef = WEAPONS[wid];
+      this.items.push({
+        key: `weapon_${wid}`,
+        label: wdef.name,
+        description: `${wdef.type === "ranged" ? "Ranged" : "Melee"} — Dano: ${wdef.hitDamages[0]}/${wdef.hitDamages[1]}/${wdef.hitDamages[2] || "—"}`,
+        cost: wdef.shopCost,
+        rarityColor: RARITY_COLORS[wdef.rarity],
+        apply: (r, shop) => {
+          r.weaponId = wid;
+          run.shopWeapons = [];
+          shop.onWeaponChange?.(wid);
+        },
+      });
+    }
+
+    // Perk slot
+    if (run.shopPerks && run.shopPerks.length > 0) {
+      const pid = run.shopPerks[0];
+      const pdef = PERKS[pid];
+      this.items.push({
+        key: `perk_${pid}`,
+        label: `${pdef.icon} ${pdef.name}`,
+        description: pdef.description,
+        cost: pdef.shopCost,
+        rarityColor: "#44cc88",
+        apply: (r, shop) => {
+          if (shop.player) applyPerk(pid, shop.player, r);
+          run.shopPerks = [];
+        },
+      });
+    }
+
+    // Advance
+    this.items.push({
+      key: "bater_ponto",
+      label: "Bater o ponto e avançar",
+      description: "Próxima área.",
+      cost: 0,
+      apply: () => "next",
+    });
+
+    // Render
     const c = this.scene.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2).setScrollFactor(0).setDepth(2000);
-    const panel = this.scene.add.rectangle(0, 0, 480, 280, 0x0a0c10, 0.95).setStrokeStyle(2, 0xf2c14e);
+    const panelH = 80 + this.items.length * 54;
+    const panel = this.scene.add.rectangle(0, 0, 520, panelH, 0x0a0c10, 0.95).setStrokeStyle(2, 0xf2c14e);
     const title = this.scene.add
-      .text(0, -120, "PONTO ELETRÔNICO", { fontFamily: "monospace", fontSize: "18px", color: "#f2c14e" })
+      .text(0, -panelH / 2 + 16, "PONTO ELETRÔNICO", { fontFamily: "monospace", fontSize: "18px", color: "#f2c14e" })
       .setOrigin(0.5);
-    const vr = this.scene.add
-      .text(0, -94, `VR disponível: ${run.vr}`, { fontFamily: "monospace", fontSize: "12px", color: "#eaeaea" })
+    const vrText = this.scene.add
+      .text(0, -panelH / 2 + 36, `VR disponível: ${run.vr}`, { fontFamily: "monospace", fontSize: "12px", color: "#eaeaea" })
       .setOrigin(0.5);
+    c.add([panel, title, vrText]);
 
-    c.add([panel, title, vr]);
-
-    ITEMS.forEach((item, i) => {
-      const y = -50 + i * 44;
+    const startY = -panelH / 2 + 66;
+    this.items.forEach((item, i) => {
+      const y = startY + i * 54;
+      const color = item.rarityColor ?? "#ffffff";
+      const costStr = item.cost > 0 ? `  —  ${item.cost} VR` : "  —  grátis";
       const row = this.scene.add
-        .text(0, y, `[${i + 1}]  ${item.label}${item.cost ? `  —  ${item.cost} VR` : "  —  grátis"}`, {
-          fontFamily: "monospace",
-          fontSize: "14px",
-          color: "#ffffff",
-        })
-        .setOrigin(0.5);
-      c.add(row);
+        .text(0, y, `[${i + 1}]  ${item.label}${costStr}`, {
+          fontFamily: "monospace", fontSize: "13px", color,
+        }).setOrigin(0.5);
+      const desc = this.scene.add
+        .text(0, y + 16, item.description, {
+          fontFamily: "monospace", fontSize: "10px", color: "#888888",
+        }).setOrigin(0.5);
+      c.add([row, desc]);
     });
 
     const hint = this.scene.add
-      .text(0, 110, "1/2/3 para comprar  •  ESC para fechar", {
-        fontFamily: "monospace",
-        fontSize: "11px",
-        color: "#aaaaaa",
-      })
-      .setOrigin(0.5);
+      .text(0, panelH / 2 - 22, `1-${this.items.length} para comprar  •  ESC para fechar`, {
+        fontFamily: "monospace", fontSize: "10px", color: "#aaaaaa",
+      }).setOrigin(0.5);
     c.add(hint);
 
     this.msg = this.scene.add
-      .text(0, 80, "", { fontFamily: "monospace", fontSize: "12px", color: "#f2c14e" })
+      .text(0, panelH / 2 - 6, "", { fontFamily: "monospace", fontSize: "11px", color: "#f2c14e" })
       .setOrigin(0.5);
     c.add(this.msg);
 
@@ -101,9 +206,11 @@ export class ShopUI {
       kb.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
       kb.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
       kb.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
+      kb.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR),
+      kb.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE),
     ];
     this.escKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-    this.prevDown = [false, false, false, false];
+    this.prevDown = new Array(this.items.length).fill(false);
   }
 
   close() {
@@ -120,21 +227,21 @@ export class ShopUI {
       this.close();
       return;
     }
-    for (let i = 0; i < ITEMS.length; i++) {
+    for (let i = 0; i < this.items.length; i++) {
       const down = this.keys[i]?.isDown ?? false;
-      if (down && !this.prevDown[i]) this.buy(ITEMS[i]);
+      if (down && !this.prevDown[i]) this.buy(this.items[i]);
       this.prevDown[i] = down;
     }
   }
 
-  private buy(item: ShopItem) {
+  private buy(item: DynamicItem) {
     const run = getRun(this.scene);
     if (run.vr < item.cost) {
       this.msg?.setText("VR insuficiente.");
       return;
     }
     run.vr -= item.cost;
-    const result = item.apply(this.scene);
+    const result = item.apply(run, this);
     if (result === "next") {
       this.close();
       this.onAdvance?.();

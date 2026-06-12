@@ -13,7 +13,7 @@ import {
 } from "../entities/Enemies";
 import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { getRun, savePersisted } from "../systems/PlayerState";
-import { CLASSES, WEAPONS, ClassId } from "../systems/WeaponSystem";
+import { CLASSES, WEAPONS, WeaponDef, WeaponId, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
 
@@ -35,6 +35,7 @@ export class OpenSpaceScene extends Phaser.Scene {
   private drops!: Phaser.Physics.Arcade.Group;
   private convites: ConviteReuniao[] = [];
   private boss?: GerenteMicrogestor;
+  private levelWidth = LEVEL_WIDTH;
   private bossDefeated = false;
   private phase2Active = false;
   private startTimeMs = 0;
@@ -99,6 +100,10 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.player.vrDropMult  = classDef.vrMult;
     this.player.weaponId    = classDef.startWeapon;
     this.player.attackRange = weaponDef.attackRange;
+    this.player.specialCooldown = weaponDef.specialCooldown;
+    this.player.specialType = weaponDef.specialType;
+    this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.comboHits = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
 
     if (run.cameFrom === "copa") {
       this.player.energy = run.energy;
@@ -387,10 +392,11 @@ export class OpenSpaceScene extends Phaser.Scene {
   }
 
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
-    const weaponBaseDmg = WEAPONS[(this.player.weaponId ?? "grampeador") as "grampeador" | "caneta" | "regua"].hitDamage;
-    const stepMult = step === 3 ? 1.5 : 1.0;
-    const damage = Math.round(weaponBaseDmg * stepMult * this.player.damageMult);
-    const knockback = (step === 3 ? 320 : 120) * this.player.facing;
+    const def = WEAPONS[(this.player.weaponId as WeaponId)] ?? WEAPONS.grampeador;
+    const damage = Math.round((def.hitDamages[step - 1] ?? def.hitDamages[0]) * this.player.damageMult);
+    const isLastHit = def.hitDamages[2] === 0 ? step >= 2 : step >= 3;
+    const knockback = (isLastHit ? def.comboKnockback : 80) * this.player.facing;
+    if (def.hitSlow > 0) this.player.scene.time.delayedCall(0, () => {}); // hitSlow applied per enemy below
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
 

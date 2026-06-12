@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { SpecialType } from "../systems/WeaponSystem";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -17,6 +18,7 @@ export type PlayerKeys = {
   jumpAlt: Phaser.Input.Keyboard.Key;
   dash: Phaser.Input.Keyboard.Key;
   attack: Phaser.Input.Keyboard.Key;
+  special: Phaser.Input.Keyboard.Key;
 };
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -36,10 +38,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   vrDropMult = 1.0;
   weaponId = "grampeador";
 
+  doubleJump = false;
+  aggroRadius = 200;
+  hitAutoRanged = false;
+  comboHits: 2 | 3 = 3;
+  specialCooldown = 3000;
+  specialType: SpecialType = "burst_ranged";
+  onSpecialAttack?: (type: SpecialType, x: number, y: number, facing: 1 | -1) => void;
+
   onRangedAttack?: (fromX: number, fromY: number, facing: 1 | -1) => void;
 
   private speedMultUntil = 0;
   private speedMult = 0.4;
+
+  private jumpsUsed = 0;
+  private specialCooldownUntil = 0;
+  private prevSpecialDown = false;
 
   private keys: PlayerKeys;
   private lastGroundedAt = 0;
@@ -75,6 +89,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       jumpAlt: kb.addKey(Phaser.Input.Keyboard.KeyCodes.W),
       dash: kb.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
       attack: kb.addKey(Phaser.Input.Keyboard.KeyCodes.J),
+      special: kb.addKey(Phaser.Input.Keyboard.KeyCodes.K),
     };
     // A/D
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.A).on("down", () => (this.holdA = true));
@@ -137,7 +152,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   update(time: number, _delta: number) {
     const body = this.body as Phaser.Physics.Arcade.Body;
     const onGround = body.blocked.down || body.touching.down;
-    if (onGround) this.lastGroundedAt = time;
+    if (onGround) {
+      this.lastGroundedAt = time;
+      this.jumpsUsed = 0;
+    }
 
     // Freeze: no input, only gravity
     if (time < this.frozenUntil) {
@@ -157,10 +175,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const jumpDown = this.keys.jump.isDown || this.keys.jumpAlt.isDown;
     const attackDown = this.keys.attack.isDown;
     const dashDown = this.keys.dash.isDown;
+    const specialDown = this.keys.special.isDown;
 
     const jumpPressed = jumpDown && !this.prevJumpDown;
     const attackPressed = attackDown && !this.prevAttackDown;
     const dashPressed = dashDown && !this.prevDashDown;
+    const specialPressed = specialDown && !this.prevSpecialDown;
 
     // Horizontal movement (locked during dash)
     if (time < this.dashUntil) {
@@ -193,6 +213,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(body.velocity.y * 0.5);
     }
 
+    // Air jump (double jump perk)
+    if (jumpPressed && !canCoyote && !onGround && this.doubleJump && this.jumpsUsed < 1) {
+      body.setVelocityY(JUMP_VEL);
+      this.jumpsUsed++;
+      this.lastJumpPressedAt = -9999;
+    }
+
     // Dash
     if (dashPressed && time >= this.dashCooldownUntil) {
       this.dashUntil = time + DASH_MS;
@@ -207,7 +234,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (time - this.lastAttackAt > COMBO_WINDOW_MS + 200) {
         this.comboStep = 0;
       }
-      this.comboStep = (this.comboStep % 3) + 1;
+      this.comboStep = (this.comboStep % this.comboHits) + 1;
       this.lastAttackAt = time;
       this.nextAttackReadyAt = time + 220;
       const hb = new Phaser.Geom.Rectangle(
@@ -217,8 +244,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         28,
       );
       this.onAttack?.(hb, this.comboStep);
-      if (this.weaponId === "caneta") this.onRangedAttack?.(this.x, this.y, this.facing);
+      if (this.hitAutoRanged) this.onRangedAttack?.(this.x, this.y, this.facing);
     }
+
+    // Special attack (K)
+    if (specialPressed && time >= this.specialCooldownUntil) {
+      this.specialCooldownUntil = time + this.specialCooldown;
+      this.onSpecialAttack?.(this.specialType, this.x, this.y, this.facing);
+    }
+    this.prevSpecialDown = specialDown;
 
     this.prevJumpDown = jumpDown;
     this.prevAttackDown = attackDown;
