@@ -42,6 +42,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   aggroRadius = 200;
   firstStrikeReady = false;
   hitAutoRanged = false;
+  isRangedPrimary = false;
+  attackIntervalMs = 220;
   comboHits: 2 | 3 = 3;
   specialCooldown = 3000;
   specialType: SpecialType = "burst_ranged";
@@ -121,7 +123,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return (this.dashCooldownUntil - now) / DASH_COOLDOWN_MS;
   }
 
-  takeDamage(amount: number, sanityHit = 0) {
+  takeDamage(amount: number, sanityHit = 0, fromX?: number) {
     const now = this.scene.time.now;
     if (this.isInvulnerable(now)) return;
     this.energy = Math.max(0, this.energy - amount);
@@ -129,10 +131,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.invulnUntil = now + HIT_INVULN_MS;
     this.setTint(0xff8888);
     this.scene.time.delayedCall(120, () => this.clearTint());
-    // knockback
+    // knockback — push away from hit source (or away from facing if no source given)
+    const pushDir = fromX !== undefined ? (this.x < fromX ? -1 : 1) : -this.facing;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityY(-200);
-    body.setVelocityX(-this.facing * 220);
+    body.setVelocityX(pushDir * 280);
 
     if (this.energy <= 0) this.onDeath?.("energy");
     else if (this.sanity <= 0) this.onDeath?.("burnout");
@@ -243,15 +246,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       }
       this.comboStep = (this.comboStep % this.comboHits) + 1;
       this.lastAttackAt = time;
-      this.nextAttackReadyAt = time + 220;
-      const hb = new Phaser.Geom.Rectangle(
-        this.facing === 1 ? this.x + 6 : this.x - 6 - this.attackRange,
-        this.y - 12,
-        this.attackRange,
-        28,
-      );
-      this.onAttack?.(hb, this.comboStep);
-      if (this.hitAutoRanged) this.onRangedAttack?.(this.x, this.y, this.facing);
+      this.nextAttackReadyAt = time + this.attackIntervalMs;
+      if (this.isRangedPrimary) {
+        this.onRangedAttack?.(this.x, this.y, this.facing);
+      } else {
+        const hb = new Phaser.Geom.Rectangle(
+          this.facing === 1 ? this.x + 6 : this.x - 6 - this.attackRange,
+          this.y - 12,
+          this.attackRange,
+          28,
+        );
+        this.onAttack?.(hb, this.comboStep);
+        if (this.hitAutoRanged) this.onRangedAttack?.(this.x, this.y, this.facing);
+      }
     }
 
     // Special attack (K)

@@ -55,7 +55,7 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
 }
 
 export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
-  hp = 1;
+  hp = 12;
   contactDamage = 15;
   speed = 200;
   dir: 1 | -1;
@@ -103,7 +103,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
 
 // ─── Facilitador de Workshop ─────────────────────────────────────────────────
 export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
-  hp = 2;
+  hp = 20;
   contactDamage = 0;
   speed = 100;
   dir: 1 | -1 = -1;
@@ -193,7 +193,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
 
 // ─── Scrum Master Caótico ────────────────────────────────────────────────────
 export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
-  hp = 2;
+  hp = 25;
   contactDamage = 8;
   speed = 130;
   dir: 1 | -1 = -1;
@@ -331,7 +331,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
 
 // ─── Coordenador de Sinergia ─────────────────────────────────────────────────
 export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
-  hp = 4;
+  hp = 40;
   contactDamage = 5;
   speed = 60;
   dir: 1 | -1 = -1;
@@ -394,7 +394,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
 
 // ─── Analista Sênior Exausto ─────────────────────────────────────────────────
 export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
-  hp = 8;
+  hp = 80;
   contactDamage = 5;
   speed = 45;
   dir: 1 | -1 = -1;
@@ -507,7 +507,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
 }
 
 export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
-  hp = 3;
+  hp = 30;
   contactDamage = 0;
   swingDamage = 20;
   speed = 80;

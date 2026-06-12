@@ -148,6 +148,10 @@ export class Phase4Scene extends Phaser.Scene {
     this.enemyProjectiles = this.physics.add.group();
     this.drops           = this.physics.add.group();
 
+    this.fx  = new SanityFx(this);
+    this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setObjective("Derrote o Scrum Master e avance");
+
     this.spawnEnemies();
 
     [this.cabos, this.tiSuportes, this.segurancas, this.scrums, this.drops].forEach(g =>
@@ -235,10 +239,6 @@ export class Phase4Scene extends Phaser.Scene {
         this.scene.start("CopaScene");
       }
     });
-
-    this.fx  = new SanityFx(this);
-    this.hud = new Hud(this, LEVEL_WIDTH);
-    this.hud.setObjective("Derrote o Scrum Master e avance");
 
     const title = this.add.text(GAME_WIDTH / 2, 110, "FASE 4 — TECNOLOGIA", {
       fontFamily: "monospace", fontSize: "18px", color: "#eaeaea", align: "center",

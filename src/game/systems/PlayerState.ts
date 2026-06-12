@@ -23,6 +23,7 @@ export type RunState = {
   cafeForte?: boolean;
   shopWeapons?: WeaponId[];
   shopPerks?: PerkId[];
+  openSpaceCleared?: boolean;
 };
 
 function lsGet(key: string): number {

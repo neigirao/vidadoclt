@@ -4,7 +4,7 @@ const HIT_INVULN_MS = 400;
 
 // ─── TelemarketerZumbi ────────────────────────────────────────────────────────
 export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
-  hp = 20;
+  hp = 160;
   speed = 70;
   contactDamage = 12;
   vrReward = 2;

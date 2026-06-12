@@ -91,7 +91,8 @@ export class OpenSpaceScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
-    const weaponDef = WEAPONS[classDef.startWeapon];
+    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
+    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
 
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
     this.player = new Player(this, spawnX, FLOOR_Y - 60);
@@ -102,7 +103,7 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.player.walkSpeed   = 200 * classDef.speedMult;
     this.player.damageMult  = classDef.damageMult;
     this.player.vrDropMult  = classDef.vrMult;
-    this.player.weaponId    = classDef.startWeapon;
+    this.player.weaponId    = weaponId;
     this.player.attackRange = weaponDef.attackRange;
     this.player.specialCooldown = weaponDef.specialCooldown;
     this.player.specialType = weaponDef.specialType;
@@ -266,7 +267,13 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.inkProjectiles  = this.physics.add.group();
     this.drops           = this.physics.add.group();
 
-    if (run.cameFrom !== "copa") this.spawnEnemies();
+    if (run.openSpaceCleared === true) {
+      this.bossDefeated = true;
+      this.doorCopa.clearTint();
+      this.doorLabel.setText("COPA").setColor("#c9a36a");
+    } else {
+      this.spawnEnemies();
+    }
 
     // Colliders
     [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
@@ -517,6 +524,7 @@ export class OpenSpaceScene extends Phaser.Scene {
 
   private handleBossDefeat(boss: GerenteMicrogestor) {
     this.bossDefeated = true;
+    getRun(this).openSpaceCleared = true;
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
 

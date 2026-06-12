@@ -113,8 +113,10 @@ export class ShopUI {
       label: `Café Triplo (+${cafeHeal} Energia)`,
       description: run.cafeForte ? "Café Forte ativo: cura bônus!" : "Restaura Energia.",
       cost: cafeBase,
-      apply: (r) => {
-        r.energy = Math.min(r.energy + cafeHeal, 100);
+      apply: (_r, shop) => {
+        if (shop.player) {
+          shop.player.energy = Math.min(shop.player.maxEnergy, shop.player.energy + cafeHeal);
+        }
       },
     });
 
@@ -125,8 +127,10 @@ export class ShopUI {
       label: `Pausa de 5min (+${pausaHeal} Sanidade)`,
       description: run.cafeForte ? "Café Forte ativo: cura bônus!" : "Restaura Sanidade.",
       cost: pausaBase,
-      apply: (r) => {
-        r.sanity = Math.min(r.sanity + pausaHeal, 100);
+      apply: (_r, shop) => {
+        if (shop.player) {
+          shop.player.sanity = Math.min(shop.player.maxSanity, shop.player.sanity + pausaHeal);
+        }
       },
     });
 
