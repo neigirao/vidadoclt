@@ -221,6 +221,7 @@ export class Phase5Scene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle("FASE 5 — DIRETORIA");
     this.hud.setObjective(`Derrote todos os inimigos (${this.enemyCount} restantes)`);
 
     const title = this.add.text(GAME_WIDTH / 2, 110, "FASE 5 — DIRETORIA", {

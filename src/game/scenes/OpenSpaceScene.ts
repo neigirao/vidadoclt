@@ -368,6 +368,7 @@ export class OpenSpaceScene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
 
     const title = this.add
@@ -534,10 +535,11 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
 
-    // Drop VR shower
+    // Drop VR shower (scaled by class/perk vrDropMult)
+    const dropsPerTick = Math.max(1, Math.round(this.player.vrDropMult));
     for (let i = 0; i < 18; i++) {
       this.time.delayedCall(i * 60, () => {
-        if (!boss.active) this.dropVR(boss.x + Phaser.Math.Between(-70, 70), boss.y - 20);
+        if (!boss.active) this.dropVR(boss.x + Phaser.Math.Between(-70, 70), boss.y - 20, dropsPerTick);
       });
     }
     boss.destroy();

@@ -243,6 +243,7 @@ export class CeoScene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle("CEO — CONFRONTO FINAL");
     this.hud.setObjective("Derrote o CEO Milton Freitas da Cunha IV");
     this.hud.showBoss("CEO — Milton Freitas da Cunha IV", this.boss.maxHp);
 
