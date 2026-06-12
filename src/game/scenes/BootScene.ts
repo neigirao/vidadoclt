@@ -81,79 +81,166 @@ export class BootScene extends Phaser.Scene {
     // Apenas hitbox permanece como rect (debug overlay semi-transparente)
     this.makeRect("tex-hitbox", 28, 24, 0xffffff);
 
-    // ── Office furniture platform textures (32×14) ──────────────────
-    // tex-mesa: desk top surface
+    // ── Platform surface tiles (32×14) — used for physics surface rendering ──
+    // tex-mesa surface
     {
       const g = this.add.graphics();
-      // top surface
-      g.fillStyle(0xdcc888, 1); g.fillRect(0, 0, 32, 2);
-      g.fillStyle(0xb8924a, 1); g.fillRect(0, 2, 32, 1);
-      // front edge
-      g.fillStyle(0x3c1a00, 1); g.fillRect(0, 3, 32, 1);
-      // front face
-      g.fillStyle(0x8c6232, 1); g.fillRect(0, 4, 32, 6);
-      // drawer line
-      g.fillStyle(0x3c1a00, 1); g.fillRect(2, 7, 28, 1);
-      // lower face
+      g.fillStyle(0xe8d090, 1); g.fillRect(0, 0, 32, 3);
+      g.fillStyle(0xc8a050, 1); g.fillRect(0, 3, 32, 2);
+      g.fillStyle(0xa07830, 1); g.fillRect(0, 5, 32, 4);
+      g.fillStyle(0x3c1a00, 1); g.fillRect(0, 9, 32, 1);
       g.fillStyle(0x6a4818, 1); g.fillRect(0, 10, 32, 4);
-      // leg hints at edges
-      g.fillStyle(0x4a2c08, 1); g.fillRect(0, 4, 3, 10); g.fillRect(29, 4, 3, 10);
       g.generateTexture("tex-mesa", 32, 14);
       g.destroy();
     }
-    // tex-estante: bookshelf with colored spines
+    // tex-estante surface (top board of shelf)
     {
       const g = this.add.graphics();
-      // shelf top
-      g.fillStyle(0x8c5a28, 1); g.fillRect(0, 0, 32, 3);
-      g.fillStyle(0x6a3e18, 1); g.fillRect(0, 3, 32, 1);
-      // books (alternating colors)
-      const books = [0x3060c0, 0xb83020, 0x288040, 0xb09020, 0x804020, 0x703090, 0x208060, 0x205090];
-      books.forEach((col, i) => {
-        g.fillStyle(col, 1);
-        g.fillRect(i * 4 + 1, 4, 3, 10);
-        // highlight on spine
-        g.fillStyle(0xffffff, 0.2);
-        g.fillRect(i * 4 + 1, 4, 1, 10);
-      });
-      // back wall
-      g.fillStyle(0x4a3218, 1); g.fillRect(0, 4, 1, 10); g.fillRect(31, 4, 1, 10);
+      g.fillStyle(0xa06830, 1); g.fillRect(0, 0, 32, 14);
+      g.fillStyle(0xc08848, 1); g.fillRect(0, 0, 32, 4);
+      g.fillStyle(0x3c1a00, 1); g.fillRect(0, 13, 32, 1);
+      g.fillStyle(0x7a4c20, 1); g.fillRect(0, 4, 3, 10); g.fillRect(29, 4, 3, 10);
       g.generateTexture("tex-estante", 32, 14);
       g.destroy();
     }
-    // tex-cadeira: office chair seat row
+    // tex-impressora surface (printer top)
     {
       const g = this.add.graphics();
-      // seat cushion top highlight
-      g.fillStyle(0x6070a0, 1); g.fillRect(0, 0, 32, 2);
-      // cushion main
-      g.fillStyle(0x3a4a7a, 1); g.fillRect(0, 2, 32, 6);
-      // cushion shadow bottom
-      g.fillStyle(0x2a3458, 1); g.fillRect(0, 8, 32, 2);
-      // connector/base
-      g.fillStyle(0x1a1a28, 1); g.fillRect(0, 10, 32, 4);
-      // chair dividers (separate seats)
-      g.fillStyle(0x0e0e1a, 1);
-      [10, 21].forEach(x => g.fillRect(x, 2, 2, 12));
-      // armrest hints
-      g.fillStyle(0x1e2838, 1);
-      g.fillRect(0, 2, 3, 8); g.fillRect(29, 2, 3, 8);
-      g.generateTexture("tex-cadeira", 32, 14);
+      g.fillStyle(0xd0d0c8, 1); g.fillRect(0, 0, 32, 14);
+      g.fillStyle(0xe8e8e0, 1); g.fillRect(1, 1, 30, 5);
+      g.fillStyle(0xa0a098, 1); g.fillRect(0, 13, 32, 1);
+      g.fillStyle(0x2060c0, 1); g.fillRect(8, 3, 16, 6);
+      g.fillStyle(0x00cc44, 1); g.fillRect(24, 4, 5, 4);
+      g.generateTexture("tex-impressora", 32, 14);
       g.destroy();
     }
-    // Override tex-platform with desk look (backward compat for any remaining uses)
+    // tex-vaso surface (top of plant pot)
     {
       const g = this.add.graphics();
-      g.fillStyle(0xdcc888, 1); g.fillRect(0, 0, 32, 2);
-      g.fillStyle(0xb8924a, 1); g.fillRect(0, 2, 32, 1);
-      g.fillStyle(0x3c1a00, 1); g.fillRect(0, 3, 32, 1);
-      g.fillStyle(0x8c6232, 1); g.fillRect(0, 4, 32, 6);
-      g.fillStyle(0x3c1a00, 1); g.fillRect(2, 7, 28, 1);
+      g.fillStyle(0x3a2008, 1); g.fillRect(0, 0, 32, 14);
+      g.fillStyle(0x5a3010, 1); g.fillRect(2, 2, 28, 8);
+      g.fillStyle(0x288030, 1); g.fillRect(4, 0, 24, 6);
+      g.fillStyle(0x40a040, 1); g.fillRect(8, 0, 16, 4);
+      g.generateTexture("tex-vaso", 32, 14);
+      g.destroy();
+    }
+    // tex-platform backward compat = same as tex-mesa
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0xe8d090, 1); g.fillRect(0, 0, 32, 3);
+      g.fillStyle(0xc8a050, 1); g.fillRect(0, 3, 32, 2);
+      g.fillStyle(0xa07830, 1); g.fillRect(0, 5, 32, 4);
+      g.fillStyle(0x3c1a00, 1); g.fillRect(0, 9, 32, 1);
       g.fillStyle(0x6a4818, 1); g.fillRect(0, 10, 32, 4);
-      g.fillStyle(0x4a2c08, 1); g.fillRect(0, 4, 3, 10); g.fillRect(29, 4, 3, 10);
       g.generateTexture("tex-platform", 32, 14);
       g.destroy();
     }
+
+    // ── Platform body textures — drawn BELOW the surface tile ──────────
+    // tex-mesa-body (32×72): desk body + drawers + legs
+    {
+      const g = this.add.graphics();
+      // drawer bank
+      g.fillStyle(0x8c6030, 1); g.fillRect(0, 0, 32, 40);
+      // drawer lines
+      g.fillStyle(0x3c1a00, 1);
+      g.fillRect(2, 0, 28, 1);   // top separator
+      g.fillRect(2, 18, 28, 1);  // middle drawer divide
+      g.fillRect(2, 36, 28, 1);  // bottom drawer
+      // drawer handles
+      g.fillStyle(0xd0b060, 1);
+      g.fillRect(8, 7, 16, 4);
+      g.fillRect(8, 25, 16, 4);
+      // leg pillars
+      g.fillStyle(0x5a3818, 1);
+      g.fillRect(0, 38, 10, 34);
+      g.fillRect(22, 38, 10, 34);
+      // floor shadow
+      g.fillStyle(0x2a1408, 1);
+      g.fillRect(0, 68, 10, 4); g.fillRect(22, 68, 10, 4);
+      g.generateTexture("tex-mesa-body", 32, 72);
+      g.destroy();
+    }
+    // tex-estante-body (32×90): bookshelf body with 3 rows of books
+    {
+      const g = this.add.graphics();
+      const bkColors = [0x3060c0, 0xb03020, 0x308040, 0xb09020, 0x703090, 0x208060, 0x804020, 0x205090];
+      // side panels
+      g.fillStyle(0x7a4c20, 1);
+      g.fillRect(0, 0, 6, 90);
+      g.fillRect(26, 0, 6, 90);
+      // back wall
+      g.fillStyle(0x4a2c10, 1); g.fillRect(6, 0, 20, 90);
+      // three shelf rows
+      [0, 30, 60].forEach((sy, rowIdx) => {
+        // shelf board
+        g.fillStyle(0x8c5828, 1);
+        g.fillRect(0, sy + 26, 32, 4);
+        // books on this shelf
+        let bx = 7;
+        for (let bi = 0; bi < 5; bi++) {
+          const bw = 3 + (bi % 2) * 2;
+          const bh = 20 + (bi % 3) * 3;
+          g.fillStyle(bkColors[(rowIdx * 5 + bi) % bkColors.length], 1);
+          g.fillRect(bx, sy + 6, bw, bh);
+          g.fillStyle(0xffffff, 0.18);
+          g.fillRect(bx, sy + 6, 1, bh);
+          bx += bw + 2;
+        }
+      });
+      // base board
+      g.fillStyle(0x7a4c20, 1); g.fillRect(0, 84, 32, 6);
+      g.generateTexture("tex-estante-body", 32, 90);
+      g.destroy();
+    }
+    // tex-impressora-body (32×52): printer lower body + paper tray
+    {
+      const g = this.add.graphics();
+      // main body
+      g.fillStyle(0xc0c0b8, 1); g.fillRect(0, 0, 32, 34);
+      g.fillStyle(0x888880, 1); g.fillRect(0, 22, 32, 12);
+      // front panel
+      g.fillStyle(0x505050, 1); g.fillRect(2, 2, 28, 20);
+      g.fillStyle(0x2040a0, 1); g.fillRect(6, 6, 20, 10);
+      // paper tray
+      g.fillStyle(0xa0a098, 1); g.fillRect(4, 34, 24, 10);
+      g.fillStyle(0xe8e8e0, 1); g.fillRect(6, 35, 20, 6);
+      // base
+      g.fillStyle(0x707068, 1); g.fillRect(0, 44, 32, 8);
+      g.generateTexture("tex-impressora-body", 32, 52);
+      g.destroy();
+    }
+    // tex-vaso-body (32×72): plant pot body + foliage crown above
+    {
+      const g = this.add.graphics();
+      // foliage (drawn at top, will appear above physics surface)
+      g.fillStyle(0x206828, 1);
+      g.fillEllipse(16, 6, 30, 20);
+      g.fillStyle(0x288838, 1);
+      g.fillEllipse(8, 2, 20, 16);
+      g.fillEllipse(24, 2, 20, 16);
+      g.fillStyle(0x40a848, 1);
+      g.fillEllipse(16, -2, 22, 14);
+      // pot
+      g.fillStyle(0x9a4820, 1); g.fillRect(6, 16, 20, 30);
+      g.fillStyle(0xba6030, 1); g.fillRect(4, 16, 24, 6);
+      g.fillStyle(0x703818, 1); g.fillRect(8, 42, 16, 4);
+      // soil
+      g.fillStyle(0x2a1008, 1); g.fillRect(7, 17, 18, 6);
+      g.generateTexture("tex-vaso-body", 32, 50);
+      g.destroy();
+    }
+
+    // Set linear filter on photo backgrounds so they don't appear pixelated
+    const bgKeys = [
+      "bg-menu","bg-openspace","bg-atendimento","bg-comercial","bg-produto",
+      "bg-tecnologia","bg-rh","bg-compliance","bg-diretoria","bg-presidencia",
+      "bg-cobertura","bg-copa",
+    ];
+    bgKeys.forEach(key => {
+      const tex = this.textures.get(key);
+      if (tex) (tex as any).setFilter(1); // 1 = Phaser LINEAR filter
+    });
 
     this.scene.start("MenuScene");
   }

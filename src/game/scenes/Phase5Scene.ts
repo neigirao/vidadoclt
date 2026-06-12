@@ -18,6 +18,7 @@ const FLOOR_Y = HUD_BOT_Y - 32;
 
 export class Phase5Scene extends Phaser.Scene {
   private platIdx = 0;
+  private platBodyG!: Phaser.GameObjects.Graphics;
   private player!: Player;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private carimbadores!: Phaser.Physics.Arcade.Group;
@@ -62,6 +63,8 @@ export class Phase5Scene extends Phaser.Scene {
     }
 
     this.platforms = this.physics.add.staticGroup();
+    this.platBodyG = this.add.graphics().setDepth(8);
+    this.platIdx = 0;
     this.buildFloor();
     this.buildPlatform(200, FLOOR_Y - 120, 5);
     this.buildPlatform(520, FLOOR_Y - 180, 4);
@@ -386,13 +389,29 @@ export class Phase5Scene extends Phaser.Scene {
   }
 
   private buildPlatform(x: number, y: number, tiles: number) {
-    const platTextures = ["tex-mesa", "tex-estante", "tex-cadeira"];
-    const tex = platTextures[this.platIdx % platTextures.length];
+    const platDefs = [
+      { surf: "tex-mesa",       body: "tex-mesa-body",       bodyH: 72, bodyY: 14  },
+      { surf: "tex-estante",    body: "tex-estante-body",    bodyH: 90, bodyY: 14  },
+      { surf: "tex-impressora", body: "tex-impressora-body", bodyH: 52, bodyY: 14  },
+      { surf: "tex-vaso",       body: "tex-vaso-body",       bodyH: 50, bodyY: 14  },
+    ];
+    const def = platDefs[this.platIdx % platDefs.length];
     this.platIdx++;
     const w = tiles * 32;
+
+    // Draw surface tiles
     for (let i = 0; i < tiles; i++) {
-      this.add.image(x + i * 32 + 16, y, tex).setDisplaySize(32, 14);
+      this.add.image(x + i * 32 + 16, y, def.surf).setDisplaySize(32, 14).setDepth(9);
     }
+
+    // Draw furniture body below surface (one body unit per 2 tiles, centered)
+    const unitW = 32; // each body image is 32px wide; repeat for wide platforms
+    for (let i = 0; i < tiles; i++) {
+      this.add.image(x + i * 32 + 16, y + def.bodyY + def.bodyH / 2, def.body)
+        .setDisplaySize(32, def.bodyH).setDepth(7);
+    }
+
+    // Physics body (invisible rectangle at surface level)
     const plat = this.add.rectangle(x + w / 2, y, w, 14, 0x000000, 0);
     this.physics.add.existing(plat, true);
     this.platforms.add(plat);
