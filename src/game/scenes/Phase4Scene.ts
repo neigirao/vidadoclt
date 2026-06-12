@@ -19,6 +19,7 @@ const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
 
 export class Phase4Scene extends Phaser.Scene {
+  private platIdx = 0;
   private player!: Player;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private cabos!: Phaser.Physics.Arcade.Group;
@@ -45,6 +46,7 @@ export class Phase4Scene extends Phaser.Scene {
 
   create() {
     const run = getRun(this);
+    this.platIdx = 0;
     this.startTimeMs = this.time.now;
     this.bossDefeated = false;
 
@@ -53,9 +55,14 @@ export class Phase4Scene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
     const HUD_TOP_H = 68;
-    this.add.image(GAME_WIDTH / 2, (HUD_TOP_H + FLOOR_Y) / 2, "bg-tecnologia")
-      .setDisplaySize(GAME_WIDTH, FLOOR_Y - HUD_TOP_H)
-      .setScrollFactor(0);
+    {
+      const midY = (HUD_TOP_H + FLOOR_Y) / 2;
+      const targetH = FLOOR_Y - HUD_TOP_H;
+      const bg = this.add.image(GAME_WIDTH / 2, midY, "bg-tecnologia").setScrollFactor(0);
+      const scaleX = GAME_WIDTH / (bg.width || GAME_WIDTH);
+      const scaleY = targetH / (bg.height || targetH);
+      bg.setScale(Math.max(scaleX, scaleY));
+    }
 
     this.platforms = this.physics.add.staticGroup();
     this.buildFloor();
@@ -462,9 +469,12 @@ export class Phase4Scene extends Phaser.Scene {
   }
 
   private buildPlatform(x: number, y: number, tiles: number) {
+    const platTextures = ["tex-mesa", "tex-estante", "tex-cadeira"];
+    const tex = platTextures[this.platIdx % platTextures.length];
+    this.platIdx++;
     const w = tiles * 32;
     for (let i = 0; i < tiles; i++) {
-      this.add.image(x + i * 32 + 16, y, "tex-platform").setDisplaySize(32, 14);
+      this.add.image(x + i * 32 + 16, y, tex).setDisplaySize(32, 14);
     }
     const plat = this.add.rectangle(x + w / 2, y, w, 14, 0x000000, 0);
     this.physics.add.existing(plat, true);

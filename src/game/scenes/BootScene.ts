@@ -81,6 +81,80 @@ export class BootScene extends Phaser.Scene {
     // Apenas hitbox permanece como rect (debug overlay semi-transparente)
     this.makeRect("tex-hitbox", 28, 24, 0xffffff);
 
+    // ── Office furniture platform textures (32×14) ──────────────────
+    // tex-mesa: desk top surface
+    {
+      const g = this.add.graphics();
+      // top surface
+      g.fillStyle(0xdcc888, 1); g.fillRect(0, 0, 32, 2);
+      g.fillStyle(0xb8924a, 1); g.fillRect(0, 2, 32, 1);
+      // front edge
+      g.fillStyle(0x3c1a00, 1); g.fillRect(0, 3, 32, 1);
+      // front face
+      g.fillStyle(0x8c6232, 1); g.fillRect(0, 4, 32, 6);
+      // drawer line
+      g.fillStyle(0x3c1a00, 1); g.fillRect(2, 7, 28, 1);
+      // lower face
+      g.fillStyle(0x6a4818, 1); g.fillRect(0, 10, 32, 4);
+      // leg hints at edges
+      g.fillStyle(0x4a2c08, 1); g.fillRect(0, 4, 3, 10); g.fillRect(29, 4, 3, 10);
+      g.generateTexture("tex-mesa", 32, 14);
+      g.destroy();
+    }
+    // tex-estante: bookshelf with colored spines
+    {
+      const g = this.add.graphics();
+      // shelf top
+      g.fillStyle(0x8c5a28, 1); g.fillRect(0, 0, 32, 3);
+      g.fillStyle(0x6a3e18, 1); g.fillRect(0, 3, 32, 1);
+      // books (alternating colors)
+      const books = [0x3060c0, 0xb83020, 0x288040, 0xb09020, 0x804020, 0x703090, 0x208060, 0x205090];
+      books.forEach((col, i) => {
+        g.fillStyle(col, 1);
+        g.fillRect(i * 4 + 1, 4, 3, 10);
+        // highlight on spine
+        g.fillStyle(0xffffff, 0.2);
+        g.fillRect(i * 4 + 1, 4, 1, 10);
+      });
+      // back wall
+      g.fillStyle(0x4a3218, 1); g.fillRect(0, 4, 1, 10); g.fillRect(31, 4, 1, 10);
+      g.generateTexture("tex-estante", 32, 14);
+      g.destroy();
+    }
+    // tex-cadeira: office chair seat row
+    {
+      const g = this.add.graphics();
+      // seat cushion top highlight
+      g.fillStyle(0x6070a0, 1); g.fillRect(0, 0, 32, 2);
+      // cushion main
+      g.fillStyle(0x3a4a7a, 1); g.fillRect(0, 2, 32, 6);
+      // cushion shadow bottom
+      g.fillStyle(0x2a3458, 1); g.fillRect(0, 8, 32, 2);
+      // connector/base
+      g.fillStyle(0x1a1a28, 1); g.fillRect(0, 10, 32, 4);
+      // chair dividers (separate seats)
+      g.fillStyle(0x0e0e1a, 1);
+      [10, 21].forEach(x => g.fillRect(x, 2, 2, 12));
+      // armrest hints
+      g.fillStyle(0x1e2838, 1);
+      g.fillRect(0, 2, 3, 8); g.fillRect(29, 2, 3, 8);
+      g.generateTexture("tex-cadeira", 32, 14);
+      g.destroy();
+    }
+    // Override tex-platform with desk look (backward compat for any remaining uses)
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0xdcc888, 1); g.fillRect(0, 0, 32, 2);
+      g.fillStyle(0xb8924a, 1); g.fillRect(0, 2, 32, 1);
+      g.fillStyle(0x3c1a00, 1); g.fillRect(0, 3, 32, 1);
+      g.fillStyle(0x8c6232, 1); g.fillRect(0, 4, 32, 6);
+      g.fillStyle(0x3c1a00, 1); g.fillRect(2, 7, 28, 1);
+      g.fillStyle(0x6a4818, 1); g.fillRect(0, 10, 32, 4);
+      g.fillStyle(0x4a2c08, 1); g.fillRect(0, 4, 3, 10); g.fillRect(29, 4, 3, 10);
+      g.generateTexture("tex-platform", 32, 14);
+      g.destroy();
+    }
+
     this.scene.start("MenuScene");
   }
 
