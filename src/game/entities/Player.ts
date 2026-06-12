@@ -40,6 +40,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   doubleJump = false;
   aggroRadius = 200;
+  firstStrikeReady = false;
   hitAutoRanged = false;
   comboHits: 2 | 3 = 3;
   specialCooldown = 3000;

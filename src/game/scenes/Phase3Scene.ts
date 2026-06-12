@@ -466,7 +466,13 @@ export class Phase3Scene extends Phaser.Scene {
     const comboHits = def.hitDamages[2] === 0 ? 2 : 3;
     const dmgIndex = Math.min(step - 1, def.hitDamages.length - 1);
     const baseDmg = def.hitDamages[dmgIndex] || def.hitDamages[0];
-    const damage = Math.round(baseDmg * this.player.damageMult);
+    let strikeMult = 1.0;
+    if (this.player.firstStrikeReady) {
+      this.player.firstStrikeReady = false;
+      strikeMult = 1.5;
+      this.cameras.main.flash(180, 255, 215, 0, false);
+    }
+    const damage = Math.round(baseDmg * this.player.damageMult * strikeMult);
     const knockback = (step >= comboHits ? def.comboKnockback : 80) * this.player.facing;
     const slowMs = def.hitSlow;
 

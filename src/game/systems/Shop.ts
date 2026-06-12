@@ -12,6 +12,19 @@ const RARITY_COLORS: Record<string, string> = {
   lendario: "#ffaa00",
 };
 
+const WEAPON_FLAVOR: Partial<Record<WeaponId, string>> = {
+  regua:              "Ideal pra medir quanto da sua paciência ainda sobrou.",
+  furador:            "Já furou 400 folhas de relatório inútil hoje.",
+  mouse:              "Sem fio. Sem limite. Sem processo trabalhista.",
+  teclado:            "R$ 800 na Amazon. Custo emocional: inestimável.",
+  caneca:             "Diz 'Melhor Funcionário 2019'. O único prêmio que você ganhou.",
+  impressora:         "O papel emperrou. O inimigo também vai emperrar.",
+  notebook:           "Leva 15 min pra ligar e ainda te persegue.",
+  projetor:           "A reunião durou 3h. O projetor dói mais.",
+  extintor:           "Certificado pra extinguir incêndios, expectativas e carreiras.",
+  grampeador_eletrico:"Modificado pelo TI terceirizado. Provavelmente ilegal.",
+};
+
 function rollShopWeapon(currentWeaponId: string): WeaponId {
   const pool: Array<{ id: WeaponId; weight: number }> = [];
   for (const [id, def] of Object.entries(WEAPONS) as [WeaponId, WeaponDef][]) {
@@ -45,6 +58,7 @@ type DynamicItem = {
   key: string;
   label: string;
   description: string;
+  flavor?: string;
   cost: number;
   rarityColor?: string;
   apply: (run: RunState, shop: ShopUI) => string | "next" | void;
@@ -124,6 +138,7 @@ export class ShopUI {
         key: `weapon_${wid}`,
         label: wdef.name,
         description: `${wdef.type === "ranged" ? "Ranged" : "Melee"} — Dano: ${wdef.hitDamages[0]}/${wdef.hitDamages[1]}/${wdef.hitDamages[2] || "—"}`,
+        flavor: WEAPON_FLAVOR[wid],
         cost: wdef.shopCost,
         rarityColor: RARITY_COLORS[wdef.rarity],
         apply: (r, shop) => {
@@ -142,6 +157,7 @@ export class ShopUI {
         key: `perk_${pid}`,
         label: `${pdef.icon} ${pdef.name}`,
         description: pdef.description,
+        flavor: pdef.flavor,
         cost: pdef.shopCost,
         rarityColor: "#44cc88",
         apply: (r, shop) => {
@@ -162,8 +178,9 @@ export class ShopUI {
 
     // Render
     const c = this.scene.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2).setScrollFactor(0).setDepth(2000);
-    const panelH = 80 + this.items.length * 54;
-    const panel = this.scene.add.rectangle(0, 0, 520, panelH, 0x0a0c10, 0.95).setStrokeStyle(2, 0xf2c14e);
+    const rowH = 64;
+    const panelH = 80 + this.items.length * rowH;
+    const panel = this.scene.add.rectangle(0, 0, 530, panelH, 0x0a0c10, 0.95).setStrokeStyle(2, 0xf2c14e);
     const title = this.scene.add
       .text(0, -panelH / 2 + 16, "PONTO ELETRÔNICO", { fontFamily: "monospace", fontSize: "18px", color: "#f2c14e" })
       .setOrigin(0.5);
@@ -174,7 +191,7 @@ export class ShopUI {
 
     const startY = -panelH / 2 + 66;
     this.items.forEach((item, i) => {
-      const y = startY + i * 54;
+      const y = startY + i * rowH;
       const color = item.rarityColor ?? "#ffffff";
       const costStr = item.cost > 0 ? `  —  ${item.cost} VR` : "  —  grátis";
       const row = this.scene.add
@@ -186,10 +203,17 @@ export class ShopUI {
           fontFamily: "monospace", fontSize: "10px", color: "#888888",
         }).setOrigin(0.5);
       c.add([row, desc]);
+      if (item.flavor) {
+        const flav = this.scene.add
+          .text(0, y + 30, `"${item.flavor}"`, {
+            fontFamily: "monospace", fontSize: "9px", color: "#998866", fontStyle: "italic",
+          }).setOrigin(0.5);
+        c.add(flav);
+      }
     });
 
     const hint = this.scene.add
-      .text(0, panelH / 2 - 22, `1-${this.items.length} para comprar  •  ESC para fechar`, {
+      .text(0, panelH / 2 - 20, `1-${this.items.length} para comprar  •  ESC para fechar`, {
         fontFamily: "monospace", fontSize: "10px", color: "#aaaaaa",
       }).setOrigin(0.5);
     c.add(hint);

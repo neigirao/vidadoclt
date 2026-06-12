@@ -109,6 +109,26 @@ export class CopaScene extends Phaser.Scene {
       f.target = this.player;
       this.faxineiros.add(f);
     });
+
+    // Faxineiro dialogue based on loopCount
+    const loopCount = run.loopCount ?? 0;
+    const falas = [
+      "Mais um dia de trabalho...",
+      "De novo você? Que semana estranha.",
+      "Achei que tinha saído ontem.",
+      "Sério que você tá aqui de novo?",
+      `${loopCount + 1}ª vez hoje. Eu contei.`,
+      "Cara, você tá bem? Já perdi as contas.",
+      "A sindicância vai ser enorme quando isso acabar.",
+    ];
+    const fala = falas[Math.min(loopCount, falas.length - 1)];
+    this.time.delayedCall(1200, () => {
+      const bubble = this.add.text(520, FLOOR_Y - 130, fala, {
+        fontFamily: "monospace", fontSize: "11px", color: "#c9e8c9",
+        backgroundColor: "#1a2a1a", padding: { x: 6, y: 4 },
+      }).setOrigin(0.5).setDepth(500);
+      this.tweens.add({ targets: bubble, alpha: 0, delay: 2800, duration: 600, onComplete: () => bubble.destroy() });
+    });
     this.physics.add.collider(this.faxineiros, this.platforms);
 
     this.drops = this.physics.add.group();
