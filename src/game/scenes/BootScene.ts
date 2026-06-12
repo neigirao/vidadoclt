@@ -10,8 +10,18 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("bg-menu", "/assets/bg-menu.png");
-    this.load.image("bg-openspace", "/assets/bg-openspace.png");
+    this.load.image("bg-menu",       "/assets/bg-menu.png");
+    this.load.image("bg-openspace",  "/assets/bg-openspace.png");
+    this.load.image("bg-atendimento","/assets/bg-atendimento.png");
+    this.load.image("bg-comercial",  "/assets/bg-comercial.png");
+    this.load.image("bg-produto",    "/assets/bg-produto.png");
+    this.load.image("bg-tecnologia", "/assets/bg-tecnologia.png");
+    this.load.image("bg-rh",         "/assets/bg-rh.png");
+    this.load.image("bg-compliance", "/assets/bg-compliance.png");
+    this.load.image("bg-diretoria",  "/assets/bg-diretoria.png");
+    this.load.image("bg-presidencia","/assets/bg-presidencia.png");
+    this.load.image("bg-cobertura",  "/assets/bg-cobertura.png");
+    this.load.image("bg-copa",       "/assets/bg-copa.png");
     // Real character sprites (PNG with transparency)
     this.load.image("tex-player-idle",   "/assets/sprites/player-idle.png");
     this.load.image("tex-player",        "/assets/sprites/player-idle.png"); // HUD alias
@@ -52,23 +62,24 @@ export class BootScene extends Phaser.Scene {
     this.load.image("tex-obj-impressora","/assets/sprites/obj-impressora.png");
     this.load.image("tex-elevador",      "/assets/sprites/obj-elevador.png");
     this.load.image("tex-porta-reuniao", "/assets/sprites/obj-porta-reuniao.png");
+    // Tiles e decoração
+    this.load.image("tex-platform",      "/assets/sprites/tile-platform.png");
+    this.load.image("tex-floor",         "/assets/sprites/tile-floor.png");
+    this.load.image("tex-baia",          "/assets/sprites/obj-baia.png");
+    this.load.image("tex-door",          "/assets/sprites/obj-door.png");
+    this.load.image("tex-ponto",         "/assets/sprites/obj-ponto.png");
+    // Itens / collectibles
+    this.load.image("tex-vr",            "/assets/sprites/item-vr-coin.png");
+    this.load.image("tex-coffee",        "/assets/sprites/item-coffee-cup.png");
+    this.load.image("tex-postit",        "/assets/sprites/item-postit.png");
+    this.load.image("tex-convite",       "/assets/sprites/item-convite.png");
+    this.load.image("tex-email",         "/assets/sprites/item-email.png");
+    this.load.image("tex-inkproj",       "/assets/sprites/item-inkproj.png");
   }
 
   create() {
-    // Sprites com arte real são carregados via preload() acima.
-    // makeRect() apenas para itens pequenos sem sprite PNG ainda.
-    this.makeRect("tex-vr",      12, 12, COLORS.vr);
-    this.makeRect("tex-platform",32, 16, COLORS.platform);
-    this.makeRect("tex-floor",   32, 16, COLORS.floor);
-    this.makeRect("tex-baia",    64, 40, COLORS.baia);
-    this.makeRect("tex-hitbox",  28, 24, 0xffffff);
-    this.makeRect("tex-door",    36, 60, COLORS.door, 0xc9a36a);
-    this.makeRect("tex-coffee",  28, 40, 0x6a4a3a, 0xeac08a);
-    this.makeRect("tex-ponto",   28, 40, COLORS.ponto, 0x222222);
-    this.makeRect("tex-postit",  14, 14, 0xffee22, 0xffaa00);
-    this.makeRect("tex-convite", 46, 30, 0xf4f8f4, 0x22aa22);
-    this.makeRect("tex-email",   22, 16, 0xf2c14e, 0x1a1a1a);
-    this.makeRect("tex-inkproj", 10,  5, 0x2244cc, 0x88aaff);
+    // Apenas hitbox permanece como rect (debug overlay semi-transparente)
+    this.makeRect("tex-hitbox", 28, 24, 0xffffff);
 
     this.scene.start("MenuScene");
   }
