@@ -50,8 +50,9 @@ export class Phase5Scene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
     const HUD_TOP_H = 68;
-    this.add.image(LEVEL_WIDTH / 2, (HUD_TOP_H + FLOOR_Y) / 2, "bg-diretoria")
-      .setDisplaySize(LEVEL_WIDTH, FLOOR_Y - HUD_TOP_H);
+    this.add.image(GAME_WIDTH / 2, (HUD_TOP_H + FLOOR_Y) / 2, "bg-diretoria")
+      .setDisplaySize(GAME_WIDTH, FLOOR_Y - HUD_TOP_H)
+      .setScrollFactor(0);
 
     this.platforms = this.physics.add.staticGroup();
     this.buildFloor();
@@ -370,20 +371,21 @@ export class Phase5Scene extends Phaser.Scene {
   private buildFloor() {
     const tileCount = Math.ceil(LEVEL_WIDTH / 32);
     for (let i = 0; i < tileCount; i++) {
-      const t = this.add.image(i * 32 + 16, FLOOR_Y + 8, "tex-floor");
-      t.setDisplaySize(32, 16);
-      this.physics.add.existing(t, true);
-      this.platforms.add(t);
+      this.add.image(i * 32 + 16, FLOOR_Y + 8, "tex-floor").setDisplaySize(32, 16);
     }
+    const floorPhys = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, 0x000000, 0);
+    this.physics.add.existing(floorPhys, true);
+    this.platforms.add(floorPhys);
   }
 
   private buildPlatform(x: number, y: number, tiles: number) {
+    const w = tiles * 32;
     for (let i = 0; i < tiles; i++) {
-      const t = this.add.image(x + i * 32 + 16, y, "tex-platform");
-      t.setDisplaySize(32, 14);
-      this.physics.add.existing(t, true);
-      this.platforms.add(t);
+      this.add.image(x + i * 32 + 16, y, "tex-platform").setDisplaySize(32, 14);
     }
+    const plat = this.add.rectangle(x + w / 2, y, w, 14, 0x000000, 0);
+    this.physics.add.existing(plat, true);
+    this.platforms.add(plat);
   }
 
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
@@ -396,6 +398,7 @@ export class Phase5Scene extends Phaser.Scene {
 
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
+    if (step >= comboHits) this.cameras.main.shake(80, 0.006);
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
       Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());

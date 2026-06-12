@@ -35,11 +35,7 @@ export class CopaScene extends Phaser.Scene {
     const run = getRun(this);
     this.startTimeMs = this.time.now;
 
-    // FGTS: +10 when player reaches Copa from OpenSpace for the first time this run
-    if (run.cameFrom === "openspace" && !run.fgts) {
-      run.fgts += 10;
-      savePersisted(run.reconhecimento, run.fgts, run.loopCount);
-    } else if (run.cameFrom === "openspace") {
+    if (run.cameFrom === "openspace") {
       run.fgts += 10;
       savePersisted(run.reconhecimento, run.fgts, run.loopCount);
     }
