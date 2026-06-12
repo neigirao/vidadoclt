@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import { addPhaseBackground } from "../systems/Background";
+import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { EstagiarioDesesperado } from "../entities/Enemies";
 import { CeoBoss } from "../entities/CeoBoss";
@@ -42,7 +43,7 @@ export class CeoScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
-    addPhaseBackground(this, "bg-cobertura", HUD_TOP_H, FLOOR_Y);
+    addPhaseBackground(this, "pxbg-cobertura", HUD_TOP_H, FLOOR_Y);
 
     // Add dramatic dark overlay
     this.add.rectangle(LEVEL_WIDTH / 2, GAME_HEIGHT / 2, LEVEL_WIDTH, GAME_HEIGHT, 0x000000, 0.3).setDepth(-1);
@@ -315,12 +316,7 @@ export class CeoScene extends Phaser.Scene {
   }
 
   private buildPlatform(x: number, y: number, tiles: number) {
-    const platDefs = [
-      { surf: "tex-mesa",       body: "tex-mesa-body",       bodyH: 72, bodyY: 14  },
-      { surf: "tex-estante",    body: "tex-estante-body",    bodyH: 90, bodyY: 14  },
-      { surf: "tex-impressora", body: "tex-impressora-body", bodyH: 52, bodyY: 14  },
-      { surf: "tex-vaso",       body: "tex-vaso-body",       bodyH: 50, bodyY: 14  },
-    ];
+    const platDefs = PLAT_DEFS;
     const def = platDefs[this.platIdx % platDefs.length];
     this.platIdx++;
     const w = tiles * 32;

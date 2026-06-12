@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import { addPhaseBackground } from "../systems/Background";
+import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import {
   EstagiarioDesesperado, AnalistaJunior,
@@ -65,7 +66,7 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
     // Full level background image
-    addPhaseBackground(this, "bg-openspace", HUD_TOP_H, FLOOR_Y);
+    addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
 
     for (let x = 80; x < LEVEL_WIDTH; x += 260) {
       const baia = this.add.image(x, FLOOR_Y - 28, "tex-baia");
@@ -396,12 +397,7 @@ export class OpenSpaceScene extends Phaser.Scene {
   }
 
   private buildPlatform(x: number, y: number, tiles: number) {
-    const platDefs = [
-      { surf: "tex-mesa",       body: "tex-mesa-body",       bodyH: 72, bodyY: 14  },
-      { surf: "tex-estante",    body: "tex-estante-body",    bodyH: 90, bodyY: 14  },
-      { surf: "tex-impressora", body: "tex-impressora-body", bodyH: 52, bodyY: 14  },
-      { surf: "tex-vaso",       body: "tex-vaso-body",       bodyH: 50, bodyY: 14  },
-    ];
+    const platDefs = PLAT_DEFS;
     const def = platDefs[this.platIdx % platDefs.length];
     this.platIdx++;
     const w = tiles * 32;

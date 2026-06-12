@@ -1,25 +1,26 @@
 import Phaser from "phaser";
-import { GAME_WIDTH } from "../constants";
 
-/** Cover-scaled, slightly desaturated parallax background between HUD bands. */
+/**
+ * Pixel-art office background helper.
+ *
+ * The generated `pxbg-*` textures are 1280×400, authored to sit back visually.
+ * We use a mild parallax (scrollFactor 0.25) which shifts the image ≤240px
+ * as the camera travels its 960px range — the 1280px width covers it exactly.
+ *
+ * worldX = 640 ensures the texture is flush with the left viewport edge at
+ * camera position 0, and still covers at camera position 960:
+ *   left edge @ cx=0:   640 - 640 - 0*0.25   = 0   ✓
+ *   left edge @ cx=960: 640 - 640 - 960*0.25  = -240  (off-screen left) ✓
+ *   right edge @ cx=960: 640 + 640 - 240 = 1040 > 960  ✓
+ */
 export function addPhaseBackground(
-  scene: Phaser.Scene, key: string, topY: number, bottomY: number,
-) {
+  scene: Phaser.Scene,
+  key: string,
+  topY: number,
+  bottomY: number,
+): void {
   const midY = (topY + bottomY) / 2;
-  const targetH = bottomY - topY;
-  const bg = scene.add.image(GAME_WIDTH / 2, midY, key)
+  scene.add.image(640, midY, key)
     .setScrollFactor(0.25, 0)
-    .setAlpha(0.85)
-    .setTint(0xb8c0cc)
     .setDepth(0);
-  // Wider than the screen so the 0.25 scrollFactor parallax never exposes
-  // the edges: camera scrolls up to 960px → bg shifts up to 240px, so the
-  // image needs ≥ GAME_WIDTH + 240 width; 1.6 × 960 = 1536 covers it.
-  const scaleX = (GAME_WIDTH * 1.6) / (bg.width || GAME_WIDTH);
-  const scaleY = targetH / (bg.height || targetH);
-  bg.setScale(Math.max(scaleX, scaleY));
-  // dark gradient strip at the bottom so floor/characters pop
-  scene.add.rectangle(GAME_WIDTH / 2, bottomY - 30, GAME_WIDTH, 60, 0x000000, 0.25)
-    .setScrollFactor(0).setDepth(0);
-  return bg;
 }

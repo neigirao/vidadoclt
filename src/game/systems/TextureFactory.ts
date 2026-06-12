@@ -1,277 +1,428 @@
 import Phaser from "phaser";
 
 /**
- * TextureFactory — runtime-generated placeholder textures.
+ * TextureFactory — runtime-generated pixel-art textures.
+ * All keys are stable so scenes don't need to know origin.
  *
- * Pure functions: each takes a Phaser.Scene and registers textures in the
- * global texture manager. Keys are kept stable (`tex-*`) so scenes never
- * need to know whether a texture is generated or loaded from disk.
- *
- * Style guide for generated furniture:
- *  - 3-tone ramps (highlight / base / shadow)
- *  - 1px dark outline around silhouettes
- *  - subtle bright highlight on top edges
+ * Style: 3-tone ramps, 1px warm-dark outlines, top-edge highlights.
  */
 
-const OUTLINE = 0x14100a; // near-black warm outline
+const OUTLINE = 0x14100a;
 
-/** Furniture surfaces (32×14) + furniture bodies used as platforms. */
+// ─── Platform definition (exported so all scenes share the same sizes) ─────────
+export interface PlatDef {
+  surf: string;
+  body: string;
+  bodyH: number; // height of body image in px (and display height)
+  bodyY: number; // distance below surface top where body starts
+}
+export const PLAT_DEFS: PlatDef[] = [
+  { surf: "tex-mesa",       body: "tex-mesa-body",       bodyH: 14, bodyY: 14 },
+  { surf: "tex-estante",    body: "tex-estante-body",    bodyH: 34, bodyY: 14 },
+  { surf: "tex-impressora", body: "tex-impressora-body", bodyH: 14, bodyY: 14 },
+  { surf: "tex-vaso",       body: "tex-vaso-body",       bodyH: 18, bodyY: 14 },
+];
+
+// ─── Office background themes ─────────────────────────────────────────────────
+interface OfficeTheme {
+  wall: number;
+  wallDark: number;
+  sky: number;
+  skyLight: number;
+  accent: number;
+  floorDark: number;
+  ceilingColor: number;
+  lightColor: number;
+}
+
+const OFFICE_THEMES: Record<string, OfficeTheme> = {
+  openspace:   { wall: 0x3a4150, wallDark: 0x282f3c, sky: 0x6478a0, skyLight: 0x88a0c8, accent: 0x3a5a8a, floorDark: 0x181e28, ceilingColor: 0x18202c, lightColor: 0xd0e4f8 },
+  atendimento: { wall: 0x4a4038, wallDark: 0x342c26, sky: 0x7a6858, skyLight: 0x9a8878, accent: 0x8a4a2a, floorDark: 0x1c1510, ceilingColor: 0x1c1610, lightColor: 0xf0e0c8 },
+  comercial:   { wall: 0x384840, wallDark: 0x28342e, sky: 0x5a8070, skyLight: 0x7aa898, accent: 0x286848, floorDark: 0x141c1a, ceilingColor: 0x141c18, lightColor: 0xc8f0e0 },
+  tecnologia:  { wall: 0x262e3e, wallDark: 0x18202e, sky: 0x304070, skyLight: 0x4060a8, accent: 0x3050d0, floorDark: 0x0e121e, ceilingColor: 0x0e1018, lightColor: 0xc0d4ff },
+  diretoria:   { wall: 0x3a2e44, wallDark: 0x281e32, sky: 0x584898, skyLight: 0x7868b8, accent: 0x5840b8, floorDark: 0x14101c, ceilingColor: 0x14101c, lightColor: 0xe8d8ff },
+  cobertura:   { wall: 0x4c3e2a, wallDark: 0x38291a, sky: 0xd07820, skyLight: 0xf0a840, accent: 0xc89820, floorDark: 0x1a1008, ceilingColor: 0x1a1008, lightColor: 0xffe8a0 },
+};
+
+// ─── public API ───────────────────────────────────────────────────────────────
+
+/** Generate all 6 pixel-art office background textures (1280×400). */
+export function makeOfficeBackgrounds(scene: Phaser.Scene): void {
+  Object.entries(OFFICE_THEMES).forEach(([name, theme]) => {
+    drawOffice(scene, `pxbg-${name}`, theme);
+  });
+}
+
+/** Furniture surfaces + bodies for platform tiles. */
 export function makeFurnitureTextures(scene: Phaser.Scene): void {
-  makeMesaSurface(scene, "tex-mesa");
-  makeMesaSurface(scene, "tex-platform"); // backward-compat alias
-  makeEstanteSurface(scene);
-  makeImpressoraSurface(scene);
-  makeVasoSurface(scene);
+  makeMesaSurf(scene, "tex-mesa");
+  makeMesaSurf(scene, "tex-platform");
+  makeEstanteSurf(scene);
+  makeImpressoraSurf(scene);
+  makeVasoSurf(scene);
 
   makeMesaBody(scene);
   makeEstanteBody(scene);
   makeImpressoraBody(scene);
   makeVasoBody(scene);
+
+  makeFloorTile(scene);
 }
 
-/** UI / debug textures (currently only the semi-transparent hitbox rect). */
+/** UI / debug textures. */
 export function makeUiTextures(scene: Phaser.Scene): void {
-  makeRect(scene, "tex-hitbox", 28, 24, 0xffffff);
+  const gr = scene.add.graphics();
+  gr.fillStyle(0xffffff, 0.35);
+  gr.fillRect(0, 0, 28, 24);
+  gr.lineStyle(1, 0xffffff, 0.6);
+  gr.strokeRect(0, 0, 28, 24);
+  gr.generateTexture("tex-hitbox", 28, 24);
+  gr.destroy();
 }
 
-/** Set LINEAR filtering on photo backgrounds so they don't look pixelated. */
+/** Apply LINEAR filter to photo backgrounds so they don't appear blocky. */
 export function applyBackgroundFilters(scene: Phaser.Scene): void {
-  const bgKeys = [
+  const keys = [
     "bg-menu", "bg-openspace", "bg-atendimento", "bg-comercial", "bg-produto",
     "bg-tecnologia", "bg-rh", "bg-compliance", "bg-diretoria", "bg-presidencia",
     "bg-cobertura", "bg-copa",
   ];
-  bgKeys.forEach((key) => {
-    const tex = scene.textures.get(key);
-    if (tex) (tex as any).setFilter(1); // 1 = Phaser LINEAR filter
+  keys.forEach(k => {
+    const tex = scene.textures.get(k);
+    if (tex) (tex as any).setFilter(1);
   });
 }
 
-// ─── private drawing helpers ──────────────────────────────────────
+// ─── Background drawing ───────────────────────────────────────────────────────
 
-function g(scene: Phaser.Scene): Phaser.GameObjects.Graphics {
-  return scene.add.graphics();
+function drawOffice(scene: Phaser.Scene, key: string, t: OfficeTheme): void {
+  const W = 1280, H = 400;
+  const gr = scene.add.graphics();
+
+  // 1. Base wall
+  gr.fillStyle(t.wall, 1);
+  gr.fillRect(0, 0, W, H);
+
+  // 2. Ceiling strip
+  const CEIL = 22;
+  gr.fillStyle(t.ceilingColor, 1);
+  gr.fillRect(0, 0, W, CEIL);
+  gr.fillStyle(t.wallDark, 1);
+  gr.fillRect(0, CEIL, W, 3);
+
+  // 3. Fluorescent lights along ceiling (every 160px)
+  for (let lx = 80; lx < W; lx += 160) {
+    gr.fillStyle(0x606070, 1);
+    gr.fillRect(lx - 30, 12, 60, 10);      // fixture body
+    gr.fillStyle(t.lightColor, 1);
+    gr.fillRect(lx - 28, 13, 56, 8);       // bulb
+    // downward glow (3 fading rects)
+    gr.fillStyle(t.lightColor, 0.14);
+    gr.fillRect(lx - 44, CEIL + 3, 88, 14);
+    gr.fillStyle(t.lightColor, 0.07);
+    gr.fillRect(lx - 64, CEIL + 17, 128, 12);
+    gr.fillStyle(t.lightColor, 0.03);
+    gr.fillRect(lx - 80, CEIL + 29, 160, 10);
+  }
+
+  // 4. Vertical structural columns (every 320px)
+  for (let cx = 0; cx <= W; cx += 320) {
+    gr.fillStyle(t.wallDark, 1);
+    gr.fillRect(cx - 1, CEIL, 15, H - CEIL);
+    // highlight inner edge
+    gr.fillStyle(t.wall, 0.45);
+    gr.fillRect(cx + 1, CEIL + 6, 3, H - CEIL - 80);
+    // column cap
+    gr.fillStyle(t.wallDark, 1);
+    gr.fillRect(cx - 4, CEIL, 21, 7);
+  }
+
+  // 5. Windows (5 windows)
+  const WW = 96, WH = 158, WT = 40;
+  [68, 308, 548, 788, 1028].forEach(wx => {
+    // outer shadow frame
+    gr.fillStyle(t.wallDark, 1);
+    gr.fillRect(wx - 7, WT - 7, WW + 14, WH + 14);
+    // 4 sky panes
+    const pw = WW / 2 - 5, ph = WH / 2 - 5;
+    gr.fillStyle(t.sky, 1);
+    gr.fillRect(wx + 3, WT + 3, pw, ph);
+    gr.fillRect(wx + WW / 2 + 2, WT + 3, pw, ph);
+    gr.fillRect(wx + 3, WT + WH / 2 + 2, pw, ph);
+    gr.fillRect(wx + WW / 2 + 2, WT + WH / 2 + 2, pw, ph);
+    // sky gradient (lighter at top)
+    gr.fillStyle(t.skyLight, 0.35);
+    gr.fillRect(wx + 3, WT + 3, WW - 6, WH * 0.38 | 0);
+    // glare strip (top-left pane only)
+    gr.fillStyle(0xffffff, 0.18);
+    gr.fillRect(wx + 5, WT + 5, 14, ph * 0.65 | 0);
+    // window sill
+    gr.fillStyle(t.wallDark, 1);
+    gr.fillRect(wx - 9, WT + WH, WW + 18, 9);
+    gr.fillStyle(t.wall, 0.35);
+    gr.fillRect(wx - 8, WT + WH, WW + 16, 2);
+  });
+
+  // 6. Wall decorations between windows
+  [188, 428, 668, 908, 1148].forEach((px, i) => {
+    if (i % 2 === 0) {
+      // Framed poster (corporate / motivational)
+      gr.fillStyle(t.wallDark, 1);
+      gr.fillRect(px - 24, 55, 48, 66);
+      gr.fillStyle(t.accent, 0.55);
+      gr.fillRect(px - 20, 59, 40, 58);
+      // scan-line stripes
+      for (let sl = 0; sl < 58; sl += 8) {
+        gr.fillStyle(0xffffff, 0.07);
+        gr.fillRect(px - 20, 59 + sl, 40, 3);
+      }
+      // text-like bars
+      gr.fillStyle(0x000000, 0.22);
+      gr.fillRect(px - 16, 94, 32, 4);
+      gr.fillRect(px - 12, 102, 24, 4);
+    } else {
+      // Wall clock
+      gr.fillStyle(t.wallDark, 1);
+      gr.fillEllipse(px, 76, 34, 34);
+      gr.fillStyle(t.wall, 1);
+      gr.fillEllipse(px, 76, 28, 28);
+      // hour + minute hand
+      gr.fillStyle(t.wallDark, 1);
+      gr.fillRect(px - 1, 62, 2, 11);  // 12-hand
+      gr.fillRect(px + 1, 75, 9, 2);   // 3-hand
+    }
+  });
+
+  // 7. Lower/baseboard zone (darker strip at bottom 80px)
+  const BASE_Y = H - 80;
+  gr.fillStyle(t.wallDark, 1);
+  gr.fillRect(0, BASE_Y, W, 80);
+  gr.fillStyle(t.wall, 0.28);
+  gr.fillRect(0, BASE_Y, W, 2); // separation highlight
+
+  // 8. Back-floor silhouette furniture
+  const SF_Y = BASE_Y + 6;
+  const DESK_H = 32, DESK_W = 68;
+  for (let sx = 20; sx < W - 60; sx += 110) {
+    // desk silhouette
+    gr.fillStyle(t.floorDark, 1);
+    gr.fillRect(sx, SF_Y + 40 - DESK_H, DESK_W, DESK_H);
+    // monitor
+    gr.fillStyle(t.floorDark, 1);
+    gr.fillRect(sx + 12, SF_Y + 40 - DESK_H - 26, 26, 22);
+    gr.fillRect(sx + 23, SF_Y + 40 - DESK_H - 4, 4, 4);
+  }
+
+  // 9. Floor/ground line
+  gr.fillStyle(t.floorDark, 1);
+  gr.fillRect(0, H - 16, W, 16);
+  gr.fillStyle(t.wall, 0.18);
+  gr.fillRect(0, H - 16, W, 1);
+
+  gr.generateTexture(key, W, H);
+  gr.destroy();
 }
 
-function outlineRect(gr: Phaser.GameObjects.Graphics, w: number, h: number) {
-  gr.fillStyle(OUTLINE, 1);
-  gr.fillRect(0, 0, w, 1);          // top
-  gr.fillRect(0, h - 1, w, 1);      // bottom
-  gr.fillRect(0, 0, 1, h);          // left
-  gr.fillRect(w - 1, 0, 1, h);      // right
-}
+// ─── Furniture surfaces (32×14) ───────────────────────────────────────────────
 
-/** Desk surface — light wood, 3-tone ramp + bright top edge. */
-function makeMesaSurface(scene: Phaser.Scene, key: string) {
-  const gr = g(scene);
-  // highlight / base / shadow ramp
-  gr.fillStyle(0xf2dca0, 1); gr.fillRect(0, 0, 32, 2);   // top highlight
-  gr.fillStyle(0xd8b468, 1); gr.fillRect(0, 2, 32, 3);   // light wood
-  gr.fillStyle(0xa87838, 1); gr.fillRect(0, 5, 32, 4);   // base wood
-  gr.fillStyle(0x6a4818, 1); gr.fillRect(0, 9, 32, 5);   // under-edge shadow
-  // wood grain hints
-  gr.fillStyle(0xc09850, 1);
-  gr.fillRect(5, 6, 8, 1); gr.fillRect(19, 7, 9, 1);
-  outlineRect(gr, 32, 14);
+function makeMesaSurf(scene: Phaser.Scene, key: string) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0xf0d898, 1); gr.fillRect(0, 0, 32, 2);  // highlight
+  gr.fillStyle(0xd4a860, 1); gr.fillRect(0, 2, 32, 3);  // light wood
+  gr.fillStyle(0xa87838, 1); gr.fillRect(0, 5, 32, 5);  // base wood
+  gr.fillStyle(0x684818, 1); gr.fillRect(0, 10, 32, 4); // under-edge
+  // grain hints
+  gr.fillStyle(0xbc9050, 1);
+  gr.fillRect(4, 5, 9, 1); gr.fillRect(20, 7, 8, 1);
+  outline(gr, 32, 14);
   gr.generateTexture(key, 32, 14);
   gr.destroy();
 }
 
-/** Shelf top board. */
-function makeEstanteSurface(scene: Phaser.Scene) {
-  const gr = g(scene);
-  gr.fillStyle(0xa06830, 1); gr.fillRect(0, 0, 32, 14);  // base
-  gr.fillStyle(0xd09858, 1); gr.fillRect(0, 1, 32, 2);   // top highlight
-  gr.fillStyle(0xc08848, 1); gr.fillRect(0, 3, 32, 3);   // light tone
-  gr.fillStyle(0x6a4018, 1); gr.fillRect(0, 10, 32, 3);  // shadow tone
+function makeEstanteSurf(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x9a6028, 1); gr.fillRect(0, 0, 32, 14);
+  gr.fillStyle(0xcf9050, 1); gr.fillRect(0, 1, 32, 2);  // highlight
+  gr.fillStyle(0xb87840, 1); gr.fillRect(0, 3, 32, 4);  // mid
+  gr.fillStyle(0x643a14, 1); gr.fillRect(0, 11, 32, 3); // shadow
   // side posts
-  gr.fillStyle(0x7a4c20, 1); gr.fillRect(1, 4, 3, 10); gr.fillRect(28, 4, 3, 10);
-  outlineRect(gr, 32, 14);
+  gr.fillStyle(0x784820, 1);
+  gr.fillRect(1, 4, 3, 10); gr.fillRect(28, 4, 3, 10);
+  outline(gr, 32, 14);
   gr.generateTexture("tex-estante", 32, 14);
   gr.destroy();
 }
 
-/** Printer top — plastic ramp + lid + status LED. */
-function makeImpressoraSurface(scene: Phaser.Scene) {
-  const gr = g(scene);
-  gr.fillStyle(0xb8b8b0, 1); gr.fillRect(0, 0, 32, 14);  // base plastic
-  gr.fillStyle(0xf0f0e8, 1); gr.fillRect(1, 1, 30, 2);   // top highlight
-  gr.fillStyle(0xd8d8d0, 1); gr.fillRect(1, 3, 30, 3);   // light tone
-  gr.fillStyle(0x888880, 1); gr.fillRect(0, 11, 32, 3);  // shadow tone
-  // scanner lid glass
-  gr.fillStyle(0x2060c0, 1); gr.fillRect(8, 4, 16, 5);
-  gr.fillStyle(0x5090e0, 1); gr.fillRect(9, 4, 6, 2);    // glass shine
-  // status LED
-  gr.fillStyle(0x00cc44, 1); gr.fillRect(26, 5, 3, 3);
-  outlineRect(gr, 32, 14);
+function makeImpressoraSurf(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0xb8b8b0, 1); gr.fillRect(0, 0, 32, 14);
+  gr.fillStyle(0xeeeeea, 1); gr.fillRect(1, 1, 30, 2);  // highlight
+  gr.fillStyle(0xd0d0c8, 1); gr.fillRect(1, 3, 30, 4);  // mid
+  gr.fillStyle(0x808078, 1); gr.fillRect(0, 11, 32, 3); // shadow
+  gr.fillStyle(0x2058b8, 1); gr.fillRect(8, 4, 16, 5);  // scanner lid
+  gr.fillStyle(0x4888e0, 1); gr.fillRect(9, 4, 7, 2);   // glare
+  gr.fillStyle(0x00cc44, 1); gr.fillRect(26, 5, 3, 3);  // LED
+  outline(gr, 32, 14);
   gr.generateTexture("tex-impressora", 32, 14);
   gr.destroy();
 }
 
-/** Plant pot top — soil + leaves spilling over. */
-function makeVasoSurface(scene: Phaser.Scene) {
-  const gr = g(scene);
-  gr.fillStyle(0x3a2008, 1); gr.fillRect(0, 0, 32, 14);  // dark soil base
-  gr.fillStyle(0x5a3010, 1); gr.fillRect(2, 3, 28, 7);   // lighter soil
-  // leaves: shadow / base / highlight
-  gr.fillStyle(0x1e5824, 1); gr.fillRect(3, 2, 26, 5);
-  gr.fillStyle(0x288030, 1); gr.fillRect(5, 0, 22, 5);
-  gr.fillStyle(0x48b050, 1); gr.fillRect(9, 0, 14, 3);
-  outlineRect(gr, 32, 14);
+function makeVasoSurf(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x3a2008, 1); gr.fillRect(0, 0, 32, 14); // soil base
+  gr.fillStyle(0x582e10, 1); gr.fillRect(2, 4, 28, 7);  // lighter soil
+  // foliage on top
+  gr.fillStyle(0x1c5020, 1); gr.fillRect(3, 2, 26, 6);
+  gr.fillStyle(0x267828, 1); gr.fillRect(5, 0, 22, 5);
+  gr.fillStyle(0x40a848, 1); gr.fillRect(9, 0, 14, 3);
+  outline(gr, 32, 14);
   gr.generateTexture("tex-vaso", 32, 14);
   gr.destroy();
 }
 
-/** Desk body (32×72): drawers + legs, 3-tone wood. */
+// ─── Furniture bodies (narrow — proportional to 32×48 player) ─────────────────
+
+/**
+ * Mesa body (32×14): desk apron + leg stumps.
+ * Total desk height = surface(14) + body(14) = 28px ≈ 60% player height ✓
+ */
 function makeMesaBody(scene: Phaser.Scene) {
-  const gr = g(scene);
-  // drawer bank — base
-  gr.fillStyle(0x8c6030, 1); gr.fillRect(0, 0, 32, 40);
-  // left-edge highlight + right-edge shadow (3-tone)
-  gr.fillStyle(0xa87848, 1); gr.fillRect(1, 1, 2, 38);
-  gr.fillStyle(0x6a4420, 1); gr.fillRect(29, 1, 2, 38);
-  // drawer separators
+  const gr = scene.add.graphics();
+  // front apron
+  gr.fillStyle(0x8c6030, 1); gr.fillRect(0, 0, 32, 10);
+  gr.fillStyle(0xa87848, 1); gr.fillRect(1, 0, 2, 9);   // left highlight
+  gr.fillStyle(0x664420, 1); gr.fillRect(29, 0, 2, 10); // right shadow
+  // drawer line
   gr.fillStyle(OUTLINE, 1);
-  gr.fillRect(2, 0, 28, 1);
-  gr.fillRect(2, 18, 28, 1);
-  gr.fillRect(2, 36, 28, 1);
-  // drawer top highlights
-  gr.fillStyle(0xb08850, 1);
-  gr.fillRect(3, 1, 26, 1); gr.fillRect(3, 19, 26, 1);
-  // handles (highlight + shadow)
-  gr.fillStyle(0xe8c878, 1); gr.fillRect(8, 7, 16, 2);
-  gr.fillStyle(0xb89040, 1); gr.fillRect(8, 9, 16, 2);
-  gr.fillStyle(0xe8c878, 1); gr.fillRect(8, 25, 16, 2);
-  gr.fillStyle(0xb89040, 1); gr.fillRect(8, 27, 16, 2);
-  // leg pillars with side shading + outline
-  gr.fillStyle(0x5a3818, 1); gr.fillRect(0, 38, 10, 34); gr.fillRect(22, 38, 10, 34);
-  gr.fillStyle(0x7a5028, 1); gr.fillRect(1, 38, 2, 33);  gr.fillRect(23, 38, 2, 33);
+  gr.fillRect(2, 5, 28, 1);
+  // drawer handle
+  gr.fillStyle(0xe0c070, 1); gr.fillRect(9, 2, 14, 2);
+  gr.fillStyle(0xb09040, 1); gr.fillRect(9, 4, 14, 2);
+  // leg stumps
+  gr.fillStyle(0x583818, 1);
+  gr.fillRect(1, 10, 6, 4); gr.fillRect(25, 10, 6, 4);
+  gr.fillStyle(0x764a22, 1);
+  gr.fillRect(2, 10, 2, 3); gr.fillRect(26, 10, 2, 3); // leg highlights
+  // outline
   gr.fillStyle(OUTLINE, 1);
-  gr.fillRect(0, 38, 1, 34); gr.fillRect(9, 38, 1, 34);
-  gr.fillRect(22, 38, 1, 34); gr.fillRect(31, 38, 1, 34);
-  // floor shadow
-  gr.fillStyle(0x1c0e04, 1);
-  gr.fillRect(0, 68, 10, 4); gr.fillRect(22, 68, 10, 4);
-  // body outline (sides)
-  gr.fillStyle(OUTLINE, 1);
-  gr.fillRect(0, 0, 1, 40); gr.fillRect(31, 0, 1, 40);
-  gr.generateTexture("tex-mesa-body", 32, 72);
+  gr.fillRect(0, 0, 1, 14); gr.fillRect(31, 0, 1, 14);
+  gr.fillRect(0, 13, 32, 1);
+  gr.generateTexture("tex-mesa-body", 32, 14);
   gr.destroy();
 }
 
-/** Bookshelf body (32×90): 3 rows of books, shaded panels. */
+/**
+ * Estante body (32×34): one book row + shelf + base.
+ * Total = surface(14) + body(34) = 48px ≈ player height ✓
+ */
 function makeEstanteBody(scene: Phaser.Scene) {
-  const gr = g(scene);
-  const bkColors = [0x3060c0, 0xb03020, 0x308040, 0xb09020, 0x703090, 0x208060, 0x804020, 0x205090];
+  const bkColors = [0x3060c0, 0xb03020, 0x308040, 0xb09020, 0x703090, 0x208060, 0x804020, 0x205090, 0xb03060];
+  const gr = scene.add.graphics();
   // back wall (dark recess)
-  gr.fillStyle(0x3a2208, 1); gr.fillRect(6, 0, 20, 90);
-  // side panels with inner highlight
-  gr.fillStyle(0x7a4c20, 1); gr.fillRect(0, 0, 6, 90); gr.fillRect(26, 0, 6, 90);
-  gr.fillStyle(0x9a6630, 1); gr.fillRect(4, 0, 2, 90); gr.fillRect(26, 0, 2, 90);
-  // three shelf rows of books
-  [0, 30, 60].forEach((sy, rowIdx) => {
-    let bx = 7;
-    for (let bi = 0; bi < 5; bi++) {
-      const bw = 3 + (bi % 2) * 2;
-      const bh = 20 + (bi % 3) * 3;
-      const col = bkColors[(rowIdx * 5 + bi) % bkColors.length];
-      // book base
-      gr.fillStyle(col, 1);
-      gr.fillRect(bx, sy + 26 - bh, bw, bh);
-      // spine highlight (left) + shadow (right)
-      gr.fillStyle(0xffffff, 0.25);
-      gr.fillRect(bx, sy + 26 - bh, 1, bh);
-      gr.fillStyle(0x000000, 0.3);
-      gr.fillRect(bx + bw - 1, sy + 26 - bh, 1, bh);
-      bx += bw + 2;
-    }
-    // shelf board: highlight / base / shadow
-    gr.fillStyle(0xb07838, 1); gr.fillRect(0, sy + 26, 32, 1);
-    gr.fillStyle(0x8c5828, 1); gr.fillRect(0, sy + 27, 32, 2);
-    gr.fillStyle(0x4a2c10, 1); gr.fillRect(0, sy + 29, 32, 1);
+  gr.fillStyle(0x3a2208, 1); gr.fillRect(6, 0, 20, 34);
+  // side panels
+  gr.fillStyle(0x7a4c20, 1);
+  gr.fillRect(0, 0, 6, 34); gr.fillRect(26, 0, 6, 34);
+  gr.fillStyle(0x9a6630, 1);
+  gr.fillRect(4, 0, 2, 34); gr.fillRect(26, 0, 2, 34);
+  // books (one row, each 2-4px wide)
+  let bx = 7;
+  bkColors.forEach((col, i) => {
+    const bw = 2 + (i % 2);
+    const bh = 20 + (i % 3) * 2;
+    gr.fillStyle(col, 1);
+    gr.fillRect(bx, 0, bw, bh);
+    gr.fillStyle(0xffffff, 0.22);
+    gr.fillRect(bx, 0, 1, bh); // spine highlight
+    bx += bw + 1;
+    if (bx > 23) return;
   });
-  // base board
-  gr.fillStyle(0x7a4c20, 1); gr.fillRect(0, 84, 32, 6);
-  gr.fillStyle(0x4a2c10, 1); gr.fillRect(0, 88, 32, 2);
-  // silhouette outline
+  // shelf board
+  gr.fillStyle(0xb07838, 1); gr.fillRect(0, 26, 32, 2);
+  gr.fillStyle(0x8c5828, 1); gr.fillRect(0, 28, 32, 2);
+  gr.fillStyle(0x4a2c10, 1); gr.fillRect(0, 30, 32, 1);
+  // base
+  gr.fillStyle(0x7a4c20, 1); gr.fillRect(0, 31, 32, 3);
+  // outline
   gr.fillStyle(OUTLINE, 1);
-  gr.fillRect(0, 0, 1, 90); gr.fillRect(31, 0, 1, 90); gr.fillRect(0, 89, 32, 1);
-  gr.generateTexture("tex-estante-body", 32, 90);
+  gr.fillRect(0, 0, 1, 34); gr.fillRect(31, 0, 1, 34);
+  gr.fillRect(0, 33, 32, 1);
+  gr.generateTexture("tex-estante-body", 32, 34);
   gr.destroy();
 }
 
-/** Printer lower body (32×52): panel + paper tray, plastic shading. */
+/**
+ * Impressora body (32×14): lower housing.
+ * Total = 14 + 14 = 28px ≈ 58% player height ✓
+ */
 function makeImpressoraBody(scene: Phaser.Scene) {
-  const gr = g(scene);
-  // main body — 3-tone plastic
-  gr.fillStyle(0xc0c0b8, 1); gr.fillRect(0, 0, 32, 34);
-  gr.fillStyle(0xe0e0d8, 1); gr.fillRect(1, 0, 30, 2);   // top highlight
-  gr.fillStyle(0x888880, 1); gr.fillRect(0, 22, 32, 12); // lower shadow band
-  // front control panel
-  gr.fillStyle(0x444448, 1); gr.fillRect(2, 2, 28, 20);
-  gr.fillStyle(0x606068, 1); gr.fillRect(3, 3, 26, 1);   // bezel highlight
-  gr.fillStyle(0x2040a0, 1); gr.fillRect(6, 6, 20, 10);  // screen
-  gr.fillStyle(0x4070d0, 1); gr.fillRect(7, 7, 8, 3);    // screen glare
-  // buttons
-  gr.fillStyle(0x00cc44, 1); gr.fillRect(6, 18, 4, 2);
-  gr.fillStyle(0xcc4422, 1); gr.fillRect(12, 18, 4, 2);
-  // paper tray with stacked paper
-  gr.fillStyle(0x909088, 1); gr.fillRect(4, 34, 24, 10);
-  gr.fillStyle(0xf4f4ec, 1); gr.fillRect(6, 35, 20, 3);
-  gr.fillStyle(0xd8d8d0, 1); gr.fillRect(6, 38, 20, 3);
-  // base with shadow
-  gr.fillStyle(0x707068, 1); gr.fillRect(0, 44, 32, 8);
-  gr.fillStyle(0x4a4a44, 1); gr.fillRect(0, 50, 32, 2);
-  // silhouette outline
+  const gr = scene.add.graphics();
+  gr.fillStyle(0xb8b8b0, 1); gr.fillRect(0, 0, 32, 11);
+  gr.fillStyle(0xe0e0d8, 1); gr.fillRect(1, 0, 30, 2);  // top highlight
+  gr.fillStyle(0x888880, 1); gr.fillRect(0, 8, 32, 3);  // shadow
+  // paper tray
+  gr.fillStyle(0x909088, 1); gr.fillRect(4, 8, 24, 6);
+  gr.fillStyle(0xf0f0e8, 1); gr.fillRect(6, 9, 20, 3);  // paper
+  // base
+  gr.fillStyle(0x606060, 1); gr.fillRect(0, 11, 32, 3);
   gr.fillStyle(OUTLINE, 1);
-  gr.fillRect(0, 0, 1, 52); gr.fillRect(31, 0, 1, 52); gr.fillRect(0, 51, 32, 1);
-  gr.generateTexture("tex-impressora-body", 32, 52);
+  gr.fillRect(0, 0, 1, 14); gr.fillRect(31, 0, 1, 14);
+  gr.fillRect(0, 13, 32, 1);
+  gr.generateTexture("tex-impressora-body", 32, 14);
   gr.destroy();
 }
 
-/** Plant pot body (32×50): foliage crown + terracotta pot. */
+/**
+ * Vaso body (32×18): terracotta pot.
+ * Total = 14 + 18 = 32px ≈ 67% player height ✓
+ */
 function makeVasoBody(scene: Phaser.Scene) {
-  const gr = g(scene);
-  // foliage — shadow / base / highlight ellipses
-  gr.fillStyle(0x18501e, 1); gr.fillEllipse(16, 8, 32, 20);
-  gr.fillStyle(0x206828, 1); gr.fillEllipse(16, 6, 30, 18);
-  gr.fillStyle(0x288838, 1); gr.fillEllipse(8, 2, 20, 14); gr.fillEllipse(24, 2, 20, 14);
-  gr.fillStyle(0x48b050, 1); gr.fillEllipse(16, 0, 20, 10);
-  // pot — terracotta 3-tone
-  gr.fillStyle(0x9a4820, 1); gr.fillRect(6, 16, 20, 30);  // base
-  gr.fillStyle(0xc06838, 1); gr.fillRect(7, 16, 4, 28);   // left highlight
-  gr.fillStyle(0x703818, 1); gr.fillRect(22, 16, 4, 30);  // right shadow
-  // rim: highlight band
-  gr.fillStyle(0xba6030, 1); gr.fillRect(4, 16, 24, 6);
-  gr.fillStyle(0xd88048, 1); gr.fillRect(4, 16, 24, 2);
+  const gr = scene.add.graphics();
+  // rim
+  gr.fillStyle(0xb85c28, 1); gr.fillRect(4, 0, 24, 5);
+  gr.fillStyle(0xd87840, 1); gr.fillRect(4, 0, 24, 2);  // rim highlight
+  // pot body (tapered slightly)
+  gr.fillStyle(0x984420, 1); gr.fillRect(6, 5, 20, 10);
+  gr.fillStyle(0xba5e32, 1); gr.fillRect(7, 5, 4, 9);   // left highlight
+  gr.fillStyle(0x703018, 1); gr.fillRect(21, 5, 5, 10); // right shadow
   // foot
-  gr.fillStyle(0x602c10, 1); gr.fillRect(8, 42, 16, 4);
-  // soil line
-  gr.fillStyle(0x2a1008, 1); gr.fillRect(7, 17, 18, 4);
-  // pot outline
+  gr.fillStyle(0x5c2810, 1); gr.fillRect(8, 14, 16, 4);
   gr.fillStyle(OUTLINE, 1);
-  gr.fillRect(4, 16, 1, 6); gr.fillRect(27, 16, 1, 6);
-  gr.fillRect(6, 22, 1, 24); gr.fillRect(25, 22, 1, 24);
-  gr.fillRect(8, 45, 16, 1);
-  gr.generateTexture("tex-vaso-body", 32, 50);
+  gr.fillRect(4, 0, 1, 5); gr.fillRect(27, 0, 1, 5);
+  gr.fillRect(6, 5, 1, 9); gr.fillRect(25, 5, 1, 9);
+  gr.fillRect(8, 17, 16, 1);
+  gr.generateTexture("tex-vaso-body", 32, 18);
   gr.destroy();
 }
 
-/** Simple bordered rectangle (debug / placeholder). */
-function makeRect(
-  scene: Phaser.Scene,
-  key: string, w: number, h: number,
-  fill: number, accent?: number,
-) {
-  const gr = g(scene);
-  gr.fillStyle(fill, 1);
-  gr.fillRect(0, 0, w, h);
-  if (accent !== undefined) {
-    gr.fillStyle(accent, 1);
-    gr.fillRect(0, Math.floor(h * 0.45), w, Math.floor(h * 0.2));
-  }
-  gr.lineStyle(2, 0x000000, 0.4);
-  gr.strokeRect(1, 1, w - 2, h - 2);
-  gr.generateTexture(key, w, h);
+// ─── Floor tile (32×16): office carpet ───────────────────────────────────────
+
+function makeFloorTile(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x2a303c, 1); gr.fillRect(0, 0, 32, 16);
+  // grout lines
+  gr.fillStyle(0x1e242e, 1);
+  gr.fillRect(0, 0, 32, 1);   // top
+  gr.fillRect(0, 15, 32, 1);  // bottom
+  gr.fillRect(0, 0, 1, 16);   // left
+  gr.fillRect(15, 0, 1, 16);  // mid vertical (tiles are 16px each in pattern)
+  // subtle carpet texture speckles
+  gr.fillStyle(0x34404e, 1);
+  gr.fillRect(3, 4, 2, 1); gr.fillRect(10, 8, 2, 1);
+  gr.fillRect(18, 3, 2, 1); gr.fillRect(25, 10, 2, 1);
+  gr.fillRect(6, 12, 2, 1); gr.fillRect(21, 6, 2, 1);
+  // top highlight line (where floor meets wall)
+  gr.fillStyle(0x3c4a58, 1); gr.fillRect(0, 1, 32, 1);
+  gr.generateTexture("tex-floor", 32, 16);
   gr.destroy();
+}
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function outline(gr: Phaser.GameObjects.Graphics, w: number, h: number) {
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(0, 0, w, 1);
+  gr.fillRect(0, h - 1, w, 1);
+  gr.fillRect(0, 0, 1, h);
+  gr.fillRect(w - 1, 0, 1, h);
 }
