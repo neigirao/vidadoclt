@@ -304,11 +304,24 @@ export class Phase4Scene extends Phaser.Scene {
     const boss = new ScrumMasterCaotico(this, 1800, FLOOR_Y - 60);
     boss.target = this.player;
     boss.hp = 120;
+    boss.isBoss = true;
     boss.onShout = (bx, by) => {
       if (!this.player.isInvulnerable(this.time.now) &&
         Phaser.Math.Distance.Between(this.player.x, this.player.y, bx, by) < 160) {
         this.player.takeDamage(12, 10);
         this.player.applyFreeze(600);
+      }
+    };
+    boss.onRetrospectiva = (bx, by) => {
+      const aoeW = 300;
+      this.cameras.main.shake(220, 0.014);
+      const shockwave = this.add.rectangle(bx, FLOOR_Y + 4, aoeW, 18, 0xaa44ff, 0.75);
+      this.tweens.add({ targets: shockwave, scaleX: 1.4, alpha: 0, duration: 550, onComplete: () => shockwave.destroy() });
+      if (!this.player.isInvulnerable(this.time.now) &&
+        Math.abs(this.player.x - bx) < aoeW / 2 &&
+        this.player.y > by - 80) {
+        this.player.takeDamage(20, 9);
+        this.player.applyFreeze(900);
       }
     };
     this.scrums.add(boss);
@@ -569,6 +582,8 @@ export class Phase4Scene extends Phaser.Scene {
 
     this.fx.update(time, this.player.sanity);
 
+    if (this.boss?.active) this.hud.updateBoss(this.boss.hp);
+
     const nearDoor = this.bossDefeated &&
       Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorCopa.x, this.doorCopa.y) < 40;
 
@@ -584,6 +599,7 @@ export class Phase4Scene extends Phaser.Scene {
       startTime: this.startTimeMs,
       playerX: this.player.x,
       interactHint: nearDoor ? "[ E ]  Entrar na Copa" : undefined,
+      dashCooldown: this.player.getDashCooldownRatio(time),
     });
   }
 }

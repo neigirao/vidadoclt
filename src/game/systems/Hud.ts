@@ -50,6 +50,7 @@ export class Hud {
   private weaponNameT!: Phaser.GameObjects.Text;
   private vrBotT!: Phaser.GameObjects.Text;
   private minimapG!: Phaser.GameObjects.Graphics;
+  private dashCooldownG!: Phaser.GameObjects.Graphics;
   private interactHintT!: Phaser.GameObjects.Text;
 
   private levelWidth: number;
@@ -325,6 +326,10 @@ export class Hud {
       );
     });
 
+    // dash cooldown overlay (drawn over slot 0 = SHIFT dash)
+    this.dashCooldownG = this.scene.add.graphics();
+    this.botContainer.add(this.dashCooldownG);
+
     // ── VR counter ────────────────────────────────
     const vrX = skX + BOT_SKILLS_W;
     this.drawBotSection(bg, vrX, BOT_VR_W);
@@ -387,6 +392,7 @@ export class Hud {
     time: number; startTime: number;
     playerX: number;
     interactHint?: string;
+    dashCooldown?: number;
   }) {
     this.drawStat(this.energyBarG, BAR_X, 18, opts.energy, opts.maxEnergy, COLORS.energyBar);
     this.drawStat(this.sanityBarG, BAR_X, 38, opts.sanity, opts.maxSanity, COLORS.sanityBar);
@@ -405,6 +411,20 @@ export class Hud {
 
     // minimap player dot
     this.updateMinimap(opts.playerX);
+
+    // dash cooldown overlay
+    this.dashCooldownG.clear();
+    const dashRatio = opts.dashCooldown ?? 0;
+    if (dashRatio > 0) {
+      const dsx = BOT_WEAPON_W + BOT_SPECIAL_W + 8;
+      const dsy = 14;
+      const dsW = 40;
+      const dsH = 36;
+      this.dashCooldownG.fillStyle(0x000000, 0.72);
+      this.dashCooldownG.fillRect(dsx, dsy, dsW, Math.round(dashRatio * dsH));
+      this.dashCooldownG.lineStyle(1, 0x6688cc, 0.9);
+      this.dashCooldownG.strokeRect(dsx, dsy, dsW, dsH);
+    }
 
     // interact hint
     if (opts.interactHint) {

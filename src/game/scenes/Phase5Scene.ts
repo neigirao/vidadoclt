@@ -501,6 +501,7 @@ export class Phase5Scene extends Phaser.Scene {
       startTime: this.startTimeMs,
       playerX: this.player.x,
       interactHint: nearDoor ? "[ E ]  Entrar na sala do CEO" : undefined,
+      dashCooldown: this.player.getDashCooldownRatio(time),
     });
   }
 }

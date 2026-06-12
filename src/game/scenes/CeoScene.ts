@@ -495,6 +495,7 @@ export class CeoScene extends Phaser.Scene {
       time,
       startTime: this.startTimeMs,
       playerX: this.player.x,
+      dashCooldown: this.player.getDashCooldownRatio(time),
     });
   }
 }

@@ -197,12 +197,15 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   contactDamage = 8;
   speed = 130;
   dir: 1 | -1 = -1;
-  private aiState: "walk" | "charge" | "shout" | "recover" = "walk";
+  private aiState: "walk" | "charge" | "shout" | "recover" | "retro_tele" | "retro_slam" = "walk";
   private stateUntil = 0;
   private _frozen = 0;
+  private retrospectivaCooldown = 0;
 
+  isBoss = false;
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
   onShout?: (fromX: number, fromY: number) => void;
+  onRetrospectiva?: (fromX: number, fromY: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "tex-scrum");
@@ -226,11 +229,27 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
     switch (this.aiState) {
       case "walk": {
         body.setVelocityX(this.dir * this.speed);
-        if (this.target && Math.abs(this.target.x - this.x) < 320) {
-          this.aiState = "charge";
-          this.stateUntil = t + 500;
-          this.setTint(0xff8800);
-          body.setVelocityX(0);
+        if (this.target) {
+          const dist = Math.abs(this.target.x - this.x);
+          if (this.isBoss && dist < 300 && t >= this.retrospectivaCooldown) {
+            this.aiState = "retro_tele";
+            this.stateUntil = t + 700;
+            this.setTint(0xaa44ff);
+            body.setVelocityX(0);
+            const label = this.scene.add.text(this.x, this.y - 36, "RETROSPECTIVA!", {
+              fontFamily: "monospace", fontSize: "14px", fontStyle: "bold",
+              color: "#cc44ff", stroke: "#000000", strokeThickness: 3,
+            }).setOrigin(0.5).setDepth(500);
+            this.scene.tweens.add({
+              targets: label, y: label.y - 30, alpha: 0, duration: 900,
+              onComplete: () => label.destroy(),
+            });
+          } else if (dist < 320) {
+            this.aiState = "charge";
+            this.stateUntil = t + 500;
+            this.setTint(0xff8800);
+            body.setVelocityX(0);
+          }
         }
         break;
       }
@@ -266,6 +285,27 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
       case "recover": {
         body.setVelocityX(0);
         if (t >= this.stateUntil) this.aiState = "walk";
+        break;
+      }
+      case "retro_tele": {
+        body.setVelocityX(0);
+        if (t >= this.stateUntil) {
+          this.aiState = "retro_slam";
+          this.clearTint();
+          this.setTint(0xff66ff);
+          if (this.onRetrospectiva) this.onRetrospectiva(this.x, this.y);
+          this.retrospectivaCooldown = t + 7000;
+          this.stateUntil = t + 200;
+        }
+        break;
+      }
+      case "retro_slam": {
+        body.setVelocityX(0);
+        if (t >= this.stateUntil) {
+          this.aiState = "recover";
+          this.stateUntil = t + 1400;
+          this.clearTint();
+        }
         break;
       }
     }

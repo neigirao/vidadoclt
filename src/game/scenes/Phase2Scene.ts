@@ -53,9 +53,14 @@ export class Phase2Scene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
     const HUD_TOP_H = 68;
-    this.add.image(GAME_WIDTH / 2, (HUD_TOP_H + FLOOR_Y) / 2, "bg-atendimento")
-      .setDisplaySize(GAME_WIDTH, FLOOR_Y - HUD_TOP_H)
-      .setScrollFactor(0);
+    {
+      const midY = (HUD_TOP_H + FLOOR_Y) / 2;
+      const targetH = FLOOR_Y - HUD_TOP_H;
+      const bg = this.add.image(GAME_WIDTH / 2, midY, "bg-atendimento").setScrollFactor(0);
+      const scaleX = GAME_WIDTH / (bg.width || GAME_WIDTH);
+      const scaleY = targetH / (bg.height || targetH);
+      bg.setScale(Math.max(scaleX, scaleY));
+    }
 
     this.platforms = this.physics.add.staticGroup();
     this.buildFloor();
@@ -592,6 +597,7 @@ export class Phase2Scene extends Phaser.Scene {
       startTime: this.startTimeMs,
       playerX: this.player.x,
       interactHint: nearDoor ? "[ E ]  Entrar na Copa" : undefined,
+      dashCooldown: this.player.getDashCooldownRatio(time),
     });
   }
 }

@@ -116,6 +116,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.speedMultUntil = Math.max(this.speedMultUntil, this.scene.time.now + dur);
   }
 
+  getDashCooldownRatio(now: number): number {
+    if (now >= this.dashCooldownUntil) return 0;
+    return (this.dashCooldownUntil - now) / DASH_COOLDOWN_MS;
+  }
+
   takeDamage(amount: number, sanityHit = 0) {
     const now = this.scene.time.now;
     if (this.isInvulnerable(now)) return;
@@ -186,6 +191,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Horizontal movement (locked during dash)
     if (time < this.dashUntil) {
       body.setVelocityX(this.facing * DASH_SPEED);
+      body.setVelocityY(0); // freeze Y during dash so player doesn't fall
     } else {
       if (left && !right) {
         body.setVelocityX(-curSpeed);
