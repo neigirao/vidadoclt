@@ -1,15 +1,20 @@
 import Phaser from "phaser";
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
+// Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
+const _animOffsets = new WeakMap<Phaser.Physics.Arcade.Sprite, number>();
+
 function setEnemyTex(
   e: Phaser.Physics.Arcade.Sprite,
   t: number,
   prefix: string,
   state: "idle" | "walk" | "attack" | "hurt",
 ) {
+  if (!_animOffsets.has(e)) _animOffsets.set(e, Math.random() * 2000 | 0);
+  const offset = _animOffsets.get(e)!;
   const rates  = { idle: 480, walk: 140, attack: 100, hurt: 80 };
   const counts = { idle: 4,   walk: 4,   attack: 3,   hurt: 1  };
-  const frame  = state === "hurt" ? 0 : Math.floor(t / rates[state]) % counts[state];
+  const frame  = state === "hurt" ? 0 : Math.floor((t + offset) / rates[state]) % counts[state];
   const key    = `tex-${prefix}-${state}${frame}`;
   if (e.texture.key !== key) e.setTexture(key);
 }
