@@ -120,6 +120,8 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
         }
         break;
     }
+
+    this.updateTexture();
   }
 
   private showIntroText() {
@@ -269,5 +271,19 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     this.onHpChange?.(this.hp, this.maxHp);
     if (this.hp <= 0) { this.onDied?.(); return true; }
     return false;
+  }
+
+  private updateTexture() {
+    let key = "tex-gerente-idle";
+
+    if (this.bossState === "attack") {
+      key = this.currentAttack === "atualizacao" ? "tex-gerente-walk" : "tex-gerente-attack";
+    } else if (this.bossState === "telegraph") {
+      key = "tex-gerente-attack";
+    } else if (this.bossState === "enter") {
+      key = "tex-gerente-walk";
+    }
+
+    if (this.texture.key !== key) this.setTexture(key);
   }
 }
