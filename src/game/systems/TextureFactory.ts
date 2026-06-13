@@ -85,6 +85,154 @@ export function makeUiTextures(scene: Phaser.Scene): void {
   gr.destroy();
 }
 
+/**
+ * Generate pixel-art textures for interactive office objects
+ * that don't have PNG sprites yet.
+ */
+export function makeObjectTextures(scene: Phaser.Scene): void {
+  makeQuadroMotivacional(scene);
+  makeExtintor(scene);
+  makePilhaDocs(scene);
+  makeCaixaPapel(scene);
+}
+
+/** tex-quadro-motivacional (48×56): motivational poster on wall */
+function makeQuadroMotivacional(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Dark frame border (4px all sides)
+  gr.fillStyle(0x1a1a1a, 1);
+  gr.fillRect(0, 0, 48, 56);
+  // Cream background inside
+  gr.fillStyle(0xf0ead0, 1);
+  gr.fillRect(4, 4, 40, 48);
+  // Blue bar — "FOCO"
+  gr.fillStyle(0x2a3a8a, 1);
+  gr.fillRect(4, 8, 40, 10);
+  // Red bar — "DISCIPLINA"
+  gr.fillStyle(0x8a2a2a, 1);
+  gr.fillRect(4, 22, 40, 10);
+  // Green bar — "EXECUÇÃO"
+  gr.fillStyle(0x2a8a2a, 1);
+  gr.fillRect(4, 36, 40, 10);
+  // White pixel-art text-like dots on each bar
+  gr.fillStyle(0xffffff, 0.8);
+  // FOCO bar stripes
+  for (let x = 7; x < 41; x += 6) { gr.fillRect(x, 10, 3, 5); }
+  // DISCIPLINA bar stripes
+  for (let x = 7; x < 41; x += 4) { gr.fillRect(x, 24, 2, 5); }
+  // EXECUÇÃO bar stripes
+  for (let x = 7; x < 41; x += 5) { gr.fillRect(x, 38, 3, 5); }
+  // Thin lines between sections (decorative)
+  gr.fillStyle(0xc8c0a8, 1);
+  gr.fillRect(4, 18, 40, 2);
+  gr.fillRect(4, 32, 40, 2);
+  gr.fillRect(4, 46, 40, 2);
+  gr.generateTexture("tex-quadro-motivacional", 48, 56);
+  gr.destroy();
+}
+
+/** tex-extintor (20×44): red fire extinguisher */
+function makeExtintor(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Head/valve (gray, 10×8 centered at top)
+  gr.fillStyle(0x888888, 1);
+  gr.fillRect(5, 2, 10, 8);
+  gr.fillStyle(0xaaaaaa, 1);
+  gr.fillRect(6, 2, 4, 2); // valve highlight
+  // Nozzle hose (dark, offset right)
+  gr.fillStyle(0x333333, 1);
+  gr.fillRect(14, 4, 4, 10);
+  // Body (red, 16×28 centered)
+  gr.fillStyle(0xdd2222, 1);
+  gr.fillRect(2, 8, 16, 28);
+  // Body highlight
+  gr.fillStyle(0xee5555, 1);
+  gr.fillRect(3, 9, 4, 24);
+  // Black band
+  gr.fillStyle(0x111111, 1);
+  gr.fillRect(2, 22, 16, 4);
+  // Base
+  gr.fillStyle(0xaa1111, 1);
+  gr.fillRect(2, 36, 16, 6);
+  gr.fillStyle(0xcc3333, 1);
+  gr.fillRect(3, 36, 4, 5); // base highlight
+  // Outline
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(2, 8, 1, 34);   // left
+  gr.fillRect(17, 8, 1, 34);  // right
+  gr.fillRect(2, 41, 16, 1);  // bottom
+  gr.fillRect(5, 2, 1, 6);    // valve left
+  gr.fillRect(14, 2, 1, 6);   // valve right
+  gr.generateTexture("tex-extintor", 20, 44);
+  gr.destroy();
+}
+
+/** tex-pilha-docs (40×24): stack of documents/papers */
+function makePilhaDocs(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Bottom layer — slightly offset, slightly yellow
+  gr.fillStyle(0xf0f0e8, 1);
+  gr.fillRect(1, 18, 38, 6);
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(1, 18, 38, 1); gr.fillRect(1, 23, 38, 1);
+  gr.fillRect(1, 18, 1, 6); gr.fillRect(38, 18, 1, 6);
+  // Middle layer
+  gr.fillStyle(0xfafaf2, 1);
+  gr.fillRect(1, 12, 38, 6);
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(1, 12, 38, 1); gr.fillRect(1, 17, 38, 1);
+  gr.fillRect(1, 12, 1, 6); gr.fillRect(38, 12, 1, 6);
+  // Top layer (white with blue/red text lines)
+  gr.fillStyle(0xffffff, 1);
+  gr.fillRect(1, 6, 38, 6);
+  gr.fillStyle(0x5080c0, 1);
+  gr.fillRect(4, 8, 28, 2);   // blue text line
+  gr.fillRect(4, 10, 20, 2);  // blue text line shorter
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(1, 6, 38, 1); gr.fillRect(1, 11, 38, 1);
+  gr.fillRect(1, 6, 1, 6); gr.fillRect(38, 6, 1, 6);
+  // Staple (gray rectangle top-left corner)
+  gr.fillStyle(0x808080, 1);
+  gr.fillRect(3, 7, 4, 2);
+  gr.generateTexture("tex-pilha-docs", 40, 24);
+  gr.destroy();
+}
+
+/** tex-caixa-papel (44×36): cardboard paper box (ream) */
+function makeCaixaPapel(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Lid/top (slightly wider, lighter cardboard)
+  gr.fillStyle(0xe8b860, 1);
+  gr.fillRect(0, 0, 44, 10);
+  gr.fillStyle(0xf0cc80, 1);
+  gr.fillRect(1, 1, 42, 2); // lid highlight
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(0, 0, 44, 1); gr.fillRect(0, 9, 44, 1);
+  gr.fillRect(0, 0, 1, 10); gr.fillRect(43, 0, 1, 10);
+  // Box body (darker cardboard)
+  gr.fillStyle(0xd4a050, 1);
+  gr.fillRect(2, 10, 38, 26);
+  // Side shadow
+  gr.fillStyle(0xa07830, 1);
+  gr.fillRect(34, 10, 6, 26); // right-side darker
+  gr.fillStyle(0xd4a050, 1);
+  // Label (white rectangle centered)
+  gr.fillStyle(0xffffff, 1);
+  gr.fillRect(8, 14, 28, 14);
+  // Text lines on label
+  gr.fillStyle(0x333333, 1);
+  gr.fillRect(10, 17, 24, 2);
+  gr.fillRect(10, 21, 20, 2);
+  gr.fillRect(10, 25, 16, 2);
+  // Box body outline
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(2, 10, 1, 26);  // left
+  gr.fillRect(39, 10, 1, 26); // right
+  gr.fillRect(2, 35, 38, 1);  // bottom
+  gr.generateTexture("tex-caixa-papel", 44, 36);
+  gr.destroy();
+}
+
 /** Apply LINEAR filter to photo backgrounds so they don't appear blocky. */
 export function applyBackgroundFilters(scene: Phaser.Scene): void {
   const keys = [

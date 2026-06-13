@@ -3,6 +3,7 @@ import {
   makeFurnitureTextures,
   makeOfficeBackgrounds,
   makeUiTextures,
+  makeObjectTextures,
   applyBackgroundFilters,
 } from "../systems/TextureFactory";
 
@@ -86,6 +87,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     makeUiTextures(this);
     makeFurnitureTextures(this);
+    makeObjectTextures(this);
     makeOfficeBackgrounds(this);
     applyBackgroundFilters(this);
 

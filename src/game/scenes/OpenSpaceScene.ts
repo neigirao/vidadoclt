@@ -72,6 +72,7 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     this.buildFloor();
     this.buildDecor();
+    this.buildInteractiveObjects();
 
     // Zone 1 — Entrada (x 100-520): cluster de mesas + estante
     this.buildPlatform(200, 0, 3);   // mesa, 3 tiles → x=200-296
@@ -426,6 +427,43 @@ export class OpenSpaceScene extends Phaser.Scene {
     const plat = this.add.rectangle(x + w / 2, surfY, w, 14, 0x000000, 0);
     this.physics.add.existing(plat, true);
     this.platforms.add(plat);
+  }
+
+  private buildInteractiveObjects(): void {
+    // Café machine — near entrance corner
+    this.add.image(60, FLOOR_Y - 28, "tex-cafe-machine").setDepth(8).setDisplaySize(40, 56);
+
+    // Bebedouro — between zones 1 and 2
+    this.add.image(490, FLOOR_Y - 28, "tex-bebedouro").setDepth(8).setDisplaySize(24, 56);
+
+    // Impressora — near desk cluster zone 2
+    this.add.image(690, FLOOR_Y - 18, "tex-obj-impressora").setDepth(8).setDisplaySize(48, 36);
+
+    // Quadro motivacional — wall decoration with parallax (slightly higher, at HUD_TOP_H + offset)
+    this.add.image(450, HUD_TOP_H + 80, "tex-quadro-motivacional").setDepth(2).setDisplaySize(48, 56).setScrollFactor(0.25, 0);
+    this.add.image(1100, HUD_TOP_H + 80, "tex-quadro-motivacional").setDepth(2).setDisplaySize(48, 56).setScrollFactor(0.25, 0);
+
+    // Relógio do ponto — at entrance
+    this.add.image(140, FLOOR_Y - 32, "tex-ponto").setDepth(8).setDisplaySize(32, 48);
+
+    // Extintor — red on wall near elevator area
+    this.add.image(1800, FLOOR_Y - 22, "tex-extintor").setDepth(8).setDisplaySize(20, 44);
+
+    // Pilha de documentos — on desks or floor
+    [240, 600, 1050].forEach(x => {
+      this.add.image(x, FLOOR_Y - 12, "tex-pilha-docs").setDepth(8).setDisplaySize(40, 24);
+    });
+
+    // Caixa de papel — floor level
+    [350, 1200].forEach(x => {
+      this.add.image(x, FLOOR_Y - 18, "tex-caixa-papel").setDepth(8).setDisplaySize(44, 36);
+    });
+
+    // Porta de reunião — meeting room door in wall background
+    this.add.image(780, FLOOR_Y - 48, "tex-porta-reuniao").setDepth(8).setDisplaySize(48, 80);
+
+    // Elevador — at the far end (destination after clearing the boss)
+    this.add.image(LEVEL_WIDTH - 80, FLOOR_Y - 50, "tex-elevador").setDepth(8).setDisplaySize(64, 80);
   }
 
   private buildDecor(): void {
