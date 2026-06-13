@@ -287,7 +287,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } else if (!onGround) {
       state = body.velocity.y < 0 ? "jump" : "fall";
     } else if (Math.abs(body.velocity.x) > 20) {
-      state = Math.floor(time / 180) % 2 === 0 ? "walk0" : "walk1";
+      state = `walk${Math.floor(time / 120) % 4}`;
     } else {
       state = "idle";
     }

@@ -37,7 +37,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image("tex-player-walk2",  "/assets/sprites/player-walk2.png");
     this.load.image("tex-player-walk3",  "/assets/sprites/player-walk3.png");
     this.load.image("tex-player-jump",   "/assets/sprites/player-jump.png");
-    this.load.image("tex-player-fall",   "/assets/sprites/player-jump.png"); // reuse jump for fall
+    this.load.image("tex-player-fall",   "/assets/sprites/player-fall.png");
     this.load.image("tex-player-attack", "/assets/sprites/player-attack.png");
     this.load.image("tex-player-dash",   "/assets/sprites/player-dash.png");
     // Enemies (fase 1 — já implementados)
@@ -49,6 +49,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image("tex-senior",        "/assets/sprites/enemy-senior.png");
     // Boss
     this.load.image("tex-gerente",       "/assets/sprites/enemy-gerente.png");
+    this.load.image("tex-gerente-idle",  "/assets/sprites/enemy-gerente-idle.png");
+    this.load.image("tex-gerente-walk",  "/assets/sprites/enemy-gerente-walk.png");
+    this.load.image("tex-gerente-attack", "/assets/sprites/enemy-gerente-attack.png");
     // NPCs
     this.load.image("tex-faxineiro",     "/assets/sprites/npc-faxineiro.png");
     // Futuros inimigos (fases 2-5)
