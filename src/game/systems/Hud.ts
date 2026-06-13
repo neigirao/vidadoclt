@@ -638,19 +638,28 @@ export class Hud {
     dashCooldown?: number;
     perks?: string[];
   }) {
+    // Sanity color: green→orange at 50%, orange→pulsing red at 25%
+    const sanityPct = opts.sanity / opts.maxSanity;
+    const sanityColor = sanityPct > 0.5
+      ? COLORS.sanityBar
+      : sanityPct > 0.25
+        ? 0xffaa44
+        : (Math.floor(opts.time / 350) % 2 === 0 ? 0xff3322 : 0xff8844);
+
     // Top-left bars
     this.drawBar(this.energyBarG, 56, BAR_ENERGY_Y, opts.energy, opts.maxEnergy, COLORS.energyBar);
-    this.drawBar(this.sanityBarG, 56, BAR_SANITY_Y, opts.sanity, opts.maxSanity, COLORS.sanityBar);
+    this.drawBar(this.sanityBarG, 56, BAR_SANITY_Y, opts.sanity, opts.maxSanity, sanityColor);
+    const sanityHex = sanityPct > 0.5 ? "#cfe2ff" : sanityPct > 0.25 ? "#ffcc88" : "#ff9977";
     this.energyNumT.setText(`${opts.energy}/${opts.maxEnergy}`);
-    this.sanityNumT.setText(`${opts.sanity}/${opts.maxSanity}`);
+    this.sanityNumT.setText(`${opts.sanity}/${opts.maxSanity}`).setColor(sanityHex);
     this.vrTopT.setText(`VR ${this.fmtVR(opts.vr)}`);
     this.recoT.setText(`R: ${opts.reconhecimento.toLocaleString("pt-BR")}`);
 
     // Bottom-left bars (section 1)
     this.drawBar(this.sec1EnergyG, STAT_X, BAR_ENERGY_Y, opts.energy, opts.maxEnergy, COLORS.energyBar);
-    this.drawBar(this.sec1SanityG, STAT_X, BAR_SANITY_Y, opts.sanity, opts.maxSanity, COLORS.sanityBar);
+    this.drawBar(this.sec1SanityG, STAT_X, BAR_SANITY_Y, opts.sanity, opts.maxSanity, sanityColor);
     this.sec1EnergyNumT.setText(`${opts.energy}/${opts.maxEnergy}`);
-    this.sec1SanityNumT.setText(`${opts.sanity}/${opts.maxSanity}`);
+    this.sec1SanityNumT.setText(`${opts.sanity}/${opts.maxSanity}`).setColor(sanityHex);
     this.sec1VrT.setText(`VR  ${this.fmtVR(opts.vr)}`);
     this.sec1RecoT.setText(`RECO: ${opts.reconhecimento.toLocaleString("pt-BR")}`);
 

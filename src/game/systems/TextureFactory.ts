@@ -350,18 +350,46 @@ function drawOffice(scene: Phaser.Scene, key: string, t: OfficeTheme): void {
   gr.fillStyle(t.wall, 0.28);
   gr.fillRect(0, BASE_Y, W, 2); // separation highlight
 
-  // 8. Back-floor silhouette furniture
+  // 8. Back-floor silhouette furniture — desks with monitors, chairs
   const SF_Y = BASE_Y + 6;
-  const DESK_H = 32, DESK_W = 68;
+  const DESK_H = 28, DESK_W = 72;
   for (let sx = 20; sx < W - 60; sx += 110) {
-    // desk silhouette
-    gr.fillStyle(t.floorDark, 1);
-    gr.fillRect(sx, SF_Y + 40 - DESK_H, DESK_W, DESK_H);
-    // monitor
-    gr.fillStyle(t.floorDark, 1);
-    gr.fillRect(sx + 12, SF_Y + 40 - DESK_H - 26, 26, 22);
-    gr.fillRect(sx + 23, SF_Y + 40 - DESK_H - 4, 4, 4);
+    // desk silhouette (slightly lighter so it reads against baseboard)
+    gr.fillStyle(t.wallDark, 1);
+    gr.fillRect(sx, SF_Y + 36 - DESK_H, DESK_W, DESK_H);
+    gr.fillStyle(t.wall, 0.18);
+    gr.fillRect(sx, SF_Y + 36 - DESK_H, DESK_W, 2); // desk top highlight
+    // monitor screen (slightly lighter blue-grey)
+    gr.fillStyle(t.accent, 0.6);
+    gr.fillRect(sx + 14, SF_Y + 36 - DESK_H - 22, 24, 18);
+    gr.fillStyle(t.skyLight, 0.18);
+    gr.fillRect(sx + 15, SF_Y + 36 - DESK_H - 21, 10, 6); // screen glare
+    // monitor stand
+    gr.fillStyle(t.wallDark, 1);
+    gr.fillRect(sx + 24, SF_Y + 36 - DESK_H - 4, 4, 4);
+    // chair silhouette (every other desk)
+    if ((sx / 110) % 2 === 0) {
+      gr.fillStyle(t.wallDark, 1);
+      gr.fillRect(sx + 48, SF_Y + 36 - 24, 18, 18);
+      gr.fillStyle(t.wall, 0.12);
+      gr.fillRect(sx + 48, SF_Y + 36 - 24, 18, 2);
+    }
+    // papers on desk
+    gr.fillStyle(0xffffff, 0.08);
+    gr.fillRect(sx + 4, SF_Y + 36 - DESK_H, 14, 2);
   }
+
+  // 8b. Ceiling cable trays (subtle dark bars near ceiling)
+  gr.fillStyle(t.wallDark, 1);
+  for (let cx2 = 0; cx2 < W; cx2 += 320) {
+    gr.fillRect(cx2 + 20, CEIL + 3, 280, 3); // cable tray between columns
+  }
+
+  // 8c. Baseboard detail
+  gr.fillStyle(t.wallDark, 1);
+  gr.fillRect(0, H - 20, W, 4); // lower baseboard
+  gr.fillStyle(t.wall, 0.2);
+  gr.fillRect(0, H - 20, W, 1); // baseboard highlight
 
   // 9. Floor/ground line
   gr.fillStyle(t.floorDark, 1);
@@ -381,9 +409,12 @@ function makeMesaSurf(scene: Phaser.Scene, key: string) {
   gr.fillStyle(0xd4a860, 1); gr.fillRect(0, 2, 32, 3);  // light wood
   gr.fillStyle(0xa87838, 1); gr.fillRect(0, 5, 32, 5);  // base wood
   gr.fillStyle(0x684818, 1); gr.fillRect(0, 10, 32, 4); // under-edge
-  // grain hints
+  // grain lines
   gr.fillStyle(0xbc9050, 1);
   gr.fillRect(4, 5, 9, 1); gr.fillRect(20, 7, 8, 1);
+  gr.fillRect(2, 3, 5, 1); gr.fillRect(14, 4, 6, 1); gr.fillRect(26, 3, 4, 1);
+  gr.fillStyle(0x906020, 1);
+  gr.fillRect(7, 6, 3, 1); gr.fillRect(17, 5, 4, 1); gr.fillRect(28, 8, 3, 1);
   outline(gr, 32, 14);
   gr.generateTexture(key, 32, 14);
   gr.destroy();
@@ -398,6 +429,11 @@ function makeEstanteSurf(scene: Phaser.Scene) {
   // side posts
   gr.fillStyle(0x784820, 1);
   gr.fillRect(1, 4, 3, 10); gr.fillRect(28, 4, 3, 10);
+  // grain
+  gr.fillStyle(0xa86830, 1);
+  gr.fillRect(5, 4, 4, 1); gr.fillRect(14, 3, 6, 1); gr.fillRect(24, 5, 3, 1);
+  gr.fillStyle(0xd09858, 1);
+  gr.fillRect(8, 5, 3, 1); gr.fillRect(19, 4, 4, 1);
   outline(gr, 32, 14);
   gr.generateTexture("tex-estante", 32, 14);
   gr.destroy();
@@ -556,6 +592,11 @@ function makeArmarioSurf(scene: Phaser.Scene) {
   // Thin handle strip in center
   gr.fillStyle(0x707478, 1); gr.fillRect(8, 6, 16, 2);   // 2px handle
   gr.fillStyle(0xd8dce0, 1); gr.fillRect(8, 6, 16, 1);   // glare
+  // Metal grain / scratches
+  gr.fillStyle(0xc4c8cc, 1);
+  gr.fillRect(2, 3, 4, 1); gr.fillRect(22, 4, 6, 1); gr.fillRect(12, 5, 3, 1);
+  gr.fillStyle(0x9ca0a4, 1);
+  gr.fillRect(5, 5, 2, 1); gr.fillRect(18, 3, 3, 1); gr.fillRect(28, 5, 2, 1);
   outline(gr, 32, 14);
   gr.generateTexture("tex-armario", 32, 14);
   gr.destroy();

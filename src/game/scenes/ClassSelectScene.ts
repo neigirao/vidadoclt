@@ -101,12 +101,58 @@ export class ClassSelectScene extends Phaser.Scene {
       }).setOrigin(0.5),
     );
 
-    // [3] Character sprite placeholder
+    // [3] Pixel-art character preview
     const spr = this.add.graphics();
+    const bx = -12;          // left edge (24px wide)
+    const ty = -hh + 44;     // top of character area
+    // Hair
+    spr.fillStyle(0x1a0c06, 1);
+    spr.fillRect(bx + 3, ty, 18, 4);
+    spr.fillRect(bx + 1, ty + 2, 22, 3);
+    // Face skin
+    spr.fillStyle(0xd4a07a, 1);
+    spr.fillRect(bx + 2, ty + 4, 20, 10);
+    // Hair fringe
+    spr.fillStyle(0x1a0c06, 1);
+    spr.fillRect(bx + 3, ty + 4, 18, 2);
+    // Glasses
+    spr.fillStyle(0x222222, 1);
+    spr.fillRect(bx + 3, ty + 7, 6, 4);
+    spr.fillRect(bx + 15, ty + 7, 6, 4);
+    spr.fillRect(bx + 9, ty + 8, 6, 1);
+    spr.fillStyle(0x88aacc, 0.4);
+    spr.fillRect(bx + 4, ty + 8, 4, 2);
+    spr.fillRect(bx + 16, ty + 8, 4, 2);
+    // Mouth
+    spr.fillStyle(0x8a6040, 1);
+    spr.fillRect(bx + 8, ty + 12, 8, 2);
+    // Neck
+    spr.fillStyle(0xd4a07a, 1);
+    spr.fillRect(bx + 9, ty + 14, 6, 3);
+    // White shirt
+    spr.fillStyle(0xe8e8e0, 1);
+    spr.fillRect(bx + 2, ty + 17, 20, 13);
+    // Collar flaps
+    spr.fillRect(bx + 2, ty + 17, 5, 5);
+    spr.fillRect(bx + 17, ty + 17, 5, 5);
+    // Tie in class color
     spr.fillStyle(def.color, 1);
-    spr.fillRect(-14, -hh + 44, 28, 44);
-    spr.fillStyle(0xffffff, 0.18);
-    spr.fillRect(-14, -hh + 58, 28, 12);
+    spr.fillRect(bx + 9, ty + 17, 6, 12);
+    spr.fillRect(bx + 8, ty + 23, 8, 5);
+    // Belt
+    spr.fillStyle(0x1a1208, 1);
+    spr.fillRect(bx + 2, ty + 30, 20, 2);
+    // Buckle
+    spr.fillStyle(0xc8a800, 1);
+    spr.fillRect(bx + 9, ty + 30, 6, 2);
+    // Trousers
+    spr.fillStyle(0x1a2030, 1);
+    spr.fillRect(bx + 2, ty + 32, 9, 10);
+    spr.fillRect(bx + 13, ty + 32, 9, 10);
+    // Shoes
+    spr.fillStyle(0x14100a, 1);
+    spr.fillRect(bx + 1, ty + 42, 11, 3);
+    spr.fillRect(bx + 12, ty + 42, 11, 3);
     container.add(spr);
 
     // [4] Stat bars
