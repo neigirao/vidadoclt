@@ -23,6 +23,7 @@ export class SanityFx {
   private currentBand: ReturnType<typeof sanityBand> = "ok";
   private nextNoiseAt = 0;
   private nextNotifAt = 0;
+  private nextShakeAt = 0;  // periodic camera shake (replaces per-frame scroll jitter)
 
   constructor(private scene: Phaser.Scene) {
     this.vignette = scene.add.graphics().setScrollFactor(0).setDepth(900);
@@ -37,19 +38,25 @@ export class SanityFx {
       this.redraw(band);
     }
 
-    // Camera jitter + pixel noise for anxious/burnout
+    // Periodic camera shake + pixel noise for anxious/burnout.
+    // Previously used per-frame cam.setScroll() which caused constant pixel-level
+    // jitter (everything appeared to flicker at 60fps). Now uses cameras.main.shake()
+    // at intervals so the shake is intentional and readable, not a visual glitch.
     if (band === "anxious" || band === "burnout") {
-      const cam = this.scene.cameras.main;
-      const j = band === "burnout" ? 1.6 : 0.7;
-      cam.setScroll(
-        cam.scrollX + Phaser.Math.FloatBetween(-j, j),
-        cam.scrollY + Phaser.Math.FloatBetween(-j, j),
-      );
+      if (time >= this.nextShakeAt) {
+        const intensity = band === "burnout" ? 0.005 : 0.0022;
+        const duration  = band === "burnout" ? 180 : 120;
+        const interval  = band === "burnout"
+          ? Phaser.Math.Between(350, 600)
+          : Phaser.Math.Between(700, 1200);
+        this.nextShakeAt = time + interval;
+        this.scene.cameras.main.shake(duration, intensity);
+      }
 
       if (time >= this.nextNoiseAt) {
-        this.nextNoiseAt = time + Phaser.Math.Between(60, 150);
+        this.nextNoiseAt = time + Phaser.Math.Between(80, 180);
         this.noise.clear();
-        const dots = band === "burnout" ? 100 : 40;
+        const dots = band === "burnout" ? 80 : 30;
         this.noise.fillStyle(0xffffff, 0.05);
         for (let i = 0; i < dots; i++) {
           this.noise.fillRect(

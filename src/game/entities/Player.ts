@@ -294,13 +294,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       const f = Math.min(5, Math.floor((now - this.lastAttackAt) / 55));
       key = `tex-player-attack${f}`;
     } else if (!onGround) {
-      if (body.velocity.y < -100) {
-        // Rising: jump frames 0→1→2→3 based on time since jump
-        const elapsed = now - this.lastJumpPressedAt;
+      if (body.velocity.y < -80) {
+        // Rising: jump frames 0→1→2→3 by clamped elapsed since jump
+        // Use lastGroundedAt as fallback so walk-off-ledge doesn't show bogus frame
+        const jumpRef = this.lastJumpPressedAt > 0 ? this.lastJumpPressedAt : now;
+        const elapsed = now - jumpRef;
         key = `tex-player-jump${Math.min(3, Math.floor(elapsed / 80))}`;
       } else {
-        // Falling: fall frames 0→1→2 loop at 120ms each
-        key = `tex-player-fall${Math.floor(now / 120) % 3}`;
+        // Falling: fall frames 0→1→2 loop at 130ms each
+        key = `tex-player-fall${Math.floor(now / 130) % 3}`;
       }
     } else if (speed > 300) {
       // Run: 8 frames at 75ms each
