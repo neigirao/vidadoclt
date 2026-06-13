@@ -13,14 +13,13 @@ const OUTLINE = 0x14100a;
 export interface PlatDef {
   surf: string;
   body: string;
-  bodyH: number; // height of body image in px (and display height)
-  bodyY: number; // distance below surface top where body starts
+  height: number; // total height from floor to top surface (includes 14px surface tile)
 }
 export const PLAT_DEFS: PlatDef[] = [
-  { surf: "tex-mesa",       body: "tex-mesa-body",       bodyH: 14, bodyY: 14 },
-  { surf: "tex-estante",    body: "tex-estante-body",    bodyH: 34, bodyY: 14 },
-  { surf: "tex-impressora", body: "tex-impressora-body", bodyH: 14, bodyY: 14 },
-  { surf: "tex-vaso",       body: "tex-vaso-body",       bodyH: 18, bodyY: 14 },
+  { surf: "tex-mesa",       body: "tex-mesa-body",       height: 30 }, // desk
+  { surf: "tex-estante",    body: "tex-estante-body",    height: 72 }, // bookshelf
+  { surf: "tex-armario",    body: "tex-armario-body",    height: 50 }, // filing cabinet
+  { surf: "tex-impressora", body: "tex-impressora-body", height: 30 }, // printer stand
 ];
 
 // ─── Office background themes ─────────────────────────────────────────────────
@@ -65,6 +64,12 @@ export function makeFurnitureTextures(scene: Phaser.Scene): void {
   makeEstanteBody(scene);
   makeImpressoraBody(scene);
   makeVasoBody(scene);
+
+  makeArmarioSurf(scene);
+  makeArmarioBody(scene);
+  makeCadeira(scene);
+  makePlantaDeco(scene);
+  makeBebedouro(scene);
 
   makeFloorTile(scene);
 }
@@ -392,6 +397,105 @@ function makeVasoBody(scene: Phaser.Scene) {
   gr.fillRect(6, 5, 1, 9); gr.fillRect(25, 5, 1, 9);
   gr.fillRect(8, 17, 16, 1);
   gr.generateTexture("tex-vaso-body", 32, 18);
+  gr.destroy();
+}
+
+// ─── Armario textures (32×14 surf, 32×36 body) ───────────────────────────────
+
+function makeArmarioSurf(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Grey metal top
+  gr.fillStyle(0xb0b4b8, 1); gr.fillRect(0, 0, 32, 14);
+  gr.fillStyle(0xd0d4d8, 1); gr.fillRect(0, 0, 32, 2);   // highlight top 2px
+  gr.fillStyle(0x808488, 1); gr.fillRect(0, 11, 32, 3);  // shadow bottom 3px
+  // Thin handle strip in center
+  gr.fillStyle(0x707478, 1); gr.fillRect(8, 6, 16, 2);   // 2px handle
+  gr.fillStyle(0xd8dce0, 1); gr.fillRect(8, 6, 16, 1);   // glare
+  outline(gr, 32, 14);
+  gr.generateTexture("tex-armario", 32, 14);
+  gr.destroy();
+}
+
+function makeArmarioBody(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Dark steel sides
+  gr.fillStyle(0x808488, 1); gr.fillRect(0, 0, 4, 36);   // left 4px
+  gr.fillStyle(0x808488, 1); gr.fillRect(28, 0, 4, 36);  // right 4px
+  gr.fillStyle(0xa0a4a8, 1); gr.fillRect(4, 0, 1, 36);   // left inner highlight
+  gr.fillStyle(0xa0a4a8, 1); gr.fillRect(27, 0, 1, 36);  // right inner highlight
+  // 3 drawer rows (each 10px high)
+  for (let row = 0; row < 3; row++) {
+    const y = row * 10 + (row > 0 ? row * 2 : 0);
+    gr.fillStyle(0x909498, 1); gr.fillRect(5, y, 22, 10);      // drawer body
+    gr.fillStyle(0xb0b4b8, 1); gr.fillRect(5, y, 22, 2);       // lighter top
+    gr.fillStyle(0x606468, 1); gr.fillRect(5, y + 8, 22, 2);   // darker bottom
+    // Drawer handle: 16×2px centered, shadow below
+    gr.fillStyle(0xe0e4e8, 1); gr.fillRect(8, y + 4, 16, 2);   // handle
+    gr.fillStyle(0xb8bcc0, 1); gr.fillRect(8, y + 6, 16, 1);   // shadow below
+  }
+  // Outline left, right, bottom
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(0, 0, 1, 36); gr.fillRect(31, 0, 1, 36);
+  gr.fillRect(0, 35, 32, 1);
+  gr.generateTexture("tex-armario-body", 32, 36);
+  gr.destroy();
+}
+
+// ─── Decorative objects (no physics) ─────────────────────────────────────────
+
+/** tex-cadeira (32×28): office chair, decorative only */
+function makeCadeira(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Chair back (dark blue, 28px wide, 18px tall)
+  gr.fillStyle(0x1a3a6a, 1); gr.fillRect(2, 0, 28, 18);
+  // Highlight on back
+  gr.fillStyle(0x2a5aaa, 1); gr.fillRect(2, 0, 26, 2);
+  // Seat (24px wide, 6px, centered, at y=18)
+  gr.fillStyle(0x1a3a6a, 1); gr.fillRect(4, 18, 24, 6);
+  // Base/wheel strip
+  gr.fillStyle(0x303030, 1); gr.fillRect(6, 24, 20, 4);
+  // Outline key parts
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(2, 0, 1, 18); gr.fillRect(29, 0, 1, 18);
+  gr.fillRect(2, 17, 28, 1);
+  gr.generateTexture("tex-cadeira", 32, 28);
+  gr.destroy();
+}
+
+/** tex-planta-deco (24×40): office plant, decorative only */
+function makePlantaDeco(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Foliage layers (bottom to top)
+  gr.fillStyle(0x1c5020, 1); gr.fillRect(2, 12, 20, 10);   // bottom layer at y=12
+  gr.fillStyle(0x267828, 1); gr.fillRect(4, 6, 16, 8);     // mid layer at y=6
+  gr.fillStyle(0x40a848, 1); gr.fillRect(6, 2, 12, 6);     // upper layer at y=2
+  gr.fillStyle(0x5acc5c, 1); gr.fillRect(8, 0, 8, 4);      // top layer at y=0
+  // Soil
+  gr.fillStyle(0x3c2010, 1); gr.fillRect(3, 18, 18, 4);    // soil at y=18
+  // Pot rim
+  gr.fillStyle(0xa85a28, 1); gr.fillRect(1, 22, 22, 6);    // rim at y=22
+  // Pot bottom
+  gr.fillStyle(0x8c4418, 1); gr.fillRect(2, 28, 20, 12);   // pot bottom at y=28
+  gr.generateTexture("tex-planta-deco", 24, 40);
+  gr.destroy();
+}
+
+/** tex-bebedouro-deco (20×48): water cooler, decorative only */
+function makeBebedouro(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // Water jug (14px wide, 16px, starting at y=0, centered)
+  gr.fillStyle(0x6bb8e0, 1); gr.fillRect(3, 0, 14, 16);
+  // Blue tint on jug water
+  gr.fillStyle(0x4090c0, 1); gr.fillRect(4, 2, 12, 12);
+  // Machine body (18px wide, 24px, at y=14)
+  gr.fillStyle(0xe0e4e8, 1); gr.fillRect(1, 14, 18, 24);
+  // Front panel (14px wide, 20px, at y=16)
+  gr.fillStyle(0xd0d4d8, 1); gr.fillRect(3, 16, 14, 20);
+  // Tap/dispenser (8px wide, 4px, centered, at y=32)
+  gr.fillStyle(0x909498, 1); gr.fillRect(6, 32, 8, 4);
+  // Base (18px wide, 6px, at y=38)
+  gr.fillStyle(0x707478, 1); gr.fillRect(1, 38, 18, 6);
+  gr.generateTexture("tex-bebedouro-deco", 20, 48);
   gr.destroy();
 }
 

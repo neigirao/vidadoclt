@@ -17,7 +17,6 @@ const FLOOR_Y = HUD_BOT_Y - 32;
 
 export class CeoScene extends Phaser.Scene {
   private platIdx = 0;
-  private platBodyG!: Phaser.GameObjects.Graphics;
   private player!: Player;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private boss!: CeoBoss;
@@ -49,14 +48,13 @@ export class CeoScene extends Phaser.Scene {
     this.add.rectangle(LEVEL_WIDTH / 2, GAME_HEIGHT / 2, LEVEL_WIDTH, GAME_HEIGHT, 0x000000, 0.3).setDepth(-1);
 
     this.platforms = this.physics.add.staticGroup();
-    this.platBodyG = this.add.graphics().setDepth(8);
     this.platIdx = 0;
     this.buildFloor();
     // Two side platforms for mobility
-    this.buildPlatform(100, FLOOR_Y - 120, 4);
-    this.buildPlatform(LEVEL_WIDTH - 228, FLOOR_Y - 120, 4);
+    this.buildPlatform(100, FLOOR_Y - 30, 4);
+    this.buildPlatform(LEVEL_WIDTH - 228, FLOOR_Y - 30, 4);
     // Center elevated platform
-    this.buildPlatform(LEVEL_WIDTH / 2 - 80, FLOOR_Y - 180, 5);
+    this.buildPlatform(LEVEL_WIDTH / 2 - 80, FLOOR_Y - 72, 5);
 
     const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
     const weaponDef = WEAPONS[(run.weaponId ?? classDef.startWeapon) as WeaponId] ?? WEAPONS[classDef.startWeapon];
@@ -326,11 +324,13 @@ export class CeoScene extends Phaser.Scene {
       this.add.image(x + i * 32 + 16, y, def.surf).setDisplaySize(32, 14).setDepth(9);
     }
 
-    // Draw furniture body below surface (one body unit per 2 tiles, centered)
-    const unitW = 32; // each body image is 32px wide; repeat for wide platforms
+    // Body extends to floor so nothing floats
+    const bodyTop = y + 7;
+    const bodyH = FLOOR_Y - bodyTop;
+    const bodyMidY = bodyTop + bodyH / 2;
     for (let i = 0; i < tiles; i++) {
-      this.add.image(x + i * 32 + 16, y + def.bodyY + def.bodyH / 2, def.body)
-        .setDisplaySize(32, def.bodyH).setDepth(7);
+      this.add.image(x + i * 32 + 16, bodyMidY, def.body)
+        .setDisplaySize(32, bodyH).setDepth(7);
     }
 
     // Physics body (invisible rectangle at surface level)

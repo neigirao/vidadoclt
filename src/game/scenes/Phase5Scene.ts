@@ -20,7 +20,6 @@ const FLOOR_Y = HUD_BOT_Y - 32;
 
 export class Phase5Scene extends Phaser.Scene {
   private platIdx = 0;
-  private platBodyG!: Phaser.GameObjects.Graphics;
   private player!: Player;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private carimbadores!: Phaser.Physics.Arcade.Group;
@@ -57,15 +56,14 @@ export class Phase5Scene extends Phaser.Scene {
     addPhaseBackground(this, "pxbg-diretoria", HUD_TOP_H, FLOOR_Y);
 
     this.platforms = this.physics.add.staticGroup();
-    this.platBodyG = this.add.graphics().setDepth(8);
     this.platIdx = 0;
     this.buildFloor();
-    this.buildPlatform(200, FLOOR_Y - 120, 5);
-    this.buildPlatform(520, FLOOR_Y - 180, 4);
-    this.buildPlatform(820, FLOOR_Y - 120, 6);
-    this.buildPlatform(1120, FLOOR_Y - 180, 5);
-    this.buildPlatform(1400, FLOOR_Y - 120, 6);
-    this.buildPlatform(1700, FLOOR_Y - 170, 4);
+    this.buildPlatform(200, FLOOR_Y - 30, 5);
+    this.buildPlatform(520, FLOOR_Y - 72, 4);
+    this.buildPlatform(820, FLOOR_Y - 30, 6);
+    this.buildPlatform(1120, FLOOR_Y - 72, 5);
+    this.buildPlatform(1400, FLOOR_Y - 30, 6);
+    this.buildPlatform(1700, FLOOR_Y - 72, 4);
 
     // Door to CEO (top floor, locked)
     this.doorCeo = this.add.image(LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door").setTint(0xaa4400);
@@ -394,11 +392,13 @@ export class Phase5Scene extends Phaser.Scene {
       this.add.image(x + i * 32 + 16, y, def.surf).setDisplaySize(32, 14).setDepth(9);
     }
 
-    // Draw furniture body below surface (one body unit per 2 tiles, centered)
-    const unitW = 32; // each body image is 32px wide; repeat for wide platforms
+    // Body extends to floor so nothing floats
+    const bodyTop = y + 7;
+    const bodyH = FLOOR_Y - bodyTop;
+    const bodyMidY = bodyTop + bodyH / 2;
     for (let i = 0; i < tiles; i++) {
-      this.add.image(x + i * 32 + 16, y + def.bodyY + def.bodyH / 2, def.body)
-        .setDisplaySize(32, def.bodyH).setDepth(7);
+      this.add.image(x + i * 32 + 16, bodyMidY, def.body)
+        .setDisplaySize(32, bodyH).setDepth(7);
     }
 
     // Physics body (invisible rectangle at surface level)

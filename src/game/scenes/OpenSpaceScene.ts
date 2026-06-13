@@ -23,8 +23,6 @@ const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
 
 export class OpenSpaceScene extends Phaser.Scene {
-  private platIdx = 0;
-  private platBodyG!: Phaser.GameObjects.Graphics;
   private player!: Player;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private estagiarios!: Phaser.Physics.Arcade.Group;
@@ -55,7 +53,6 @@ export class OpenSpaceScene extends Phaser.Scene {
 
   create() {
     const run = getRun(this);
-    this.platIdx = 0;
     this.startTimeMs = this.time.now;
     this.bossDefeated = false;
     this.phase2Active = false;
@@ -68,21 +65,30 @@ export class OpenSpaceScene extends Phaser.Scene {
     // Full level background image
     addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
 
-    for (let x = 80; x < LEVEL_WIDTH; x += 260) {
-      const baia = this.add.image(x, FLOOR_Y - 28, "tex-baia");
-      baia.setTint(0x4b525e);
-    }
+    [80, 340, 600, 860, 1120, 1380, 1640, 1880].forEach(x => {
+      this.add.image(x, FLOOR_Y - 28, "tex-baia").setTint(0x4b525e);
+    });
 
     this.platforms = this.physics.add.staticGroup();
-    this.platBodyG = this.add.graphics().setDepth(8);
-    this.platIdx = 0;
     this.buildFloor();
-    this.buildPlatform(260, FLOOR_Y - 110, 6);
-    this.buildPlatform(520, FLOOR_Y - 180, 5);
-    this.buildPlatform(780, FLOOR_Y - 110, 6);
-    this.buildPlatform(1080, FLOOR_Y - 200, 4);
-    this.buildPlatform(1300, FLOOR_Y - 120, 6);
-    this.buildPlatform(1580, FLOOR_Y - 180, 5);
+    this.buildDecor();
+
+    // Zone 1 — Entrada (x 100-520): cluster de mesas + estante
+    this.buildPlatform(200, 0, 3);   // mesa, 3 tiles → x=200-296
+    this.buildPlatform(350, 1, 2);   // estante alta, 2 tiles → x=350-414
+
+    // Zone 2 — Open Space A (x 520-960): mesa cluster + armário
+    this.buildPlatform(540, 0, 4);   // mesa cluster, 4 tiles → x=540-668
+    this.buildPlatform(730, 2, 2);   // armário, 2 tiles → x=730-794
+
+    // Zone 3 — Open Space B (x 960-1440): área densa
+    this.buildPlatform(1000, 0, 3);  // mesa, 3 tiles
+    this.buildPlatform(1150, 1, 2);  // estante, 2 tiles
+    this.buildPlatform(1290, 2, 2);  // armário, 2 tiles
+
+    // Zone 4 — Área do Boss (x 1440-1920): últimas coberturas
+    this.buildPlatform(1500, 0, 3);  // mesa
+    this.buildPlatform(1660, 0, 2);  // mesa menor
 
     // Copa door — locked until boss defeated
     this.doorCopa = this.add.image(LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door");
@@ -396,28 +402,49 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.platforms.add(floorPhys);
   }
 
-  private buildPlatform(x: number, y: number, tiles: number) {
-    const platDefs = PLAT_DEFS;
-    const def = platDefs[this.platIdx % platDefs.length];
-    this.platIdx++;
+  private buildPlatform(x: number, defIdx: number, tiles: number): void {
+    const def = PLAT_DEFS[defIdx];
+    const surfY = FLOOR_Y - def.height;  // surface is always grounded at floor
     const w = tiles * 32;
 
-    // Draw surface tiles
+    // Surface tiles (14px, centered at surfY)
     for (let i = 0; i < tiles; i++) {
-      this.add.image(x + i * 32 + 16, y, def.surf).setDisplaySize(32, 14).setDepth(9);
+      this.add.image(x + i * 32 + 16, surfY, def.surf)
+        .setDisplaySize(32, 14).setDepth(9);
     }
 
-    // Draw furniture body below surface (one body unit per 2 tiles, centered)
-    const unitW = 32; // each body image is 32px wide; repeat for wide platforms
+    // Body: extends from below surface all the way to the floor
+    const bodyTop = surfY + 7;  // bottom edge of surface tile
+    const bodyH = FLOOR_Y - bodyTop;
+    const bodyMidY = bodyTop + bodyH / 2;
     for (let i = 0; i < tiles; i++) {
-      this.add.image(x + i * 32 + 16, y + def.bodyY + def.bodyH / 2, def.body)
-        .setDisplaySize(32, def.bodyH).setDepth(7);
+      this.add.image(x + i * 32 + 16, bodyMidY, def.body)
+        .setDisplaySize(32, bodyH).setDepth(7);
     }
 
-    // Physics body (invisible rectangle at surface level)
-    const plat = this.add.rectangle(x + w / 2, y, w, 14, 0x000000, 0);
+    // Physics rectangle at surface level
+    const plat = this.add.rectangle(x + w / 2, surfY, w, 14, 0x000000, 0);
     this.physics.add.existing(plat, true);
     this.platforms.add(plat);
+  }
+
+  private buildDecor(): void {
+    // Cadeiras (decorativas — não têm física)
+    [160, 490, 660, 970, 1380, 1620].forEach(x => {
+      this.add.image(x, FLOOR_Y - 14, "tex-cadeira").setDisplaySize(32, 28).setDepth(6);
+    });
+
+    // Plantas (decorativas)
+    [120, 500, 870, 1340, 1580].forEach(x => {
+      this.add.image(x, FLOOR_Y - 20, "tex-planta-deco").setDisplaySize(24, 40).setDepth(6);
+    });
+
+    // Bebedouro (decorativo)
+    this.add.image(850, FLOOR_Y - 24, "tex-bebedouro-deco").setDisplaySize(20, 48).setDepth(6);
+    this.add.image(1430, FLOOR_Y - 24, "tex-bebedouro-deco").setDisplaySize(20, 48).setDepth(6);
+
+    // Impressoras decorativas (no chão, não como plataforma)
+    this.add.image(1350, FLOOR_Y - 14, "tex-obj-impressora").setDepth(6).setScale(0.5);
   }
 
   private spawnEnemies() {
