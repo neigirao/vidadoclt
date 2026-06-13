@@ -278,21 +278,36 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private updateTexture(time: number) {
     const body = this.body as Phaser.Physics.Arcade.Body;
     const onGround = body.blocked.down || body.touching.down;
+    const speed = Math.abs(body.velocity.x);
 
-    let state: string;
+    let key: string;
     if (time < this.dashUntil) {
-      state = "dash";
+      // Dash: 3 frames at 80ms each
+      key = `tex-player-dash${Math.floor(time / 80) % 3}`;
     } else if (time - this.lastAttackAt < 280) {
-      state = "attack";
+      // Attack: 4 frames across 280ms window
+      const f = Math.min(3, Math.floor((time - this.lastAttackAt) / 70));
+      key = `tex-player-attack${f}`;
     } else if (!onGround) {
-      state = body.velocity.y < 0 ? "jump" : "fall";
-    } else if (Math.abs(body.velocity.x) > 20) {
-      state = `walk${Math.floor(time / 120) % 4}`;
+      if (body.velocity.y < -100) {
+        // Rising: jump frames 0→1→2
+        const elapsed = time - this.lastJumpPressedAt;
+        key = `tex-player-jump${Math.min(2, Math.floor(elapsed / 80))}`;
+      } else {
+        // Falling: fall frames 0→1
+        key = `tex-player-fall${Math.floor(time / 120) % 2}`;
+      }
+    } else if (speed > 300) {
+      // Run: 6 frames at 80ms each
+      key = `tex-player-run${Math.floor(time / 80) % 6}`;
+    } else if (speed > 20) {
+      // Walk: 6 frames at 110ms each
+      key = `tex-player-walk${Math.floor(time / 110) % 6}`;
     } else {
-      state = "idle";
+      // Idle: 4 frames at 180ms each (slow breath/blink)
+      key = `tex-player-idle${Math.floor(time / 180) % 4}`;
     }
 
-    const key = `tex-player-${state}`;
     if (this.texture.key !== key) this.setTexture(key);
   }
 }

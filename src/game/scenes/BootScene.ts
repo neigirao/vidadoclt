@@ -29,17 +29,32 @@ export class BootScene extends Phaser.Scene {
     this.load.image("bg-presidencia","/assets/bg-presidencia.png");
     this.load.image("bg-cobertura",  "/assets/bg-cobertura.png");
     this.load.image("bg-copa",       "/assets/bg-copa.png");
-    // Real character sprites (PNG with transparency)
-    this.load.image("tex-player-idle",   "/assets/sprites/player-idle.png");
-    this.load.image("tex-player",        "/assets/sprites/player-idle.png"); // HUD alias
-    this.load.image("tex-player-walk0",  "/assets/sprites/player-walk0.png");
-    this.load.image("tex-player-walk1",  "/assets/sprites/player-walk1.png");
-    this.load.image("tex-player-walk2",  "/assets/sprites/player-walk2.png");
-    this.load.image("tex-player-walk3",  "/assets/sprites/player-walk3.png");
-    this.load.image("tex-player-jump",   "/assets/sprites/player-jump.png");
-    this.load.image("tex-player-fall",   "/assets/sprites/player-fall.png");
-    this.load.image("tex-player-attack", "/assets/sprites/player-attack.png");
-    this.load.image("tex-player-dash",   "/assets/sprites/player-dash.png");
+    // Real character sprites — 28 frames extracted from spritesheet (48×64)
+    this.load.image("tex-player",         "/assets/sprites/player-idle0.png"); // HUD alias
+    // Idle (4 frames)
+    for (let i = 0; i < 4; i++)
+      this.load.image(`tex-player-idle${i}`, `/assets/sprites/player-idle${i}.png`);
+    this.load.image("tex-player-idle", "/assets/sprites/player-idle0.png");
+    // Walk (6 frames)
+    for (let i = 0; i < 6; i++)
+      this.load.image(`tex-player-walk${i}`, `/assets/sprites/player-walk${i}.png`);
+    // Run (6 frames)
+    for (let i = 0; i < 6; i++)
+      this.load.image(`tex-player-run${i}`, `/assets/sprites/player-run${i}.png`);
+    // Jump (3 frames), Fall (2 frames)
+    for (let i = 0; i < 3; i++)
+      this.load.image(`tex-player-jump${i}`, `/assets/sprites/player-jump${i}.png`);
+    for (let i = 0; i < 2; i++)
+      this.load.image(`tex-player-fall${i}`, `/assets/sprites/player-fall${i}.png`);
+    this.load.image("tex-player-jump", "/assets/sprites/player-jump1.png");
+    this.load.image("tex-player-fall", "/assets/sprites/player-fall0.png");
+    // Attack (4 frames), Dash (3 frames)
+    for (let i = 0; i < 4; i++)
+      this.load.image(`tex-player-attack${i}`, `/assets/sprites/player-attack${i}.png`);
+    for (let i = 0; i < 3; i++)
+      this.load.image(`tex-player-dash${i}`, `/assets/sprites/player-dash${i}.png`);
+    this.load.image("tex-player-attack", "/assets/sprites/player-attack1.png");
+    this.load.image("tex-player-dash",   "/assets/sprites/player-dash0.png");
     // Enemies (fase 1 — já implementados)
     this.load.image("tex-estagiario",    "/assets/sprites/enemy-estagiario.png");
     this.load.image("tex-analista",      "/assets/sprites/enemy-analista.png");
