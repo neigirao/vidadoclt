@@ -71,6 +71,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevAttackDown = false;
   private prevDashDown = false;
   private lastSanityDrainAt = 0;
+  private _frozenTintActive = false;
 
   onAttack?: (hitbox: Phaser.Geom.Rectangle, step: number) => void;
   onDeath?: (cause: "burnout" | "energy") => void;
@@ -169,13 +170,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Freeze: no input, only gravity
     if (time < this.frozenUntil) {
       body.setVelocityX(0);
-      this.setTint(0xaaaaff);
+      if (!this._frozenTintActive) { this.setTint(0xaaaaff); this._frozenTintActive = true; }
       this.prevJumpDown = false;
       this.prevAttackDown = false;
       this.prevDashDown = false;
       return;
     }
-    this.clearTint();
+    if (this._frozenTintActive) { this.clearTint(); this._frozenTintActive = false; }
 
     const curSpeed = time < this.speedMultUntil ? this.walkSpeed * this.speedMult : this.walkSpeed;
 
