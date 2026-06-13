@@ -274,14 +274,40 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateTexture() {
-    let key = "tex-gerente-idle";
+    const t = this.scene.time.now;
+    let key: string;
 
-    if (this.bossState === "attack") {
-      key = this.currentAttack === "atualizacao" ? "tex-gerente-walk" : "tex-gerente-attack";
+    if (this.bossState === "waiting") {
+      key = `tex-gerente-idle${Math.floor(t / 300) % 2}`;
+    } else if (this.bossState === "enter" || this.bossState === "recover") {
+      key = `tex-gerente-walk${Math.floor(t / 110) % 4}`;
     } else if (this.bossState === "telegraph") {
-      key = "tex-gerente-attack";
-    } else if (this.bossState === "enter") {
-      key = "tex-gerente-walk";
+      const attackFrames: Record<BossAttack, string> = {
+        follow_up:  `tex-gerente-attack-sprint${Math.floor(t / 100) % 3}`,
+        alinhamento: `tex-gerente-attack-deadline${Math.floor(t / 100) % 4}`,
+        atualizacao: `tex-gerente-run-charge${Math.floor(t / 90) % 3}`,
+        reuniao:     `tex-gerente-attack-escopo${Math.floor(t / 100) % 4}`,
+        freeze:      `tex-gerente-attack-sprint${Math.floor(t / 100) % 3}`,
+        deadline:    `tex-gerente-attack-deadline${Math.floor(t / 80) % 4}`,
+      };
+      key = attackFrames[this.currentAttack] ?? `tex-gerente-idle0`;
+    } else if (this.bossState === "attack") {
+      if (this.currentAttack === "atualizacao") {
+        key = `tex-gerente-run${Math.floor(t / 80) % 4}`;
+      } else {
+        const atkFrames: Record<BossAttack, string> = {
+          follow_up:  `tex-gerente-attack-sprint${Math.floor(t / 90) % 3}`,
+          alinhamento: `tex-gerente-attack-deadline${Math.floor(t / 90) % 4}`,
+          atualizacao: `tex-gerente-run${Math.floor(t / 80) % 4}`,
+          reuniao:     `tex-gerente-attack-escopo${Math.floor(t / 90) % 4}`,
+          freeze:      `tex-gerente-attack-sprint${Math.floor(t / 90) % 3}`,
+          deadline:    `tex-gerente-attack-deadline${Math.floor(t / 80) % 4}`,
+        };
+        key = atkFrames[this.currentAttack] ?? `tex-gerente-idle0`;
+      }
+    } else {
+      // idle state
+      key = `tex-gerente-idle${Math.floor(t / 300) % 2}`;
     }
 
     if (this.texture.key !== key) this.setTexture(key);

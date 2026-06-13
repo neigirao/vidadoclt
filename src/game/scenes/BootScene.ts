@@ -77,10 +77,10 @@ export class BootScene extends Phaser.Scene {
     for (let i = 0; i < 2; i++) this.load.image(`tex-gerente-idle${i}`, `/assets/sprites/enemy-gerente-idle${i}.png`);
     for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-walk${i}`, `/assets/sprites/enemy-gerente-walk${i}.png`);
     for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-run${i}`,  `/assets/sprites/enemy-gerente-run${i}.png`);
-    for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-run-charge${i}`, `/assets/sprites/enemy-gerente-run-charge${i}.png`);
+    for (let i = 0; i < 3; i++) this.load.image(`tex-gerente-run-charge${i}`, `/assets/sprites/enemy-gerente-run-charge${i}.png`);
     for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-attack-deadline${i}`, `/assets/sprites/enemy-gerente-attack-deadline${i}.png`);
     for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-attack-escopo${i}`, `/assets/sprites/enemy-gerente-attack-escopo${i}.png`);
-    for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-attack-sprint${i}`, `/assets/sprites/enemy-gerente-attack-sprint${i}.png`);
+    for (let i = 0; i < 3; i++) this.load.image(`tex-gerente-attack-sprint${i}`, `/assets/sprites/enemy-gerente-attack-sprint${i}.png`);
     for (let i = 0; i < 3; i++) this.load.image(`tex-gerente-hurt${i}`,  `/assets/sprites/enemy-gerente-hurt${i}.png`);
     for (let i = 0; i < 3; i++) this.load.image(`tex-gerente-death${i}`, `/assets/sprites/enemy-gerente-death${i}.png`);
     // NPCs

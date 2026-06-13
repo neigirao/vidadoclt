@@ -511,7 +511,7 @@ export class OpenSpaceScene extends Phaser.Scene {
     });
 
     // Area 3 (x 1100-1500): AnalistaJunior
-    [600, 1150, 1350].forEach((x) => {
+    [1150, 1250, 1400].forEach((x) => {
       const a = new AnalistaJunior(this, x, FLOOR_Y - 60);
       a.target = this.player;
       this.analistas.add(a);
