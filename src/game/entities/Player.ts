@@ -279,33 +279,37 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     const onGround = body.blocked.down || body.touching.down;
     const speed = Math.abs(body.velocity.x);
+    const now = time;
 
     let key: string;
-    if (time < this.dashUntil) {
-      // Dash: 3 frames at 80ms each
-      key = `tex-player-dash${Math.floor(time / 80) % 3}`;
-    } else if (time - this.lastAttackAt < 280) {
-      // Attack: 4 frames across 280ms window
-      const f = Math.min(3, Math.floor((time - this.lastAttackAt) / 70));
+    // Hurt (i-frames): show hurt0 while invulnerable (not from dash)
+    if (now < this.invulnUntil && now >= this.dashUntil) {
+      key = 'tex-player-hurt0';
+    } else if (now < this.dashUntil) {
+      // Dash: 4 frames at 60ms each
+      key = `tex-player-dash${Math.floor(now / 60) % 4}`;
+    } else if (now - this.lastAttackAt < 330) {
+      // Attack: 6 frames across 330ms window (~55ms per frame)
+      const f = Math.min(5, Math.floor((now - this.lastAttackAt) / 55));
       key = `tex-player-attack${f}`;
     } else if (!onGround) {
       if (body.velocity.y < -100) {
-        // Rising: jump frames 0→1→2
-        const elapsed = time - this.lastJumpPressedAt;
-        key = `tex-player-jump${Math.min(2, Math.floor(elapsed / 80))}`;
+        // Rising: jump frames 0→1→2→3 based on time since jump
+        const elapsed = now - this.lastJumpPressedAt;
+        key = `tex-player-jump${Math.min(3, Math.floor(elapsed / 80))}`;
       } else {
-        // Falling: fall frames 0→1
-        key = `tex-player-fall${Math.floor(time / 120) % 2}`;
+        // Falling: fall frames 0→1→2 loop at 120ms each
+        key = `tex-player-fall${Math.floor(now / 120) % 3}`;
       }
     } else if (speed > 300) {
-      // Run: 6 frames at 80ms each
-      key = `tex-player-run${Math.floor(time / 80) % 6}`;
+      // Run: 8 frames at 75ms each
+      key = `tex-player-run${Math.floor(now / 75) % 8}`;
     } else if (speed > 20) {
-      // Walk: 6 frames at 110ms each
-      key = `tex-player-walk${Math.floor(time / 110) % 6}`;
+      // Walk: 8 frames at 100ms each
+      key = `tex-player-walk${Math.floor(now / 100) % 8}`;
     } else {
-      // Idle: 4 frames at 180ms each (slow breath/blink)
-      key = `tex-player-idle${Math.floor(time / 180) % 4}`;
+      // Idle: 6 frames at 180ms each (slow breath/blink)
+      key = `tex-player-idle${Math.floor(now / 180) % 6}`;
     }
 
     if (this.texture.key !== key) this.setTexture(key);
