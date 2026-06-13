@@ -32,3 +32,4 @@ dist-ssr
 *.sw?
 extract_all_remaining.cjs
 generate_remaining_sprites.cjs
+.claude/
