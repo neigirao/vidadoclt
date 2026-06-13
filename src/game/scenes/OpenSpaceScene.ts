@@ -62,11 +62,11 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
-    // Full level background image
-    addPhaseBackground(this, "bg-openspace", HUD_TOP_H, FLOOR_Y);
+    // Pixel-art office background (generated — consistent with game art style)
+    addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
 
     [80, 340, 600, 860, 1120, 1380, 1640, 1880].forEach(x => {
-      this.add.image(x, FLOOR_Y - 28, "tex-baia").setTint(0x4b525e);
+      this.add.image(x, FLOOR_Y - 28, "tex-baia");
     });
 
     this.platforms = this.physics.add.staticGroup();

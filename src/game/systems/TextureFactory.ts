@@ -45,7 +45,12 @@ const OFFICE_THEMES: Record<string, OfficeTheme> = {
 
 // ─── public API ───────────────────────────────────────────────────────────────
 
-// makeOfficeBackgrounds removed — all backgrounds loaded from real PNG sprites in BootScene
+/** Generate pixel-art office backgrounds for each gameplay phase (1280×400). */
+export function makeOfficeBackgrounds(scene: Phaser.Scene): void {
+  Object.entries(OFFICE_THEMES).forEach(([name, theme]) => {
+    drawOffice(scene, `pxbg-${name}`, theme);
+  });
+}
 
 /** Furniture surfaces + bodies for platform tiles. */
 export function makeFurnitureTextures(scene: Phaser.Scene): void {

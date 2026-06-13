@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import {
   makeFurnitureTextures,
+  makeOfficeBackgrounds,
   makeUiTextures,
   makeObjectTextures,
   applyBackgroundFilters,
@@ -136,6 +137,7 @@ export class BootScene extends Phaser.Scene {
     makeUiTextures(this);
     makeFurnitureTextures(this);
     makeObjectTextures(this);
+    makeOfficeBackgrounds(this);
     applyBackgroundFilters(this);
 
     this.scene.start("MenuScene");
