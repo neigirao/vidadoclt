@@ -7,7 +7,7 @@ function setEnemyTex(
   prefix: string,
   state: "idle" | "walk" | "attack" | "hurt",
 ) {
-  const rates  = { idle: 220, walk: 120, attack: 100, hurt: 80 };
+  const rates  = { idle: 480, walk: 140, attack: 100, hurt: 80 };
   const counts = { idle: 4,   walk: 4,   attack: 3,   hurt: 1  };
   const frame  = state === "hurt" ? 0 : Math.floor(t / rates[state]) % counts[state];
   const key    = `tex-${prefix}-${state}${frame}`;

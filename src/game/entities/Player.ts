@@ -304,12 +304,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } else if (speed > 300) {
       // Run: 8 frames at 75ms each
       key = `tex-player-run${Math.floor(now / 75) % 8}`;
-    } else if (speed > 20) {
-      // Walk: 8 frames at 100ms each
-      key = `tex-player-walk${Math.floor(now / 100) % 8}`;
+    } else if (speed > 60) {
+      // Walk: 8 frames at 110ms each
+      key = `tex-player-walk${Math.floor(now / 110) % 8}`;
     } else {
-      // Idle: 6 frames at 180ms each (slow breath/blink)
-      key = `tex-player-idle${Math.floor(now / 180) % 6}`;
+      // Idle: 6 frames at 420ms each (slow breath — no flicker)
+      key = `tex-player-idle${Math.floor(now / 420) % 6}`;
     }
 
     if (this.texture.key !== key) this.setTexture(key);
