@@ -34,6 +34,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image("tex-player",        "/assets/sprites/player-idle.png"); // HUD alias
     this.load.image("tex-player-walk0",  "/assets/sprites/player-walk0.png");
     this.load.image("tex-player-walk1",  "/assets/sprites/player-walk1.png");
+    this.load.image("tex-player-walk2",  "/assets/sprites/player-walk2.png");
+    this.load.image("tex-player-walk3",  "/assets/sprites/player-walk3.png");
     this.load.image("tex-player-jump",   "/assets/sprites/player-jump.png");
     this.load.image("tex-player-fall",   "/assets/sprites/player-jump.png"); // reuse jump for fall
     this.load.image("tex-player-attack", "/assets/sprites/player-attack.png");
@@ -82,6 +84,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image("tex-convite",       "/assets/sprites/item-convite.png");
     this.load.image("tex-email",         "/assets/sprites/item-email.png");
     this.load.image("tex-inkproj",       "/assets/sprites/item-inkproj.png");
+    // Sprite atlas (additive — provides tex keys via atlas lookup)
+    this.load.atlas('sprites', '/assets/atlas.png', '/assets/atlas.json');
   }
 
   create() {

@@ -1,0 +1,1049 @@
+{
+  "textures": [
+    {
+      "image": "atlas.png",
+      "format": "RGBA8888",
+      "size": {
+        "w": 512,
+        "h": 166
+      },
+      "scale": 1,
+      "frames": [
+        {
+          "filename": "obj-door",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 36,
+            "h": 60
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 36,
+            "h": 60
+          },
+          "frame": {
+            "x": 2,
+            "y": 2,
+            "w": 36,
+            "h": 60
+          }
+        },
+        {
+          "filename": "enemy-gerente",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 44,
+            "h": 56
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 44,
+            "h": 56
+          },
+          "frame": {
+            "x": 40,
+            "y": 2,
+            "w": 44,
+            "h": 56
+          }
+        },
+        {
+          "filename": "enemy-cabo",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 42,
+            "h": 50
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 42,
+            "h": 50
+          },
+          "frame": {
+            "x": 86,
+            "y": 2,
+            "w": 42,
+            "h": 50
+          }
+        },
+        {
+          "filename": "player-attack",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 38,
+            "h": 48
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 38,
+            "h": 48
+          },
+          "frame": {
+            "x": 130,
+            "y": 2,
+            "w": 38,
+            "h": 48
+          }
+        },
+        {
+          "filename": "player-idle",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 48
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 48
+          },
+          "frame": {
+            "x": 170,
+            "y": 2,
+            "w": 32,
+            "h": 48
+          }
+        },
+        {
+          "filename": "player-jump",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 48
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 48
+          },
+          "frame": {
+            "x": 204,
+            "y": 2,
+            "w": 32,
+            "h": 48
+          }
+        },
+        {
+          "filename": "player-walk0",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 48
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 48
+          },
+          "frame": {
+            "x": 238,
+            "y": 2,
+            "w": 32,
+            "h": 48
+          }
+        },
+        {
+          "filename": "player-walk1",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 48
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 48
+          },
+          "frame": {
+            "x": 272,
+            "y": 2,
+            "w": 32,
+            "h": 48
+          }
+        },
+        {
+          "filename": "player-walk2",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 48
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 48
+          },
+          "frame": {
+            "x": 306,
+            "y": 2,
+            "w": 32,
+            "h": 48
+          }
+        },
+        {
+          "filename": "player-walk3",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 48
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 48
+          },
+          "frame": {
+            "x": 340,
+            "y": 2,
+            "w": 32,
+            "h": 48
+          }
+        },
+        {
+          "filename": "enemy-senior",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 36,
+            "h": 46
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 36,
+            "h": 46
+          },
+          "frame": {
+            "x": 374,
+            "y": 2,
+            "w": 36,
+            "h": 46
+          }
+        },
+        {
+          "filename": "obj-elevador",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 24,
+            "h": 44
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 44
+          },
+          "frame": {
+            "x": 412,
+            "y": 2,
+            "w": 24,
+            "h": 44
+          }
+        },
+        {
+          "filename": "obj-porta-reuniao",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 24,
+            "h": 44
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 44
+          },
+          "frame": {
+            "x": 438,
+            "y": 2,
+            "w": 24,
+            "h": 44
+          }
+        },
+        {
+          "filename": "enemy-carimbador",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 36,
+            "h": 42
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 36,
+            "h": 42
+          },
+          "frame": {
+            "x": 464,
+            "y": 2,
+            "w": 36,
+            "h": 42
+          }
+        },
+        {
+          "filename": "enemy-impressora",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 38,
+            "h": 42
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 38,
+            "h": 42
+          },
+          "frame": {
+            "x": 2,
+            "y": 64,
+            "w": 38,
+            "h": 42
+          }
+        },
+        {
+          "filename": "enemy-noticeboard",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 40,
+            "h": 42
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 40,
+            "h": 42
+          },
+          "frame": {
+            "x": 42,
+            "y": 64,
+            "w": 40,
+            "h": 42
+          }
+        },
+        {
+          "filename": "enemy-ti-suporte",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 42
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 42
+          },
+          "frame": {
+            "x": 84,
+            "y": 64,
+            "w": 32,
+            "h": 42
+          }
+        },
+        {
+          "filename": "enemy-arquivo",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 36,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 36,
+            "h": 40
+          },
+          "frame": {
+            "x": 118,
+            "y": 64,
+            "w": 36,
+            "h": 40
+          }
+        },
+        {
+          "filename": "enemy-bateria",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 40
+          },
+          "frame": {
+            "x": 156,
+            "y": 64,
+            "w": 32,
+            "h": 40
+          }
+        },
+        {
+          "filename": "enemy-coletor",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 40
+          },
+          "frame": {
+            "x": 190,
+            "y": 64,
+            "w": 32,
+            "h": 40
+          }
+        },
+        {
+          "filename": "enemy-coordenador",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 40
+          },
+          "frame": {
+            "x": 224,
+            "y": 64,
+            "w": 28,
+            "h": 40
+          }
+        },
+        {
+          "filename": "enemy-estagiario",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 40
+          },
+          "frame": {
+            "x": 254,
+            "y": 64,
+            "w": 28,
+            "h": 40
+          }
+        },
+        {
+          "filename": "enemy-facilitador",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 26,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 26,
+            "h": 40
+          },
+          "frame": {
+            "x": 284,
+            "y": 64,
+            "w": 26,
+            "h": 40
+          }
+        },
+        {
+          "filename": "enemy-planilha",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 34,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 34,
+            "h": 40
+          },
+          "frame": {
+            "x": 312,
+            "y": 64,
+            "w": 34,
+            "h": 40
+          }
+        },
+        {
+          "filename": "enemy-scrum",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 40
+          },
+          "frame": {
+            "x": 348,
+            "y": 64,
+            "w": 28,
+            "h": 40
+          }
+        },
+        {
+          "filename": "item-coffee-cup",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 40
+          },
+          "frame": {
+            "x": 378,
+            "y": 64,
+            "w": 28,
+            "h": 40
+          }
+        },
+        {
+          "filename": "obj-baia",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 64,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 64,
+            "h": 40
+          },
+          "frame": {
+            "x": 408,
+            "y": 64,
+            "w": 64,
+            "h": 40
+          }
+        },
+        {
+          "filename": "obj-ponto",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 40
+          },
+          "frame": {
+            "x": 474,
+            "y": 64,
+            "w": 28,
+            "h": 40
+          }
+        },
+        {
+          "filename": "enemy-analista",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 38
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 38
+          },
+          "frame": {
+            "x": 2,
+            "y": 108,
+            "w": 28,
+            "h": 38
+          }
+        },
+        {
+          "filename": "enemy-evangelista",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 38
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 38
+          },
+          "frame": {
+            "x": 32,
+            "y": 108,
+            "w": 28,
+            "h": 38
+          }
+        },
+        {
+          "filename": "enemy-seguranca",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 38
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 38
+          },
+          "frame": {
+            "x": 62,
+            "y": 108,
+            "w": 28,
+            "h": 38
+          }
+        },
+        {
+          "filename": "obj-bebedouro",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 38
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 38
+          },
+          "frame": {
+            "x": 92,
+            "y": 108,
+            "w": 28,
+            "h": 38
+          }
+        },
+        {
+          "filename": "obj-cafe-machine",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 38
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 38
+          },
+          "frame": {
+            "x": 122,
+            "y": 108,
+            "w": 32,
+            "h": 38
+          }
+        },
+        {
+          "filename": "obj-impressora",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 38
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 38
+          },
+          "frame": {
+            "x": 156,
+            "y": 108,
+            "w": 32,
+            "h": 38
+          }
+        },
+        {
+          "filename": "enemy-telemarketer",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 36
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 36
+          },
+          "frame": {
+            "x": 190,
+            "y": 108,
+            "w": 28,
+            "h": 36
+          }
+        },
+        {
+          "filename": "npc-analista-linkedin",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 26,
+            "h": 36
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 26,
+            "h": 36
+          },
+          "frame": {
+            "x": 220,
+            "y": 108,
+            "w": 26,
+            "h": 36
+          }
+        },
+        {
+          "filename": "npc-faxineiro",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 36
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 36
+          },
+          "frame": {
+            "x": 248,
+            "y": 108,
+            "w": 28,
+            "h": 36
+          }
+        },
+        {
+          "filename": "npc-veterano",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 36
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 36
+          },
+          "frame": {
+            "x": 278,
+            "y": 108,
+            "w": 28,
+            "h": 36
+          }
+        },
+        {
+          "filename": "enemy-drone",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 48,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 48,
+            "h": 32
+          },
+          "frame": {
+            "x": 308,
+            "y": 108,
+            "w": 48,
+            "h": 32
+          }
+        },
+        {
+          "filename": "player-dash",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 38,
+            "h": 32
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 38,
+            "h": 32
+          },
+          "frame": {
+            "x": 358,
+            "y": 108,
+            "w": 38,
+            "h": 32
+          }
+        },
+        {
+          "filename": "item-convite",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 46,
+            "h": 30
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 46,
+            "h": 30
+          },
+          "frame": {
+            "x": 398,
+            "y": 108,
+            "w": 46,
+            "h": 30
+          }
+        },
+        {
+          "filename": "item-cafe",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 16,
+            "h": 16
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 16,
+            "h": 16
+          },
+          "frame": {
+            "x": 446,
+            "y": 108,
+            "w": 16,
+            "h": 16
+          }
+        },
+        {
+          "filename": "item-email",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 22,
+            "h": 16
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 22,
+            "h": 16
+          },
+          "frame": {
+            "x": 464,
+            "y": 108,
+            "w": 22,
+            "h": 16
+          }
+        },
+        {
+          "filename": "item-vr",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 16,
+            "h": 16
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 16,
+            "h": 16
+          },
+          "frame": {
+            "x": 488,
+            "y": 108,
+            "w": 16,
+            "h": 16
+          }
+        },
+        {
+          "filename": "tile-floor",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 16
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 16
+          },
+          "frame": {
+            "x": 2,
+            "y": 148,
+            "w": 32,
+            "h": 16
+          }
+        },
+        {
+          "filename": "tile-platform",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 16
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 16
+          },
+          "frame": {
+            "x": 36,
+            "y": 148,
+            "w": 32,
+            "h": 16
+          }
+        },
+        {
+          "filename": "item-postit",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 14,
+            "h": 14
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 14,
+            "h": 14
+          },
+          "frame": {
+            "x": 70,
+            "y": 148,
+            "w": 14,
+            "h": 14
+          }
+        },
+        {
+          "filename": "item-vr-coin",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 12,
+            "h": 12
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 12
+          },
+          "frame": {
+            "x": 86,
+            "y": 148,
+            "w": 12,
+            "h": 12
+          }
+        },
+        {
+          "filename": "item-inkproj",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 10,
+            "h": 5
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 10,
+            "h": 5
+          },
+          "frame": {
+            "x": 100,
+            "y": 148,
+            "w": 10,
+            "h": 5
+          }
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "app": "pack-atlas.mjs",
+    "version": "1.0",
+    "scale": "1"
+  }
+}

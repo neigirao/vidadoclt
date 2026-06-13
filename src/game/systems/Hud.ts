@@ -55,14 +55,8 @@ const RIGHT_W = GAME_WIDTH - RIGHT_X;
 export class Hud {
   private scene: Phaser.Scene;
 
-  // top-left
+  // top-left (portrait only — stats live in bottom bar)
   private topLeft!: Phaser.GameObjects.Container;
-  private energyBarG!: Phaser.GameObjects.Graphics;
-  private sanityBarG!: Phaser.GameObjects.Graphics;
-  private energyNumT!: Phaser.GameObjects.Text;
-  private sanityNumT!: Phaser.GameObjects.Text;
-  private recoT!: Phaser.GameObjects.Text;
-  private vrTopT!: Phaser.GameObjects.Text;
 
   // top-center
   private clockT!: Phaser.GameObjects.Text;
