@@ -45,17 +45,12 @@ const OFFICE_THEMES: Record<string, OfficeTheme> = {
 
 // ─── public API ───────────────────────────────────────────────────────────────
 
-/** Generate all 6 pixel-art office background textures (1280×400). */
-export function makeOfficeBackgrounds(scene: Phaser.Scene): void {
-  Object.entries(OFFICE_THEMES).forEach(([name, theme]) => {
-    drawOffice(scene, `pxbg-${name}`, theme);
-  });
-}
+// makeOfficeBackgrounds removed — all backgrounds loaded from real PNG sprites in BootScene
 
 /** Furniture surfaces + bodies for platform tiles. */
 export function makeFurnitureTextures(scene: Phaser.Scene): void {
   makeMesaSurf(scene, "tex-mesa");
-  makeMesaSurf(scene, "tex-platform");
+  // tex-platform loaded from tile-platform.png in BootScene — do NOT regenerate here
   makeEstanteSurf(scene);
   makeImpressoraSurf(scene);
   makeVasoSurf(scene);
@@ -69,8 +64,7 @@ export function makeFurnitureTextures(scene: Phaser.Scene): void {
   makeArmarioBody(scene);
   makeCadeira(scene);
   // tex-planta-deco, tex-bebedouro-deco replaced by real sprites loaded in BootScene
-
-  makeFloorTile(scene);
+  // tex-floor loaded from tile-floor.png in BootScene — do NOT regenerate here
 }
 
 /** UI / debug textures. */
