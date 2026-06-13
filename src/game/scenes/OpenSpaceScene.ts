@@ -430,18 +430,29 @@ export class OpenSpaceScene extends Phaser.Scene {
   }
 
   private buildInteractiveObjects(): void {
-    // Café machine — near entrance corner
+    // Café machine — near entrance corner (real sprite ~40×56 at 2x)
     this.add.image(60, FLOOR_Y - 28, "tex-cafe-machine").setDepth(8).setDisplaySize(40, 56);
 
-    // Bebedouro — between zones 1 and 2
-    this.add.image(490, FLOOR_Y - 28, "tex-bebedouro").setDepth(8).setDisplaySize(24, 56);
+    // Bebedouro — between zones 1 and 2 (real sprite 32×48)
+    this.add.image(490, FLOOR_Y - 24, "tex-bebedouro").setDepth(8).setDisplaySize(32, 48);
 
     // Impressora — near desk cluster zone 2
     this.add.image(690, FLOOR_Y - 18, "tex-obj-impressora").setDepth(8).setDisplaySize(48, 36);
 
-    // Quadro motivacional — wall decoration with parallax (slightly higher, at HUD_TOP_H + offset)
-    this.add.image(450, HUD_TOP_H + 80, "tex-quadro-motivacional").setDepth(2).setDisplaySize(48, 56).setScrollFactor(0.25, 0);
-    this.add.image(1100, HUD_TOP_H + 80, "tex-quadro-motivacional").setDepth(2).setDisplaySize(48, 56).setScrollFactor(0.25, 0);
+    // Quadro motivacional — wall decoration with parallax (real sprite 48×56)
+    [450, 1100, 1650].forEach(x => {
+      this.add.image(x, HUD_TOP_H + 80, "tex-quadro-motivacional").setDepth(2).setDisplaySize(48, 56).setScrollFactor(0.25, 0);
+    });
+
+    // Quadro branco — meeting room / open area wall (real sprite 48×40)
+    [780, 1300].forEach(x => {
+      this.add.image(x, HUD_TOP_H + 70, "tex-quadro-branco").setDepth(2).setDisplaySize(48, 40).setScrollFactor(0.25, 0);
+    });
+
+    // Relógio de parede (real sprite 28×28, displayed 2x)
+    [320, 960, 1480].forEach(x => {
+      this.add.image(x, HUD_TOP_H + 36, "tex-relogio").setDepth(2).setDisplaySize(28, 28).setScrollFactor(0.25, 0);
+    });
 
     // Relógio do ponto — at entrance
     this.add.image(140, FLOOR_Y - 32, "tex-ponto").setDepth(8).setDisplaySize(32, 48);
@@ -449,21 +460,31 @@ export class OpenSpaceScene extends Phaser.Scene {
     // Extintor — red on wall near elevator area
     this.add.image(1800, FLOOR_Y - 22, "tex-extintor").setDepth(8).setDisplaySize(20, 44);
 
-    // Pilha de documentos — on desks or floor
-    [240, 600, 1050].forEach(x => {
-      this.add.image(x, FLOOR_Y - 12, "tex-pilha-docs").setDepth(8).setDisplaySize(40, 24);
+    // Monitores — on desk surfaces (real sprite 44×32)
+    [220, 380, 560, 620, 1020, 1300, 1510].forEach(x => {
+      this.add.image(x, FLOOR_Y - 46, "tex-monitor").setDepth(9).setDisplaySize(44, 32);
     });
 
-    // Caixa de papel — floor level
-    [350, 1200].forEach(x => {
-      this.add.image(x, FLOOR_Y - 18, "tex-caixa-papel").setDepth(8).setDisplaySize(44, 36);
+    // Pilha de documentos — on desks or floor (real sprite 32×32)
+    [240, 600, 1050, 1530].forEach(x => {
+      this.add.image(x, FLOOR_Y - 12, "tex-pilha-docs").setDepth(8).setDisplaySize(32, 32);
+    });
+
+    // Caixa de papel — floor level (real sprite 36×32)
+    [350, 1200, 1680].forEach(x => {
+      this.add.image(x, FLOOR_Y - 16, "tex-caixa-papel").setDepth(8).setDisplaySize(36, 32);
+    });
+
+    // Lixeiras — near desk clusters (real sprite 24×32)
+    [280, 650, 1070, 1570].forEach(x => {
+      this.add.image(x, FLOOR_Y - 16, "tex-lixeira").setDepth(8).setDisplaySize(24, 32);
     });
 
     // Porta de reunião — meeting room door in wall background
     this.add.image(780, FLOOR_Y - 48, "tex-porta-reuniao").setDepth(8).setDisplaySize(48, 80);
 
-    // Elevador — at the far end (destination after clearing the boss)
-    this.add.image(LEVEL_WIDTH - 80, FLOOR_Y - 50, "tex-elevador").setDepth(8).setDisplaySize(64, 80);
+    // Elevador — at the far end (destination after clearing the boss, real sprite 32×56 shown 2x)
+    this.add.image(LEVEL_WIDTH - 80, FLOOR_Y - 44, "tex-elevador").setDepth(8).setDisplaySize(64, 88);
   }
 
   private buildDecor(): void {
@@ -472,14 +493,20 @@ export class OpenSpaceScene extends Phaser.Scene {
       this.add.image(x, FLOOR_Y - 14, "tex-cadeira").setDisplaySize(32, 28).setDepth(6);
     });
 
-    // Plantas (decorativas)
-    [120, 500, 870, 1340, 1580].forEach(x => {
-      this.add.image(x, FLOOR_Y - 20, "tex-planta-deco").setDisplaySize(24, 40).setDepth(6);
+    // Plantas (decorativas, real sprite 32×40)
+    [120, 500, 870, 1340, 1580, 1820].forEach(x => {
+      this.add.image(x, FLOOR_Y - 20, "tex-planta-deco").setDisplaySize(32, 40).setDepth(6);
     });
 
-    // Bebedouro (decorativo)
-    this.add.image(850, FLOOR_Y - 24, "tex-bebedouro-deco").setDisplaySize(20, 48).setDepth(6);
-    this.add.image(1430, FLOOR_Y - 24, "tex-bebedouro-deco").setDisplaySize(20, 48).setDepth(6);
+    // Bebedouro decorativo (real sprite 32×48)
+    [850, 1430].forEach(x => {
+      this.add.image(x, FLOOR_Y - 24, "tex-bebedouro-deco").setDisplaySize(32, 48).setDepth(6);
+    });
+
+    // Mesas decorativas no chão (real sprite 64×40)
+    [200, 560, 1000, 1500].forEach(x => {
+      this.add.image(x + 32, FLOOR_Y - 20, "tex-mesa-deco").setDisplaySize(64, 40).setDepth(5);
+    });
 
     // Impressoras decorativas (no chão, não como plataforma)
     this.add.image(1350, FLOOR_Y - 14, "tex-obj-impressora").setDepth(6).setScale(0.5);

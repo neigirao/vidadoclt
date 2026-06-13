@@ -99,12 +99,23 @@ export class BootScene extends Phaser.Scene {
     this.load.image("tex-planilha",      "/assets/sprites/enemy-planilha.png");
     this.load.image("tex-arquivo",       "/assets/sprites/enemy-arquivo.png");
     this.load.image("tex-bateria",       "/assets/sprites/enemy-bateria.png");
-    // Objetos interativos
-    this.load.image("tex-cafe-machine",  "/assets/sprites/obj-cafe-machine.png");
-    this.load.image("tex-bebedouro",     "/assets/sprites/obj-bebedouro.png");
-    this.load.image("tex-obj-impressora","/assets/sprites/obj-impressora.png");
-    this.load.image("tex-elevador",      "/assets/sprites/obj-elevador.png");
+    // Objetos interativos — usar estados idle para máxima qualidade
+    this.load.image("tex-cafe-machine",  "/assets/sprites/obj-cafe-machine-idle.png");
+    this.load.image("tex-bebedouro",     "/assets/sprites/obj-bebedouro-idle.png");
+    this.load.image("tex-obj-impressora","/assets/sprites/obj-impressora-idle.png");
+    this.load.image("tex-elevador",      "/assets/sprites/obj-elevador-idle.png");
     this.load.image("tex-porta-reuniao", "/assets/sprites/obj-porta-reuniao.png");
+    // Decoração real — sprites PNG substituem texturas geradas por código
+    this.load.image("tex-quadro-motivacional", "/assets/sprites/obj-quadro-motivacional-idle.png");
+    this.load.image("tex-quadro-branco",       "/assets/sprites/obj-quadro-branco-idle.png");
+    this.load.image("tex-planta-deco",         "/assets/sprites/obj-planta-empresa-idle.png");
+    this.load.image("tex-bebedouro-deco",      "/assets/sprites/obj-bebedouro-idle.png");
+    this.load.image("tex-pilha-docs",          "/assets/sprites/obj-pilha-papel-idle.png");
+    this.load.image("tex-caixa-papel",         "/assets/sprites/obj-caixa-arquivos-idle.png");
+    this.load.image("tex-monitor",             "/assets/sprites/obj-monitor-idle.png");
+    this.load.image("tex-relogio",             "/assets/sprites/obj-relogio-idle.png");
+    this.load.image("tex-lixeira",             "/assets/sprites/obj-lixeira-idle.png");
+    this.load.image("tex-mesa-deco",           "/assets/sprites/obj-mesa-idle.png");
     // Tiles e decoração
     this.load.image("tex-platform",      "/assets/sprites/tile-platform.png");
     this.load.image("tex-floor",         "/assets/sprites/tile-floor.png");

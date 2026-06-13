@@ -68,8 +68,7 @@ export function makeFurnitureTextures(scene: Phaser.Scene): void {
   makeArmarioSurf(scene);
   makeArmarioBody(scene);
   makeCadeira(scene);
-  makePlantaDeco(scene);
-  makeBebedouro(scene);
+  // tex-planta-deco, tex-bebedouro-deco replaced by real sprites loaded in BootScene
 
   makeFloorTile(scene);
 }
@@ -90,10 +89,9 @@ export function makeUiTextures(scene: Phaser.Scene): void {
  * that don't have PNG sprites yet.
  */
 export function makeObjectTextures(scene: Phaser.Scene): void {
-  makeQuadroMotivacional(scene);
   makeExtintor(scene);
-  makePilhaDocs(scene);
-  makeCaixaPapel(scene);
+  // tex-quadro-motivacional, tex-pilha-docs, tex-caixa-papel,
+  // tex-planta-deco, tex-bebedouro-deco now loaded from PNG sprites in BootScene
 }
 
 /** tex-quadro-motivacional (48×56): motivational poster on wall */
