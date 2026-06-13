@@ -42,7 +42,7 @@ export class CeoScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
-    addPhaseBackground(this, "pxbg-cobertura", HUD_TOP_H, FLOOR_Y);
+    addPhaseBackground(this, "bg-cobertura", HUD_TOP_H, FLOOR_Y);
 
     // Add dramatic dark overlay
     this.add.rectangle(LEVEL_WIDTH / 2, GAME_HEIGHT / 2, LEVEL_WIDTH, GAME_HEIGHT, 0x000000, 0.3).setDepth(-1);

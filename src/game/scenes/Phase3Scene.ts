@@ -54,7 +54,7 @@ export class Phase3Scene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
-    addPhaseBackground(this, "pxbg-comercial", HUD_TOP_H, FLOOR_Y);
+    addPhaseBackground(this, "bg-comercial", HUD_TOP_H, FLOOR_Y);
 
     this.platforms = this.physics.add.staticGroup();
     this.platIdx = 0;

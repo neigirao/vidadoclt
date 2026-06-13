@@ -1,5 +1,19 @@
 import Phaser from "phaser";
 
+// ─── Animation helper ─────────────────────────────────────────────────────────
+function setEnemyTex(
+  e: Phaser.Physics.Arcade.Sprite,
+  t: number,
+  prefix: string,
+  state: "idle" | "walk" | "attack" | "hurt",
+) {
+  const rates  = { idle: 220, walk: 120, attack: 100, hurt: 80 };
+  const counts = { idle: 4,   walk: 4,   attack: 3,   hurt: 1  };
+  const frame  = state === "hurt" ? 0 : Math.floor(t / rates[state]) % counts[state];
+  const key    = `tex-${prefix}-${state}${frame}`;
+  if (e.texture.key !== key) e.setTexture(key);
+}
+
 // ─── InkProjectile (Caneta Bic ranged attack) ────────────────────────────────
 export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
   damage = 12;
@@ -60,9 +74,10 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   speed = 200;
   dir: 1 | -1;
   private _frozen = 0;
+  private _hurtUntil = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, dir: 1 | -1 = -1) {
-    super(scene, x, y, "tex-estagiario");
+    super(scene, x, y, "tex-estagiario-idle0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -76,7 +91,10 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      setEnemyTex(this, t, "estagiario", "hurt");
+      return;
+    }
     if (body.blocked.left) {
       this.dir = 1;
       this.setFlipX(false);
@@ -85,16 +103,21 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
       this.setFlipX(true);
     }
     body.setVelocityX(this.dir * this.speed);
+    if (t < this._hurtUntil) {
+      setEnemyTex(this, t, "estagiario", "hurt");
+    } else {
+      setEnemyTex(this, t, "estagiario", "walk");
+    }
   }
 
   hit(damage: number, knockback: number) {
-    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     body.setVelocityY(-200);
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(80, () => this.clearTint());
     return this.hp <= 0;
   }
 
@@ -110,12 +133,13 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
   private aiState: "walk" | "telegraph" | "shoot" | "cooldown" = "walk";
   private stateUntil = 0;
   private _frozen = 0;
+  private _hurtUntil = 0;
 
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
   onShoot?: (fx: number, fy: number, tx: number, ty: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-facilitador");
+    super(scene, x, y, "tex-facilitador-idle0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -171,19 +195,29 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
         break;
       }
     }
+    // Animate texture
+    if (t < this._hurtUntil) {
+      setEnemyTex(this, t, "facilitador", "hurt");
+    } else if (this.aiState === "telegraph" || this.aiState === "shoot") {
+      setEnemyTex(this, t, "facilitador", "attack");
+    } else if (this.aiState === "walk" || this.aiState === "cooldown") {
+      setEnemyTex(this, t, "facilitador", "walk");
+    } else {
+      setEnemyTex(this, t, "facilitador", "idle");
+    }
   }
 
   hit(damage: number, knockback: number) {
-    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     body.setVelocityY(-170);
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(80, () => this.clearTint());
     if (this.aiState === "telegraph") {
       this.aiState = "cooldown";
-      this.stateUntil = this.scene.time.now + 500;
+      this.stateUntil = now + 500;
     }
     return this.hp <= 0;
   }
@@ -200,6 +234,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   private aiState: "walk" | "charge" | "shout" | "recover" | "retro_tele" | "retro_slam" = "walk";
   private stateUntil = 0;
   private _frozen = 0;
+  private _hurtUntil = 0;
   private retrospectivaCooldown = 0;
 
   isBoss = false;
@@ -208,7 +243,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   onRetrospectiva?: (fromX: number, fromY: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-scrum");
+    super(scene, x, y, "tex-scrum-idle0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -309,19 +344,29 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
         break;
       }
     }
+    // Animate texture
+    if (t < this._hurtUntil) {
+      setEnemyTex(this, t, "scrum", "hurt");
+    } else if (this.aiState === "charge" || this.aiState === "shout" || this.aiState === "retro_tele" || this.aiState === "retro_slam") {
+      setEnemyTex(this, t, "scrum", "attack");
+    } else if (this.aiState === "walk") {
+      setEnemyTex(this, t, "scrum", "walk");
+    } else {
+      setEnemyTex(this, t, "scrum", "idle");
+    }
   }
 
   hit(damage: number, knockback: number) {
-    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     body.setVelocityY(-160);
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(80, () => this.clearTint());
     if (this.aiState === "charge") {
       this.aiState = "recover";
-      this.stateUntil = this.scene.time.now + 500;
+      this.stateUntil = now + 500;
     }
     return this.hp <= 0;
   }
@@ -336,6 +381,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   speed = 60;
   dir: 1 | -1 = -1;
   private _frozen = 0;
+  private _hurtUntil = 0;
 
   // Buff aura: set by preUpdate, consumed by OpenSpaceScene
   isBuffing = false;
@@ -344,7 +390,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   target?: { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-coordenador");
+    super(scene, x, y, "tex-coordenador-idle0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -376,16 +422,24 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
         duration: 700, onComplete: () => { this.isBuffing = false; this.clearTint(); ring.destroy(); },
       });
     }
+    // Animate texture (tint override during buff is fine — keeps aura signal)
+    if (t < this._hurtUntil) {
+      setEnemyTex(this, t, "coordenador", "hurt");
+    } else if (Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x) > 10) {
+      setEnemyTex(this, t, "coordenador", "walk");
+    } else {
+      setEnemyTex(this, t, "coordenador", "idle");
+    }
   }
 
   hit(damage: number, knockback: number) {
-    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.6);
     body.setVelocityY(-150);
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(80, () => this.clearTint());
     return this.hp <= 0;
   }
 
@@ -397,10 +451,12 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   hp = 80;
   contactDamage = 5;
   speed = 45;
+
   dir: 1 | -1 = -1;
   private aiState: "walk" | "telegraph" | "slam" | "exhausted" = "walk";
   private stateUntil = 0;
   private _frozen = 0;
+  private _hurtUntil = 0;
 
   swingHitbox: Phaser.Geom.Rectangle | null = null;
   swingActive = false;
@@ -409,7 +465,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-senior");
+    super(scene, x, y, "tex-senior-idle0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -483,20 +539,29 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
         break;
       }
     }
+    // Animate texture
+    if (t < this._hurtUntil) {
+      setEnemyTex(this, t, "senior", "hurt");
+    } else if (this.aiState === "telegraph" || this.aiState === "slam") {
+      setEnemyTex(this, t, "senior", "attack");
+    } else if (this.aiState === "walk") {
+      setEnemyTex(this, t, "senior", "walk");
+    } else {
+      setEnemyTex(this, t, "senior", "idle");
+    }
   }
 
   hit(damage: number, knockback: number) {
-    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    // Tanky: muito resistente a knockback
     body.setVelocityX(knockback * 0.25);
     body.setVelocityY(-60);
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(80, () => this.clearTint());
     if (this.aiState === "telegraph") {
       this.aiState = "exhausted";
-      this.stateUntil = this.scene.time.now + 700;
+      this.stateUntil = now + 700;
       this.swingActive = false;
       this.swingHitbox = null;
     }
@@ -515,6 +580,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   private aiState: "walk" | "telegraph" | "swing" | "recover" = "walk";
   private stateUntil = 0;
   private _frozen = 0;
+  private _hurtUntil = 0;
   swingHitbox: Phaser.Geom.Rectangle | null = null;
   swingActive = false;
   private lastSeenAt = 0;
@@ -522,7 +588,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-analista");
+    super(scene, x, y, "tex-analista-idle0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -592,19 +658,29 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
         break;
       }
     }
+    // Animate texture
+    if (t < this._hurtUntil) {
+      setEnemyTex(this, t, "analista", "hurt");
+    } else if (this.aiState === "telegraph" || this.aiState === "swing") {
+      setEnemyTex(this, t, "analista", "attack");
+    } else if (this.aiState === "walk") {
+      setEnemyTex(this, t, "analista", "walk");
+    } else {
+      setEnemyTex(this, t, "analista", "idle");
+    }
   }
 
   hit(damage: number, knockback: number) {
-    this._frozen = Math.max(this._frozen, this.scene.time.now + 75);
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     body.setVelocityY(-180);
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(80, () => this.clearTint());
     if (this.aiState === "swing" || this.aiState === "telegraph") {
       this.aiState = "recover";
-      this.stateUntil = this.scene.time.now + 300;
+      this.stateUntil = now + 300;
       this.swingActive = false;
       this.swingHitbox = null;
     }

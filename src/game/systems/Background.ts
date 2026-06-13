@@ -1,17 +1,19 @@
 import Phaser from "phaser";
 
+// Full level width — the background spans the entire scrollable level.
+const LEVEL_WIDTH = 1920;
+
 /**
- * Pixel-art office background helper.
+ * Displays a full-width phase background image.
  *
- * The generated `pxbg-*` textures are 1280×400, authored to sit back visually.
- * We use a mild parallax (scrollFactor 0.25) which shifts the image ≤240px
- * as the camera travels its 960px range — the 1280px width covers it exactly.
+ * The image is placed at the horizontal centre of the level (LEVEL_WIDTH/2)
+ * and vertically centred between topY and bottomY. displaySize is set to fill
+ * the full LEVEL_WIDTH × available height so the image always covers the
+ * playfield regardless of the source image resolution.
  *
- * worldX = 640 ensures the texture is flush with the left viewport edge at
- * camera position 0, and still covers at camera position 960:
- *   left edge @ cx=0:   640 - 640 - 0*0.25   = 0   ✓
- *   left edge @ cx=960: 640 - 640 - 960*0.25  = -240  (off-screen left) ✓
- *   right edge @ cx=960: 640 + 640 - 240 = 1040 > 960  ✓
+ * A subtle parallax (scrollFactor 0.2) adds depth without needing an
+ * oversized texture — at scrollFactor 0.2 the image drifts only 384 px as
+ * the camera travels the full 1920 px level, well within the displayed width.
  */
 export function addPhaseBackground(
   scene: Phaser.Scene,
@@ -20,7 +22,10 @@ export function addPhaseBackground(
   bottomY: number,
 ): void {
   const midY = (topY + bottomY) / 2;
-  scene.add.image(640, midY, key)
-    .setScrollFactor(0.25, 0)
+  const availableH = bottomY - topY;
+  scene.add
+    .image(LEVEL_WIDTH / 2, midY, key)
+    .setDisplaySize(LEVEL_WIDTH, availableH)
+    .setScrollFactor(0.2, 0)
     .setDepth(0);
 }

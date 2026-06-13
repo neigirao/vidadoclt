@@ -62,18 +62,27 @@ export class BootScene extends Phaser.Scene {
       this.load.image(`tex-player-interact${i}`, `/assets/sprites/player-interact${i}.png`);
     for (let i = 0; i < 4; i++)
       this.load.image(`tex-player-burnout${i}`, `/assets/sprites/player-burnout${i}.png`);
-    // Enemies (fase 1 — já implementados)
-    this.load.image("tex-estagiario",    "/assets/sprites/enemy-estagiario.png");
-    this.load.image("tex-analista",      "/assets/sprites/enemy-analista.png");
-    this.load.image("tex-facilitador",   "/assets/sprites/enemy-facilitador.png");
-    this.load.image("tex-scrum",         "/assets/sprites/enemy-scrum.png");
-    this.load.image("tex-coordenador",   "/assets/sprites/enemy-coordenador.png");
-    this.load.image("tex-senior",        "/assets/sprites/enemy-senior.png");
-    // Boss
+    // Enemies (fase 1) — base + animated frames
+    const phase1Enemies = ["estagiario", "analista", "facilitador", "scrum", "coordenador", "senior"];
+    for (const name of phase1Enemies) {
+      this.load.image(`tex-${name}`, `/assets/sprites/enemy-${name}.png`);
+      for (let i = 0; i < 4; i++) this.load.image(`tex-${name}-idle${i}`, `/assets/sprites/enemy-${name}-idle${i}.png`);
+      for (let i = 0; i < 4; i++) this.load.image(`tex-${name}-walk${i}`, `/assets/sprites/enemy-${name}-walk${i}.png`);
+      for (let i = 0; i < 3; i++) this.load.image(`tex-${name}-attack${i}`, `/assets/sprites/enemy-${name}-attack${i}.png`);
+      this.load.image(`tex-${name}-hurt0`, `/assets/sprites/enemy-${name}-hurt0.png`);
+      for (let i = 0; i < 3; i++) this.load.image(`tex-${name}-death${i}`, `/assets/sprites/enemy-${name}-death${i}.png`);
+    }
+    // Boss — Gerente Microgestor
     this.load.image("tex-gerente",       "/assets/sprites/enemy-gerente.png");
-    this.load.image("tex-gerente-idle",  "/assets/sprites/enemy-gerente-idle.png");
-    this.load.image("tex-gerente-walk",  "/assets/sprites/enemy-gerente-walk.png");
-    this.load.image("tex-gerente-attack", "/assets/sprites/enemy-gerente-attack.png");
+    for (let i = 0; i < 2; i++) this.load.image(`tex-gerente-idle${i}`, `/assets/sprites/enemy-gerente-idle${i}.png`);
+    for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-walk${i}`, `/assets/sprites/enemy-gerente-walk${i}.png`);
+    for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-run${i}`,  `/assets/sprites/enemy-gerente-run${i}.png`);
+    for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-run-charge${i}`, `/assets/sprites/enemy-gerente-run-charge${i}.png`);
+    for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-attack-deadline${i}`, `/assets/sprites/enemy-gerente-attack-deadline${i}.png`);
+    for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-attack-escopo${i}`, `/assets/sprites/enemy-gerente-attack-escopo${i}.png`);
+    for (let i = 0; i < 4; i++) this.load.image(`tex-gerente-attack-sprint${i}`, `/assets/sprites/enemy-gerente-attack-sprint${i}.png`);
+    for (let i = 0; i < 3; i++) this.load.image(`tex-gerente-hurt${i}`,  `/assets/sprites/enemy-gerente-hurt${i}.png`);
+    for (let i = 0; i < 3; i++) this.load.image(`tex-gerente-death${i}`, `/assets/sprites/enemy-gerente-death${i}.png`);
     // NPCs
     this.load.image("tex-faxineiro",     "/assets/sprites/npc-faxineiro.png");
     // Futuros inimigos (fases 2-5)
