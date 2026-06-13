@@ -5,7 +5,7 @@
       "format": "RGBA8888",
       "size": {
         "w": 512,
-        "h": 166
+        "h": 168
       },
       "scale": 1,
       "frames": [
@@ -535,27 +535,6 @@
           }
         },
         {
-          "filename": "item-coffee-cup",
-          "rotated": false,
-          "trimmed": false,
-          "sourceSize": {
-            "w": 28,
-            "h": 40
-          },
-          "spriteSourceSize": {
-            "x": 0,
-            "y": 0,
-            "w": 28,
-            "h": 40
-          },
-          "frame": {
-            "x": 378,
-            "y": 64,
-            "w": 28,
-            "h": 40
-          }
-        },
-        {
           "filename": "obj-baia",
           "rotated": false,
           "trimmed": false,
@@ -570,9 +549,51 @@
             "h": 40
           },
           "frame": {
-            "x": 408,
+            "x": 378,
             "y": 64,
             "w": 64,
+            "h": 40
+          }
+        },
+        {
+          "filename": "obj-bebedouro",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 28,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 28,
+            "h": 40
+          },
+          "frame": {
+            "x": 444,
+            "y": 64,
+            "w": 28,
+            "h": 40
+          }
+        },
+        {
+          "filename": "obj-cafe-machine",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 32,
+            "h": 40
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 32,
+            "h": 40
+          },
+          "frame": {
+            "x": 474,
+            "y": 64,
+            "w": 32,
             "h": 40
           }
         },
@@ -591,35 +612,14 @@
             "h": 40
           },
           "frame": {
-            "x": 474,
-            "y": 64,
+            "x": 2,
+            "y": 108,
             "w": 28,
             "h": 40
           }
         },
         {
           "filename": "enemy-analista",
-          "rotated": false,
-          "trimmed": false,
-          "sourceSize": {
-            "w": 28,
-            "h": 38
-          },
-          "spriteSourceSize": {
-            "x": 0,
-            "y": 0,
-            "w": 28,
-            "h": 38
-          },
-          "frame": {
-            "x": 2,
-            "y": 108,
-            "w": 28,
-            "h": 38
-          }
-        },
-        {
-          "filename": "enemy-evangelista",
           "rotated": false,
           "trimmed": false,
           "sourceSize": {
@@ -640,7 +640,7 @@
           }
         },
         {
-          "filename": "enemy-seguranca",
+          "filename": "enemy-evangelista",
           "rotated": false,
           "trimmed": false,
           "sourceSize": {
@@ -661,7 +661,7 @@
           }
         },
         {
-          "filename": "obj-bebedouro",
+          "filename": "enemy-seguranca",
           "rotated": false,
           "trimmed": false,
           "sourceSize": {
@@ -682,7 +682,7 @@
           }
         },
         {
-          "filename": "obj-cafe-machine",
+          "filename": "obj-impressora",
           "rotated": false,
           "trimmed": false,
           "sourceSize": {
@@ -703,27 +703,6 @@
           }
         },
         {
-          "filename": "obj-impressora",
-          "rotated": false,
-          "trimmed": false,
-          "sourceSize": {
-            "w": 32,
-            "h": 38
-          },
-          "spriteSourceSize": {
-            "x": 0,
-            "y": 0,
-            "w": 32,
-            "h": 38
-          },
-          "frame": {
-            "x": 156,
-            "y": 108,
-            "w": 32,
-            "h": 38
-          }
-        },
-        {
           "filename": "enemy-telemarketer",
           "rotated": false,
           "trimmed": false,
@@ -738,7 +717,7 @@
             "h": 36
           },
           "frame": {
-            "x": 190,
+            "x": 156,
             "y": 108,
             "w": 28,
             "h": 36
@@ -759,7 +738,7 @@
             "h": 36
           },
           "frame": {
-            "x": 220,
+            "x": 186,
             "y": 108,
             "w": 26,
             "h": 36
@@ -780,7 +759,7 @@
             "h": 36
           },
           "frame": {
-            "x": 248,
+            "x": 214,
             "y": 108,
             "w": 28,
             "h": 36
@@ -801,7 +780,7 @@
             "h": 36
           },
           "frame": {
-            "x": 278,
+            "x": 244,
             "y": 108,
             "w": 28,
             "h": 36
@@ -822,7 +801,7 @@
             "h": 32
           },
           "frame": {
-            "x": 308,
+            "x": 274,
             "y": 108,
             "w": 48,
             "h": 32
@@ -843,7 +822,7 @@
             "h": 32
           },
           "frame": {
-            "x": 358,
+            "x": 324,
             "y": 108,
             "w": 38,
             "h": 32
@@ -864,7 +843,7 @@
             "h": 30
           },
           "frame": {
-            "x": 398,
+            "x": 364,
             "y": 108,
             "w": 46,
             "h": 30
@@ -876,19 +855,40 @@
           "trimmed": false,
           "sourceSize": {
             "w": 16,
-            "h": 16
+            "h": 20
           },
           "spriteSourceSize": {
             "x": 0,
             "y": 0,
             "w": 16,
-            "h": 16
+            "h": 20
           },
           "frame": {
-            "x": 446,
+            "x": 412,
             "y": 108,
             "w": 16,
-            "h": 16
+            "h": 20
+          }
+        },
+        {
+          "filename": "item-coffee-cup",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 16,
+            "h": 20
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 16,
+            "h": 20
+          },
+          "frame": {
+            "x": 430,
+            "y": 108,
+            "w": 16,
+            "h": 20
           }
         },
         {
@@ -906,9 +906,30 @@
             "h": 16
           },
           "frame": {
-            "x": 464,
+            "x": 448,
             "y": 108,
             "w": 22,
+            "h": 16
+          }
+        },
+        {
+          "filename": "item-vr-coin",
+          "rotated": false,
+          "trimmed": false,
+          "sourceSize": {
+            "w": 16,
+            "h": 16
+          },
+          "spriteSourceSize": {
+            "x": 0,
+            "y": 0,
+            "w": 16,
+            "h": 16
+          },
+          "frame": {
+            "x": 472,
+            "y": 108,
+            "w": 16,
             "h": 16
           }
         },
@@ -927,7 +948,7 @@
             "h": 16
           },
           "frame": {
-            "x": 488,
+            "x": 490,
             "y": 108,
             "w": 16,
             "h": 16
@@ -949,7 +970,7 @@
           },
           "frame": {
             "x": 2,
-            "y": 148,
+            "y": 150,
             "w": 32,
             "h": 16
           }
@@ -970,7 +991,7 @@
           },
           "frame": {
             "x": 36,
-            "y": 148,
+            "y": 150,
             "w": 32,
             "h": 16
           }
@@ -991,30 +1012,9 @@
           },
           "frame": {
             "x": 70,
-            "y": 148,
+            "y": 150,
             "w": 14,
             "h": 14
-          }
-        },
-        {
-          "filename": "item-vr-coin",
-          "rotated": false,
-          "trimmed": false,
-          "sourceSize": {
-            "w": 12,
-            "h": 12
-          },
-          "spriteSourceSize": {
-            "x": 0,
-            "y": 0,
-            "w": 12,
-            "h": 12
-          },
-          "frame": {
-            "x": 86,
-            "y": 148,
-            "w": 12,
-            "h": 12
           }
         },
         {
@@ -1032,8 +1032,8 @@
             "h": 5
           },
           "frame": {
-            "x": 100,
-            "y": 148,
+            "x": 86,
+            "y": 150,
             "w": 10,
             "h": 5
           }
