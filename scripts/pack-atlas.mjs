@@ -24,7 +24,14 @@ async function main() {
   let x = PAD, y = PAD, rowH = 0;
   const frames = {};
 
-  for (const s of sprites.sort((a, b) => b.h - a.h)) {
+  // Skip sprites that are too large to fit in the atlas (e.g. sprite sheets)
+  const packable = sprites.filter(s => s.w <= ATLAS_W);
+  const skipped = sprites.filter(s => s.w > ATLAS_W);
+  if (skipped.length > 0) {
+    console.log(`Skipping ${skipped.length} oversized sprite(s): ${skipped.map(s => s.name).join(', ')}`);
+  }
+
+  for (const s of packable.sort((a, b) => b.h - a.h)) {
     if (x + s.w + PAD > ATLAS_W) {
       x = PAD;
       y += rowH + PAD;
@@ -39,8 +46,8 @@ async function main() {
 
   const ATLAS_H = y + rowH + PAD;
 
-  // Composite all sprites onto the atlas
-  const composites = sprites.map(s => ({
+  // Composite all packable sprites onto the atlas
+  const composites = packable.map(s => ({
     input: s.buf,
     left: s.atlasX,
     top: s.atlasY,
@@ -74,9 +81,9 @@ async function main() {
 
   writeFileSync(OUT_JSON, JSON.stringify(atlasJson, null, 2));
 
-  const totalOrig = sprites.reduce((a, s) => a + readFileSync(s.path).length, 0);
+  const totalOrig = packable.reduce((a, s) => a + readFileSync(s.path).length, 0);
   const atlasSize = readFileSync(OUT_PNG).length;
-  console.log(`Packed ${sprites.length} sprites → atlas.png (${ATLAS_W}×${ATLAS_H})`);
+  console.log(`Packed ${packable.length} sprites → atlas.png (${ATLAS_W}×${ATLAS_H})`);
   console.log(`Total original: ${(totalOrig/1024).toFixed(1)}KB  Atlas: ${(atlasSize/1024).toFixed(1)}KB`);
 }
 
