@@ -65,6 +65,16 @@ export class OpenSpaceScene extends Phaser.Scene {
     // Pixel-art office background (generated — consistent with game art style)
     addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
 
+    // Ceiling light cones — subtle atmospheric depth layer (depth 3, behind furniture)
+    const coneColor = 0xd0e8ff;
+    const coneTop = HUD_TOP_H + 22;
+    const coneH = FLOOR_Y - coneTop;
+    for (let lx = 240; lx < LEVEL_WIDTH; lx += 240) {
+      this.add.rectangle(lx, coneTop + coneH * 0.40, 44, coneH * 0.80, coneColor, 0.058).setDepth(3);
+      this.add.rectangle(lx, coneTop + coneH * 0.52, 130, coneH * 0.60, coneColor, 0.030).setDepth(3);
+      this.add.rectangle(lx, coneTop + coneH * 0.62, 230, coneH * 0.40, coneColor, 0.014).setDepth(3);
+    }
+
     [80, 340, 600, 860, 1120, 1380, 1640, 1880].forEach(x => {
       this.add.image(x, FLOOR_Y - 28, "tex-baia");
     });
@@ -422,6 +432,9 @@ export class OpenSpaceScene extends Phaser.Scene {
       this.add.image(x + i * 32 + 16, bodyMidY, def.body)
         .setDisplaySize(32, bodyH).setDepth(7);
     }
+
+    // Drop shadow under furniture group (depth 5, slightly wider than furniture)
+    this.add.rectangle(x + w / 2, FLOOR_Y + 3, w + 8, 7, 0x000000, 0.26).setDepth(5);
 
     // Physics rectangle at surface level
     const plat = this.add.rectangle(x + w / 2, surfY, w, 14, 0x000000, 0);

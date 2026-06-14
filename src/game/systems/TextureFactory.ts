@@ -246,7 +246,8 @@ export function applyBackgroundFilters(scene: Phaser.Scene): void {
 // ─── Background drawing ───────────────────────────────────────────────────────
 
 function drawOffice(scene: Phaser.Scene, key: string, t: OfficeTheme): void {
-  const W = 1280, H = 400;
+  // W=1920 matches LEVEL_WIDTH — displayed at 1:1, no horizontal stretch
+  const W = 1920, H = 400;
   const gr = scene.add.graphics();
 
   // 1. Base wall
@@ -260,73 +261,105 @@ function drawOffice(scene: Phaser.Scene, key: string, t: OfficeTheme): void {
   gr.fillStyle(t.wallDark, 1);
   gr.fillRect(0, CEIL, W, 3);
 
-  // 3. Fluorescent lights along ceiling (every 160px)
-  for (let lx = 80; lx < W; lx += 160) {
+  // 3. Fluorescent lights along ceiling (every 240px at 1920 width)
+  for (let lx = 120; lx < W; lx += 240) {
     gr.fillStyle(0x606070, 1);
-    gr.fillRect(lx - 30, 12, 60, 10);      // fixture body
+    gr.fillRect(lx - 30, 12, 60, 10);
     gr.fillStyle(t.lightColor, 1);
-    gr.fillRect(lx - 28, 13, 56, 8);       // bulb
-    // downward glow (3 fading rects)
-    gr.fillStyle(t.lightColor, 0.14);
-    gr.fillRect(lx - 44, CEIL + 3, 88, 14);
-    gr.fillStyle(t.lightColor, 0.07);
-    gr.fillRect(lx - 64, CEIL + 17, 128, 12);
-    gr.fillStyle(t.lightColor, 0.03);
-    gr.fillRect(lx - 80, CEIL + 29, 160, 10);
+    gr.fillRect(lx - 28, 13, 56, 8);
+    // downward glow (4 fading layers)
+    gr.fillStyle(t.lightColor, 0.18);
+    gr.fillRect(lx - 50, CEIL + 3, 100, 16);
+    gr.fillStyle(t.lightColor, 0.10);
+    gr.fillRect(lx - 80, CEIL + 19, 160, 14);
+    gr.fillStyle(t.lightColor, 0.05);
+    gr.fillRect(lx - 110, CEIL + 33, 220, 12);
+    gr.fillStyle(t.lightColor, 0.02);
+    gr.fillRect(lx - 140, CEIL + 45, 280, 10);
   }
 
-  // 4. Vertical structural columns (every 320px)
-  for (let cx = 0; cx <= W; cx += 320) {
+  // 4. Vertical structural columns (every 480px at 1920 width)
+  for (let cx = 0; cx <= W; cx += 480) {
     gr.fillStyle(t.wallDark, 1);
     gr.fillRect(cx - 1, CEIL, 15, H - CEIL);
-    // highlight inner edge
     gr.fillStyle(t.wall, 0.45);
     gr.fillRect(cx + 1, CEIL + 6, 3, H - CEIL - 80);
-    // column cap
     gr.fillStyle(t.wallDark, 1);
     gr.fillRect(cx - 4, CEIL, 21, 7);
   }
 
-  // 5. Windows (5 windows)
+  // 5. Windows (6 windows, ~300px apart) — wooden frames + venetian blinds
   const WW = 96, WH = 158, WT = 40;
-  [68, 308, 548, 788, 1028].forEach(wx => {
-    // outer shadow frame
+  [90, 390, 690, 990, 1290, 1590].forEach(wx => {
+    // Wooden outer frame (distinct brown, not wall color)
+    gr.fillStyle(0x5c3d1e, 1);
+    gr.fillRect(wx - 9, WT - 9, WW + 18, WH + 18);
+    // shadow inset
     gr.fillStyle(t.wallDark, 1);
-    gr.fillRect(wx - 7, WT - 7, WW + 14, WH + 14);
-    // 4 sky panes
+    gr.fillRect(wx - 6, WT - 6, WW + 12, WH + 12);
+
     const pw = WW / 2 - 5, ph = WH / 2 - 5;
+    const halfH = WH / 2;
+
+    // Upper panes (clear sky view)
     gr.fillStyle(t.sky, 1);
     gr.fillRect(wx + 3, WT + 3, pw, ph);
     gr.fillRect(wx + WW / 2 + 2, WT + 3, pw, ph);
-    gr.fillRect(wx + 3, WT + WH / 2 + 2, pw, ph);
-    gr.fillRect(wx + WW / 2 + 2, WT + WH / 2 + 2, pw, ph);
-    // sky gradient (lighter at top)
-    gr.fillStyle(t.skyLight, 0.35);
-    gr.fillRect(wx + 3, WT + 3, WW - 6, WH * 0.38 | 0);
-    // glare strip (top-left pane only)
-    gr.fillStyle(0xffffff, 0.18);
-    gr.fillRect(wx + 5, WT + 5, 14, ph * 0.65 | 0);
-    // window sill
+    // sky gradient
+    gr.fillStyle(t.skyLight, 0.40);
+    gr.fillRect(wx + 3, WT + 3, WW - 6, (ph * 0.40) | 0);
+    // glare strip
+    gr.fillStyle(0xffffff, 0.22);
+    gr.fillRect(wx + 5, WT + 5, 14, (ph * 0.55) | 0);
+
+    // Lower panes — venetian blinds (partially closed)
+    gr.fillStyle(t.sky, 0.55);
+    gr.fillRect(wx + 3, WT + halfH + 2, pw, ph);
+    gr.fillRect(wx + WW / 2 + 2, WT + halfH + 2, pw, ph);
+    // blind slats every 5px
+    const blindY = WT + halfH + 2;
+    gr.fillStyle(t.wallDark, 0.50);
+    for (let by = blindY + 1; by < blindY + ph; by += 5) {
+      gr.fillRect(wx + 3, by, WW - 6, 2);
+    }
+    // blind cord (thin vertical)
+    gr.fillStyle(t.wallDark, 0.70);
+    gr.fillRect(wx + WW / 2, blindY, 1, ph);
+
+    // Mullion cross-bar
     gr.fillStyle(t.wallDark, 1);
-    gr.fillRect(wx - 9, WT + WH, WW + 18, 9);
-    gr.fillStyle(t.wall, 0.35);
+    gr.fillRect(wx + WW / 2 - 1, WT + 1, 4, WH - 2);
+    gr.fillRect(wx + 1, WT + halfH - 1, WW - 2, 4);
+
+    // Wooden sill
+    gr.fillStyle(0x5c3d1e, 1);
+    gr.fillRect(wx - 9, WT + WH, WW + 18, 10);
+    gr.fillStyle(0x7a5228, 0.50);
     gr.fillRect(wx - 8, WT + WH, WW + 16, 2);
   });
 
+  // 5b. AC vent grilles near ceiling (between columns)
+  [250, 550, 850, 1150, 1450, 1750].forEach(vx => {
+    gr.fillStyle(t.wallDark, 1);
+    gr.fillRect(vx - 22, CEIL + 6, 44, 16);
+    gr.fillStyle(t.wall, 0.30);
+    for (let vy = CEIL + 8; vy < CEIL + 22; vy += 4) {
+      gr.fillRect(vx - 20, vy, 40, 2);
+    }
+  });
+
   // 6. Wall decorations between windows
-  [188, 428, 668, 908, 1148].forEach((px, i) => {
+  [240, 540, 840, 1140, 1440, 1740].forEach((px, i) => {
     if (i % 2 === 0) {
-      // Framed poster (corporate / motivational)
+      // Framed corporate poster
       gr.fillStyle(t.wallDark, 1);
       gr.fillRect(px - 24, 55, 48, 66);
       gr.fillStyle(t.accent, 0.55);
       gr.fillRect(px - 20, 59, 40, 58);
-      // scan-line stripes
       for (let sl = 0; sl < 58; sl += 8) {
         gr.fillStyle(0xffffff, 0.07);
         gr.fillRect(px - 20, 59 + sl, 40, 3);
       }
-      // text-like bars
       gr.fillStyle(0x000000, 0.22);
       gr.fillRect(px - 16, 94, 32, 4);
       gr.fillRect(px - 12, 102, 24, 4);
@@ -336,60 +369,89 @@ function drawOffice(scene: Phaser.Scene, key: string, t: OfficeTheme): void {
       gr.fillEllipse(px, 76, 34, 34);
       gr.fillStyle(t.wall, 1);
       gr.fillEllipse(px, 76, 28, 28);
-      // hour + minute hand
       gr.fillStyle(t.wallDark, 1);
-      gr.fillRect(px - 1, 62, 2, 11);  // 12-hand
-      gr.fillRect(px + 1, 75, 9, 2);   // 3-hand
+      gr.fillRect(px - 1, 62, 2, 11);
+      gr.fillRect(px + 1, 75, 9, 2);
     }
   });
 
-  // 7. Lower/baseboard zone (darker strip at bottom 80px)
+  // 7. Lower/baseboard zone
   const BASE_Y = H - 80;
   gr.fillStyle(t.wallDark, 1);
   gr.fillRect(0, BASE_Y, W, 80);
   gr.fillStyle(t.wall, 0.28);
-  gr.fillRect(0, BASE_Y, W, 2); // separation highlight
+  gr.fillRect(0, BASE_Y, W, 2);
 
-  // 8. Back-floor silhouette furniture — desks with monitors, chairs
+  // 7b. Carpet grid on floor zone
+  const CARP_Y = H - 30;
+  gr.fillStyle(t.floorDark, 0.55);
+  for (let gx = 0; gx < W; gx += 48) {
+    gr.fillRect(gx, CARP_Y, 1, 30);
+  }
+  for (let gy = CARP_Y; gy < H; gy += 16) {
+    gr.fillRect(0, gy, W, 1);
+  }
+
+  // 8. Back-floor silhouette furniture — richer desks, chairs, filing cabinets
   const SF_Y = BASE_Y + 6;
   const DESK_H = 28, DESK_W = 72;
-  for (let sx = 20; sx < W - 60; sx += 110) {
-    // desk silhouette (slightly lighter so it reads against baseboard)
+  for (let sx = 20; sx < W - 60; sx += 165) {
+    const idx = Math.floor(sx / 165);
+
+    // desk silhouette
     gr.fillStyle(t.wallDark, 1);
     gr.fillRect(sx, SF_Y + 36 - DESK_H, DESK_W, DESK_H);
     gr.fillStyle(t.wall, 0.18);
-    gr.fillRect(sx, SF_Y + 36 - DESK_H, DESK_W, 2); // desk top highlight
-    // monitor screen (slightly lighter blue-grey)
-    gr.fillStyle(t.accent, 0.6);
+    gr.fillRect(sx, SF_Y + 36 - DESK_H, DESK_W, 2);
+
+    // monitor screen + glow
+    gr.fillStyle(t.accent, 0.60);
     gr.fillRect(sx + 14, SF_Y + 36 - DESK_H - 22, 24, 18);
-    gr.fillStyle(t.skyLight, 0.18);
-    gr.fillRect(sx + 15, SF_Y + 36 - DESK_H - 21, 10, 6); // screen glare
+    gr.fillStyle(t.skyLight, 0.20);
+    gr.fillRect(sx + 15, SF_Y + 36 - DESK_H - 21, 10, 6);
+    gr.fillStyle(t.accent, 0.08);
+    gr.fillRect(sx + 4, SF_Y + 36 - DESK_H - 24, 44, 26); // ambient monitor glow
     // monitor stand
     gr.fillStyle(t.wallDark, 1);
     gr.fillRect(sx + 24, SF_Y + 36 - DESK_H - 4, 4, 4);
-    // chair silhouette (every other desk)
-    if ((sx / 110) % 2 === 0) {
+
+    // chair (back + seat + base)
+    if (idx % 2 === 0) {
       gr.fillStyle(t.wallDark, 1);
-      gr.fillRect(sx + 48, SF_Y + 36 - 24, 18, 18);
+      gr.fillRect(sx + 50, SF_Y + 36 - 32, 16, 14); // chair back
+      gr.fillRect(sx + 48, SF_Y + 36 - 18, 20, 8);  // seat
+      gr.fillRect(sx + 51, SF_Y + 36 - 10, 14, 4);  // base
       gr.fillStyle(t.wall, 0.12);
-      gr.fillRect(sx + 48, SF_Y + 36 - 24, 18, 2);
+      gr.fillRect(sx + 50, SF_Y + 36 - 32, 16, 2);  // back highlight
     }
+
     // papers on desk
     gr.fillStyle(0xffffff, 0.08);
     gr.fillRect(sx + 4, SF_Y + 36 - DESK_H, 14, 2);
+    gr.fillRect(sx + 52, SF_Y + 36 - DESK_H, 10, 2);
+
+    // filing cabinet every 3rd position
+    if (idx % 3 === 1) {
+      gr.fillStyle(t.wallDark, 1);
+      gr.fillRect(sx + DESK_W + 4, SF_Y + 36 - 44, 22, 44);
+      gr.fillStyle(t.wall, 0.15);
+      for (let d = 0; d < 3; d++) {
+        gr.fillRect(sx + DESK_W + 4, SF_Y + 36 - 44 + d * 14, 22, 1);
+      }
+    }
   }
 
-  // 8b. Ceiling cable trays (subtle dark bars near ceiling)
+  // 8b. Ceiling cable trays
   gr.fillStyle(t.wallDark, 1);
-  for (let cx2 = 0; cx2 < W; cx2 += 320) {
-    gr.fillRect(cx2 + 20, CEIL + 3, 280, 3); // cable tray between columns
+  for (let cx2 = 0; cx2 < W; cx2 += 480) {
+    gr.fillRect(cx2 + 20, CEIL + 3, 440, 3);
   }
 
   // 8c. Baseboard detail
   gr.fillStyle(t.wallDark, 1);
-  gr.fillRect(0, H - 20, W, 4); // lower baseboard
+  gr.fillRect(0, H - 20, W, 4);
   gr.fillStyle(t.wall, 0.2);
-  gr.fillRect(0, H - 20, W, 1); // baseboard highlight
+  gr.fillRect(0, H - 20, W, 1);
 
   // 9. Floor/ground line
   gr.fillStyle(t.floorDark, 1);
