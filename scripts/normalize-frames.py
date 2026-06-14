@@ -20,10 +20,16 @@ def group_of(fname):
         return None
     return base
 
-def bbox_alpha(im):
-    a = im.split()[-1]
-    mask = a.point(lambda p: 255 if p > ALPHA_THRESHOLD else 0)
-    return mask.getbbox()
+def clean_and_bbox(im):
+    """Zero out pixels below alpha threshold, then return bbox of remaining."""
+    px = im.load()
+    w, h = im.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a < ALPHA_THRESHOLD:
+                px[x, y] = (0, 0, 0, 0)
+    return im.getbbox()
 
 def main():
     files = sorted(os.listdir(SPRITES))
