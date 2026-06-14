@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { resolveSprite } from "../systems/SpriteLibrary";
 
 /**
  * Faxineiro Noturno — patrulha lenta, swing largo de vassoura, drena sanidade ao acertar.
@@ -17,7 +18,7 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
   target?: { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-faxineiro");
+    super(scene, x, y, ...resolveSprite("tex-faxineiro"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;

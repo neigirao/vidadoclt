@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
 // Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
@@ -18,7 +19,7 @@ function setEnemyTex(
   let frame = 0;
   if (state === "walk") frame = Math.floor((t + offset) / 220) % 2 === 0 ? 0 : 2;
   const key = `tex-${prefix}-${state}${frame}`;
-  if (e.texture.key !== key) e.setTexture(key);
+  applyTexture(e, key);
 }
 
 
@@ -27,7 +28,7 @@ export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
   damage = 12;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-inkproj");
+    super(scene, x, y, ...resolveSprite("tex-inkproj"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -44,7 +45,7 @@ export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
 // ─── Convite de Reunião (trap) ───────────────────────────────────────────────
 export class ConviteReuniao extends Phaser.GameObjects.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-convite");
+    super(scene, x, y, ...resolveSprite("tex-convite"));
     scene.add.existing(this);
     scene.tweens.add({
       targets: this, y: y + 14,
@@ -59,7 +60,7 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
   sanityDamage = 12;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-postit");
+    super(scene, x, y, ...resolveSprite("tex-postit"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -85,7 +86,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   private _hurtUntil = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, dir: 1 | -1 = -1) {
-    super(scene, x, y, "tex-estagiario-idle0");
+    super(scene, x, y, ...resolveSprite("tex-estagiario-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -147,7 +148,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
   onShoot?: (fx: number, fy: number, tx: number, ty: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-facilitador-idle0");
+    super(scene, x, y, ...resolveSprite("tex-facilitador-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -251,7 +252,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   onRetrospectiva?: (fromX: number, fromY: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-scrum-idle0");
+    super(scene, x, y, ...resolveSprite("tex-scrum-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -398,7 +399,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   target?: { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-coordenador-idle0");
+    super(scene, x, y, ...resolveSprite("tex-coordenador-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -473,7 +474,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-senior-idle0");
+    super(scene, x, y, ...resolveSprite("tex-senior-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -596,7 +597,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-analista-idle0");
+    super(scene, x, y, ...resolveSprite("tex-analista-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
