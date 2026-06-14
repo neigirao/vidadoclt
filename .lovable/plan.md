@@ -1,96 +1,77 @@
+# Por que os sprites estão flickando
 
-# Protótipo jogável — A Vida do CLT (Fase 1, Área 1)
+Diagnóstico após inspecionar os PNGs e o código:
 
-Objetivo: ter algo jogável no navegador em uma única rota, com o "feel" do jogo. Sem arte final, sem meta-progressão — só o núcleo do Sprint 1 do GDD.
+**Causa raiz — frames mal alinhados.** Os sprites foram extraídos dos boards do ChatGPT por scripts que recortaram **cada frame de forma independente** (auto-crop por componente conectado + resize). Resultado: dentro de um mesmo ciclo de animação, o personagem ocupa quantidades muito diferentes de pixels e posições diferentes dentro do canvas. Exemplos medidos agora:
 
-## O que entra neste protótipo
+- `player-walk0..7`: pixels opacos variam de **983 → 1471** (+50%)
+- `player-idle0..5`: variam de **812 → 1063**
+- `enemy-analista-walk0..3`: **66 → 159** (+140%)
 
-**Player controller**
-- Andar (← →), pular (Espaço) com coyote time 0.1s
-- Dash (Shift): 150ms de i-frames, cooldown 1.5s
-- Ataque melee (J): combo de 3 hits, 3º hit aplica knockback ("grampeia")
-- Vida (Energia) base 100, Sanidade base 100 (ainda sem efeitos visuais por faixa — só barra)
-- Morte aos 0 de Energia → tela "Rescisão da tentativa" → botão para reiniciar
+Como o `Sprite` do Phaser usa origem `(0.5, 0.5)` e cada frame tem o personagem recentralizado de jeito diferente, a cada troca de textura (a cada 75–420ms) a silhueta "pula" alguns pixels para os lados / para cima e para baixo — isso é o flicker que você vê. Não é problema de FPS nem de WebGL.
 
-**Cenário — Área 1 (Estações de Trabalho)**
-- Tilemap simples montado em código (plataformas como retângulos coloridos)
-- Chão, 3-4 plataformas, "baias" decorativas
-- Fundo cinza-corporativo, paleta sóbria (off-white, cinza, azul-petróleo, vermelho aviso)
+**Problemas secundários** que amplificam:
 
-**Inimigos (Sprint 1 do GDD)**
-- Estagiário Desesperado: corre em linha reta, dano por contato, 1 hit kill
-- Analista Júnior: anda devagar, ataque melee curto telegrafado, 3 hits para morrer
+1. **Hitbox do player desalinhada.** `Player.ts` faz `body.setSize(20,34)` + `setOffset(6,14)` assumindo sprite **32×48**, mas os PNGs reais são **48×64**. O retângulo de física fica deslocado em relação ao desenho, o que faz o sprite parecer "tremer" quando o personagem está parado contra parede / chão (corpo empurra, sprite acompanha com offset errado).
+2. **Sem `setOrigin` por âncora de pés.** Como os frames têm alturas visuais diferentes, ancorar pelo centro do canvas faz a cabeça subir/descer. O correto para platformer é âncora "pés" (origin Y = 1) com offset fixo.
+3. **`tex-player` (alias do HUD)** aponta para `idle0` mas é a mesma textura usada no avatar do HUD — sem problema, só registrando.
 
-**HUD**
-- Barra de Energia (vermelha)
-- Barra de Sanidade (azul)
-- Contador de VR (Vale Refeição)
-- Relógio no canto: começa "18:00", avança devagar (cosmético)
+# Plano de correção
 
-**Coleta**
-- Inimigo derrotado dropa VR (cubinho amarelo); encostar coleta e soma ao HUD
+## 1. Reprocessar os sprites com bounding box compartilhada (principal)
 
-## O que NÃO entra (fica para próximos sprints)
+Criar `scripts/normalize-frames.mjs` que, para cada conjunto (`player-idle*`, `player-walk*`, `player-run*`, `player-jump*`, `player-fall*`, `player-attack*`, `player-dash*`, `player-hurt*`, `player-burnout*`, `player-interact*`, e cada `enemy-<nome>-<state>*`, e cada `boss-<nome>-<state>*`):
 
-- Áreas 2–4, Copa, Faxineiro, Ponto Eletrônico
-- Chefe Gerente Microgestor
-- Sistema de classes, perks, armas além do melee inicial
-- Burnout com distorção de tela, sons fantasmas, input lag
-- Cultura Corporativa, FGTS, Reconhecimento, NPCs, loja
-- Áudio (placeholders silenciosos; SFX ficam para depois)
+1. Lê todos os PNGs do conjunto.
+2. Calcula a **bounding box união** dos pixels opacos (alpha > 20) de todos os frames.
+3. Recorta cada frame usando essa MESMA bbox.
+4. Coloca o recorte em um canvas de tamanho fixo do conjunto, **ancorado pelos pés** (centralizado em X, alinhado no rodapé em Y), com 2px de padding.
+5. Sobrescreve o PNG.
 
-Esses ficam visíveis no plano como sprints futuros mas não são implementados agora.
+Isso elimina o "pulo" entre frames sem alterar o conteúdo visual.
 
-## Arquitetura técnica
+## 2. Ajustar Player.ts para os sprites 48×64 reais
+
+- `body.setSize(18, 44)` e `setOffset(15, 18)` (centraliza torso/pernas no sprite 48×64, deixa cabeça fora da hitbox).
+- `this.setOrigin(0.5, 1)` e empurrar Y do corpo para alinhar pés. (Alternativa mais simples: manter origin 0.5,0.5 mas garantir que todos os frames têm os pés na mesma linha após o passo 1 — recomendado, menos invasivo.)
+
+## 3. Validar bosses e inimigos
+
+Após o normalize, conferir 3 conjuntos representativos abrindo no preview (`OpenSpaceScene` para player + estagiário + analista; `Phase4Scene` ou similar para um boss). Se ainda houver "pop" sutil entre estados (ex.: `idle` → `walk`), aplicar o mesmo cálculo de bbox **entre estados do mesmo personagem** (união global por personagem), não só dentro de cada estado.
+
+## 4. Não tocar
+
+- Lógica de combate, física, HUD, cenas — nenhuma alteração.
+- Sistema de animação no `updateTexture()` está correto, só precisa de frames consistentes.
+- Backgrounds, atlas e demais assets.
+
+## Detalhes técnicos
 
 ```text
-src/
-  routes/
-    index.tsx              -> monta <GameMount /> em tela cheia (replace do placeholder)
-  game/
-    GameMount.tsx          -> componente React que cria/destrói o Phaser.Game
-    config.ts              -> Phaser.Game config (960x540, scale FIT, arcade physics)
-    scenes/
-      BootScene.ts         -> gera texturas coloridas (rect) via Graphics → texture
-      OpenSpaceScene.ts    -> Área 1: tilemap, player, inimigos, drops, HUD
-      GameOverScene.ts     -> "Rescisão da tentativa" + botão reiniciar
-    entities/
-      Player.ts            -> movimento, pulo, dash, combo melee, vida/sanidade
-      EstagiarioDesesperado.ts
-      AnalistaJunior.ts
-      VRDrop.ts
-    systems/
-      Hud.ts               -> barras + contador + relógio
-      Combat.ts            -> hitboxes do combo, knockback, i-frames
+Para cada grupo G = {f0.png, f1.png, ..., fN.png}:
+  bbox_union = (∞, ∞, -∞, -∞)
+  para cada f em G:
+    bbox_f = pixels com alpha > 20
+    bbox_union = união(bbox_union, bbox_f)
+  W, H = canvas alvo (ex.: 48×64 para player, 32×48 enemies, 64×64 bosses)
+  para cada f em G:
+    crop = f[bbox_union]
+    out = canvas transparente W×H
+    dx = (W - crop.w) // 2                  # centro horizontal
+    dy = (H - crop.h) - 2                   # ancorado nos pés, padding 2
+    out.paste(crop, (dx, dy))
+    salvar out sobrescrevendo f
 ```
 
-- `bun add phaser` antes de criar os arquivos do jogo.
-- `GameMount` usa `useEffect` para instanciar `new Phaser.Game(config)` apontando para um `<div ref>` e faz `game.destroy(true)` no cleanup. SSR-safe: monta só no client (`if (typeof window === 'undefined') return null`).
-- Phaser fica 100% no cliente; nenhuma server function envolvida.
-- Route `index.tsx` ganha `head()` com title "A Vida do CLT — Protótipo" e meta description curta.
+Bibliotecas já no projeto: **Pillow (Python3)** ou **sharp/Jimp** (Node). Usar Python3 — é mais rápido e já está disponível no sandbox.
 
-## Detalhes de gameplay (números iniciais, fáceis de ajustar)
+## Verificação
 
-- Gravidade: 1200
-- Velocidade andar: 200 px/s
-- Pulo: velocidade -520 (~2.5 tiles), coyote 100ms, jump buffer 100ms
-- Dash: 600 px/s por 150ms, i-frames durante, cooldown 1500ms
-- Combo melee: janelas de 250ms entre hits; hit 1/2 dano 10, hit 3 dano 15 + knockback 200
-- Estagiário Desesperado: 200 px/s, contato = 15 dano, 1 HP
-- Analista Júnior: 80 px/s, telegraph 400ms antes do swing, swing dano 20, 3 HP
+1. Rodar o script de normalização.
+2. Abrir preview (`/`) e observar player parado (idle), andando (walk), correndo, pulando, atacando.
+3. Confirmar que silhueta não "treme" mais entre frames.
+4. Conferir 2–3 inimigos em combate.
 
-## Critério de "pronto"
+## Risco
 
-- Abrir o preview → ver o cenário corporativo cinza e o player
-- Andar/pular/dash/ataque funcionam com feedback (flash branco no hit, knockback)
-- Matar inimigos derruba VR; HUD atualiza
-- Tomar dano até 0 → tela de Game Over → reiniciar volta ao começo da área
-
-## Próximos sprints (referência, não implementar agora)
-
-1. Sprint 2 — Sanidade com faixas de efeito, Copa + Faxineiro, Ponto Eletrônico + loja básica
-2. Sprint 3 — Áreas 2–4, armadilha Convite de Reunião, chefe Gerente Microgestor, perk Autonomia
-3. Sprint 4 — Classes, armas, perks, Cultura Corporativa, ramificação 2A/2B, FGTS/burnout
-4. Sprints seguintes — Fases 3–5, CEO, eventos aleatórios, áudio, acessibilidade
-
-Posso aprovar e começar pelo Sprint 1 assim que você confirmar.
+Baixo. Só sobrescreve PNGs (regeneráveis a partir dos boards originais em `public/assets/sprites/ChatGPT Image *.png`). Nenhuma alteração de gameplay. Se algum frame ficar mal ancorado, basta rerodar com bbox ajustada.
