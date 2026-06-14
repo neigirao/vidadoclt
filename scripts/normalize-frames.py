@@ -7,7 +7,7 @@ from PIL import Image
 from collections import defaultdict
 
 SPRITES = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'public', 'assets', 'sprites'))
-ALPHA_THRESHOLD = 20
+ALPHA_THRESHOLD = 128  # ignore faint edge fringes from flood-fill
 PAD_BOTTOM = 2
 
 GROUP_RE = re.compile(r'^(.*?)(\d+)\.png$')
