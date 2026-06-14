@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { SpecialType } from "../systems/WeaponSystem";
 
 const WALK_SPEED = 200;
@@ -77,7 +78,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   onDeath?: (cause: "burnout" | "energy") => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-player-idle");
+    super(scene, x, y, ...resolveSprite("tex-player-idle"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -304,7 +305,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       key = 'tex-player-idle0';
     }
 
-
-    if (this.texture.key !== key) this.setTexture(key);
+    applyTexture(this, key);
   }
 }

@@ -6,6 +6,7 @@ import {
   makeObjectTextures,
   applyBackgroundFilters,
 } from "../systems/TextureFactory";
+import { initSpriteLibrary } from "../systems/SpriteLibrary";
 
 /**
  * Loads image assets and delegates runtime texture generation
@@ -139,6 +140,10 @@ export class BootScene extends Phaser.Scene {
     makeObjectTextures(this);
     makeOfficeBackgrounds(this);
     applyBackgroundFilters(this);
+
+    // Indexa o atlas para que entidades/cenas resolvam sprites a partir de
+    // uma única textura compartilhada (fim do rebind por frame = fim do flicker).
+    initSpriteLibrary(this);
 
     this.scene.start("MenuScene");
   }

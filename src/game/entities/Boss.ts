@@ -1,11 +1,12 @@
 import Phaser from "phaser";
+import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 
 // ─── Email projectile (Follow-Up attack) ────────────────────────────────────
 export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
   damage = 18;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-email");
+    super(scene, x, y, ...resolveSprite("tex-email"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -54,7 +55,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   onHpChange?: (hp: number, maxHp: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-gerente");
+    super(scene, x, y, ...resolveSprite("tex-gerente"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -293,7 +294,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     } else {
       key = `tex-gerente-idle0`;
     }
-    if (this.texture.key !== key) this.setTexture(key);
+    applyTexture(this, key);
   }
 }
 

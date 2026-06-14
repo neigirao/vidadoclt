@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { resolveSprite } from "../systems/SpriteLibrary";
 
 const HIT_INVULN_MS = 400;
 
@@ -40,7 +41,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   private _nextSpreadAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-gerente");
+    super(scene, x, y, ...resolveSprite("tex-gerente"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
