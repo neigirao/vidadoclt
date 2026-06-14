@@ -7,7 +7,7 @@ from PIL import Image
 from collections import defaultdict
 
 SPRITES = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'public', 'assets', 'sprites'))
-ALPHA_THRESHOLD = 20
+ALPHA_THRESHOLD = 128  # ignore faint edge fringes from flood-fill
 PAD_BOTTOM = 2
 
 GROUP_RE = re.compile(r'^(.*?)(\d+)\.png$')
@@ -20,10 +20,16 @@ def group_of(fname):
         return None
     return base
 
-def bbox_alpha(im):
-    a = im.split()[-1]
-    mask = a.point(lambda p: 255 if p > ALPHA_THRESHOLD else 0)
-    return mask.getbbox()
+def clean_and_bbox(im):
+    """Zero out pixels below alpha threshold, then return bbox of remaining."""
+    px = im.load()
+    w, h = im.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a < ALPHA_THRESHOLD:
+                px[x, y] = (0, 0, 0, 0)
+    return im.getbbox()
 
 def main():
     files = sorted(os.listdir(SPRITES))
@@ -57,7 +63,7 @@ def main():
 
         any_changes = 0
         for f, im in ims:
-            b = bbox_alpha(im)
+            b = clean_and_bbox(im)
             if b is None: continue
             l, t, r, btm = b
             crop = im.crop(b)

@@ -274,42 +274,26 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateTexture() {
-    const t = this.scene.time.now;
+    // Source frames are inconsistent poses — use one frame per state to avoid flicker.
     let key: string;
-
-    if (this.bossState === "waiting") {
-      key = `tex-gerente-idle${Math.floor(t / 300) % 2}`;
+    if (this.bossState === "waiting" || this.bossState === "idle") {
+      key = `tex-gerente-idle0`;
     } else if (this.bossState === "enter" || this.bossState === "recover") {
-      key = `tex-gerente-walk${Math.floor(t / 110) % 4}`;
-    } else if (this.bossState === "telegraph") {
-      const attackFrames: Record<BossAttack, string> = {
-        follow_up:  `tex-gerente-attack-sprint${Math.floor(t / 100) % 3}`,
-        alinhamento: `tex-gerente-attack-deadline${Math.floor(t / 100) % 4}`,
-        atualizacao: `tex-gerente-run-charge${Math.floor(t / 90) % 3}`,
-        reuniao:     `tex-gerente-attack-escopo${Math.floor(t / 100) % 4}`,
-        freeze:      `tex-gerente-attack-sprint${Math.floor(t / 100) % 3}`,
-        deadline:    `tex-gerente-attack-deadline${Math.floor(t / 80) % 4}`,
+      key = `tex-gerente-walk0`;
+    } else if (this.bossState === "telegraph" || this.bossState === "attack") {
+      const atkFrames: Record<BossAttack, string> = {
+        follow_up:   `tex-gerente-attack-sprint0`,
+        alinhamento: `tex-gerente-attack-deadline0`,
+        atualizacao: `tex-gerente-run0`,
+        reuniao:     `tex-gerente-attack-escopo0`,
+        freeze:      `tex-gerente-attack-sprint0`,
+        deadline:    `tex-gerente-attack-deadline0`,
       };
-      key = attackFrames[this.currentAttack] ?? `tex-gerente-idle0`;
-    } else if (this.bossState === "attack") {
-      if (this.currentAttack === "atualizacao") {
-        key = `tex-gerente-run${Math.floor(t / 80) % 4}`;
-      } else {
-        const atkFrames: Record<BossAttack, string> = {
-          follow_up:  `tex-gerente-attack-sprint${Math.floor(t / 90) % 3}`,
-          alinhamento: `tex-gerente-attack-deadline${Math.floor(t / 90) % 4}`,
-          atualizacao: `tex-gerente-run${Math.floor(t / 80) % 4}`,
-          reuniao:     `tex-gerente-attack-escopo${Math.floor(t / 90) % 4}`,
-          freeze:      `tex-gerente-attack-sprint${Math.floor(t / 90) % 3}`,
-          deadline:    `tex-gerente-attack-deadline${Math.floor(t / 80) % 4}`,
-        };
-        key = atkFrames[this.currentAttack] ?? `tex-gerente-idle0`;
-      }
+      key = atkFrames[this.currentAttack] ?? `tex-gerente-idle0`;
     } else {
-      // idle state
-      key = `tex-gerente-idle${Math.floor(t / 300) % 2}`;
+      key = `tex-gerente-idle0`;
     }
-
     if (this.texture.key !== key) this.setTexture(key);
   }
 }
+
