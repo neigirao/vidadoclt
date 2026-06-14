@@ -12,12 +12,15 @@ function setEnemyTex(
 ) {
   if (!_animOffsets.has(e)) _animOffsets.set(e, Math.random() * 2000 | 0);
   const offset = _animOffsets.get(e)!;
-  const rates  = { idle: 480, walk: 140, attack: 100, hurt: 80 };
-  const counts = { idle: 4,   walk: 4,   attack: 3,   hurt: 1  };
-  const frame  = state === "hurt" ? 0 : Math.floor((t + offset) / rates[state]) % counts[state];
-  const key    = `tex-${prefix}-${state}${frame}`;
+  // Source frames are inconsistent (not a coherent cycle). Use 1 frame for
+  // idle/attack/hurt, and slow 2-frame alternation for walk so motion reads
+  // without flicker.
+  let frame = 0;
+  if (state === "walk") frame = Math.floor((t + offset) / 220) % 2 === 0 ? 0 : 2;
+  const key = `tex-${prefix}-${state}${frame}`;
   if (e.texture.key !== key) e.setTexture(key);
 }
+
 
 // ─── InkProjectile (Caneta Bic ranged attack) ────────────────────────────────
 export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
