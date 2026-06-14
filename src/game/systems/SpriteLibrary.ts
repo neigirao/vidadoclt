@@ -55,8 +55,20 @@ const _resolveCache = new Map<string, [string, string?]>();
  * O primeiro candidato que existir de fato no atlas vence; nada batendo cai
  * para a textura standalone (geradas em runtime, backgrounds, vr/coffee etc).
  */
+const EXPLICIT_ALIASES: Record<string, string> = {
+  "planta-deco": "obj-planta-empresa-idle",
+  "bebedouro-deco": "obj-bebedouro-idle",
+  "pilha-docs": "obj-pilha-papel-idle",
+  "caixa-papel": "obj-caixa-arquivos-idle",
+  "mesa-deco": "obj-mesa-idle",
+  coffee: "item-coffee-cup",
+};
+
 function candidateFrames(stripped: string): string[] {
-  return [
+  const candidates: string[] = [];
+  const alias = EXPLICIT_ALIASES[stripped];
+  if (alias) candidates.push(alias);
+  candidates.push(
     stripped,
     `${stripped}-idle`,
     `enemy-${stripped}`,
@@ -65,7 +77,8 @@ function candidateFrames(stripped: string): string[] {
     `item-${stripped}`,
     `npc-${stripped}`,
     `tile-${stripped}`,
-  ];
+  );
+  return candidates;
 }
 
 /**
