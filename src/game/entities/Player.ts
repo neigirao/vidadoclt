@@ -282,38 +282,28 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const speed = Math.abs(body.velocity.x);
     const now = time;
 
+    // NOTE: source frames are inconsistent poses (not a coherent cycle),
+    // so we pick ONE representative frame per state to avoid visual flicker.
     let key: string;
-    // Hurt (i-frames): show hurt0 while invulnerable (not from dash)
     if (now < this.invulnUntil && now >= this.dashUntil) {
       key = 'tex-player-hurt0';
     } else if (now < this.dashUntil) {
-      // Dash: 4 frames at 60ms each
-      key = `tex-player-dash${Math.floor(now / 60) % 4}`;
+      key = 'tex-player-dash0';
     } else if (now - this.lastAttackAt < 330) {
-      // Attack: 6 frames across 330ms window (~55ms per frame)
-      const f = Math.min(5, Math.floor((now - this.lastAttackAt) / 55));
+      // Attack: 3-step swing using only well-aligned frames
+      const f = Math.min(2, Math.floor((now - this.lastAttackAt) / 110));
       key = `tex-player-attack${f}`;
     } else if (!onGround) {
-      if (body.velocity.y < -80) {
-        // Rising: jump frames 0→1→2→3 by clamped elapsed since jump
-        // Use lastGroundedAt as fallback so walk-off-ledge doesn't show bogus frame
-        const jumpRef = this.lastJumpPressedAt > 0 ? this.lastJumpPressedAt : now;
-        const elapsed = now - jumpRef;
-        key = `tex-player-jump${Math.min(3, Math.floor(elapsed / 80))}`;
-      } else {
-        // Falling: fall frames 0→1→2 loop at 130ms each
-        key = `tex-player-fall${Math.floor(now / 130) % 3}`;
-      }
+      key = body.velocity.y < -80 ? 'tex-player-jump1' : 'tex-player-fall0';
     } else if (speed > 300) {
-      // Run: 8 frames at 75ms each
-      key = `tex-player-run${Math.floor(now / 75) % 8}`;
+      // Run: alternate 2 frames slowly for sense of motion
+      key = `tex-player-run${(Math.floor(now / 150) % 2) * 4}`;
     } else if (speed > 60) {
-      // Walk: 8 frames at 110ms each
-      key = `tex-player-walk${Math.floor(now / 110) % 8}`;
+      key = `tex-player-walk${(Math.floor(now / 180) % 2) * 4}`;
     } else {
-      // Idle: 6 frames at 420ms each (slow breath — no flicker)
-      key = `tex-player-idle${Math.floor(now / 420) % 6}`;
+      key = 'tex-player-idle0';
     }
+
 
     if (this.texture.key !== key) this.setTexture(key);
   }
