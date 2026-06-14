@@ -63,7 +63,7 @@ def main():
 
         any_changes = 0
         for f, im in ims:
-            b = bbox_alpha(im)
+            b = clean_and_bbox(im)
             if b is None: continue
             l, t, r, btm = b
             crop = im.crop(b)
