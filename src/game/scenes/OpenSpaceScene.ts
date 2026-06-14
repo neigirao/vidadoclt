@@ -65,16 +65,6 @@ export class OpenSpaceScene extends Phaser.Scene {
     // Pixel-art office background (generated — consistent with game art style)
     addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
 
-    // Ceiling light cones — subtle atmospheric depth layer (depth 3, behind furniture)
-    const coneColor = 0xd0e8ff;
-    const coneTop = HUD_TOP_H + 22;
-    const coneH = FLOOR_Y - coneTop;
-    for (let lx = 240; lx < LEVEL_WIDTH; lx += 240) {
-      this.add.rectangle(lx, coneTop + coneH * 0.40, 44, coneH * 0.80, coneColor, 0.058).setDepth(3);
-      this.add.rectangle(lx, coneTop + coneH * 0.52, 130, coneH * 0.60, coneColor, 0.030).setDepth(3);
-      this.add.rectangle(lx, coneTop + coneH * 0.62, 230, coneH * 0.40, coneColor, 0.014).setDepth(3);
-    }
-
     [80, 340, 600, 860, 1120, 1380, 1640, 1880].forEach(x => {
       this.add.image(x, FLOOR_Y - 28, "tex-baia");
     });
@@ -454,17 +444,17 @@ export class OpenSpaceScene extends Phaser.Scene {
 
     // Quadro motivacional — wall decoration with parallax (real sprite 48×56)
     [450, 1100, 1650].forEach(x => {
-      this.add.image(x, HUD_TOP_H + 80, "tex-quadro-motivacional").setDepth(2).setDisplaySize(48, 56).setScrollFactor(0.25, 0);
+      this.add.image(x, HUD_TOP_H + 80, "tex-quadro-motivacional").setDepth(2).setDisplaySize(48, 56).setScrollFactor(0.2, 0);
     });
 
     // Quadro branco — meeting room / open area wall (real sprite 48×40)
     [780, 1300].forEach(x => {
-      this.add.image(x, HUD_TOP_H + 70, "tex-quadro-branco").setDepth(2).setDisplaySize(48, 40).setScrollFactor(0.25, 0);
+      this.add.image(x, HUD_TOP_H + 70, "tex-quadro-branco").setDepth(2).setDisplaySize(48, 40).setScrollFactor(0.2, 0);
     });
 
     // Relógio de parede (real sprite 28×28, displayed 2x)
     [320, 960, 1480].forEach(x => {
-      this.add.image(x, HUD_TOP_H + 36, "tex-relogio").setDepth(2).setDisplaySize(28, 28).setScrollFactor(0.25, 0);
+      this.add.image(x, HUD_TOP_H + 36, "tex-relogio").setDepth(2).setDisplaySize(28, 28).setScrollFactor(0.2, 0);
     });
 
     // Relógio do ponto — at entrance
