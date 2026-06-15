@@ -65,6 +65,7 @@ const EXPLICIT_ALIASES: Record<string, string> = {
   postit: "item-postit-active0",
   convite: "item-convite-idle0",
   email: "item-email-idle0",
+  ceo: "boss-ceo-idle0",
 };
 
 function candidateFrames(stripped: string): string[] {

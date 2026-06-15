@@ -21,9 +21,10 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, ...resolveSprite("tex-faxineiro"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(28, 42);
-    body.setOffset(2, 1);
+    body.setOffset(2, 6);
     body.setCollideWorldBounds(true);
   }
 
