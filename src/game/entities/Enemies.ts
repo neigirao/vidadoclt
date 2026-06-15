@@ -60,7 +60,7 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
   sanityDamage = 12;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-postit"));
+    super(scene, x, y, "sprites", "item-postit-active0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(8);
