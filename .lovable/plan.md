@@ -1,77 +1,48 @@
-# Por que os sprites estão flickando
+# Plano: resolver os 3 problemas pendentes
 
-Diagnóstico após inspecionar os PNGs e o código:
+## Diagnóstico rápido
 
-**Causa raiz — frames mal alinhados.** Os sprites foram extraídos dos boards do ChatGPT por scripts que recortaram **cada frame de forma independente** (auto-crop por componente conectado + resize). Resultado: dentro de um mesmo ciclo de animação, o personagem ocupa quantidades muito diferentes de pixels e posições diferentes dentro do canvas. Exemplos medidos agora:
+Antes do plano, fiz uma auditoria objetiva — alguns sintomas relatados são diferentes da causa real:
 
-- `player-walk0..7`: pixels opacos variam de **983 → 1471** (+50%)
-- `player-idle0..5`: variam de **812 → 1063**
-- `enemy-analista-walk0..3`: **66 → 159** (+140%)
+- **`atlas.png` JÁ tem canal alpha** (RGBA, 512×3616). Auditei os 698 PNGs de origem: **apenas 8** têm fundo opaco real. Os demais "boxes" que aparecem são casos pontuais, não um problema global do atlas.
+- **404 de asset**: nenhum log atual no preview menciona um 404 específico — preciso identificar o recurso antes de remover/substituir.
+- **Player "não colado no chão"**: confirmado por cálculo. `FLOOR_Y = HUD_BOT_Y - 32`; tileSprite do chão centrado em `FLOOR_Y + 8` (topo em `FLOOR_Y`); body do player `setOffset(14,30) setSize(20,34)` → body bottom = bottom do sprite. Como `normalize-frames.py` deixa `PAD_BOTTOM = 2` de transparência embaixo de cada frame, os pés visíveis ficam **2 px acima** do chão.
 
-Como o `Sprite` do Phaser usa origem `(0.5, 0.5)` e cada frame tem o personagem recentralizado de jeito diferente, a cada troca de textura (a cada 75–420ms) a silhueta "pula" alguns pixels para os lados / para cima e para baixo — isso é o flicker que você vê. Não é problema de FPS nem de WebGL.
+## O que será feito
 
-**Problemas secundários** que amplificam:
+### 1. Sprites com fundo (8 arquivos isolados)
 
-1. **Hitbox do player desalinhada.** `Player.ts` faz `body.setSize(20,34)` + `setOffset(6,14)` assumindo sprite **32×48**, mas os PNGs reais são **48×64**. O retângulo de física fica deslocado em relação ao desenho, o que faz o sprite parecer "tremer" quando o personagem está parado contra parede / chão (corpo empurra, sprite acompanha com offset errado).
-2. **Sem `setOrigin` por âncora de pés.** Como os frames têm alturas visuais diferentes, ancorar pelo centro do canvas faz a cabeça subir/descer. O correto para platformer é âncora "pés" (origin Y = 1) com offset fixo.
-3. **`tex-player` (alias do HUD)** aponta para `idle0` mas é a mesma textura usada no avatar do HUD — sem problema, só registrando.
+Lista exata identificada pela auditoria:
+`boss-ceo-special0`, `boss-diretor-death0`, `obj-baia`, `obj-door`, `obj-monitor-active`, `obj-monitor-broken`, `obj-monitor-use`, `obj-ponto`.
 
-# Plano de correção
+Adicionar `scripts/strip-bg.py` que:
+- abre cada PNG da lista,
+- amostra a cor de fundo nos 4 cantos (mediana),
+- zera o alpha de qualquer pixel com distância de cor ≤ tolerância (≈25),
+- preserva o resto via Floyd-style cleanup de borda (alpha morfológico leve para evitar halo).
+Reempacotar o atlas: `node scripts/pack-atlas.mjs`.
 
-## 1. Reprocessar os sprites com bounding box compartilhada (principal)
+### 2. Erro 404 do asset decorativo
 
-Criar `scripts/normalize-frames.mjs` que, para cada conjunto (`player-idle*`, `player-walk*`, `player-run*`, `player-jump*`, `player-fall*`, `player-attack*`, `player-dash*`, `player-hurt*`, `player-burnout*`, `player-interact*`, e cada `enemy-<nome>-<state>*`, e cada `boss-<nome>-<state>*`):
+- Abrir a aba Network do preview ao vivo (`browser--list_network_requests`) com a cena já carregada para capturar o nome exato do recurso 404.
+- Se for uma textura referenciada por chave inexistente no atlas e sem fallback standalone, ou registrar a chave em `EXPLICIT_ALIASES` (SpriteLibrary.ts), ou remover a referência decorativa em `OpenSpaceScene` / outras cenas. Decisão depende do nome — registro no plano apenas o procedimento.
 
-1. Lê todos os PNGs do conjunto.
-2. Calcula a **bounding box união** dos pixels opacos (alpha > 20) de todos os frames.
-3. Recorta cada frame usando essa MESMA bbox.
-4. Coloca o recorte em um canvas de tamanho fixo do conjunto, **ancorado pelos pés** (centralizado em X, alinhado no rodapé em Y), com 2px de padding.
-5. Sobrescreve o PNG.
+### 3. Player colado no chão
 
-Isso elimina o "pulo" entre frames sem alterar o conteúdo visual.
+Duas opções; vou usar **A** (não muda layout dos frames):
 
-## 2. Ajustar Player.ts para os sprites 48×64 reais
+**A. Ajustar offset do body do player** em `src/game/entities/Player.ts`:
+- `body.setOffset(14, 28)` (era `30`), mantendo `setSize(20, 34)`.
+- Resultado: body bottom = sprite y 62 = exatamente onde estão os pés após `PAD_BOTTOM=2`. Pés tocam o chão; nada de gameplay muda.
 
-- `body.setSize(18, 44)` e `setOffset(15, 18)` (centraliza torso/pernas no sprite 48×64, deixa cabeça fora da hitbox).
-- `this.setOrigin(0.5, 1)` e empurrar Y do corpo para alinhar pés. (Alternativa mais simples: manter origin 0.5,0.5 mas garantir que todos os frames têm os pés na mesma linha após o passo 1 — recomendado, menos invasivo.)
+**B (descartada por agora)**: rerodar `normalize-frames.py` com `PAD_BOTTOM=0`. Mais correto na origem, mas regrava 698 PNGs e o atlas — risco maior, ganho idêntico.
 
-## 3. Validar bosses e inimigos
+Aplicar o mesmo raciocínio em `Enemies.ts` e `Boss.ts` se o sintoma estiver visível neles (verificar em runtime após o fix do player).
 
-Após o normalize, conferir 3 conjuntos representativos abrindo no preview (`OpenSpaceScene` para player + estagiário + analista; `Phase4Scene` ou similar para um boss). Se ainda houver "pop" sutil entre estados (ex.: `idle` → `walk`), aplicar o mesmo cálculo de bbox **entre estados do mesmo personagem** (união global por personagem), não só dentro de cada estado.
+## Arquivos tocados
 
-## 4. Não tocar
-
-- Lógica de combate, física, HUD, cenas — nenhuma alteração.
-- Sistema de animação no `updateTexture()` está correto, só precisa de frames consistentes.
-- Backgrounds, atlas e demais assets.
-
-## Detalhes técnicos
-
-```text
-Para cada grupo G = {f0.png, f1.png, ..., fN.png}:
-  bbox_union = (∞, ∞, -∞, -∞)
-  para cada f em G:
-    bbox_f = pixels com alpha > 20
-    bbox_union = união(bbox_union, bbox_f)
-  W, H = canvas alvo (ex.: 48×64 para player, 32×48 enemies, 64×64 bosses)
-  para cada f em G:
-    crop = f[bbox_union]
-    out = canvas transparente W×H
-    dx = (W - crop.w) // 2                  # centro horizontal
-    dy = (H - crop.h) - 2                   # ancorado nos pés, padding 2
-    out.paste(crop, (dx, dy))
-    salvar out sobrescrevendo f
-```
-
-Bibliotecas já no projeto: **Pillow (Python3)** ou **sharp/Jimp** (Node). Usar Python3 — é mais rápido e já está disponível no sandbox.
-
-## Verificação
-
-1. Rodar o script de normalização.
-2. Abrir preview (`/`) e observar player parado (idle), andando (walk), correndo, pulando, atacando.
-3. Confirmar que silhueta não "treme" mais entre frames.
-4. Conferir 2–3 inimigos em combate.
-
-## Risco
-
-Baixo. Só sobrescreve PNGs (regeneráveis a partir dos boards originais em `public/assets/sprites/ChatGPT Image *.png`). Nenhuma alteração de gameplay. Se algum frame ficar mal ancorado, basta rerodar com bbox ajustada.
+- `scripts/strip-bg.py` (novo)
+- 8 PNGs em `public/assets/sprites/` (reescritos)
+- `public/assets/atlas.png` + `public/assets/atlas.json` (regerados)
+- `src/game/entities/Player.ts` (1 linha)
+- possivelmente `src/game/systems/SpriteLibrary.ts` **ou** uma cena, dependendo do 404
