@@ -81,9 +81,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, ...resolveSprite("tex-player-idle"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(20, 34);
-    body.setOffset(6, 14); // 32×48 sprite — skip head, align feet
+    body.setOffset(14, 30); // 48×64 sprite: x=(48-20)/2, y=64-34
+    body.setCollideWorldBounds(true);
     body.setMaxVelocity(800, 1400);
 
     const kb = scene.input.keyboard!;
