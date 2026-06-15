@@ -262,7 +262,7 @@ export class ClassSelectScene extends Phaser.Scene {
     run.characterClass = CLASS_IDS[this.selectedIndex];
     this.cameras.main.fadeOut(280, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => {
-      this.scene.start("OpenSpaceScene");
+      this.scene.start(run.v2Mode ? "OpenSpaceV2Scene" : "OpenSpaceScene");
     });
   }
 }

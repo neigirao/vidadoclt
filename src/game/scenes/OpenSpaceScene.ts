@@ -36,6 +36,7 @@ export class OpenSpaceScene extends Phaser.Scene {
   private emails!: Phaser.Physics.Arcade.Group;
   private inkProjectiles!: Phaser.Physics.Arcade.Group;
   private drops!: Phaser.Physics.Arcade.Group;
+  private furnitureBodies!: Phaser.Physics.Arcade.StaticGroup;
   private convites: ConviteReuniao[] = [];
   private boss?: GerenteMicrogestor;
   private levelWidth = LEVEL_WIDTH;
@@ -71,6 +72,7 @@ export class OpenSpaceScene extends Phaser.Scene {
     });
 
     this.platforms = this.physics.add.staticGroup();
+    this.furnitureBodies = this.physics.add.staticGroup();
     this.buildFloor();
     this.buildDecor();
     this.buildInteractiveObjects();
@@ -132,6 +134,7 @@ export class OpenSpaceScene extends Phaser.Scene {
     this.player.autonomia = run.autonomia ?? false;
     reapplyAllPerks(this.player, run);
     this.physics.add.collider(this.player, this.platforms);
+    this.physics.add.collider(this.player, this.furnitureBodies);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
     this.player.onDeath = (cause) => {
@@ -434,7 +437,7 @@ export class OpenSpaceScene extends Phaser.Scene {
     // Furniture body blocks the player from walking through the column
     const bodyPlat = this.add.rectangle(x + w / 2, bodyMidY, w, bodyH, 0x000000, 0);
     this.physics.add.existing(bodyPlat, true);
-    this.platforms.add(bodyPlat);
+    this.furnitureBodies.add(bodyPlat);
   }
 
   private buildInteractiveObjects(): void {

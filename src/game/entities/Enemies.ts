@@ -60,7 +60,7 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
   sanityDamage = 12;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-postit"));
+    super(scene, x, y, "sprites", "item-postit-active0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(8);
@@ -75,8 +75,8 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
     const speed = 190;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-    this.scene.tweens.add({ targets: this, angle: 360, duration: 600, repeat: -1 });
-    this.scene.time.delayedCall(3200, () => { if (this.active) this.destroy(); });
+    const tween = this.scene.tweens.add({ targets: this, angle: 360, duration: 600, repeat: -1 });
+    this.scene.time.delayedCall(3200, () => { tween.stop(); if (this.active) this.destroy(); });
   }
 }
 
