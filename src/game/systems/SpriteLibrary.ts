@@ -62,6 +62,7 @@ const EXPLICIT_ALIASES: Record<string, string> = {
   "caixa-papel": "obj-caixa-arquivos-idle",
   "mesa-deco": "obj-mesa-idle",
   coffee: "item-coffee-cup",
+  postit: "obj-postit-idle",
 };
 
 function candidateFrames(stripped: string): string[] {
