@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from "../constants";
+import { ATLAS_KEY } from "./SpriteLibrary";
 
 const F = "monospace";
 export const HUD_TOP_H = 56;
@@ -130,45 +131,16 @@ export class Hud {
     bg.lineBetween(0, HUD_TOP_H, GAME_WIDTH, HUD_TOP_H);
     this.topLeft.add(bg);
 
-    // Portrait (drawn pixel-art, tiny)
-    const portrait = this.scene.add.graphics();
-    portrait.fillStyle(0x1a1d23, 1);
-    portrait.fillRect(6, 5, 48, 46);
-    portrait.lineStyle(1, 0x445566, 1);
-    portrait.strokeRect(6, 5, 48, 46);
-    // hair
-    portrait.fillStyle(0x1a0c06, 1);
-    portrait.fillRect(18, 9, 18, 4);
-    portrait.fillRect(16, 11, 22, 5);
-    // face / skin
-    portrait.fillStyle(0xd4a07a, 1);
-    portrait.fillRect(15, 14, 22, 16);
-    // hair fringe
-    portrait.fillStyle(0x1a0c06, 1);
-    portrait.fillRect(18, 14, 18, 3);
-    // glasses
-    portrait.fillStyle(0x111111, 1);
-    portrait.fillRect(15, 18, 8, 5);
-    portrait.fillRect(27, 18, 8, 5);
-    portrait.fillRect(23, 19, 4, 1);
-    // lens tint
-    portrait.fillStyle(0xaabbcc, 0.35);
-    portrait.fillRect(16, 19, 6, 3);
-    portrait.fillRect(28, 19, 6, 3);
-    // mouth
-    portrait.fillStyle(0x8a6040, 1);
-    portrait.fillRect(20, 27, 8, 2);
-    // neck
-    portrait.fillStyle(0xd4a07a, 1);
-    portrait.fillRect(22, 30, 6, 4);
-    // shirt
-    portrait.fillStyle(0xe8e8e0, 1);
-    portrait.fillRect(13, 33, 28, 15);
-    // tie
-    portrait.fillStyle(0x1a2a5a, 1);
-    portrait.fillRect(21, 33, 8, 15);
-    portrait.fillRect(20, 40, 10, 5);
-    portrait.setScale(0.8);
+    // Portrait — player sprite
+    const portraitBg = this.scene.add.graphics();
+    portraitBg.fillStyle(0x1a1d23, 1);
+    portraitBg.fillRect(4, 4, 46, 48);
+    portraitBg.lineStyle(1, 0x445566, 1);
+    portraitBg.strokeRect(4, 4, 46, 48);
+    this.topLeft.add(portraitBg);
+
+    const portrait = this.scene.add.image(27, 28, ATLAS_KEY, "player-idle0")
+      .setDisplaySize(40, 44);
     this.topLeft.add(portrait);
 
     // ENERGIA label + bar
@@ -310,54 +282,20 @@ export class Hud {
     panBg.fillRect(2, 2, SEC1_W - 4, HUD_BOT_H - 4);
     this.botContainer.add(panBg);
 
-    // Character portrait (pixel-art CLT)
-    const port = this.scene.add.graphics();
-    port.fillStyle(0x1a1d23, 1);
-    port.fillRect(PORTRAIT_X, PORTRAIT_Y, PORTRAIT_W, PORTRAIT_H);
-    port.lineStyle(1, 0x445566, 1);
-    port.strokeRect(PORTRAIT_X, PORTRAIT_Y, PORTRAIT_W, PORTRAIT_H);
-    // hair
-    port.fillStyle(0x1a0c06, 1);
-    port.fillRect(PORTRAIT_X + 10, PORTRAIT_Y + 3, 14, 3);
-    port.fillRect(PORTRAIT_X + 8, PORTRAIT_Y + 5, 18, 3);
-    // face
-    port.fillStyle(0xd4a07a, 1);
-    port.fillRect(PORTRAIT_X + 7, PORTRAIT_Y + 7, 18, 12);
-    // hair fringe
-    port.fillStyle(0x1a0c06, 1);
-    port.fillRect(PORTRAIT_X + 10, PORTRAIT_Y + 7, 14, 2);
-    // glasses
-    port.fillStyle(0x111111, 1);
-    port.fillRect(PORTRAIT_X + 7, PORTRAIT_Y + 10, 6, 4);
-    port.fillRect(PORTRAIT_X + 17, PORTRAIT_Y + 10, 6, 4);
-    port.fillRect(PORTRAIT_X + 13, PORTRAIT_Y + 11, 4, 1);
-    // lens tint
-    port.fillStyle(0xaabbcc, 0.35);
-    port.fillRect(PORTRAIT_X + 8, PORTRAIT_Y + 11, 4, 2);
-    port.fillRect(PORTRAIT_X + 18, PORTRAIT_Y + 11, 4, 2);
-    // mouth
-    port.fillStyle(0x8a6040, 1);
-    port.fillRect(PORTRAIT_X + 12, PORTRAIT_Y + 17, 6, 2);
-    // neck
-    port.fillStyle(0xd4a07a, 1);
-    port.fillRect(PORTRAIT_X + 14, PORTRAIT_Y + 19, 5, 4);
-    // shirt
-    port.fillStyle(0xe8e8e0, 1);
-    port.fillRect(PORTRAIT_X + 5, PORTRAIT_Y + 22, 28, 24);
-    // collar
-    port.fillRect(PORTRAIT_X + 5, PORTRAIT_Y + 22, 6, 5);
-    port.fillRect(PORTRAIT_X + 27, PORTRAIT_Y + 22, 6, 5);
-    // tie
-    port.fillStyle(0x1a2a5a, 1);
-    port.fillRect(PORTRAIT_X + 13, PORTRAIT_Y + 22, 7, 24);
-    port.fillRect(PORTRAIT_X + 12, PORTRAIT_Y + 28, 9, 8);
-    // belt
-    port.fillStyle(0x2a1a08, 1);
-    port.fillRect(PORTRAIT_X + 5, PORTRAIT_Y + 38, 28, 3);
-    // pants
-    port.fillStyle(0x1a2030, 1);
-    port.fillRect(PORTRAIT_X + 6, PORTRAIT_Y + 41, 10, 8);
-    port.fillRect(PORTRAIT_X + 20, PORTRAIT_Y + 41, 10, 8);
+    // Character portrait — player sprite
+    const portBg = this.scene.add.graphics();
+    portBg.fillStyle(0x1a1d23, 1);
+    portBg.fillRect(PORTRAIT_X, PORTRAIT_Y, PORTRAIT_W, PORTRAIT_H);
+    portBg.lineStyle(1, 0x445566, 1);
+    portBg.strokeRect(PORTRAIT_X, PORTRAIT_Y, PORTRAIT_W, PORTRAIT_H);
+    this.botContainer.add(portBg);
+
+    const port = this.scene.add.image(
+      PORTRAIT_X + PORTRAIT_W / 2,
+      PORTRAIT_Y + PORTRAIT_H / 2,
+      ATLAS_KEY,
+      "player-idle0",
+    ).setDisplaySize(PORTRAIT_W - 4, PORTRAIT_H - 4);
     this.botContainer.add(port);
 
     // Stat labels and bars

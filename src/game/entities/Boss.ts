@@ -60,7 +60,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(32, 50);
-    body.setOffset(2, 1);
+    body.setOffset(2, 6); // offset.y = spriteH(56) - bodyH(50)
     body.setCollideWorldBounds(true);
     this.setTint(0x666666);
   }

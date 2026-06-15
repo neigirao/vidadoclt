@@ -91,7 +91,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(20, 28);
-    body.setOffset(1, 1);
+    body.setOffset(1, 20); // offset.y = spriteH(48) - bodyH(28)
     body.setCollideWorldBounds(true);
     this.dir = dir;
     this.setFlipX(dir === -1);
@@ -153,6 +153,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 36);
+    body.setOffset(0, 12); // offset.y = spriteH(48) - bodyH(36)
     body.setCollideWorldBounds(true);
   }
 
@@ -257,6 +258,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(26, 34);
+    body.setOffset(0, 14); // offset.y = spriteH(48) - bodyH(34)
     body.setCollideWorldBounds(true);
   }
 
@@ -404,6 +406,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(28, 40);
+    body.setOffset(0, 8); // offset.y = spriteH(48) - bodyH(40)
     body.setCollideWorldBounds(true);
   }
 
@@ -479,6 +482,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(30, 44);
+    body.setOffset(0, 4); // offset.y = spriteH(48) - bodyH(44)
     body.setCollideWorldBounds(true);
   }
 
@@ -602,7 +606,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 36);
-    body.setOffset(2, 1);
+    body.setOffset(2, 12); // offset.y = spriteH(48) - bodyH(36)
     body.setCollideWorldBounds(true);
   }
 
