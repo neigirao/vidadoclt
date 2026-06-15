@@ -30,6 +30,7 @@ export class Phase3Scene extends Phaser.Scene {
   private inkProjectiles!: Phaser.Physics.Arcade.Group;
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
   private drops!: Phaser.Physics.Arcade.Group;
+  private furnitureBodies!: Phaser.Physics.Arcade.StaticGroup;
   private boss?: AnalistaSeniorExausto;
   private bossDefeated = false;
   private startTimeMs = 0;
@@ -57,6 +58,7 @@ export class Phase3Scene extends Phaser.Scene {
     addPhaseBackground(this, "bg-comercial", HUD_TOP_H, FLOOR_Y);
 
     this.platforms = this.physics.add.staticGroup();
+    this.furnitureBodies = this.physics.add.staticGroup();
     this.platIdx = 0;
     this.buildFloor();
     this.buildPlatform(220, FLOOR_Y - 30, 5);
@@ -104,6 +106,7 @@ export class Phase3Scene extends Phaser.Scene {
     this.player.autonomia = run.autonomia ?? false;
     reapplyAllPerks(this.player, run);
     this.physics.add.collider(this.player, this.platforms);
+    this.physics.add.collider(this.player, this.furnitureBodies);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
     this.player.onDeath = (cause) => {
@@ -484,7 +487,7 @@ export class Phase3Scene extends Phaser.Scene {
     // Furniture body blocks the player from walking through the column
     const bodyPlat = this.add.rectangle(x + w / 2, bodyMidY, w, bodyH, 0x000000, 0);
     this.physics.add.existing(bodyPlat, true);
-    this.platforms.add(bodyPlat);
+    this.furnitureBodies.add(bodyPlat);
   }
 
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
