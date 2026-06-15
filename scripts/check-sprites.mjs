@@ -15,8 +15,12 @@ import path from "node:path";
 import { PNG } from "pngjs";
 
 const DIR = path.resolve("public/assets/sprites");
+// Apenas arquivos que entram no atlas (resto é asset bruto/screenshot ignorado).
+const SPRITE_RE = /^(player|enemy|boss|obj|item|npc|tile|bg)[-_].+\.png$/;
 const ALLOW_OPAQUE_CORNERS = new Set([
-  // adicione aqui basenames (sem .png) de tiles full-bleed legítimos
+  // Tiles full-bleed legítimos (chão/plataforma cobrem o frame inteiro).
+  "tile-floor",
+  "tile-platform",
 ]);
 
 if (!fs.existsSync(DIR)) {
@@ -24,7 +28,7 @@ if (!fs.existsSync(DIR)) {
   process.exit(0);
 }
 
-const files = fs.readdirSync(DIR).filter((f) => f.endsWith(".png"));
+const files = fs.readdirSync(DIR).filter((f) => SPRITE_RE.test(f));
 const missingAlpha = [];
 const opaqueCorners = [];
 
