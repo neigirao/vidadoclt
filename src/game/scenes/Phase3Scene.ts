@@ -481,6 +481,10 @@ export class Phase3Scene extends Phaser.Scene {
     const plat = this.add.rectangle(x + w / 2, y, w, 14, 0x000000, 0);
     this.physics.add.existing(plat, true);
     this.platforms.add(plat);
+    // Furniture body blocks the player from walking through the column
+    const bodyPlat = this.add.rectangle(x + w / 2, bodyMidY, w, bodyH, 0x000000, 0);
+    this.physics.add.existing(bodyPlat, true);
+    this.platforms.add(bodyPlat);
   }
 
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
