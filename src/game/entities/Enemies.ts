@@ -63,6 +63,7 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, ...resolveSprite("tex-postit"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(8);
     this.setDisplaySize(20, 20);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(14, 14);
@@ -406,13 +407,13 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   target?: { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-coordenador-idle0"));
+    super(scene, x, y, ...resolveSprite("tex-boss-coordenador-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(28, 40);
-    body.setOffset(0, 8); // offset.y = spriteH(48) - bodyH(40)
+    body.setSize(32, 48);
+    body.setOffset(16, 16); // 64×64 sprite: x=(64-32)/2, y=64-48
     body.setCollideWorldBounds(true);
   }
 
@@ -442,11 +443,11 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     }
     // Animate texture (tint override during buff is fine — keeps aura signal)
     if (t < this._hurtUntil) {
-      setEnemyTex(this, t, "coordenador", "hurt");
+      setEnemyTex(this, t, "boss-coordenador", "hurt");
     } else if (Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x) > 10) {
-      setEnemyTex(this, t, "coordenador", "walk");
+      setEnemyTex(this, t, "boss-coordenador", "walk");
     } else {
-      setEnemyTex(this, t, "coordenador", "idle");
+      setEnemyTex(this, t, "boss-coordenador", "idle");
     }
   }
 

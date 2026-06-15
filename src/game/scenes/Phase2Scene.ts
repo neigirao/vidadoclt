@@ -442,7 +442,10 @@ export class Phase2Scene extends Phaser.Scene {
 
   private buildPlatform(x: number, y: number, tiles: number) {
     const platDefs = PLAT_DEFS;
-    const def = platDefs[this.platIdx % platDefs.length];
+    const heightFromFloor = FLOOR_Y - y;
+    const matching = platDefs.filter(d => Math.abs(d.height - heightFromFloor) <= 5);
+    const pool = matching.length > 0 ? matching : platDefs;
+    const def = pool[this.platIdx % pool.length];
     this.platIdx++;
     const w = tiles * 32;
 
@@ -537,6 +540,7 @@ export class Phase2Scene extends Phaser.Scene {
   private dropVR(x: number, y: number, count = 1) {
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(x + (i - count / 2) * 8, y - 10, "tex-vr") as Phaser.Physics.Arcade.Sprite;
+      d.setDepth(8);
       const body = d.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(Phaser.Math.Between(-120, 120), Phaser.Math.Between(-260, -160));
       body.setBounce(0.4);
