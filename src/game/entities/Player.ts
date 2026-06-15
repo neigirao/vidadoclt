@@ -283,26 +283,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const speed = Math.abs(body.velocity.x);
     const now = time;
 
-    // NOTE: source frames are inconsistent poses (not a coherent cycle),
-    // so we pick ONE representative frame per state to avoid visual flicker.
+    // Frames re-extraídos do spritesheet com grade correta (escala uniforme +
+    // alinhados pelos pés), então agora podemos tocar os ciclos completos sem a
+    // "troca de pose brusca". idle usa idle1..idle4 (idle0 é o busto/portrait).
     let key: string;
     if (now < this.invulnUntil && now >= this.dashUntil) {
       key = 'tex-player-hurt0';
     } else if (now < this.dashUntil) {
       key = 'tex-player-dash0';
-    } else if (now - this.lastAttackAt < 330) {
-      // Attack: 3-step swing using only well-aligned frames
-      const f = Math.min(2, Math.floor((now - this.lastAttackAt) / 110));
-      key = `tex-player-attack${f}`;
+    } else if (now - this.lastAttackAt < 300) {
+      const f = Math.min(2, Math.floor((now - this.lastAttackAt) / 100));
+      key = `tex-player-attack${f}`;       // attack0 → 1 → 2
     } else if (!onGround) {
-      key = body.velocity.y < -80 ? 'tex-player-jump1' : 'tex-player-fall0';
+      key = body.velocity.y < -60 ? 'tex-player-jump1' : 'tex-player-fall0';
     } else if (speed > 300) {
-      // Run: alternate 2 frames slowly for sense of motion
-      key = `tex-player-run${(Math.floor(now / 150) % 2) * 4}`;
+      key = `tex-player-run${Math.floor(now / 90) % 8}`;   // ciclo de corrida (8)
     } else if (speed > 60) {
-      key = `tex-player-walk${(Math.floor(now / 180) % 2) * 4}`;
+      key = `tex-player-walk${Math.floor(now / 100) % 8}`; // ciclo de caminhada (8)
     } else {
-      key = 'tex-player-idle0';
+      key = `tex-player-idle${1 + (Math.floor(now / 250) % 4)}`; // idle1..idle4
     }
 
     applyTexture(this, key);
