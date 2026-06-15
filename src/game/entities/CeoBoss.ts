@@ -41,14 +41,14 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   private _nextSpreadAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-gerente"));
+    super(scene, x, y, ...resolveSprite("tex-ceo"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(34, 52);
-    body.setOffset(2, 2);
+    body.setOffset(15, 12);
     body.setCollideWorldBounds(true);
-    this.setScale(1.4);
 
     const now = scene.time.now;
     this._nextMeleeAt = now + 2500;
