@@ -17443,7 +17443,7 @@
     }
   ],
   "meta": {
-    "app": "pack-atlas.py",
+    "app": "pack-atlas.mjs",
     "version": "1.0",
     "scale": "1"
   }
