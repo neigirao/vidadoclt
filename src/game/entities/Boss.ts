@@ -276,22 +276,16 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateTexture() {
-    // Source frames are inconsistent poses — use one frame per state to avoid flicker.
+    // Band-aid: muitos frames de ataque do gerente foram extraídos quase vazios
+    // (boss "sumia" durante ataques). Usamos só frames com corpo visível até
+    // ter arte limpa: idle0 / walk0 / run-charge1 (telegraph) / run3 (attack).
     let key: string;
-    if (this.bossState === "waiting" || this.bossState === "idle") {
-      key = `tex-gerente-idle0`;
+    if (this.bossState === "telegraph") {
+      key = `tex-gerente-run-charge1`;
+    } else if (this.bossState === "attack") {
+      key = this.currentAttack === "atualizacao" ? `tex-gerente-run3` : `tex-gerente-run-charge1`;
     } else if (this.bossState === "enter" || this.bossState === "recover") {
       key = `tex-gerente-walk0`;
-    } else if (this.bossState === "telegraph" || this.bossState === "attack") {
-      const atkFrames: Record<BossAttack, string> = {
-        follow_up:   `tex-gerente-attack-sprint0`,
-        alinhamento: `tex-gerente-attack-deadline0`,
-        atualizacao: `tex-gerente-run0`,
-        reuniao:     `tex-gerente-attack-escopo0`,
-        freeze:      `tex-gerente-attack-sprint0`,
-        deadline:    `tex-gerente-attack-deadline0`,
-      };
-      key = atkFrames[this.currentAttack] ?? `tex-gerente-idle0`;
     } else {
       key = `tex-gerente-idle0`;
     }
