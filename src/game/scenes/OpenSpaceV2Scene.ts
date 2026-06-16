@@ -403,9 +403,10 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     coord.target = this.player;
     this.coordenadores.add(coord);
 
-    const sr = new AnalistaSeniorExausto(this, 1700, FLOOR_Y - 60);
-    sr.target = this.player;
-    this.seniors.add(sr);
+    // Band-aid: AnalistaSeniorExausto escondido até ter sprite limpo (frames atuais corrompidos)
+    // const sr = new AnalistaSeniorExausto(this, 1700, FLOOR_Y - 60);
+    // sr.target = this.player;
+    // this.seniors.add(sr);
 
     const boss = new GerenteMicrogestor(this, 1820, FLOOR_Y - 60);
     boss.target = this.player;
