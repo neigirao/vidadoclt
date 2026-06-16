@@ -95,7 +95,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(20, 28);
-    body.setOffset(1, 20); // offset.y = spriteH(48) - bodyH(28)
+    body.setOffset(14, 36); // sprite 48×64: x=(48-20)/2, y=64-28
     body.setCollideWorldBounds(true);
     this.dir = dir;
     this.setFlipX(dir === -1);
@@ -158,7 +158,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 36);
-    body.setOffset(0, 12); // offset.y = spriteH(48) - bodyH(36)
+    body.setOffset(12, 28); // sprite 48×64: x=(48-24)/2, y=64-36
     body.setCollideWorldBounds(true);
   }
 
@@ -264,7 +264,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(26, 34);
-    body.setOffset(0, 14); // offset.y = spriteH(48) - bodyH(34)
+    body.setOffset(11, 30); // sprite 48×64: x=(48-26)/2, y=64-34
     body.setCollideWorldBounds(true);
   }
 
@@ -414,7 +414,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(32, 48);
-    body.setOffset(16, 16); // 64×64 sprite: x=(64-32)/2, y=64-48
+    body.setOffset(8, 16); // sprite 48×64: x=(48-32)/2, y=64-48
     body.setCollideWorldBounds(true);
   }
 
@@ -491,7 +491,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(30, 44);
-    body.setOffset(0, 4); // offset.y = spriteH(48) - bodyH(44)
+    body.setOffset(13, 36); // sprite 56×80: x=(56-30)/2, y=80-44
     body.setCollideWorldBounds(true);
   }
 
@@ -616,7 +616,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 36);
-    body.setOffset(2, 12); // offset.y = spriteH(48) - bodyH(36)
+    body.setOffset(12, 28); // sprite 48×64: x=(48-24)/2, y=64-36
     body.setCollideWorldBounds(true);
   }
 
