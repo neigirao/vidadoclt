@@ -25,16 +25,16 @@ SECTIONS = {
     "walk":    (165, 290, 1310, 2380, 16),
     "run":     (365, 510,   30, 2380, 16),
     "jump":    (560, 715,   30, 1180, 10),
-    "fall":    (560, 715, 1220, 1990,  5),
+    "fall":    (560, 715, 1220, 1500,  2),   # frames 2+ são só pó/efeito
     "dash":    (560, 715, 2020, 2390,  6),
-    "attack":  (775, 900,   30, 2200, 14),
+    "attack":  (775, 900,   30, 2170, 13),
     "hurt":    (950,1090,   30,  760,  6),
-    "interact":(950,1090,  780, 2200, 11),
-    "burnout":(1180,1320,   30, 2400, 10),
+    "interact":(950,1090,  780, 1900, 10),    # x1 reduzido p/ evitar painel paleta
+    "burnout":(1180,1295,   30, 1900,  8),    # idem
 }
 
 KEEP = {
-    "idle": 6, "walk": 8, "run": 8, "jump": 4, "fall": 3,
+    "idle": 6, "walk": 8, "run": 8, "jump": 4, "fall": 2,
     "dash": 4, "attack": 6, "hurt": 2, "interact": 3, "burnout": 4,
 }
 
