@@ -479,13 +479,25 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
 
+    // Death animation: flash white, shake camera, then shrink+fade
+    boss.setTint(0xffffff);
+    this.cameras.main.shake(350, 0.018);
+    this.cameras.main.flash(200, 255, 200, 50, false);
+
     const dropsPerTick = Math.max(1, Math.round(this.player.vrDropMult));
     for (let i = 0; i < 18; i++) {
       this.time.delayedCall(i * 60, () => {
-        if (!boss.active) this.dropVR(boss.x + Phaser.Math.Between(-70, 70), boss.y - 20, dropsPerTick);
+        this.dropVR(boss.x + Phaser.Math.Between(-70, 70), boss.y - 20, dropsPerTick);
       });
     }
-    boss.destroy();
+
+    // Delay destruction so player sees boss die
+    this.tweens.add({
+      targets: boss,
+      scaleY: 0.1, scaleX: 1.4, alpha: 0,
+      duration: 380, ease: "Power2",
+      onComplete: () => { if (boss.scene) boss.destroy(); },
+    });
 
     const run = getRun(this);
     run.autonomia = true;
