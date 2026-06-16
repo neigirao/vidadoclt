@@ -29,8 +29,8 @@ SECTIONS = {
     "dash":    (560, 715, 2020, 2390,  6),
     "attack":  (775, 900,   30, 2170, 13),
     "hurt":    (950,1090,   30,  760,  6),
-    "interact":(950,1090,  780, 1900, 10),    # x1 reduzido p/ evitar painel paleta
-    "burnout":(1180,1295,   30, 1900,  8),    # idem
+    "interact":(950,1090,  780, 1440,  6),    # x1<1448 (painel paleta começa ali)
+    "burnout":(1180,1295,   30, 1470,  6),    # x1<1480 (painel detalhes)
 }
 
 KEEP = {
