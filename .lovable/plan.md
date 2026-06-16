@@ -1,48 +1,54 @@
-# Plano: resolver os 3 problemas pendentes
+## Análise V1 vs V2 (Open Space)
 
-## Diagnóstico rápido
+**OpenSpaceScene (V1) – 882 linhas**
+- Layout em "zonas" (Entrada, Open Space A/B, Boss) com clusters de mesas/estantes/armários.
+- `buildPlatform(x, kind, tiles)` — altura derivada do tipo de móvel.
+- Mais inimigos no roster (inclui `ConviteReuniao`), tem `phase2Active`, `buildDecor()` e `buildInteractiveObjects()` separados.
+- Mais "vida" e variação visual, porém com mais acoplamento e código duplicado.
 
-Antes do plano, fiz uma auditoria objetiva — alguns sintomas relatados são diferentes da causa real:
+**OpenSpaceV2Scene (V2) – 660 linhas**
+- Layout linear: 6 plataformas alternando mesa (30 px) / prateleira (72 px) com `buildPlatform(x, y, tiles)` explícito → previsível.
+- Decorativos coerentes (café, bebedouro, ponto eletrônico, extintor, monitores nas mesas, quadros motivacionais em parallax).
+- Sem `ConviteReuniao` e sem fase 2 separada — fluxo mais limpo.
+- Código ~25% menor, mais legível, mais fácil de evoluir.
 
-- **`atlas.png` JÁ tem canal alpha** (RGBA, 512×3616). Auditei os 698 PNGs de origem: **apenas 8** têm fundo opaco real. Os demais "boxes" que aparecem são casos pontuais, não um problema global do atlas.
-- **404 de asset**: nenhum log atual no preview menciona um 404 específico — preciso identificar o recurso antes de remover/substituir.
-- **Player "não colado no chão"**: confirmado por cálculo. `FLOOR_Y = HUD_BOT_Y - 32`; tileSprite do chão centrado em `FLOOR_Y + 8` (topo em `FLOOR_Y`); body do player `setOffset(14,30) setSize(20,34)` → body bottom = bottom do sprite. Como `normalize-frames.py` deixa `PAD_BOTTOM = 2` de transparência embaixo de cada frame, os pés visíveis ficam **2 px acima** do chão.
+**Veredito:** V2 é melhor como base de progressão (legibilidade, parallax, pacing de plataformas). V1 tem variedade visual interessante mas está sobrecarregada. Recomendo **manter V2 como padrão** e portar 2 ideias de V1 quando fizer sentido: cluster de baias variado e o inimigo `ConviteReuniao`.
 
-## O que será feito
+## Mudanças propostas
 
-### 1. Sprites com fundo (8 arquivos isolados)
+### 1. Tornar V2 o caminho padrão
+- `ClassSelectScene.ts` linha 265: trocar `run.v2Mode ? "OpenSpaceV2Scene" : "OpenSpaceScene"` por `"OpenSpaceV2Scene"` sempre.
+- `MenuScene.ts`: remover a opção "JOGAR V2" e deixar só "JOGAR" (mantém comportamento V2).
+- Não deletar `OpenSpaceScene.ts` ainda — fica como referência até a próxima iteração.
 
-Lista exata identificada pela auditoria:
-`boss-ceo-special0`, `boss-diretor-death0`, `obj-baia`, `obj-door`, `obj-monitor-active`, `obj-monitor-broken`, `obj-monitor-use`, `obj-ponto`.
+### 2. Substituir sprite do player pelo sheet enviado
+Arquivo: `public/assets/sprites/Gemini_Generated_Image_iiu1fniiu1fniiu1.png` (2750×1536, RGBA com transparência completa, frames declarados como 64×96).
 
-Adicionar `scripts/strip-bg.py` que:
-- abre cada PNG da lista,
-- amostra a cor de fundo nos 4 cantos (mediana),
-- zera o alpha de qualquer pixel com distância de cor ≤ tolerância (≈25),
-- preserva o resto via Floyd-style cleanup de borda (alpha morfológico leve para evitar halo).
-Reempacotar o atlas: `node scripts/pack-atlas.mjs`.
+O sheet **não é uma grade limpa** — tem títulos, paleta e painel de acessórios. Cada seção (IDLE, WALK, RUN, JUMP, FALL, DASH, ATTACK, HURT, INTERACT, BURNOUT) começa em um Y diferente e tem contagens distintas. Estratégia:
 
-### 2. Erro 404 do asset decorativo
+1. **Novo script `scripts/extract-player-from-sheet.py`** que:
+   - Recebe um mapa hardcoded de seções (animName → {x, y, count, frameW=64, frameH=96}).
+   - Para cada seção, recorta `count` células 64×96 a partir de (x, y), salva como `player-<anim><i>.png` em `public/assets/sprites/`.
+   - Detecta o offset inicial de cada banda automaticamente procurando o primeiro pixel não-transparente (robustez contra ajuste fino dos Y).
+   - Reduz para o padrão atual (idle 6, walk 8, run 8, jump 4, fall 3, dash 4, attack 6, hurt 2, interact 3, burnout 4) **amostrando frames uniformemente** para não quebrar o `Player.ts` (que indexa por `Math.floor(now/N) % count`).
+2. Rodar `scripts/normalize-frames.py` para padronizar para 48×64 com pés alinhados (já existe e é o que o resto do jogo espera).
+3. Rodar `scripts/check-sprites.mjs` para garantir que todos têm alpha.
+4. Rodar `scripts/pack-atlas.py` para reempacotar `atlas.png` + `atlas.json`.
+5. Atualizar `mem://design/player-sprite` com a origem do novo sheet.
 
-- Abrir a aba Network do preview ao vivo (`browser--list_network_requests`) com a cena já carregada para capturar o nome exato do recurso 404.
-- Se for uma textura referenciada por chave inexistente no atlas e sem fallback standalone, ou registrar a chave em `EXPLICIT_ALIASES` (SpriteLibrary.ts), ou remover a referência decorativa em `OpenSpaceScene` / outras cenas. Decisão depende do nome — registro no plano apenas o procedimento.
-
-### 3. Player colado no chão
-
-Duas opções; vou usar **A** (não muda layout dos frames):
-
-**A. Ajustar offset do body do player** em `src/game/entities/Player.ts`:
-- `body.setOffset(14, 28)` (era `30`), mantendo `setSize(20, 34)`.
-- Resultado: body bottom = sprite y 62 = exatamente onde estão os pés após `PAD_BOTTOM=2`. Pés tocam o chão; nada de gameplay muda.
-
-**B (descartada por agora)**: rerodar `normalize-frames.py` com `PAD_BOTTOM=0`. Mais correto na origem, mas regrava 698 PNGs e o atlas — risco maior, ganho idêntico.
-
-Aplicar o mesmo raciocínio em `Enemies.ts` e `Boss.ts` se o sintoma estiver visível neles (verificar em runtime após o fix do player).
+### 3. Validações
+- Abrir o preview e verificar idle/walk/run/jump/fall/dash/attack visualmente.
+- Conferir alinhamento dos pés (já corrigido via `setOffset(14, 28)`).
+- Build TS deve passar (sem mudança de API).
 
 ## Arquivos tocados
-
-- `scripts/strip-bg.py` (novo)
-- 8 PNGs em `public/assets/sprites/` (reescritos)
+- `src/game/scenes/ClassSelectScene.ts` (1 linha)
+- `src/game/scenes/MenuScene.ts` (1 item de menu)
+- `scripts/extract-player-from-sheet.py` (novo)
+- ~41 PNGs em `public/assets/sprites/player-*.png` (regerados)
 - `public/assets/atlas.png` + `public/assets/atlas.json` (regerados)
-- `src/game/entities/Player.ts` (1 linha)
-- possivelmente `src/game/systems/SpriteLibrary.ts` **ou** uma cena, dependendo do 404
+
+## Perguntas
+
+1. **Confirmar V2 como padrão e ocultar V1 do menu** (mantendo o arquivo no repo)? Ou prefere manter as duas opções no menu?
+2. As contagens reduzidas (idle 6, walk 8, run 8, jump 4, fall 3, dash 4, attack 6, hurt 2, interact 3, burnout 4) mantêm o código atual sem mexer em `Player.ts`. Pode aprovar? Se quiser usar os 12/16/16 originais do sheet, eu também ajusto os índices em `Player.ts`.
