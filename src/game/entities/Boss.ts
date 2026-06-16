@@ -26,8 +26,8 @@ export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
 type BossAttack = "follow_up" | "alinhamento" | "atualizacao" | "reuniao" | "freeze" | "deadline";
 
 export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
-  hp = 300;
-  maxHp = 300;
+  hp = 500;
+  maxHp = 500;
   contactDamage = 10;
   dir: 1 | -1 = -1;
 
@@ -269,8 +269,8 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.08);
     body.setVelocityY(-30);
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.setAlpha(0.45);
+    this.scene.time.delayedCall(90, () => { if (this.active) this.setAlpha(1); });
     this.onHpChange?.(this.hp, this.maxHp);
     if (this.hp <= 0) { this.onDied?.(); return true; }
     return false;
