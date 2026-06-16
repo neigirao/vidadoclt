@@ -85,10 +85,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     addImage(this, 140,  FLOOR_Y - 32, "tex-ponto").setDepth(8).setDisplaySize(32, 48);
     addImage(this, 1800, FLOOR_Y - 22, "tex-extintor").setDepth(8).setDisplaySize(20, 44);
 
-    // Monitors on platform surfaces
-    [220, 380, 560, 720, 1020, 1360, 1500].forEach(x =>
-      addImage(this, x, FLOOR_Y - 46, "tex-monitor").setDepth(9).setDisplaySize(44, 32)
-    );
+    // (computadores agora ficam em cima das mesas — ver buildPlatform)
 
     // Wall decoratives (parallax, very back)
     [450, 1100, 1650].forEach(x =>
@@ -228,6 +225,11 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
      this.coordenadores, this.seniors, this.drops].forEach(g =>
       this.physics.add.collider(g, this.platforms)
     );
+    // Inimigos respeitam a mesma física do player: não atravessam os corpos das mesas
+    [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
+     this.coordenadores, this.seniors].forEach(g =>
+      this.physics.add.collider(g, this.furnitureBodies)
+    );
 
     // Contact damage
     const contactDamage = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
@@ -323,40 +325,61 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   }
 
   /**
-   * Builds a furniture platform with a solid-color body (no stretched texture).
-   * surfY: Y coordinate of the platform top surface.
-   * tiles: number of 32-px wide tiles.
+   * Builds an office-desk platform: wooden desktop (walkable), legs/modesty
+   * panel, e um computador em cima. Desenhado com Graphics (sem textura
+   * esticada). A superfície e o corpo da mesa têm física igual para player
+   * e inimigos.
+   * surfY: Y da superfície (topo da mesa, onde se anda).
+   * tiles: largura em blocos de 32 px.
    */
   private buildPlatform(x: number, surfY: number, tiles: number): void {
     const w = tiles * 32;
+    const cx = x + w / 2;
     const bodyTop = surfY + 7;
     const bodyH = FLOOR_Y - bodyTop;
     const bodyMidY = bodyTop + bodyH / 2;
 
-    // Solid dark-wood body — avoids the rainbow stretched-texture bug
-    const g = this.add.graphics();
-    g.fillStyle(0x5c3318, 1);
-    g.fillRect(x, bodyTop, w, bodyH);
-    g.lineStyle(1, 0x2e1a0c, 1);
-    g.strokeRect(x, bodyTop, w, bodyH);
-    g.setDepth(6);
+    const WOOD_TOP = 0x7a4a22;   // tampo claro
+    const WOOD_EDGE = 0x5c3318;  // borda frontal
+    const WOOD_DARK = 0x3a2412;  // pernas
+    const OUTLINE = 0x2e1a0c;
 
-    // Surface tiles from atlas (tile-platform, 32×16 each)
-    for (let i = 0; i < tiles; i++) {
-      this.add.image(x + i * 32 + 16, surfY, "sprites", "tile-platform")
-        .setDisplaySize(32, 14).setDepth(9);
-    }
+    // Sombra no chão
+    this.add.rectangle(cx, FLOOR_Y + 3, w + 10, 7, 0x000000, 0.3).setDepth(5);
 
-    // Subtle drop shadow on the floor
-    this.add.rectangle(x + w / 2, FLOOR_Y + 3, w + 8, 7, 0x000000, 0.28).setDepth(5);
+    // Pernas + painel da mesa
+    const legs = this.add.graphics().setDepth(6);
+    const legW = 8;
+    legs.fillStyle(WOOD_DARK, 1);
+    legs.fillRect(x + 4, bodyTop, legW, bodyH);
+    legs.fillRect(x + w - 12, bodyTop, legW, bodyH);
+    if (tiles >= 5) legs.fillRect(cx - legW / 2, bodyTop, legW, bodyH); // perna central
+    // painel/modéstia recuado
+    legs.fillStyle(WOOD_EDGE, 0.85);
+    legs.fillRect(x + 14, bodyTop + 4, w - 28, bodyH - 10);
+    legs.lineStyle(1, OUTLINE, 0.6);
+    legs.strokeRect(x + 4, bodyTop, w - 8, bodyH);
 
-    // Physics: surface (enemies + player land on it)
-    const surf = this.add.rectangle(x + w / 2, surfY, w, 14, 0, 0);
+    // Tampo da mesa (com leve saliência)
+    const top = this.add.graphics().setDepth(7);
+    top.fillStyle(WOOD_TOP, 1);
+    top.fillRect(x - 3, surfY - 7, w + 6, 10);
+    top.fillStyle(WOOD_EDGE, 1);
+    top.fillRect(x - 3, surfY + 1, w + 6, 4);
+    top.lineStyle(1, OUTLINE, 1);
+    top.strokeRect(x - 3, surfY - 7, w + 6, 14);
+
+    // Computador em cima da mesa (sprite limpo do monitor) + teclado
+    addImage(this, cx, surfY - 16, "tex-monitor").setDepth(9).setDisplaySize(34, 26);
+    this.add.rectangle(cx, surfY - 3, 22, 3, 0x222428).setDepth(9); // teclado
+
+    // Física: superfície (player + inimigos pousam)
+    const surf = this.add.rectangle(cx, surfY, w, 14, 0, 0);
     this.physics.add.existing(surf, true);
     this.platforms.add(surf);
 
-    // Physics: furniture column (player-only — enemies walk freely)
-    const body = this.add.rectangle(x + w / 2, bodyMidY, w, bodyH, 0, 0);
+    // Física: corpo da mesa (bloqueia player e inimigos)
+    const body = this.add.rectangle(cx, bodyMidY, w, bodyH, 0, 0);
     this.physics.add.existing(body, true);
     this.furnitureBodies.add(body);
   }
@@ -429,6 +452,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       const e = new EstagiarioDesesperado(this, x, y, Math.random() > 0.5 ? 1 : -1);
       this.estagiarios.add(e);
       this.physics.add.collider(e, this.platforms);
+      this.physics.add.collider(e, this.furnitureBodies);
     };
     boss.onPhase2 = () => {
       this.hud.setObjective("FASE 2 — Deadline Inadiavel!");
