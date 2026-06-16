@@ -60,8 +60,9 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(32, 50);
-    body.setOffset(2, 6); // offset.y = spriteH(56) - bodyH(50)
+    // sprite full-body 56×72 (arte nova); corpo centrado, pés ~y70
+    body.setSize(32, 58);
+    body.setOffset(12, 12); // x=(56-32)/2 ; bottom = 12+58 = 70 ≈ pés
     body.setCollideWorldBounds(true);
     this.setTint(0x666666);
   }
@@ -276,16 +277,13 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateTexture() {
-    // Band-aid: muitos frames de ataque do gerente foram extraídos quase vazios
-    // (boss "sumia" durante ataques). Usamos só frames com corpo visível até
-    // ter arte limpa: idle0 / walk0 / run-charge1 (telegraph) / run3 (attack).
+    // Arte nova full-body do gerente: idle / walk0-2 / attack0 / hurt / death.
     let key: string;
-    if (this.bossState === "telegraph") {
-      key = `tex-gerente-run-charge1`;
-    } else if (this.bossState === "attack") {
-      key = this.currentAttack === "atualizacao" ? `tex-gerente-run3` : `tex-gerente-run-charge1`;
+    if (this.bossState === "telegraph" || this.bossState === "attack") {
+      key = `tex-gerente-attack0`;
     } else if (this.bossState === "enter" || this.bossState === "recover") {
-      key = `tex-gerente-walk0`;
+      const f = Math.floor(this.scene.time.now / 140) % 3;
+      key = `tex-gerente-walk${f}`;
     } else {
       key = `tex-gerente-idle0`;
     }
