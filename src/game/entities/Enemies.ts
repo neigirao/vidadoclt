@@ -593,6 +593,121 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
 
+// ─── EnemyRH (Analista de RH) ─────────────────────────────────────────────────
+export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
+  hp = 55;
+  contactDamage = 8;
+  speed = 85;
+  dir: 1 | -1 = -1;
+  private aiState: "walk" | "telegraph" | "swing" | "recover" = "walk";
+  private stateUntil = 0;
+  private _frozen = 0;
+  private _hurtUntil = 0;
+  swingHitbox: Phaser.Geom.Rectangle | null = null;
+  swingActive = false;
+  swingDamage = 18;
+
+  target?: Phaser.GameObjects.GameObject & { x: number; y: number };
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, ...resolveSprite("tex-rh-idle0"));
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(22, 34);
+    body.setOffset(11, 30); // sprite ~48×64: x=(48-22)/2, y=64-34
+    body.setCollideWorldBounds(true);
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) { return; }
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      if (Math.abs(dx) < 300) this.dir = dx >= 0 ? 1 : -1;
+    }
+    this.setFlipX(this.dir === -1);
+
+    switch (this.aiState) {
+      case "walk": {
+        body.setVelocityX(this.dir * this.speed);
+        if (this.target && Math.abs(this.target.x - this.x) < 48) {
+          this.aiState = "telegraph";
+          this.stateUntil = t + 380;
+          this.setTint(0xff88bb);
+          body.setVelocityX(0);
+        }
+        break;
+      }
+      case "telegraph": {
+        body.setVelocityX(0);
+        if (t >= this.stateUntil) {
+          this.aiState = "swing";
+          this.stateUntil = t + 150;
+          this.clearTint();
+          this.setTint(0xff3377);
+          this.swingHitbox = new Phaser.Geom.Rectangle(
+            this.dir === 1 ? this.x + 6 : this.x - 38,
+            this.y - 10,
+            32,
+            30,
+          );
+          this.swingActive = true;
+        }
+        break;
+      }
+      case "swing": {
+        body.setVelocityX(0);
+        if (t >= this.stateUntil) {
+          this.aiState = "recover";
+          this.stateUntil = t + 500;
+          this.swingActive = false;
+          this.swingHitbox = null;
+          this.clearTint();
+        }
+        break;
+      }
+      case "recover": {
+        body.setVelocityX(0);
+        if (t >= this.stateUntil) this.aiState = "walk";
+        break;
+      }
+    }
+    // Animate texture
+    if (t < this._hurtUntil) {
+      setEnemyTex(this, t, "rh", "hurt");
+    } else if (this.aiState === "telegraph" || this.aiState === "swing") {
+      setEnemyTex(this, t, "rh", "attack");
+    } else if (this.aiState === "walk") {
+      setEnemyTex(this, t, "rh", "walk");
+    } else {
+      setEnemyTex(this, t, "rh", "idle");
+    }
+  }
+
+  hit(damage: number, knockback: number) {
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
+    this.hp -= damage;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocityX(knockback);
+    body.setVelocityY(-190);
+    if (this.aiState === "swing" || this.aiState === "telegraph") {
+      this.aiState = "recover";
+      this.stateUntil = now + 350;
+      this.swingActive = false;
+      this.swingHitbox = null;
+    }
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+}
+
 export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   hp = 30;
   contactDamage = 0;

@@ -6,6 +6,7 @@ import { Player } from "../entities/Player";
 import {
   EstagiarioDesesperado,
   AnalistaJunior,
+  EnemyRH,
   FacilitadorDeWorkshop,
   PostIt,
   ScrumMasterCaotico,
@@ -33,6 +34,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private scrums!: Phaser.Physics.Arcade.Group;
   private coordenadores!: Phaser.Physics.Arcade.Group;
   private seniors!: Phaser.Physics.Arcade.Group;
+  private rhs!: Phaser.Physics.Arcade.Group;
   private postits!: Phaser.Physics.Arcade.Group;
   private emails!: Phaser.Physics.Arcade.Group;
   private inkProjectiles!: Phaser.Physics.Arcade.Group;
@@ -182,7 +184,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           this.spawnProjectile({ x: fx + facing * 20, y: fy - 10, velX: facing * 700, damage: def.hitDamages[1] * 2 });
           break;
         case "emp_pulse":
-          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g =>
+          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
             g?.getChildren().forEach(e => (e as Phaser.Physics.Arcade.Sprite & { applyFreeze?: (ms: number) => void }).applyFreeze?.(1200))
           );
           break;
@@ -193,7 +195,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           this.resolveAttack(new Phaser.Geom.Rectangle(fx + facing * 20 - 20, fy - 20, 80, 40), 3);
           break;
         case "clock_slow":
-          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g =>
+          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
             g?.getChildren().forEach(e => (e as Phaser.Physics.Arcade.Sprite & { applySlowdown?: (ms: number) => void }).applySlowdown?.(2500))
           );
           break;
@@ -207,6 +209,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.scrums       = this.physics.add.group({ runChildUpdate: false });
     this.coordenadores = this.physics.add.group({ runChildUpdate: false });
     this.seniors      = this.physics.add.group({ runChildUpdate: false });
+    this.rhs          = this.physics.add.group({ runChildUpdate: false });
     this.postits      = this.physics.add.group();
     this.emails       = this.physics.add.group();
     this.inkProjectiles = this.physics.add.group();
@@ -222,12 +225,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     // Colliders: enemy groups land on platform surfaces
     [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
-     this.coordenadores, this.seniors, this.drops].forEach(g =>
+     this.coordenadores, this.seniors, this.rhs, this.drops].forEach(g =>
       this.physics.add.collider(g, this.platforms)
     );
     // Inimigos respeitam a mesma física do player: não atravessam os corpos das mesas
     [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
-     this.coordenadores, this.seniors].forEach(g =>
+     this.coordenadores, this.seniors, this.rhs].forEach(g =>
       this.physics.add.collider(g, this.furnitureBodies)
     );
 
@@ -243,6 +246,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     contactDamage(this.scrums,       (e) => (e as ScrumMasterCaotico).contactDamage);
     contactDamage(this.coordenadores,(e) => (e as CoordenadorDeSinergia).contactDamage);
     contactDamage(this.seniors,      (e) => (e as AnalistaSeniorExausto).contactDamage);
+    contactDamage(this.rhs,          (e) => (e as EnemyRH).contactDamage);
 
     this.physics.add.overlap(this.player, this.postits, (_p, pObj) => {
       const p = pObj as PostIt;
@@ -273,7 +277,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const inkDmgGroups: [Phaser.Physics.Arcade.Group, number][] = [
       [this.estagiarios, 1], [this.analistas, 3], [this.facilitadores, 2],
-      [this.scrums, 2], [this.coordenadores, 4], [this.seniors, 6],
+      [this.scrums, 2], [this.coordenadores, 4], [this.seniors, 6], [this.rhs, 3],
     ];
     inkDmgGroups.forEach(([group, vrDrop]) => {
       this.physics.add.overlap(this.inkProjectiles, group, (inkObj, enemyObj) => {
@@ -420,6 +424,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     [1500, 1700].forEach(x => {
       const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
       this.estagiarios.add(e);
+    });
+
+    [600, 900, 1300].forEach(x => {
+      const rh = new EnemyRH(this, x, FLOOR_Y - 60);
+      rh.target = this.player;
+      this.rhs.add(rh);
     });
 
     const coord = new CoordenadorDeSinergia(this, 1620, FLOOR_Y - 60);
@@ -574,6 +584,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     hitGroup(this.scrums,        2, c => c as ScrumMasterCaotico);
     hitGroup(this.coordenadores, 4, c => c as CoordenadorDeSinergia);
     hitGroup(this.seniors,       6, c => c as AnalistaSeniorExausto);
+    hitGroup(this.rhs,           3, c => c as EnemyRH);
 
     if (this.boss?.active && tryHit(this.boss)) {
       const dmgText = this.add.text(this.boss.x, this.boss.y - 20, `-${damage}`, {
@@ -623,7 +634,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       if (lifetime && lifetime < time) { ink.destroy(); return; }
       if (!ink.getData("homing")) return;
       const allEnemies: Phaser.Physics.Arcade.Sprite[] = [];
-      [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g =>
+      [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
         g?.getChildren().forEach(e => allEnemies.push(e as Phaser.Physics.Arcade.Sprite))
       );
       const nearest = allEnemies.filter(e => e.active).sort((a, b) =>
@@ -656,6 +667,17 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         this.player.takeDamage(sr.swingDamage, 3, sr.x);
         sr.swingActive = false;
         sr.swingHitbox = null;
+      }
+    });
+
+    // EnemyRH melee hitbox
+    this.rhs.getChildren().forEach(c => {
+      const rh = c as EnemyRH;
+      if (rh.swingActive && rh.swingHitbox && !this.player.isInvulnerable(time) &&
+          Phaser.Geom.Intersects.RectangleToRectangle(rh.swingHitbox, this.player.getBounds())) {
+        this.player.takeDamage(rh.swingDamage, 5, rh.x);
+        rh.swingActive = false;
+        rh.swingHitbox = null;
       }
     });
 
