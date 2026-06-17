@@ -62,7 +62,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     // sprite full-body 56×72 (arte nova); corpo centrado, pés ~y70
     body.setSize(32, 58);
-    body.setOffset(12, 12); // x=(56-32)/2 ; bottom = 12+58 = 70 ≈ pés
+    body.setOffset(12, 14); // sprite 56×72: x=(56-32)/2, y=72-58
     body.setCollideWorldBounds(true);
     this.setTint(0x666666);
   }

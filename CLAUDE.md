@@ -143,9 +143,9 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 - Scripts de extração de spritesheets em `scripts/` (extract-*, pack-atlas).
 
 ### Band-aids de sprite ativos
-Até chegar arte nova limpa, dois sprites estão remapeados/ocultos (ver entidades):
-- **CoordenadorDeSinergia** usa frames de `enemy-coordenador` (prefixo `coordenador`) em vez de `boss-coordenador` (frames corrompidos).
-- **AnalistaSeniorExausto** está com o spawn comentado em `OpenSpaceV2Scene` (frames corrompidos).
+Nenhum band-aid ativo no momento.
+- ✅ **CoordenadorDeSinergia**: arte nova extraída (`enemy-coordenador-*`), prefixo `coordenador` funcionando.
+- ✅ **AnalistaSeniorExausto**: spawn ativo em `OpenSpaceV2Scene`, arte nova em `enemy-senior-*`.
 
 ## Estado atual
 
@@ -162,9 +162,10 @@ Até chegar arte nova limpa, dois sprites estão remapeados/ocultos (ver entidad
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 
 ### Pendente / em aberto
-- Arte limpa para `boss-coordenador` e `enemy-senior` (band-aids ativos, ver acima)
 - Áudio
 - Cultura Corporativa (modificadores de run)
+- Extração dos sprite sheets `40d08d2f` (inimigos comuns v2) e `4f9ff812` (fase 2-5 v2)
+- Integração do tileset de fases (`ChatGPT Image 13_47_28`) nas cenas Phase2–5
 
 ## Padrões e convenções
 
