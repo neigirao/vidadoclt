@@ -38,6 +38,20 @@ for s in sprites:
     atlas.paste(s["im"], (s["x"], s["y"]), s["im"])
 atlas.save(OUT_PNG, optimize=True)
 
+# Lossy palette quantization para manter o atlas abaixo do limite de 10MB
+# (commit-size cap do repo). pngquant produz PNG paletizado com alpha,
+# Phaser carrega normalmente. Sem isso, ~993 sprites RGBA viram ~20MB.
+import subprocess, shutil
+try:
+    subprocess.run(
+        ["nix", "run", "nixpkgs#pngquant", "--",
+         "--quality=70-90", "--speed", "3", "--strip", "--force",
+         "--output", OUT_PNG, OUT_PNG],
+        check=True,
+    )
+except Exception as e:
+    print(f"[pack-atlas] pngquant falhou ({e}); atlas mantido sem compressão")
+
 frames = []
 for s in sprites:
     frames.append({
