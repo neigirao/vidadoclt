@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { PreloadScene } from "./scenes/PreloadScene";
 import { BootScene } from "./scenes/BootScene";
 import { MenuScene } from "./scenes/MenuScene";
 import { ClassSelectScene } from "./scenes/ClassSelectScene";
@@ -36,7 +37,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       },
     },
     scene: [
-      BootScene, MenuScene, ClassSelectScene,
+      PreloadScene, BootScene, MenuScene, ClassSelectScene,
       OpenSpaceScene, OpenSpaceV2Scene, CopaScene,
       Phase2Scene, Phase3Scene, Phase4Scene, Phase5Scene,
       CeoScene, VitoriaScene,

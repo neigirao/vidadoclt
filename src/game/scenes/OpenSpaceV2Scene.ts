@@ -323,7 +323,9 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
   private buildFloor(): void {
     this.add.tileSprite(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, "tex-floor").setDepth(8);
-    const fp = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, 0, 0);
+    // Physics body is 120px tall (starting at FLOOR_Y) so fast-falling objects
+    // never tunnel through the thin visual strip.
+    const fp = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 60, LEVEL_WIDTH, 120, 0, 0);
     this.physics.add.existing(fp, true);
     this.platforms.add(fp);
   }

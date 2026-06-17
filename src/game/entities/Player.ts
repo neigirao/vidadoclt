@@ -83,8 +83,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(20, 34);
-    body.setOffset(14, 28); // 48×64 sprite: feet a PAD_BOTTOM=2 do fundo → body bottom = pés visíveis
+    body.setSize(22, 44);
+    body.setOffset(29, 34); // 80×80 sprite: x=(80-22)/2, y=80-44-2
     body.setCollideWorldBounds(true);
     body.setMaxVelocity(800, 1400);
 
