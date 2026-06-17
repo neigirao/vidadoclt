@@ -486,6 +486,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   }
 
   private handleBossDefeat(boss: GerenteMicrogestor): void {
+    if (this.bossDefeated) return;
     this.bossDefeated = true;
     getRun(this).openSpaceCleared = true;
     this.hud.hideBoss();
@@ -594,7 +595,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         color: step >= comboHits ? "#ff4444" : "#ffcc44", stroke: "#000000", strokeThickness: 2,
       }).setOrigin(0.5).setDepth(600);
       this.tweens.add({ targets: dmgText, y: dmgText.y - 28, alpha: 0, duration: 500, onComplete: () => dmgText.destroy() });
-      this.boss.hit(damage, knockback);
+      const died = this.boss.hit(damage, knockback);
+      if (died) return;
     }
   }
 
