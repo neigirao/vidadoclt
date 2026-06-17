@@ -490,8 +490,8 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(30, 44);
-    body.setOffset(13, 36); // sprite 56×80: x=(56-30)/2, y=80-44
+    body.setSize(22, 36);
+    body.setOffset(13, 26); // sprite 48×64: x=(48-22)/2, y=64-36-2
     body.setCollideWorldBounds(true);
   }
 
