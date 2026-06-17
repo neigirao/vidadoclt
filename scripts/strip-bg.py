@@ -21,6 +21,7 @@ FILES = [
     "enemy-scrum-idle1.png",
     "enemy-scrum-idle3.png",
     "enemy-senior-attack1.png",
+    "enemy-rh-attack1.png",
 ]
 DIR = "public/assets/sprites"
 TOL2 = 30 * 30  # tolerância de cor (distância euclidiana ao quadrado)
