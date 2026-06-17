@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """Reempacota o atlas com PIL (substitui scripts/pack-atlas.mjs quando sharp não está disponível)."""
 from PIL import Image
-import os, json, glob
+import os, json, glob, re
 
 SPRITES_DIR = "public/assets/sprites"
 OUT_PNG = "public/assets/atlas.png"
 OUT_JSON = "public/assets/atlas.json"
 PAD = 2
-ATLAS_W = 512
+ATLAS_W = 2048
+SPRITE_RE = re.compile(r"^(player|enemy|boss|obj|item|npc|tile|bg)[-_].+\.png$")
 
 files = sorted(glob.glob(os.path.join(SPRITES_DIR, "*.png")))
 sprites = []
 for f in files:
+    if not SPRITE_RE.match(os.path.basename(f)):
+        continue
     im = Image.open(f).convert("RGBA")
     if im.size[0] > ATLAS_W:
         continue
