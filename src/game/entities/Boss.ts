@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
+import { generateCorporateSpeak } from "../systems/CorporateAI";
 
 // ─── Email projectile (Follow-Up attack) ────────────────────────────────────
 export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
@@ -128,14 +129,15 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private showIntroText() {
+    const speak = generateCorporateSpeak();
     const txt = this.scene.add
       .text(this.x, this.y - 80,
-        '"Antes de voce sair\nprecisamos alinhar\nalgumas coisas."',
-        { fontFamily: "monospace", fontSize: "13px", color: "#f2c14e",
+        `"Antes de voce sair\nprecisamos ${speak}."`,
+        { fontFamily: "monospace", fontSize: "12px", color: "#f2c14e",
           stroke: "#000000", strokeThickness: 3, align: "center" })
       .setOrigin(0.5).setDepth(600);
     this.scene.tweens.add({
-      targets: txt, alpha: 0, duration: 700, delay: 1900,
+      targets: txt, alpha: 0, duration: 700, delay: 2400,
       onComplete: () => txt.destroy(),
     });
   }

@@ -1,10 +1,11 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { sanityBand } from "./PlayerState";
+import { generateNotifSubject } from "./CorporateAI";
 
-const NOTIFS = [
-  "[Teams] Re: RE: Fw: alinhamento estrategico",
-  "[Outlook] URGENTE: action needed ate 18h",
+// Static fallback pool — shown alongside procedurally-generated subjects
+const STATIC_NOTIFS = [
+  "[Teams] URGENTE: action needed ate 18h",
   "[Slack] @here reuniao em 5 minutos",
   "[Teams] Voce tem 12 mensagens nao lidas",
   "[Outlook] Prazo antecipado. Favor confirmar.",
@@ -14,8 +15,13 @@ const NOTIFS = [
   "[Outlook] RE: RE: RE: Urgente: ver isso",
   "[Jira] 47 tickets atribuidos a voce",
   "[Teams] Vc esta disponivel? E importante",
-  "[Outlook] FW: FW: Nova diretriz aprovada",
 ];
+
+// 50% chance to show a procedurally-generated corporate subject
+function pickNotif(): string {
+  if (Math.random() < 0.5) return generateNotifSubject();
+  return Phaser.Utils.Array.GetRandom(STATIC_NOTIFS) as string;
+}
 
 export class SanityFx {
   private vignette!: Phaser.Filters.Vignette;
@@ -131,7 +137,7 @@ export class SanityFx {
   }
 
   private spawnNotif() {
-    const msg = Phaser.Utils.Array.GetRandom(NOTIFS) as string;
+    const msg = pickNotif();
     const pw = 284, ph = 30;
     const px = GAME_WIDTH - pw - 8;
     const py = 74;

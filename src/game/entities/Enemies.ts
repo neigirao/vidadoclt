@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
+import { noise2d } from "../systems/CorporateAI";
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
 // Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
@@ -87,6 +88,8 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   dir: 1 | -1;
   private _frozen = 0;
   private _hurtUntil = 0;
+  // Unique noise offset so each instance wanders independently
+  private _noiseOffset: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number, dir: 1 | -1 = -1) {
     super(scene, x, y, ...resolveSprite("tex-estagiario-idle0"));
@@ -99,6 +102,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(true);
     this.dir = dir;
     this.setFlipX(dir === -1);
+    this._noiseOffset = Math.random() * 1000;
   }
 
   preUpdate(t: number, dt: number) {
@@ -108,14 +112,27 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
       setEnemyTex(this, t, "estagiario", "hurt");
       return;
     }
+
+    // Organic wandering via Simplex noise:
+    // x-axis: slow spatial variation → speed multiplier (0.6–1.4)
+    // y-axis: time → spontaneous direction flips when noise dips below -0.8
+    const n = noise2d(this._noiseOffset + this.x * 0.004, t * 0.00025);
+    const speedMult = 0.7 + (n + 1) * 0.35; // maps [-1,1] → [0.7, 1.4]
+
     if (body.blocked.left) {
       this.dir = 1;
       this.setFlipX(false);
     } else if (body.blocked.right) {
       this.dir = -1;
       this.setFlipX(true);
+    } else if (n < -0.82) {
+      // Noise-driven spontaneous turn (feels like second-guessing)
+      this.dir = this.dir === 1 ? -1 : 1;
+      this.setFlipX(this.dir === -1);
     }
-    body.setVelocityX(this.dir * this.speed);
+
+    body.setVelocityX(this.dir * this.speed * speedMult);
+
     if (t < this._hurtUntil) {
       setEnemyTex(this, t, "estagiario", "hurt");
     } else {
