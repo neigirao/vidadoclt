@@ -54,8 +54,8 @@ export class MenuScene extends Phaser.Scene {
   private drawBackground() {
     const g = this.add.graphics();
 
-    // Left panel overlay — covers the reference image's title so ours shows
-    g.fillStyle(BG_PANEL, 0.92);
+    // Left panel — fully opaque to hide any UI baked into the background image
+    g.fillStyle(BG_PANEL, 1);
     g.fillRect(0, 0, 320, GAME_HEIGHT);
 
     // Subtle scanline on left panel only
