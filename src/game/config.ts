@@ -13,6 +13,7 @@ import { Phase4Scene } from "./scenes/Phase4Scene";
 import { Phase5Scene } from "./scenes/Phase5Scene";
 import { CeoScene } from "./scenes/CeoScene";
 import { VitoriaScene } from "./scenes/VitoriaScene";
+import { RankingScene } from "./scenes/RankingScene";
 import { GAME_WIDTH, GAME_HEIGHT } from "./constants";
 
 export { GAME_WIDTH, GAME_HEIGHT, COLORS } from "./constants";
@@ -41,7 +42,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       OpenSpaceScene, OpenSpaceV2Scene, CopaScene,
       Phase2Scene, Phase3Scene, Phase4Scene, Phase5Scene,
       CeoScene, VitoriaScene,
-      GameOverScene,
+      GameOverScene, RankingScene,
     ],
   };
 }

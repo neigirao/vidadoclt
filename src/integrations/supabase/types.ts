@@ -14,7 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      scores: {
+        Row: {
+          id: string;
+          apelido: string;
+          reconhecimento: number;
+          loop_count: number;
+          reached_phase: string;
+          seed: string;
+          character_class: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          apelido?: string;
+          reconhecimento?: number;
+          loop_count?: number;
+          reached_phase?: string;
+          seed?: string;
+          character_class?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          apelido?: string;
+          reconhecimento?: number;
+          loop_count?: number;
+          reached_phase?: string;
+          seed?: string;
+          character_class?: string | null;
+          created_at?: string;
+        };
+      };
     }
     Views: {
       [_ in never]: never

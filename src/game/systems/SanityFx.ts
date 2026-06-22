@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { sanityBand } from "./PlayerState";
-import { generateNotifSubject } from "./CorporateAI";
+import { generateNotifSubject, noise2d } from "./CorporateAI";
 
 // Static fallback pool — shown alongside procedurally-generated subjects
 const STATIC_NOTIFS = [
@@ -101,9 +101,13 @@ export class SanityFx {
 
   private updateFilters(stress: number) {
     // ── Vignette ──────────────────────────────────────────────────────────────
-    // radius shrinks (edges close in), strength grows as stress rises
-    this.vignette.radius   = 0.85 - stress * 0.45;   // 0.85 (ok) → 0.40 (burnout)
-    this.vignette.strength = stress * 0.85;           // 0    (ok) → 0.85 (burnout)
+    // Organic pulse: simplex noise drives subtle breathing of radius + strength.
+    // Scale: time in seconds (slow drift), stress used as spatial axis for variation.
+    const t = this.scene.time.now * 0.001;
+    const pulse = noise2d(t * 0.4, stress * 2.0) * 0.03 * stress; // ±3% at full burnout
+
+    this.vignette.radius   = 0.85 - stress * 0.45 + pulse;
+    this.vignette.strength = stress * 0.85 + pulse * 0.5;
 
     // Color transitions from black → dark red starting at ~75% stress
     if (stress > 0.75) {

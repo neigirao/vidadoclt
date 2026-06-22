@@ -1,15 +1,17 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { getRun, resetRun, savePersisted } from "../systems/PlayerState";
+import { submitScore, phaseLabel } from "../systems/Ranking";
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
     super("GameOverScene");
   }
 
-  create(data: { vr?: number; cause?: "burnout" | "energy" }) {
+  create(data: { vr?: number; cause?: "burnout" | "energy"; reachedScene?: string }) {
     const vr = data?.vr ?? 0;
     const cause = data?.cause ?? "energy";
+    const reachedScene = data?.reachedScene ?? "OpenSpaceV2Scene";
     const earned = Math.floor(vr * 0.25);
     const run = getRun(this);
     run.reconhecimento += earned;
@@ -61,7 +63,10 @@ export class GameOverScene extends Phaser.Scene {
       });
     }
 
-    // Seed display — lets players share/replay a specific run
+    // ── Ranking submission ──────────────────────────────────────────────────
+    this.drawRankingInput(run.reconhecimento, run.loopCount, run.seed, reachedScene, run.characterClass);
+
+    // Seed display
     this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 108,
       `SEED: ${run.seed}`,
       { fontFamily: "monospace", fontSize: "11px", color: "#2a4a2a" })
@@ -84,7 +89,66 @@ export class GameOverScene extends Phaser.Scene {
     this.input.keyboard?.once("keydown-SPACE", () => this.doRestart());
   }
 
+  private drawRankingInput(
+    reconhecimento: number,
+    loopCount: number,
+    seed: string,
+    reachedScene: string,
+    characterClass?: string,
+  ) {
+    const y = 310;
+    this.add.text(GAME_WIDTH / 2, y, "SALVAR NO RANKING", {
+      fontFamily: "monospace", fontSize: "9px", color: "#f2a800",
+    }).setOrigin(0.5);
+
+    // HTML input overlay for nickname
+    const inputEl = document.createElement("input");
+    inputEl.type = "text";
+    inputEl.maxLength = 16;
+    inputEl.placeholder = "seu apelido";
+    inputEl.value = "";
+    Object.assign(inputEl.style, {
+      position: "absolute", fontFamily: "monospace", fontSize: "13px",
+      background: "#1a1d23", color: "#eaeaea", border: "1px solid #f2a800",
+      padding: "4px 8px", outline: "none", textAlign: "center",
+      width: "180px", left: "50%", transform: "translateX(-50%)",
+    });
+    // Position below "SALVAR NO RANKING" label — will be removed on destroy
+    const canvas = this.game.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const scaleY = rect.height / (this.game.config.height as number);
+    inputEl.style.top = `${rect.top + (y + 14) * scaleY}px`;
+    document.body.appendChild(inputEl);
+    this.events.once("shutdown", () => inputEl.remove());
+    this.events.once("destroy",  () => inputEl.remove());
+
+    const saveBtn = this.add.text(GAME_WIDTH / 2, y + 38, "[ ENVIAR ]", {
+      fontFamily: "monospace", fontSize: "13px", color: "#44ff88",
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    const doSave = async () => {
+      const apelido = inputEl.value.trim() || "Anonimo";
+      inputEl.remove();
+      saveBtn.setText("SALVO ✓").setColor("#88ffbb").disableInteractive();
+      await submitScore({
+        apelido,
+        reconhecimento,
+        loop_count: loopCount,
+        reached_phase: phaseLabel(reachedScene),
+        seed,
+        character_class: characterClass ?? null,
+      });
+    };
+
+    saveBtn.on("pointerover", () => saveBtn.setColor("#88ffbb"));
+    saveBtn.on("pointerout",  () => saveBtn.setColor("#44ff88"));
+    saveBtn.on("pointerdown", doSave);
+    inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") doSave(); });
+  }
+
   private doRestart() {
+    // Clean up any lingering input element
+    document.querySelectorAll("input[placeholder='seu apelido']").forEach(el => el.remove());
     const run = getRun(this);
     const keep = { reconhecimento: run.reconhecimento, fgts: run.fgts, loopCount: run.loopCount };
     const fresh = resetRun(this);

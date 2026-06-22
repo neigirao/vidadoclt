@@ -303,7 +303,12 @@ export class MenuScene extends Phaser.Scene {
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("ClassSelectScene");
       });
+    } else if (item.label === "RANKING") {
+      this.cameras.main.fadeOut(200, 0, 0, 0);
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        this.scene.start("RankingScene");
+      });
     }
-    // Outros itens: no-op por enquanto (ranking, arsenal, conquistas, config)
+    // Arsenal, Conquistas, Configurações: no-op por enquanto
   }
 }
