@@ -269,8 +269,8 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.08);
     body.setVelocityY(-30);
-    this.setAlpha(0.45);
-    this.scene.time.delayedCall(90, () => { if (this.active) this.setAlpha(1); });
+    this.setTint(0xff4444);
+    this.scene.time.delayedCall(180, () => { if (this.active) this.clearTint(); });
     this.onHpChange?.(this.hp, this.maxHp);
     if (this.hp <= 0) { const fn = this.onDied; this.onDied = undefined; fn?.(); return true; }
     return false;
