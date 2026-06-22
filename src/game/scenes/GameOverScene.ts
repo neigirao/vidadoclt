@@ -61,7 +61,13 @@ export class GameOverScene extends Phaser.Scene {
       });
     }
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 98,
+    // Seed display — lets players share/replay a specific run
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 108,
+      `SEED: ${run.seed}`,
+      { fontFamily: "monospace", fontSize: "11px", color: "#2a4a2a" })
+      .setOrigin(0.5);
+
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 93,
       "O despertador toca.\nE quarta-feira de novo.",
       { fontFamily: "monospace", fontSize: "13px", color: "#444444", align: "center" })
       .setOrigin(0.5);
