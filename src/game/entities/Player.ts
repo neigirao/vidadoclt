@@ -77,6 +77,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   onAttack?: (hitbox: Phaser.Geom.Rectangle, step: number) => void;
   onDeath?: (cause: "burnout" | "energy") => void;
+  onHit?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-player-idle"));
@@ -136,6 +137,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.invulnUntil = now + HIT_INVULN_MS;
     this.setTint(0xff8888);
     this.scene.time.delayedCall(120, () => this.clearTint());
+    this.onHit?.();
     // knockback — push away from hit source (or away from facing if no source given)
     const pushDir = fromX !== undefined ? (this.x < fromX ? -1 : 1) : -this.facing;
     const body = this.body as Phaser.Physics.Arcade.Body;

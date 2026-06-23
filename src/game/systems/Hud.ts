@@ -106,6 +106,9 @@ export class Hud {
   // Interact hint (above bottom bar)
   private interactHintT!: Phaser.GameObjects.Text;
 
+  private prevVr = -1;
+  private prevEnergy = -1;
+
   private levelWidth: number;
 
   constructor(scene: Phaser.Scene, levelWidth = 1920) {
@@ -600,6 +603,26 @@ export class Hud {
     this.sec1SanityNumT.setText(`${opts.sanity}/${opts.maxSanity}`).setColor(sanityHex);
     this.sec1VrT.setText(`VR  ${this.fmtVR(opts.vr)}`);
     this.sec1RecoT.setText(`RECO: ${opts.reconhecimento.toLocaleString("pt-BR")}`);
+
+    // HUD tweens — VR pickup pulse
+    if (this.prevVr >= 0 && opts.vr > this.prevVr) {
+      this.scene.tweens.add({
+        targets: this.sec1VrT,
+        scaleX: 1.5, scaleY: 1.5,
+        duration: 70, yoyo: true,
+        onComplete: () => this.sec1VrT.setScale(1),
+      });
+    }
+    this.prevVr = opts.vr;
+
+    // HUD tweens — energy damage flash
+    if (this.prevEnergy >= 0 && opts.energy < this.prevEnergy) {
+      this.sec1EnergyNumT.setColor("#ff2222");
+      this.scene.time.delayedCall(220, () => {
+        if (this.sec1EnergyNumT.scene) this.sec1EnergyNumT.setColor("#ffd0d0");
+      });
+    }
+    this.prevEnergy = opts.energy;
 
     // Clock
     const minutes = Math.floor((opts.time - opts.startTime) / 1000);

@@ -35,6 +35,9 @@ export class SanityFx {
   private nextNotifAt = 0;
   private nextShakeAt = 0;
 
+  private chromaRed!: Phaser.GameObjects.Rectangle;
+  private chromaCyan!: Phaser.GameObjects.Rectangle;
+
   constructor(private scene: Phaser.Scene) {
     // WebGL filters only — Canvas renderer falls back to vignette-less mode
     this.useFilters = scene.game.renderer.type === Phaser.WEBGL;
@@ -49,6 +52,12 @@ export class SanityFx {
 
     // Pixel-static noise kept as Graphics (30–80 dots, cheaper than a GPU texture alloc)
     this.noise = scene.add.graphics().setScrollFactor(0).setDepth(901);
+
+    // Chromatic aberration: two full-screen tinted rects, alpha 0 at rest
+    this.chromaRed  = scene.add.rectangle(GAME_WIDTH / 2 - 3, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0)
+      .setScrollFactor(0).setDepth(902).setBlendMode(Phaser.BlendModes.ADD);
+    this.chromaCyan = scene.add.rectangle(GAME_WIDTH / 2 + 3, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x00ffff, 0)
+      .setScrollFactor(0).setDepth(902).setBlendMode(Phaser.BlendModes.ADD);
   }
 
   update(time: number, sanity: number) {
@@ -140,6 +149,12 @@ export class SanityFx {
     }
   }
 
+  triggerChromaticHit(): void {
+    this.chromaRed.setAlpha(0.14);
+    this.chromaCyan.setAlpha(0.10);
+    this.scene.tweens.add({ targets: [this.chromaRed, this.chromaCyan], alpha: 0, duration: 200 });
+  }
+
   private spawnNotif() {
     const msg = pickNotif();
     const pw = 284, ph = 30;
@@ -174,5 +189,7 @@ export class SanityFx {
       this.barrel.destroy();
     }
     this.noise.destroy();
+    this.chromaRed.destroy();
+    this.chromaCyan.destroy();
   }
 }

@@ -44,6 +44,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private startTimeMs = 0;
   private fx!: SanityFx;
   private hud!: Hud;
+  private shadowG!: Phaser.GameObjects.Graphics;
   private doorCopa!: Phaser.GameObjects.Image;
   private doorLabel!: Phaser.GameObjects.Text;
   private interactKey!: Phaser.Input.Keyboard.Key;
@@ -318,6 +319,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.shadowG = this.add.graphics().setDepth(5);
+
+    // #5 Camera flash + #6 Chromatic aberration on player hit
+    this.player.onHit = () => {
+      this.cameras.main.flash(60, 255, 20, 20, false);
+      this.fx.triggerChromaticHit();
+    };
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE  [v2]");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
   }
@@ -509,6 +517,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       const flash = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0.35)
         .setScrollFactor(0).setDepth(990);
       this.tweens.add({ targets: flash, alpha: 0, duration: 600, onComplete: () => flash.destroy() });
+      // #4 Glow: reddish tint on boss in phase 2
+      boss.setTint(0xff7755);
     };
     boss.onDied = () => this.handleBossDefeat(boss);
     this.boss = boss;
@@ -558,6 +568,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     this.doorCopa.clearTint();
     this.doorLabel.setText("COPA").setColor("#c9a36a");
+
+    // #9 Hover: door label bobs to signal the way out
+    this.tweens.add({
+      targets: this.doorLabel,
+      y: this.doorLabel.y - 5,
+      duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut",
+    });
 
     const msg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30,
       "GERENTE DERROTADO!\n\nPerk: AUTONOMIA ativado\n\nPorta da Copa desbloqueada ->",
@@ -676,11 +693,17 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private dropVR(x: number, y: number, count = 1): void {
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(x + (i - count / 2) * 8, y - 10, "tex-vr") as Phaser.Physics.Arcade.Sprite;
-      d.setDepth(8);
+      d.setDepth(8).setTint(0xffd700);
       const body = d.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(Phaser.Math.Between(-120, 120), Phaser.Math.Between(-260, -160));
       body.setBounce(0.4);
       body.setDrag(120, 0);
+      // #4 Glow + #9 Hover: after drop settles, pulse scale
+      this.time.delayedCall(700, () => {
+        if (d.active && d.scene) {
+          this.tweens.add({ targets: d, scaleX: 1.25, scaleY: 1.25, duration: 480, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+        }
+      });
     }
   }
 
@@ -755,6 +778,26 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
         this.player.takeDamage(this.boss.contactDamage, 3, this.boss.x);
       }
+    }
+
+    // #8 Fake shadows: ellipses drawn just below each entity's feet
+    this.shadowG.clear();
+    this.shadowG.fillStyle(0x000000, 0.22);
+    const pb = this.player.body as Phaser.Physics.Arcade.Body;
+    const pLift = Math.max(0, FLOOR_Y - pb.bottom);
+    this.shadowG.fillEllipse(this.player.x, Math.min(pb.bottom, FLOOR_Y) + 4, Math.max(10, 32 - pLift * 0.14), Math.max(2, 6 - pLift * 0.03));
+    [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
+      g.getChildren().forEach(c => {
+        const e = c as Phaser.Physics.Arcade.Sprite;
+        if (!e.active) return;
+        const eb = e.body as Phaser.Physics.Arcade.Body;
+        this.shadowG.fillEllipse(e.x, Math.min(eb.bottom, FLOOR_Y) + 4, 26, 5);
+      })
+    );
+    if (this.boss?.active) {
+      const bb = this.boss.body as Phaser.Physics.Arcade.Body;
+      const bLift = Math.max(0, FLOOR_Y - bb.bottom);
+      this.shadowG.fillEllipse(this.boss.x, Math.min(bb.bottom, FLOOR_Y) + 4, Math.max(14, 44 - bLift * 0.1), Math.max(3, 8 - bLift * 0.03));
     }
 
     this.fx.update(time, this.player.sanity);
