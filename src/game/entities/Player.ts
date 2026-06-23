@@ -54,6 +54,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private speedMultUntil = 0;
   private speedMult = 0.4;
+  private dashTrailTimer = 0;
 
   private jumpsUsed = 0;
   private specialCooldownUntil = 0;
@@ -199,6 +200,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (time < this.dashUntil) {
       body.setVelocityX(this.facing * DASH_SPEED);
       body.setVelocityY(0); // freeze Y during dash so player doesn't fall
+      // Ghost trail: one afterimage every 35ms
+      if (time >= this.dashTrailTimer) {
+        this.dashTrailTimer = time + 35;
+        const ghost = this.scene.add.image(this.x, this.y, this.texture.key, this.frame.name)
+          .setDepth(this.depth - 1)
+          .setAlpha(0.45)
+          .setFlipX(this.flipX)
+          .setDisplaySize(this.displayWidth, this.displayHeight)
+          .setTint(0x88ccff);
+        this.scene.tweens.add({ targets: ghost, alpha: 0, duration: 160, onComplete: () => ghost.destroy() });
+      }
     } else {
       if (left && !right) {
         body.setVelocityX(-curSpeed);

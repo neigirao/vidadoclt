@@ -606,6 +606,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         const e = cast(c);
         if (!e.active || !tryHit(e)) return;
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
+        this.spawnHitSparks(e.x, e.y - 10, step >= comboHits);
         const dmgText = this.add.text(e.x, e.y - 20, `-${damage}`, {
           fontFamily: "monospace", fontSize: "11px", fontStyle: "bold",
           color: step >= comboHits ? "#ff4444" : "#ffcc44",
@@ -629,6 +630,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     hitGroup(this.rhs,           3, c => c as EnemyRH);
 
     if (this.boss?.active && tryHit(this.boss)) {
+      this.spawnHitSparks(this.boss.x, this.boss.y - 10, step >= comboHits);
       const dmgText = this.add.text(this.boss.x, this.boss.y - 20, `-${damage}`, {
         fontFamily: "monospace", fontSize: "11px", fontStyle: "bold",
         color: step >= comboHits ? "#ff4444" : "#ffcc44", stroke: "#000000", strokeThickness: 2,
@@ -637,6 +639,23 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       const died = this.boss.hit(damage, knockback);
       if (died) return;
     }
+  }
+
+  private spawnHitSparks(x: number, y: number, finisher: boolean): void {
+    const count = finisher ? 10 : 5;
+    const tints = finisher ? [0xff4444, 0xff8800] : [0xffcc44, 0xffffff];
+    const emitter = this.add.particles(x, y, "__WHITE", {
+      lifespan: finisher ? 300 : 200,
+      speed: { min: 60, max: finisher ? 200 : 130 },
+      angle: { min: -160, max: -20 },
+      scale: { start: finisher ? 1.1 : 0.7, end: 0 },
+      alpha: { start: 1, end: 0 },
+      tint: tints,
+      gravityY: 600,
+      depth: 600,
+    });
+    emitter.explode(count);
+    this.time.delayedCall(400, () => { if (emitter.scene) emitter.destroy(); });
   }
 
   private spawnProjectile(opts: {
