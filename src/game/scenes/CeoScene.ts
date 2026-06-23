@@ -10,6 +10,7 @@ import { getRun, savePersisted } from "../systems/PlayerState";
 import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
+import { resolveSprite } from "../systems/SpriteLibrary";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 
 const LEVEL_WIDTH = 960; // single screen fight
@@ -31,6 +32,10 @@ export class CeoScene extends Phaser.Scene {
 
   constructor() {
     super("CeoScene");
+  }
+
+  preload() {
+    this.load.image("bg-cobertura", "/assets/bg-cobertura.png");
   }
 
   create() {
@@ -142,7 +147,8 @@ export class CeoScene extends Phaser.Scene {
 
     this.boss.onGoldenParachute = (px, py) => {
       for (let i = 0; i < 3; i++) {
-        const proj = this.enemyProjectiles.create(px + (i - 1) * 60, py, "tex-convite") as Phaser.Physics.Arcade.Sprite;
+        const [convTex, convFrame] = resolveSprite("tex-convite");
+        const proj = this.enemyProjectiles.create(px + (i - 1) * 60, py, convTex, convFrame) as Phaser.Physics.Arcade.Sprite;
         const pbody = proj.body as Phaser.Physics.Arcade.Body;
         pbody.setAllowGravity(false);
         pbody.setVelocity((i - 1) * 80, 150);
@@ -457,6 +463,7 @@ export class CeoScene extends Phaser.Scene {
   private dropVR(x: number, y: number, count = 1) {
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(x + (i - count / 2) * 8, y - 10, "tex-vr") as Phaser.Physics.Arcade.Sprite;
+      d.setDepth(8);
       const body = d.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(Phaser.Math.Between(-120, 120), Phaser.Math.Between(-260, -160));
       body.setBounce(0.4);

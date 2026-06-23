@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { resolveSprite } from "../systems/SpriteLibrary";
 
 const HIT_INVULN_MS = 400;
 
@@ -18,9 +19,10 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
   private _nextFireAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-telemarketer");
+    super(scene, x, y, ...resolveSprite("tex-telemarketer"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(26, 40);
     body.setOffset(3, 8);
@@ -79,9 +81,10 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
   private _nextFireAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-impressora");
+    super(scene, x, y, ...resolveSprite("tex-impressora"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(48, 40);
     body.setOffset(0, 8);
@@ -135,9 +138,10 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
   private _dir: 1 | -1 = 1;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-faxineiro");
+    super(scene, x, y, ...resolveSprite("tex-faxineiro"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 38);
     body.setOffset(4, 10);
@@ -203,12 +207,13 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
   private _driftDir: 1 | -1 = 1;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-noticeboard");
+    super(scene, x, y, ...resolveSprite("tex-noticeboard"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(32, 32);
-    body.setOffset(0, 0);
+    body.setOffset(0, 8);
     body.setAllowGravity(false);
     body.setCollideWorldBounds(true);
     this._nextFireAt = scene.time.now + 2500;
@@ -267,9 +272,10 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
   private _nextFireAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-evangelista");
+    super(scene, x, y, ...resolveSprite("tex-evangelista"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 38);
     body.setOffset(4, 10);
@@ -352,12 +358,13 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
   private _slow = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-coletor");
+    super(scene, x, y, ...resolveSprite("tex-coletor"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(20, 16);
-    body.setOffset(0, 0);
+    body.setOffset(6, 16);
     body.setAllowGravity(false);
     body.setCollideWorldBounds(true);
   }
@@ -412,9 +419,10 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
   private _nextFireAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-planilha");
+    super(scene, x, y, ...resolveSprite("tex-planilha"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(30, 38);
     body.setOffset(1, 10);
@@ -481,12 +489,13 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
   private _cableResetAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-cabo");
+    super(scene, x, y, ...resolveSprite("tex-cabo"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 32);
-    body.setOffset(5, 8);
+    body.setOffset(5, 16);
     body.setCollideWorldBounds(true);
   }
 
@@ -562,9 +571,10 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
   private _nextSpawnAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-ti-suporte");
+    super(scene, x, y, ...resolveSprite("tex-ti-suporte"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 36);
     body.setOffset(5, 12);
@@ -624,12 +634,13 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
   private _nextBombAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-drone");
+    super(scene, x, y, ...resolveSprite("tex-drone"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(28, 20);
-    body.setOffset(2, 4);
+    body.setOffset(2, 14);
     body.setAllowGravity(false);
     body.setCollideWorldBounds(true);
     this._floatY = y;
@@ -695,9 +706,10 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
   private _startX: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-seguranca");
+    super(scene, x, y, ...resolveSprite("tex-seguranca"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 38);
     body.setOffset(5, 10);
@@ -785,9 +797,10 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
   private _nextStampAt = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-carimbador");
+    super(scene, x, y, ...resolveSprite("tex-carimbador"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 38);
     body.setOffset(5, 10);
@@ -846,9 +859,10 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
   private _slow = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-arquivo");
+    super(scene, x, y, ...resolveSprite("tex-arquivo"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(34, 44);
     body.setOffset(0, 4);
@@ -904,9 +918,10 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
   private _startX: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-bateria");
+    super(scene, x, y, ...resolveSprite("tex-bateria"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 36);
     body.setOffset(5, 12);

@@ -1,11 +1,13 @@
 import Phaser from "phaser";
+import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
+import { generateCorporateSpeak } from "../systems/CorporateAI";
 
 // ─── Email projectile (Follow-Up attack) ────────────────────────────────────
 export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
   damage = 18;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-email");
+    super(scene, x, y, ...resolveSprite("tex-email"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -24,9 +26,12 @@ export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
 // ─── Gerente Microgestor ─────────────────────────────────────────────────────
 type BossAttack = "follow_up" | "alinhamento" | "atualizacao" | "reuniao" | "freeze" | "deadline";
 
+const BOSS_HIT_INVULN_MS = 350;
+
 export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
-  hp = 300;
-  maxHp = 300;
+  hp = 500;
+  maxHp = 500;
+  private _invulnUntil = 0;
   contactDamage = 10;
   dir: 1 | -1 = -1;
 
@@ -54,12 +59,14 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   onHpChange?: (hp: number, maxHp: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-gerente");
+    super(scene, x, y, ...resolveSprite("tex-gerente"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(32, 50);
-    body.setOffset(2, 1);
+    // sprite full-body 56×72 (arte nova); corpo centrado, pés ~y70
+    body.setSize(32, 58);
+    body.setOffset(12, 14); // sprite 56×72: x=(56-32)/2, y=72-58
     body.setCollideWorldBounds(true);
     this.setTint(0x666666);
   }
@@ -125,14 +132,15 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private showIntroText() {
+    const speak = generateCorporateSpeak();
     const txt = this.scene.add
       .text(this.x, this.y - 80,
-        '"Antes de voce sair\nprecisamos alinhar\nalgumas coisas."',
-        { fontFamily: "monospace", fontSize: "13px", color: "#f2c14e",
+        `"Antes de voce sair\nprecisamos ${speak}."`,
+        { fontFamily: "monospace", fontSize: "12px", color: "#f2c14e",
           stroke: "#000000", strokeThickness: 3, align: "center" })
       .setOrigin(0.5).setDepth(600);
     this.scene.tweens.add({
-      targets: txt, alpha: 0, duration: 700, delay: 1900,
+      targets: txt, alpha: 0, duration: 700, delay: 2400,
       onComplete: () => txt.destroy(),
     });
   }
@@ -262,38 +270,32 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
   hit(damage: number, knockback: number): boolean {
     if (this.bossState === "waiting") return false;
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this._invulnUntil = now + BOSS_HIT_INVULN_MS;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.08);
     body.setVelocityY(-30);
-    this.setTint(0xffffff);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.setTint(0xff4444);
+    this.scene.time.delayedCall(180, () => { if (this.active) this.clearTint(); });
     this.onHpChange?.(this.hp, this.maxHp);
-    if (this.hp <= 0) { this.onDied?.(); return true; }
+    if (this.hp <= 0) { const fn = this.onDied; this.onDied = undefined; fn?.(); return true; }
     return false;
   }
 
   private updateTexture() {
-    // Source frames are inconsistent poses — use one frame per state to avoid flicker.
+    // Arte nova full-body do gerente: idle / walk0-2 / attack0 / hurt / death.
     let key: string;
-    if (this.bossState === "waiting" || this.bossState === "idle") {
-      key = `tex-gerente-idle0`;
+    if (this.bossState === "telegraph" || this.bossState === "attack") {
+      key = `tex-gerente-attack0`;
     } else if (this.bossState === "enter" || this.bossState === "recover") {
-      key = `tex-gerente-walk0`;
-    } else if (this.bossState === "telegraph" || this.bossState === "attack") {
-      const atkFrames: Record<BossAttack, string> = {
-        follow_up:   `tex-gerente-attack-sprint0`,
-        alinhamento: `tex-gerente-attack-deadline0`,
-        atualizacao: `tex-gerente-run0`,
-        reuniao:     `tex-gerente-attack-escopo0`,
-        freeze:      `tex-gerente-attack-sprint0`,
-        deadline:    `tex-gerente-attack-deadline0`,
-      };
-      key = atkFrames[this.currentAttack] ?? `tex-gerente-idle0`;
+      const f = Math.floor(this.scene.time.now / 140) % 3;
+      key = `tex-gerente-walk${f}`;
     } else {
       key = `tex-gerente-idle0`;
     }
-    if (this.texture.key !== key) this.setTexture(key);
+    applyTexture(this, key);
   }
 }
 

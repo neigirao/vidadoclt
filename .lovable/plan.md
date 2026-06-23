@@ -1,77 +1,103 @@
-# Por que os sprites estão flickando
+## Análise V1 vs V2 (Open Space)
 
-Diagnóstico após inspecionar os PNGs e o código:
+**OpenSpaceScene (V1) – 882 linhas**
+- Layout em "zonas" (Entrada, Open Space A/B, Boss) com clusters de mesas/estantes/armários.
+- `buildPlatform(x, kind, tiles)` — altura derivada do tipo de móvel.
+- Mais inimigos no roster (inclui `ConviteReuniao`), tem `phase2Active`, `buildDecor()` e `buildInteractiveObjects()` separados.
+- Mais "vida" e variação visual, porém com mais acoplamento e código duplicado.
 
-**Causa raiz — frames mal alinhados.** Os sprites foram extraídos dos boards do ChatGPT por scripts que recortaram **cada frame de forma independente** (auto-crop por componente conectado + resize). Resultado: dentro de um mesmo ciclo de animação, o personagem ocupa quantidades muito diferentes de pixels e posições diferentes dentro do canvas. Exemplos medidos agora:
+**OpenSpaceV2Scene (V2) – 660 linhas**
+- Layout linear: 6 plataformas alternando mesa (30 px) / prateleira (72 px) com `buildPlatform(x, y, tiles)` explícito → previsível.
+- Decorativos coerentes (café, bebedouro, ponto eletrônico, extintor, monitores nas mesas, quadros motivacionais em parallax).
+- Sem `ConviteReuniao` e sem fase 2 separada — fluxo mais limpo.
+- Código ~25% menor, mais legível, mais fácil de evoluir.
 
-- `player-walk0..7`: pixels opacos variam de **983 → 1471** (+50%)
-- `player-idle0..5`: variam de **812 → 1063**
-- `enemy-analista-walk0..3`: **66 → 159** (+140%)
+**Veredito:** V2 é melhor como base de progressão (legibilidade, parallax, pacing de plataformas). V1 tem variedade visual interessante mas está sobrecarregada. Recomendo **manter V2 como padrão** e portar 2 ideias de V1 quando fizer sentido: cluster de baias variado e o inimigo `ConviteReuniao`.
 
-Como o `Sprite` do Phaser usa origem `(0.5, 0.5)` e cada frame tem o personagem recentralizado de jeito diferente, a cada troca de textura (a cada 75–420ms) a silhueta "pula" alguns pixels para os lados / para cima e para baixo — isso é o flicker que você vê. Não é problema de FPS nem de WebGL.
+---
 
-**Problemas secundários** que amplificam:
+## Pendências de Sprites
 
-1. **Hitbox do player desalinhada.** `Player.ts` faz `body.setSize(20,34)` + `setOffset(6,14)` assumindo sprite **32×48**, mas os PNGs reais são **48×64**. O retângulo de física fica deslocado em relação ao desenho, o que faz o sprite parecer "tremer" quando o personagem está parado contra parede / chão (corpo empurra, sprite acompanha com offset errado).
-2. **Sem `setOrigin` por âncora de pés.** Como os frames têm alturas visuais diferentes, ancorar pelo centro do canvas faz a cabeça subir/descer. O correto para platformer é âncora "pés" (origin Y = 1) com offset fixo.
-3. **`tex-player` (alias do HUD)** aponta para `idle0` mas é a mesma textura usada no avatar do HUD — sem problema, só registrando.
+> Atualizado em 2026-06-22. Marcar como ✅ quando concluído.
 
-# Plano de correção
+### 🔴 Alta prioridade
 
-## 1. Reprocessar os sprites com bounding box compartilhada (principal)
+| Status | Item | Problema | Ação |
+|---|---|---|---|
+| ⬜ | **Gerente Microgestor (Chefão F1)** | Arte atual 56×72 é *menor* que o player 80×80. Frames `hurt0-1`, `death0`, `run-charge0-2` existem no atlas mas não são usados no código. Arte de 44×56 misturada deve ser removida. | Enviar sheet novo com personagem maior que o player. Pasta: `public/assets/sprites/chefao/` |
+| ⬜ | **Player walk / run / jump / fall** | Personagem preenche o frame 80×80 sem margem — corte em poses extremas. Sheets enviados: `personagem/ozydij` (walk), `nk603k` (run), `iiu1fn` (jump). Frames extraídos mas ainda com borda cheia. | Verificar in-game se animação está aceitável; se não, pedir sheets com margem |
 
-Criar `scripts/normalize-frames.mjs` que, para cada conjunto (`player-idle*`, `player-walk*`, `player-run*`, `player-jump*`, `player-fall*`, `player-attack*`, `player-dash*`, `player-hurt*`, `player-burnout*`, `player-interact*`, e cada `enemy-<nome>-<state>*`, e cada `boss-<nome>-<state>*`):
+### 🟡 Média prioridade — sprites faltando no atlas
 
-1. Lê todos os PNGs do conjunto.
-2. Calcula a **bounding box união** dos pixels opacos (alpha > 20) de todos os frames.
-3. Recorta cada frame usando essa MESMA bbox.
-4. Coloca o recorte em um canvas de tamanho fixo do conjunto, **ancorado pelos pés** (centralizado em X, alinhado no rodapé em Y), com 2px de padding.
-5. Sobrescreve o PNG.
+| Status | Chave `tex-` | Cena que usa | Ação |
+|---|---|---|---|
+| ⬜ | `tex-extintor` | OpenSpaceV2Scene, OpenSpaceScene | Criar/enviar sprite do extintor |
+| ⬜ | `tex-cadeira` | OpenSpaceScene (V1) | Criar/enviar sprite da cadeira |
+| ⬜ | `tex-armario` | OpenSpaceScene (V1) | Criar/enviar sprite do armário |
+| ⬜ | `tex-estante` | OpenSpaceScene (V1) | Criar/enviar sprite da estante |
+| ⬜ | `tex-vaso` | OpenSpaceScene (V1) | Criar/enviar sprite do vaso |
 
-Isso elimina o "pulo" entre frames sem alterar o conteúdo visual.
+> Nota: `tex-armario-body`, `tex-estante-body`, `tex-mesa-body`, `tex-vaso-body`, `tex-impressora-body` são texturas geradas em runtime pelo TextureFactory — não precisam de PNG.
 
-## 2. Ajustar Player.ts para os sprites 48×64 reais
+### 🟡 Média prioridade — frames no atlas não conectados ao código
 
-- `body.setSize(18, 44)` e `setOffset(15, 18)` (centraliza torso/pernas no sprite 48×64, deixa cabeça fora da hitbox).
-- `this.setOrigin(0.5, 1)` e empurrar Y do corpo para alinhar pés. (Alternativa mais simples: manter origin 0.5,0.5 mas garantir que todos os frames têm os pés na mesma linha após o passo 1 — recomendado, menos invasivo.)
+| Status | Personagem | Frames disponíveis mas ignorados | Ação |
+|---|---|---|---|
+| ⬜ | **CEO** | `walk0-1`, `attack0-1`, `hurt0`, `death0-1`, `special0-1` | Conectar no `CeoBoss.ts` `updateTexture` |
+| ⬜ | **Faxineiro** | `idle0-2`, `walk0-3`, `attack0-2`, `hurt0-1`, `death0-2`, `special0-2` | Conectar no `Faxineiro.ts` |
+| ⬜ | **Gerente** | `hurt0-1`, `death0`, `run-charge0-2` | Conectar após novos sprites aprovados |
 
-## 3. Validar bosses e inimigos
+### 🟢 OK — bem servidos
 
-Após o normalize, conferir 3 conjuntos representativos abrindo no preview (`OpenSpaceScene` para player + estagiário + analista; `Phase4Scene` ou similar para um boss). Se ainda houver "pop" sutil entre estados (ex.: `idle` → `walk`), aplicar o mesmo cálculo de bbox **entre estados do mesmo personagem** (união global por personagem), não só dentro de cada estado.
+| Personagem | Animações no atlas |
+|---|---|
+| Estagiário | idle, walk, attack, hurt, death ✅ |
+| Analista | idle, walk, attack, hurt, death ✅ |
+| Facilitador | idle, walk, attack, hurt, death ✅ |
+| Scrum Master | idle, walk, attack, hurt, death ✅ |
+| Coordenador | idle, walk, attack, hurt, death ✅ |
+| Analista Sênior | idle, walk, attack, hurt, death ✅ |
+| RH | idle, walk, attack, hurt, death ✅ |
+| Moeda VR | idle, active, broken, used, empty ✅ (padding corrigido) |
+| Items / Objetos | 226 frames com padding corrigido ✅ |
 
-## 4. Não tocar
+---
 
-- Lógica de combate, física, HUD, cenas — nenhuma alteração.
-- Sistema de animação no `updateTexture()` está correto, só precisa de frames consistentes.
-- Backgrounds, atlas e demais assets.
+## Mudanças propostas (backlog técnico)
 
-## Detalhes técnicos
+### 1. Tornar V2 o caminho padrão
+- `ClassSelectScene.ts` linha 265: trocar `run.v2Mode ? "OpenSpaceV2Scene" : "OpenSpaceScene"` por `"OpenSpaceV2Scene"` sempre.
+- `MenuScene.ts`: remover a opção "JOGAR V2" e deixar só "JOGAR" (mantém comportamento V2).
+- Não deletar `OpenSpaceScene.ts` ainda — fica como referência até a próxima iteração.
 
-```text
-Para cada grupo G = {f0.png, f1.png, ..., fN.png}:
-  bbox_union = (∞, ∞, -∞, -∞)
-  para cada f em G:
-    bbox_f = pixels com alpha > 20
-    bbox_union = união(bbox_union, bbox_f)
-  W, H = canvas alvo (ex.: 48×64 para player, 32×48 enemies, 64×64 bosses)
-  para cada f em G:
-    crop = f[bbox_union]
-    out = canvas transparente W×H
-    dx = (W - crop.w) // 2                  # centro horizontal
-    dy = (H - crop.h) - 2                   # ancorado nos pés, padding 2
-    out.paste(crop, (dx, dy))
-    salvar out sobrescrevendo f
-```
+### 2. Conectar animações existentes no código
+- `CeoBoss.ts`: implementar `updateTexture()` usando frames `boss-ceo-*` já existentes no atlas.
+- `Faxineiro.ts`: animar com frames `npc-faxineiro-*` já existentes.
+- `Boss.ts` (Gerente): conectar `hurt` e `death` quando novos sprites forem aprovados.
 
-Bibliotecas já no projeto: **Pillow (Python3)** ou **sharp/Jimp** (Node). Usar Python3 — é mais rápido e já está disponível no sandbox.
+### 3. Substituir sprite do player (histórico)
+Arquivo: `public/assets/sprites/Gemini_Generated_Image_iiu1fniiu1fniiu1.png` (2750×1536, RGBA com transparência completa, frames declarados como 64×96).
 
-## Verificação
+O sheet **não é uma grade limpa** — tem títulos, paleta e painel de acessórios. Cada seção (IDLE, WALK, RUN, JUMP, FALL, DASH, ATTACK, HURT, INTERACT, BURNOUT) começa em um Y diferente e tem contagens distintas. Estratégia:
 
-1. Rodar o script de normalização.
-2. Abrir preview (`/`) e observar player parado (idle), andando (walk), correndo, pulando, atacando.
-3. Confirmar que silhueta não "treme" mais entre frames.
-4. Conferir 2–3 inimigos em combate.
+1. **Novo script `scripts/extract-player-from-sheet.py`** que:
+   - Recebe um mapa hardcoded de seções (animName → {x, y, count, frameW=64, frameH=96}).
+   - Para cada seção, recorta `count` células 64×96 a partir de (x, y), salva como `player-<anim><i>.png` em `public/assets/sprites/`.
+   - Detecta o offset inicial de cada banda automaticamente procurando o primeiro pixel não-transparente (robustez contra ajuste fino dos Y).
+   - Reduz para o padrão atual (idle 6, walk 8, run 8, jump 4, fall 3, dash 4, attack 6, hurt 2, interact 3, burnout 4) **amostrando frames uniformemente** para não quebrar o `Player.ts` (que indexa por `Math.floor(now/N) % count`).
+2. Rodar `scripts/normalize-frames.py` para padronizar para 48×64 com pés alinhados (já existe e é o que o resto do jogo espera).
+3. Rodar `scripts/check-sprites.mjs` para garantir que todos têm alpha.
+4. Rodar `scripts/pack-atlas.py` para reempacotar `atlas.png` + `atlas.json`.
+5. Atualizar `mem://design/player-sprite` com a origem do novo sheet.
 
-## Risco
+### 4. Validações gerais
+- Abrir o preview e verificar idle/walk/run/jump/fall/dash/attack visualmente.
+- Conferir alinhamento dos pés (já corrigido via `setOffset(14, 28)`).
+- Build TS deve passar (sem mudança de API).
 
-Baixo. Só sobrescreve PNGs (regeneráveis a partir dos boards originais em `public/assets/sprites/ChatGPT Image *.png`). Nenhuma alteração de gameplay. Se algum frame ficar mal ancorado, basta rerodar com bbox ajustada.
+## Arquivos tocados
+- `src/game/scenes/ClassSelectScene.ts` (1 linha)
+- `src/game/scenes/MenuScene.ts` (1 item de menu)
+- `scripts/extract-player-from-sheet.py` (novo)
+- ~41 PNGs em `public/assets/sprites/player-*.png` (regerados)
+- `public/assets/atlas.png` + `public/assets/atlas.json` (regerados)

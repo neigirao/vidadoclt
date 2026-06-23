@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
+import { noise2d } from "../systems/CorporateAI";
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
 // Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
@@ -16,9 +18,9 @@ function setEnemyTex(
   // idle/attack/hurt, and slow 2-frame alternation for walk so motion reads
   // without flicker.
   let frame = 0;
-  if (state === "walk") frame = Math.floor((t + offset) / 220) % 2 === 0 ? 0 : 2;
+  if (state === "walk") frame = Math.floor((t + offset) / 220) % 2;
   const key = `tex-${prefix}-${state}${frame}`;
-  if (e.texture.key !== key) e.setTexture(key);
+  applyTexture(e, key);
 }
 
 
@@ -27,7 +29,7 @@ export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
   damage = 12;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-inkproj");
+    super(scene, x, y, ...resolveSprite("tex-inkproj"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -44,7 +46,7 @@ export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
 // ─── Convite de Reunião (trap) ───────────────────────────────────────────────
 export class ConviteReuniao extends Phaser.GameObjects.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-convite");
+    super(scene, x, y, ...resolveSprite("tex-convite"));
     scene.add.existing(this);
     scene.tweens.add({
       targets: this, y: y + 14,
@@ -59,9 +61,11 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
   sanityDamage = 12;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-postit");
+    super(scene, x, y, "sprites", "item-postit-active0");
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(8);
+    this.setDisplaySize(20, 20);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(14, 14);
     body.setAllowGravity(false);
@@ -72,7 +76,8 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
     const speed = 190;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-    this.scene.time.delayedCall(3200, () => { if (this.active) this.destroy(); });
+    const tween = this.scene.tweens.add({ targets: this, angle: 360, duration: 600, repeat: -1 });
+    this.scene.time.delayedCall(3200, () => { tween.stop(); if (this.active) this.destroy(); });
   }
 }
 
@@ -83,17 +88,21 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   dir: 1 | -1;
   private _frozen = 0;
   private _hurtUntil = 0;
+  // Unique noise offset so each instance wanders independently
+  private _noiseOffset: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number, dir: 1 | -1 = -1) {
-    super(scene, x, y, "tex-estagiario-idle0");
+    super(scene, x, y, ...resolveSprite("tex-estagiario-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(20, 28);
-    body.setOffset(1, 1);
+    body.setOffset(14, 36); // sprite 48×64: x=(48-20)/2, y=64-28
     body.setCollideWorldBounds(true);
     this.dir = dir;
     this.setFlipX(dir === -1);
+    this._noiseOffset = Math.random() * 1000;
   }
 
   preUpdate(t: number, dt: number) {
@@ -103,14 +112,27 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
       setEnemyTex(this, t, "estagiario", "hurt");
       return;
     }
+
+    // Organic wandering via Simplex noise:
+    // x-axis: slow spatial variation → speed multiplier (0.6–1.4)
+    // y-axis: time → spontaneous direction flips when noise dips below -0.8
+    const n = noise2d(this._noiseOffset + this.x * 0.004, t * 0.00025);
+    const speedMult = 0.7 + (n + 1) * 0.35; // maps [-1,1] → [0.7, 1.4]
+
     if (body.blocked.left) {
       this.dir = 1;
       this.setFlipX(false);
     } else if (body.blocked.right) {
       this.dir = -1;
       this.setFlipX(true);
+    } else if (n < -0.82) {
+      // Noise-driven spontaneous turn (feels like second-guessing)
+      this.dir = this.dir === 1 ? -1 : 1;
+      this.setFlipX(this.dir === -1);
     }
-    body.setVelocityX(this.dir * this.speed);
+
+    body.setVelocityX(this.dir * this.speed * speedMult);
+
     if (t < this._hurtUntil) {
       setEnemyTex(this, t, "estagiario", "hurt");
     } else {
@@ -147,11 +169,13 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
   onShoot?: (fx: number, fy: number, tx: number, ty: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-facilitador-idle0");
+    super(scene, x, y, ...resolveSprite("tex-facilitador-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 36);
+    body.setOffset(12, 28); // sprite 48×64: x=(48-24)/2, y=64-36
     body.setCollideWorldBounds(true);
   }
 
@@ -251,11 +275,13 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   onRetrospectiva?: (fromX: number, fromY: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-scrum-idle0");
+    super(scene, x, y, ...resolveSprite("tex-scrum-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(26, 34);
+    body.setOffset(11, 30); // sprite 48×64: x=(48-26)/2, y=64-34
     body.setCollideWorldBounds(true);
   }
 
@@ -398,11 +424,14 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   target?: { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-coordenador-idle0");
+    // Band-aid: usa sprites limpos do enemy-coordenador até ter arte nova do boss
+    super(scene, x, y, ...resolveSprite("tex-coordenador-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(28, 40);
+    body.setSize(32, 48);
+    body.setOffset(8, 16); // sprite 48×64: x=(48-32)/2, y=64-48
     body.setCollideWorldBounds(true);
   }
 
@@ -473,11 +502,13 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-senior-idle0");
+    super(scene, x, y, ...resolveSprite("tex-senior-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(30, 44);
+    body.setSize(22, 36);
+    body.setOffset(13, 26); // sprite 48×64: x=(48-22)/2, y=64-36-2
     body.setCollideWorldBounds(true);
   }
 
@@ -579,6 +610,121 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
 
+// ─── EnemyRH (Analista de RH) ─────────────────────────────────────────────────
+export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
+  hp = 55;
+  contactDamage = 8;
+  speed = 85;
+  dir: 1 | -1 = -1;
+  private aiState: "walk" | "telegraph" | "swing" | "recover" = "walk";
+  private stateUntil = 0;
+  private _frozen = 0;
+  private _hurtUntil = 0;
+  swingHitbox: Phaser.Geom.Rectangle | null = null;
+  swingActive = false;
+  swingDamage = 18;
+
+  target?: Phaser.GameObjects.GameObject & { x: number; y: number };
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, ...resolveSprite("tex-rh-idle0"));
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(22, 34);
+    body.setOffset(11, 30); // sprite ~48×64: x=(48-22)/2, y=64-34
+    body.setCollideWorldBounds(true);
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) { return; }
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      if (Math.abs(dx) < 300) this.dir = dx >= 0 ? 1 : -1;
+    }
+    this.setFlipX(this.dir === -1);
+
+    switch (this.aiState) {
+      case "walk": {
+        body.setVelocityX(this.dir * this.speed);
+        if (this.target && Math.abs(this.target.x - this.x) < 48) {
+          this.aiState = "telegraph";
+          this.stateUntil = t + 380;
+          this.setTint(0xff88bb);
+          body.setVelocityX(0);
+        }
+        break;
+      }
+      case "telegraph": {
+        body.setVelocityX(0);
+        if (t >= this.stateUntil) {
+          this.aiState = "swing";
+          this.stateUntil = t + 150;
+          this.clearTint();
+          this.setTint(0xff3377);
+          this.swingHitbox = new Phaser.Geom.Rectangle(
+            this.dir === 1 ? this.x + 6 : this.x - 38,
+            this.y - 10,
+            32,
+            30,
+          );
+          this.swingActive = true;
+        }
+        break;
+      }
+      case "swing": {
+        body.setVelocityX(0);
+        if (t >= this.stateUntil) {
+          this.aiState = "recover";
+          this.stateUntil = t + 500;
+          this.swingActive = false;
+          this.swingHitbox = null;
+          this.clearTint();
+        }
+        break;
+      }
+      case "recover": {
+        body.setVelocityX(0);
+        if (t >= this.stateUntil) this.aiState = "walk";
+        break;
+      }
+    }
+    // Animate texture
+    if (t < this._hurtUntil) {
+      setEnemyTex(this, t, "rh", "hurt");
+    } else if (this.aiState === "telegraph" || this.aiState === "swing") {
+      setEnemyTex(this, t, "rh", "attack");
+    } else if (this.aiState === "walk") {
+      setEnemyTex(this, t, "rh", "walk");
+    } else {
+      setEnemyTex(this, t, "rh", "idle");
+    }
+  }
+
+  hit(damage: number, knockback: number) {
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
+    this.hp -= damage;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocityX(knockback);
+    body.setVelocityY(-190);
+    if (this.aiState === "swing" || this.aiState === "telegraph") {
+      this.aiState = "recover";
+      this.stateUntil = now + 350;
+      this.swingActive = false;
+      this.swingHitbox = null;
+    }
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+}
+
 export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   hp = 30;
   contactDamage = 0;
@@ -596,12 +742,13 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, "tex-analista-idle0");
+    super(scene, x, y, ...resolveSprite("tex-analista-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 36);
-    body.setOffset(2, 1);
+    body.setOffset(12, 28); // sprite 48×64: x=(48-24)/2, y=64-36
     body.setCollideWorldBounds(true);
   }
 

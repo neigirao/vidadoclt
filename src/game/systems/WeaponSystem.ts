@@ -9,7 +9,8 @@ export type WeaponId =
 export type SpecialType =
   | "burst_ranged" | "wide_sweep" | "aerial_spike" | "throw_weapon"
   | "emp_pulse" | "paper_spread" | "caneca_arc" | "wide_beam"
-  | "spray_knockback" | "chain_lightning";
+  | "spray_knockback" | "chain_lightning"
+  | "heal_pulse" | "dash_strike" | "clock_slow";
 
 export type WeaponDef = {
   id: WeaponId;

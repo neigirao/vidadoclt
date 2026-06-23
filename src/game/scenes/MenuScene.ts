@@ -53,8 +53,8 @@ export class MenuScene extends Phaser.Scene {
   private drawBackground() {
     const g = this.add.graphics();
 
-    // Left panel overlay — covers the reference image's title so ours shows
-    g.fillStyle(BG_PANEL, 0.92);
+    // Left panel — fully opaque to hide any UI baked into the background image
+    g.fillStyle(BG_PANEL, 1);
     g.fillRect(0, 0, 320, GAME_HEIGHT);
 
     // Subtle scanline on left panel only
@@ -300,7 +300,12 @@ export class MenuScene extends Phaser.Scene {
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("ClassSelectScene");
       });
+    } else if (item.label === "RANKING") {
+      this.cameras.main.fadeOut(200, 0, 0, 0);
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        this.scene.start("RankingScene");
+      });
     }
-    // Outros itens: no-op por enquanto (ranking, arsenal, conquistas, config)
+    // Arsenal, Conquistas, Configurações: no-op por enquanto
   }
 }

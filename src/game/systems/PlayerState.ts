@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { PerkId } from "./PerkSystem";
 import { WeaponId } from "./WeaponSystem";
+import { generateSeed } from "./RNG";
 
 const LS_RECNH = "vidadoclt_recnh";
 const LS_FGTS  = "vidadoclt_fgts";
@@ -14,6 +15,7 @@ export type RunState = {
   fgts: number;
   loopCount: number;
   autonomia: boolean;
+  seed: string;
   cameFrom?: string;
   sourcePhase?: string;
   nextScene?: string;
@@ -51,6 +53,7 @@ export function getRun(scene: Phaser.Scene): RunState {
       fgts: lsGet(LS_FGTS),
       loopCount: lsGet(LS_LOOPS),
       autonomia: false,
+      seed: generateSeed(),
       perks: [],
       extraLives: 0,
       cafeForte: false,
@@ -71,6 +74,7 @@ export function resetRun(scene: Phaser.Scene): RunState {
     fgts: old.fgts,
     loopCount: old.loopCount,
     autonomia: false,
+    seed: generateSeed(),
     characterClass: old.characterClass,
     perks: [],
     extraLives: 0,
