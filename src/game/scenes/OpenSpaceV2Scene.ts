@@ -348,8 +348,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       frequency:     160,
       maxAliveParticles: 90,
       gravityY:      6,   // gentle resistance — float, then drift back
-      depth:         2,
-    });
+    }).setDepth(2);
 
     // Layer 2 — lazy motes: fewer, larger, longer-lived
     this.add.particles(0, zoneTop + 40, "__WHITE", {
