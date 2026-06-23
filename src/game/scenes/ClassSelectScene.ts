@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { CLASSES, ClassId, WEAPONS } from "../systems/WeaponSystem";
 import { getRun } from "../systems/PlayerState";
+import { applyRunSeed } from "../systems/RNG";
 
 const CLASS_IDS: ClassId[] = ["estagiario", "analista", "terceirizado"];
 const CARD_W = 240;
@@ -22,6 +23,10 @@ export class ClassSelectScene extends Phaser.Scene {
 
   create() {
     this.cards = [];
+
+    // Seed all RNG for this run — must happen before any Phaser.Math.Between call
+    const run = getRun(this);
+    applyRunSeed(run.seed);
 
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0d0f14);
 

@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """Reempacota o atlas com PIL (substitui scripts/pack-atlas.mjs quando sharp não está disponível)."""
 from PIL import Image
-import os, json, glob
+import os, json, glob, re
 
 SPRITES_DIR = "public/assets/sprites"
 OUT_PNG = "public/assets/atlas.png"
 OUT_JSON = "public/assets/atlas.json"
 PAD = 2
-ATLAS_W = 512
+ATLAS_W = 2048
+SPRITE_RE = re.compile(r"^(player|enemy|boss|obj|item|npc|tile|bg)[-_].+\.png$")
 
 files = sorted(glob.glob(os.path.join(SPRITES_DIR, "*.png")))
 sprites = []
 for f in files:
+    if not SPRITE_RE.match(os.path.basename(f)):
+        continue
     im = Image.open(f).convert("RGBA")
     if im.size[0] > ATLAS_W:
         continue
@@ -34,6 +37,20 @@ atlas = Image.new("RGBA", (ATLAS_W, ATLAS_H), (0, 0, 0, 0))
 for s in sprites:
     atlas.paste(s["im"], (s["x"], s["y"]), s["im"])
 atlas.save(OUT_PNG, optimize=True)
+
+# Lossy palette quantization para manter o atlas abaixo do limite de 10MB
+# (commit-size cap do repo). pngquant produz PNG paletizado com alpha,
+# Phaser carrega normalmente. Sem isso, ~993 sprites RGBA viram ~20MB.
+import subprocess, shutil
+try:
+    subprocess.run(
+        ["nix", "run", "nixpkgs#pngquant", "--",
+         "--quality=70-90", "--speed", "3", "--strip", "--force",
+         "--output", OUT_PNG, OUT_PNG],
+        check=True,
+    )
+except Exception as e:
+    print(f"[pack-atlas] pngquant falhou ({e}); atlas mantido sem compressão")
 
 frames = []
 for s in sprites:

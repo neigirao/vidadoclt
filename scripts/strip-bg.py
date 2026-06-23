@@ -12,6 +12,16 @@ FILES = [
     "obj-monitor-broken.png",
     "obj-monitor-use.png",
     "obj-ponto.png",
+    "enemy-analista-death2.png",
+    "enemy-coordenador-attack0.png",
+    "enemy-facilitador-attack0.png",
+    "enemy-gerente-attack-escopo3.png",
+    "enemy-gerente-death1.png",
+    "enemy-scrum-attack0.png",
+    "enemy-scrum-idle1.png",
+    "enemy-scrum-idle3.png",
+    "enemy-senior-attack1.png",
+    "enemy-rh-attack1.png",
 ]
 DIR = "public/assets/sprites"
 TOL2 = 30 * 30  # tolerância de cor (distância euclidiana ao quadrado)

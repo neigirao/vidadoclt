@@ -6,6 +6,7 @@ import { Player } from "../entities/Player";
 import {
   EstagiarioDesesperado,
   AnalistaJunior,
+  EnemyRH,
   FacilitadorDeWorkshop,
   PostIt,
   ScrumMasterCaotico,
@@ -33,6 +34,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private scrums!: Phaser.Physics.Arcade.Group;
   private coordenadores!: Phaser.Physics.Arcade.Group;
   private seniors!: Phaser.Physics.Arcade.Group;
+  private rhs!: Phaser.Physics.Arcade.Group;
   private postits!: Phaser.Physics.Arcade.Group;
   private emails!: Phaser.Physics.Arcade.Group;
   private inkProjectiles!: Phaser.Physics.Arcade.Group;
@@ -42,6 +44,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private startTimeMs = 0;
   private fx!: SanityFx;
   private hud!: Hud;
+  private shadowG!: Phaser.GameObjects.Graphics;
   private doorCopa!: Phaser.GameObjects.Image;
   private doorLabel!: Phaser.GameObjects.Text;
   private interactKey!: Phaser.Input.Keyboard.Key;
@@ -61,6 +64,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
     addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
+    this.spawnDustParticles();
 
     // Office bay decoratives
     [80, 340, 600, 860, 1120, 1380, 1640, 1880].forEach(x => {
@@ -182,7 +186,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           this.spawnProjectile({ x: fx + facing * 20, y: fy - 10, velX: facing * 700, damage: def.hitDamages[1] * 2 });
           break;
         case "emp_pulse":
-          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g =>
+          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
             g?.getChildren().forEach(e => (e as Phaser.Physics.Arcade.Sprite & { applyFreeze?: (ms: number) => void }).applyFreeze?.(1200))
           );
           break;
@@ -193,7 +197,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           this.resolveAttack(new Phaser.Geom.Rectangle(fx + facing * 20 - 20, fy - 20, 80, 40), 3);
           break;
         case "clock_slow":
-          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g =>
+          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
             g?.getChildren().forEach(e => (e as Phaser.Physics.Arcade.Sprite & { applySlowdown?: (ms: number) => void }).applySlowdown?.(2500))
           );
           break;
@@ -207,6 +211,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.scrums       = this.physics.add.group({ runChildUpdate: false });
     this.coordenadores = this.physics.add.group({ runChildUpdate: false });
     this.seniors      = this.physics.add.group({ runChildUpdate: false });
+    this.rhs          = this.physics.add.group({ runChildUpdate: false });
     this.postits      = this.physics.add.group();
     this.emails       = this.physics.add.group();
     this.inkProjectiles = this.physics.add.group();
@@ -222,12 +227,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     // Colliders: enemy groups land on platform surfaces
     [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
-     this.coordenadores, this.seniors, this.drops].forEach(g =>
+     this.coordenadores, this.seniors, this.rhs, this.drops].forEach(g =>
       this.physics.add.collider(g, this.platforms)
     );
     // Inimigos respeitam a mesma física do player: não atravessam os corpos das mesas
     [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
-     this.coordenadores, this.seniors].forEach(g =>
+     this.coordenadores, this.seniors, this.rhs].forEach(g =>
       this.physics.add.collider(g, this.furnitureBodies)
     );
 
@@ -243,6 +248,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     contactDamage(this.scrums,       (e) => (e as ScrumMasterCaotico).contactDamage);
     contactDamage(this.coordenadores,(e) => (e as CoordenadorDeSinergia).contactDamage);
     contactDamage(this.seniors,      (e) => (e as AnalistaSeniorExausto).contactDamage);
+    contactDamage(this.rhs,          (e) => (e as EnemyRH).contactDamage);
 
     this.physics.add.overlap(this.player, this.postits, (_p, pObj) => {
       const p = pObj as PostIt;
@@ -273,7 +279,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const inkDmgGroups: [Phaser.Physics.Arcade.Group, number][] = [
       [this.estagiarios, 1], [this.analistas, 3], [this.facilitadores, 2],
-      [this.scrums, 2], [this.coordenadores, 4], [this.seniors, 6],
+      [this.scrums, 2], [this.coordenadores, 4], [this.seniors, 6], [this.rhs, 3],
     ];
     inkDmgGroups.forEach(([group, vrDrop]) => {
       this.physics.add.overlap(this.inkProjectiles, group, (inkObj, enemyObj) => {
@@ -313,13 +319,60 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     this.fx  = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
+    this.shadowG = this.add.graphics().setDepth(5);
+
+    // #5 Camera flash + #6 Chromatic aberration on player hit
+    this.player.onHit = () => {
+      this.cameras.main.flash(60, 255, 20, 20, false);
+      this.fx.triggerChromaticHit();
+    };
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE  [v2]");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
   }
 
+  private spawnDustParticles(): void {
+    const zoneTop  = HUD_TOP_H + 20;
+    const zoneBot  = FLOOR_Y   - 20;
+    const zoneH    = zoneBot - zoneTop;
+
+    // Layer 1 — fine dust: many tiny specks drifting upward very slowly
+    this.add.particles(0, zoneTop, "__WHITE", {
+      x:             { min: 0, max: LEVEL_WIDTH },
+      y:             { min: 0, max: zoneH },
+      speedX:        { min: -10, max: 10 },
+      speedY:        { min: -14, max: -3 },
+      lifespan:      { min: 7000, max: 13000 },
+      alpha:         { start: 0.06, end: 0 },
+      scale:         { min: 0.5,   max: 1.2 },
+      tint:          [0xd4c8a0, 0xe8d8b0, 0xfff4d0],
+      frequency:     160,
+      maxAliveParticles: 90,
+      gravityY:      6,   // gentle resistance — float, then drift back
+      depth:         2,
+    });
+
+    // Layer 2 — lazy motes: fewer, larger, longer-lived
+    this.add.particles(0, zoneTop + 40, "__WHITE", {
+      x:             { min: 0, max: LEVEL_WIDTH },
+      y:             { min: 0, max: zoneH - 80 },
+      speedX:        { min: -5, max: 5 },
+      speedY:        { min: -7, max: -1 },
+      lifespan:      { min: 12000, max: 22000 },
+      alpha:         { start: 0.09, end: 0 },
+      scale:         { min: 1.5, max: 3.0 },
+      tint:          [0xf0e8c8, 0xffe8c0],
+      frequency:     500,
+      maxAliveParticles: 28,
+      gravityY:      2,
+      depth:         2,
+    });
+  }
+
   private buildFloor(): void {
     this.add.tileSprite(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, "tex-floor").setDepth(8);
-    const fp = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, 0, 0);
+    // Physics body is 120px tall (starting at FLOOR_Y) so fast-falling objects
+    // never tunnel through the thin visual strip.
+    const fp = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 60, LEVEL_WIDTH, 120, 0, 0);
     this.physics.add.existing(fp, true);
     this.platforms.add(fp);
   }
@@ -422,6 +475,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.estagiarios.add(e);
     });
 
+    [600, 900, 1300].forEach(x => {
+      const rh = new EnemyRH(this, x, FLOOR_Y - 60);
+      rh.target = this.player;
+      this.rhs.add(rh);
+    });
+
     const coord = new CoordenadorDeSinergia(this, 1620, FLOOR_Y - 60);
     coord.target = this.player;
     this.coordenadores.add(coord);
@@ -458,6 +517,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       const flash = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0.35)
         .setScrollFactor(0).setDepth(990);
       this.tweens.add({ targets: flash, alpha: 0, duration: 600, onComplete: () => flash.destroy() });
+      // #4 Glow: reddish tint on boss in phase 2
+      boss.setTint(0xff7755);
     };
     boss.onDied = () => this.handleBossDefeat(boss);
     this.boss = boss;
@@ -474,6 +535,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   }
 
   private handleBossDefeat(boss: GerenteMicrogestor): void {
+    if (this.bossDefeated) return;
     this.bossDefeated = true;
     getRun(this).openSpaceCleared = true;
     this.hud.hideBoss();
@@ -506,6 +568,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     this.doorCopa.clearTint();
     this.doorLabel.setText("COPA").setColor("#c9a36a");
+
+    // #9 Hover: door label bobs to signal the way out
+    this.tweens.add({
+      targets: this.doorLabel,
+      y: this.doorLabel.y - 5,
+      duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut",
+    });
 
     const msg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30,
       "GERENTE DERROTADO!\n\nPerk: AUTONOMIA ativado\n\nPorta da Copa desbloqueada ->",
@@ -554,6 +623,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         const e = cast(c);
         if (!e.active || !tryHit(e)) return;
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
+        this.spawnHitSparks(e.x, e.y - 10, step >= comboHits);
         const dmgText = this.add.text(e.x, e.y - 20, `-${damage}`, {
           fontFamily: "monospace", fontSize: "11px", fontStyle: "bold",
           color: step >= comboHits ? "#ff4444" : "#ffcc44",
@@ -574,15 +644,35 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     hitGroup(this.scrums,        2, c => c as ScrumMasterCaotico);
     hitGroup(this.coordenadores, 4, c => c as CoordenadorDeSinergia);
     hitGroup(this.seniors,       6, c => c as AnalistaSeniorExausto);
+    hitGroup(this.rhs,           3, c => c as EnemyRH);
 
     if (this.boss?.active && tryHit(this.boss)) {
+      this.spawnHitSparks(this.boss.x, this.boss.y - 10, step >= comboHits);
       const dmgText = this.add.text(this.boss.x, this.boss.y - 20, `-${damage}`, {
         fontFamily: "monospace", fontSize: "11px", fontStyle: "bold",
         color: step >= comboHits ? "#ff4444" : "#ffcc44", stroke: "#000000", strokeThickness: 2,
       }).setOrigin(0.5).setDepth(600);
       this.tweens.add({ targets: dmgText, y: dmgText.y - 28, alpha: 0, duration: 500, onComplete: () => dmgText.destroy() });
-      this.boss.hit(damage, knockback);
+      const died = this.boss.hit(damage, knockback);
+      if (died) return;
     }
+  }
+
+  private spawnHitSparks(x: number, y: number, finisher: boolean): void {
+    const count = finisher ? 10 : 5;
+    const tints = finisher ? [0xff4444, 0xff8800] : [0xffcc44, 0xffffff];
+    const emitter = this.add.particles(x, y, "__WHITE", {
+      lifespan: finisher ? 300 : 200,
+      speed: { min: 60, max: finisher ? 200 : 130 },
+      angle: { min: -160, max: -20 },
+      scale: { start: finisher ? 1.1 : 0.7, end: 0 },
+      alpha: { start: 1, end: 0 },
+      tint: tints,
+      gravityY: 600,
+      depth: 600,
+    });
+    emitter.explode(count);
+    this.time.delayedCall(400, () => { if (emitter.scene) emitter.destroy(); });
   }
 
   private spawnProjectile(opts: {
@@ -603,11 +693,17 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private dropVR(x: number, y: number, count = 1): void {
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(x + (i - count / 2) * 8, y - 10, "tex-vr") as Phaser.Physics.Arcade.Sprite;
-      d.setDepth(8);
+      d.setDepth(8).setTint(0xffd700);
       const body = d.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(Phaser.Math.Between(-120, 120), Phaser.Math.Between(-260, -160));
       body.setBounce(0.4);
       body.setDrag(120, 0);
+      // #4 Glow + #9 Hover: after drop settles, pulse scale
+      this.time.delayedCall(700, () => {
+        if (d.active && d.scene) {
+          this.tweens.add({ targets: d, scaleX: 1.25, scaleY: 1.25, duration: 480, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+        }
+      });
     }
   }
 
@@ -623,7 +719,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       if (lifetime && lifetime < time) { ink.destroy(); return; }
       if (!ink.getData("homing")) return;
       const allEnemies: Phaser.Physics.Arcade.Sprite[] = [];
-      [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors].forEach(g =>
+      [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
         g?.getChildren().forEach(e => allEnemies.push(e as Phaser.Physics.Arcade.Sprite))
       );
       const nearest = allEnemies.filter(e => e.active).sort((a, b) =>
@@ -659,6 +755,17 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       }
     });
 
+    // EnemyRH melee hitbox
+    this.rhs.getChildren().forEach(c => {
+      const rh = c as EnemyRH;
+      if (rh.swingActive && rh.swingHitbox && !this.player.isInvulnerable(time) &&
+          Phaser.Geom.Intersects.RectangleToRectangle(rh.swingHitbox, this.player.getBounds())) {
+        this.player.takeDamage(rh.swingDamage, 5, rh.x);
+        rh.swingActive = false;
+        rh.swingHitbox = null;
+      }
+    });
+
     // Boss melee + walk contact
     if (this.boss?.active) {
       if (this.boss.swingActive && this.boss.swingHitbox && !this.player.isInvulnerable(time) &&
@@ -671,6 +778,26 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
         this.player.takeDamage(this.boss.contactDamage, 3, this.boss.x);
       }
+    }
+
+    // #8 Fake shadows: ellipses drawn just below each entity's feet
+    this.shadowG.clear();
+    this.shadowG.fillStyle(0x000000, 0.22);
+    const pb = this.player.body as Phaser.Physics.Arcade.Body;
+    const pLift = Math.max(0, FLOOR_Y - pb.bottom);
+    this.shadowG.fillEllipse(this.player.x, Math.min(pb.bottom, FLOOR_Y) + 4, Math.max(10, 32 - pLift * 0.14), Math.max(2, 6 - pLift * 0.03));
+    [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
+      g.getChildren().forEach(c => {
+        const e = c as Phaser.Physics.Arcade.Sprite;
+        if (!e.active) return;
+        const eb = e.body as Phaser.Physics.Arcade.Body;
+        this.shadowG.fillEllipse(e.x, Math.min(eb.bottom, FLOOR_Y) + 4, 26, 5);
+      })
+    );
+    if (this.boss?.active) {
+      const bb = this.boss.body as Phaser.Physics.Arcade.Body;
+      const bLift = Math.max(0, FLOOR_Y - bb.bottom);
+      this.shadowG.fillEllipse(this.boss.x, Math.min(bb.bottom, FLOOR_Y) + 4, Math.max(14, 44 - bLift * 0.1), Math.max(3, 8 - bLift * 0.03));
     }
 
     this.fx.update(time, this.player.sanity);

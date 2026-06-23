@@ -54,6 +54,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private speedMultUntil = 0;
   private speedMult = 0.4;
+  private dashTrailTimer = 0;
 
   private jumpsUsed = 0;
   private specialCooldownUntil = 0;
@@ -76,6 +77,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   onAttack?: (hitbox: Phaser.Geom.Rectangle, step: number) => void;
   onDeath?: (cause: "burnout" | "energy") => void;
+  onHit?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-player-idle"));
@@ -83,8 +85,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(20, 34);
-    body.setOffset(14, 28); // 48×64 sprite: feet a PAD_BOTTOM=2 do fundo → body bottom = pés visíveis
+    body.setSize(22, 44);
+    body.setOffset(29, 34); // 80×80 sprite: x=(80-22)/2, y=80-44-2
     body.setCollideWorldBounds(true);
     body.setMaxVelocity(800, 1400);
 
@@ -135,6 +137,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.invulnUntil = now + HIT_INVULN_MS;
     this.setTint(0xff8888);
     this.scene.time.delayedCall(120, () => this.clearTint());
+    this.onHit?.();
     // knockback — push away from hit source (or away from facing if no source given)
     const pushDir = fromX !== undefined ? (this.x < fromX ? -1 : 1) : -this.facing;
     const body = this.body as Phaser.Physics.Arcade.Body;
@@ -199,6 +202,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (time < this.dashUntil) {
       body.setVelocityX(this.facing * DASH_SPEED);
       body.setVelocityY(0); // freeze Y during dash so player doesn't fall
+      // Ghost trail: one afterimage every 35ms
+      if (time >= this.dashTrailTimer) {
+        this.dashTrailTimer = time + 35;
+        const ghost = this.scene.add.image(this.x, this.y, this.texture.key, this.frame.name)
+          .setDepth(this.depth - 1)
+          .setAlpha(0.45)
+          .setFlipX(this.flipX)
+          .setDisplaySize(this.displayWidth, this.displayHeight)
+          .setTint(0x88ccff);
+        this.scene.tweens.add({ targets: ghost, alpha: 0, duration: 160, onComplete: () => ghost.destroy() });
+      }
     } else {
       if (left && !right) {
         body.setVelocityX(-curSpeed);
@@ -297,7 +311,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       const f = Math.min(2, Math.floor((now - this.lastAttackAt) / 100));
       key = `tex-player-attack${f}`;       // attack0 → 1 → 2
     } else if (!onGround) {
-      key = body.velocity.y < -60 ? 'tex-player-jump1' : 'tex-player-fall0';
+      if (body.velocity.y < -60) {
+        key = `tex-player-jump${Math.floor(now / 80) % 6}`;  // subindo (6 frames)
+      } else {
+        key = `tex-player-fall${Math.floor(now / 80) % 7}`;  // caindo (7 frames)
+      }
     } else if (speed > 300) {
       key = `tex-player-run${Math.floor(now / 90) % 8}`;   // ciclo de corrida (8)
     } else if (speed > 60) {
