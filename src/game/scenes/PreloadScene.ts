@@ -30,24 +30,14 @@ export class PreloadScene extends Phaser.Scene {
 
   // ─── Asset loading ────────────────────────────────────────────────────────
   preload() {
-    this.load.image("bg-menu",        "/assets/bg-menu.png");
-    this.load.image("bg-openspace",   "/assets/bg-openspace.png");
-    this.load.image("bg-atendimento", "/assets/bg-atendimento.png");
-    this.load.image("bg-comercial",   "/assets/bg-comercial.png");
-    this.load.image("bg-produto",     "/assets/bg-produto.png");
-    this.load.image("bg-tecnologia",  "/assets/bg-tecnologia.png");
-    this.load.image("bg-rh",          "/assets/bg-rh.png");
-    this.load.image("bg-compliance",  "/assets/bg-compliance.png");
-    this.load.image("bg-diretoria",   "/assets/bg-diretoria.png");
-    this.load.image("bg-presidencia", "/assets/bg-presidencia.png");
-    this.load.image("bg-cobertura",   "/assets/bg-cobertura.png");
-    this.load.image("bg-copa",        "/assets/bg-copa.png");
-    this.load.image("tex-floor",      "/assets/sprites/tile-floor.png");
-    this.load.image("tex-vr",         "/assets/sprites/item-vr-coin.png");
-    this.load.image("tex-inkproj",    "/assets/sprites/item-inkproj.png");
-    this.load.image("tex-coffee",     "/assets/sprites/item-coffee-cup.png");
-    this.load.image("tex-door",       "/assets/sprites/obj-door.png");
-    this.load.image("tex-ponto",      "/assets/sprites/obj-ponto.png");
+    // Only what's needed before the menu — gameplay backgrounds load per-scene
+    this.load.image("bg-menu",   "/assets/bg-menu.png");
+    this.load.image("tex-floor", "/assets/sprites/tile-floor.png");
+    this.load.image("tex-vr",    "/assets/sprites/item-vr-coin.png");
+    this.load.image("tex-inkproj", "/assets/sprites/item-inkproj.png");
+    this.load.image("tex-coffee", "/assets/sprites/item-coffee-cup.png");
+    this.load.image("tex-door",  "/assets/sprites/obj-door.png");
+    this.load.image("tex-ponto", "/assets/sprites/obj-ponto.png");
     this.load.atlas("sprites", "/assets/atlas.png", "/assets/atlas.json");
 
     this.load.on("progress", (v: number) => { this.loadProgress = v; });

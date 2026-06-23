@@ -348,8 +348,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       frequency:     160,
       maxAliveParticles: 90,
       gravityY:      6,   // gentle resistance — float, then drift back
-      depth:         2,
-    });
+    }).setDepth(2);
 
     // Layer 2 — lazy motes: fewer, larger, longer-lived
     this.add.particles(0, zoneTop + 40, "__WHITE", {
@@ -364,8 +363,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       frequency:     500,
       maxAliveParticles: 28,
       gravityY:      2,
-      depth:         2,
-    });
+    }).setDepth(2);
   }
 
   private buildFloor(): void {
@@ -669,8 +667,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       alpha: { start: 1, end: 0 },
       tint: tints,
       gravityY: 600,
-      depth: 600,
-    });
+    }).setDepth(600);
     emitter.explode(count);
     this.time.delayedCall(400, () => { if (emitter.scene) emitter.destroy(); });
   }

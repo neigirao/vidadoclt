@@ -1,8 +1,5 @@
 import Phaser from "phaser";
-// seedrandom is a transitive dependency — declare types inline
-declare function seedrandom(seed: string): () => number;
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const _seedrandom = require("seedrandom") as typeof seedrandom;
+import seedrandom from "seedrandom";
 
 // Thematic seed prefixes — corporate Brazilian slang
 const PREFIXES = [
@@ -30,5 +27,5 @@ export function generateSeed(): string {
  */
 export function applyRunSeed(seed: string): void {
   Phaser.Math.RND.sow([seed]);
-  Math.random = _seedrandom(seed);
+  Math.random = seedrandom(seed);
 }

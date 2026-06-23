@@ -34,6 +34,10 @@ export class CeoScene extends Phaser.Scene {
     super("CeoScene");
   }
 
+  preload() {
+    this.load.image("bg-cobertura", "/assets/bg-cobertura.png");
+  }
+
   create() {
     const run = getRun(this);
     this.platIdx = 0;
