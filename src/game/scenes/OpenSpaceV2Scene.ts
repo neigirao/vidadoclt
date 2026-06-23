@@ -63,6 +63,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
     addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
+    this.spawnDustParticles();
 
     // Office bay decoratives
     [80, 340, 600, 860, 1120, 1380, 1640, 1880].forEach(x => {
@@ -319,6 +320,44 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE  [v2]");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
+  }
+
+  private spawnDustParticles(): void {
+    const zoneTop  = HUD_TOP_H + 20;
+    const zoneBot  = FLOOR_Y   - 20;
+    const zoneH    = zoneBot - zoneTop;
+
+    // Layer 1 — fine dust: many tiny specks drifting upward very slowly
+    this.add.particles(0, zoneTop, "__WHITE", {
+      x:             { min: 0, max: LEVEL_WIDTH },
+      y:             { min: 0, max: zoneH },
+      speedX:        { min: -10, max: 10 },
+      speedY:        { min: -14, max: -3 },
+      lifespan:      { min: 7000, max: 13000 },
+      alpha:         { start: 0.06, end: 0 },
+      scale:         { min: 0.5,   max: 1.2 },
+      tint:          [0xd4c8a0, 0xe8d8b0, 0xfff4d0],
+      frequency:     160,
+      maxAliveParticles: 90,
+      gravityY:      6,   // gentle resistance — float, then drift back
+      depth:         2,
+    });
+
+    // Layer 2 — lazy motes: fewer, larger, longer-lived
+    this.add.particles(0, zoneTop + 40, "__WHITE", {
+      x:             { min: 0, max: LEVEL_WIDTH },
+      y:             { min: 0, max: zoneH - 80 },
+      speedX:        { min: -5, max: 5 },
+      speedY:        { min: -7, max: -1 },
+      lifespan:      { min: 12000, max: 22000 },
+      alpha:         { start: 0.09, end: 0 },
+      scale:         { min: 1.5, max: 3.0 },
+      tint:          [0xf0e8c8, 0xffe8c0],
+      frequency:     500,
+      maxAliveParticles: 28,
+      gravityY:      2,
+      depth:         2,
+    });
   }
 
   private buildFloor(): void {
