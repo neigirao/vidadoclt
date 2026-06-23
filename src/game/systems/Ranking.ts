@@ -18,7 +18,6 @@ export type SubmitScore = Omit<ScoreEntry, "id" | "created_at">;
  */
 export function phaseLabel(sceneName: string): string {
   const map: Record<string, string> = {
-    OpenSpaceScene: "Fase 1",
     OpenSpaceV2Scene: "Fase 1",
     Phase2Scene: "Fase 2",
     Phase3Scene: "Fase 3",

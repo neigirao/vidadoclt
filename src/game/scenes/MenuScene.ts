@@ -12,7 +12,6 @@ const BG_MENU = 0x1a1d23;
 
 const MENU_ITEMS = [
   { label: "JOGAR", icon: "▶" },
-  { label: "JOGAR V2", icon: "▶" },
   { label: "RANKING", icon: "🏆" },
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
@@ -296,9 +295,7 @@ export class MenuScene extends Phaser.Scene {
 
   private confirm() {
     const item = MENU_ITEMS[this.selectedIndex];
-    if (item.label === "JOGAR" || item.label === "JOGAR V2") {
-      const run = getRun(this);
-      run.v2Mode = item.label === "JOGAR V2";
+    if (item.label === "JOGAR") {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("ClassSelectScene");

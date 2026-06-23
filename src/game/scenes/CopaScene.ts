@@ -147,7 +147,7 @@ export class CopaScene extends Phaser.Scene {
     // Remember which phase the player came from (set by phase scenes via cameFrom).
     // Persist into sourcePhase so it survives subsequent transitions.
     const phaseBackMap: Record<string, string> = {
-      openspace: "OpenSpaceScene",
+      openspace: "OpenSpaceV2Scene",
       phase2:    "Phase2Scene",
       phase3:    "Phase3Scene",
       phase4:    "Phase4Scene",
@@ -168,7 +168,7 @@ export class CopaScene extends Phaser.Scene {
       const r = getRun(this);
       r.reconhecimento += Math.floor(r.vr * 0.5);
       r.vr = 0;
-      const dest = r.nextScene ?? "OpenSpaceScene";
+      const dest = r.nextScene ?? "OpenSpaceV2Scene";
       r.cameFrom = "copa"; // preserve energy/sanity on the next phase
       r.nextScene = undefined;
       this.scene.start(dest);

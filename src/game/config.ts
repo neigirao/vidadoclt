@@ -3,7 +3,6 @@ import { PreloadScene } from "./scenes/PreloadScene";
 import { BootScene } from "./scenes/BootScene";
 import { MenuScene } from "./scenes/MenuScene";
 import { ClassSelectScene } from "./scenes/ClassSelectScene";
-import { OpenSpaceScene } from "./scenes/OpenSpaceScene";
 import { OpenSpaceV2Scene } from "./scenes/OpenSpaceV2Scene";
 import { CopaScene } from "./scenes/CopaScene";
 import { GameOverScene } from "./scenes/GameOverScene";
@@ -39,7 +38,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
     },
     scene: [
       PreloadScene, BootScene, MenuScene, ClassSelectScene,
-      OpenSpaceScene, OpenSpaceV2Scene, CopaScene,
+      OpenSpaceV2Scene, CopaScene,
       Phase2Scene, Phase3Scene, Phase4Scene, Phase5Scene,
       CeoScene, VitoriaScene,
       GameOverScene, RankingScene,

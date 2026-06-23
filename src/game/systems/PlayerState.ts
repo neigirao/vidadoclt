@@ -27,7 +27,6 @@ export type RunState = {
   shopWeapons?: WeaponId[];
   shopPerks?: PerkId[];
   openSpaceCleared?: boolean;
-  v2Mode?: boolean;
 };
 
 function lsGet(key: string): number {
