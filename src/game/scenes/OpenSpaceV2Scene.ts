@@ -217,6 +217,20 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.inkProjectiles = this.physics.add.group();
     this.drops        = this.physics.add.group();
 
+    // Pre-populate projectile pools
+    for (let i = 0; i < 8; i++) {
+      const p = new PostIt(this, -9999, -9999);
+      p.setActive(false).setVisible(false);
+      (p.body as Phaser.Physics.Arcade.Body).enable = false;
+      this.postits.add(p);
+    }
+    for (let i = 0; i < 6; i++) {
+      const e = new EmailProjectil(this, -9999, -9999);
+      e.setActive(false).setVisible(false);
+      (e.body as Phaser.Physics.Arcade.Body).enable = false;
+      this.emails.add(e);
+    }
+
     if (run.openSpaceCleared === true) {
       this.bossDefeated = true;
       this.doorCopa.clearTint();
@@ -254,14 +268,16 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       const p = pObj as PostIt;
       if (!p.active || this.player.isInvulnerable(this.time.now)) return;
       this.player.sanity = Math.max(0, this.player.sanity - p.sanityDamage);
-      p.destroy();
+      p.setActive(false).setVisible(false);
+      (p.body as Phaser.Physics.Arcade.Body).enable = false;
     });
 
     this.physics.add.overlap(this.player, this.emails, (_p, eObj) => {
       const e = eObj as EmailProjectil;
       if (!e.active || this.player.isInvulnerable(this.time.now)) return;
       this.player.takeDamage(e.damage, 0);
-      e.destroy();
+      e.setActive(false).setVisible(false);
+      (e.body as Phaser.Physics.Arcade.Body).enable = false;
     });
 
     this.physics.add.collider(this.inkProjectiles, this.platforms, (inkObj) => {
@@ -445,8 +461,14 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       const f = new FacilitadorDeWorkshop(this, x, FLOOR_Y - 60);
       f.target = this.player;
       f.onShoot = (fx, fy, tx, ty) => {
-        const p = new PostIt(this, fx, fy);
-        this.postits.add(p);
+        let p = this.postits.getFirstDead(false) as PostIt | null;
+        if (!p) {
+          p = new PostIt(this, fx, fy);
+          this.postits.add(p);
+        } else {
+          p.setPosition(fx, fy).setActive(true).setVisible(true);
+          (p.body as Phaser.Physics.Arcade.Body).enable = true;
+        }
         p.fire(tx, ty);
       };
       this.facilitadores.add(f);
@@ -495,8 +517,14 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     };
     boss.onHpChange = (hp) => this.hud.updateBoss(hp);
     boss.onShoot = (fx, fy, tx, ty) => {
-      const e = new EmailProjectil(this, fx, fy);
-      this.emails.add(e);
+      let e = this.emails.getFirstDead(false) as EmailProjectil | null;
+      if (!e) {
+        e = new EmailProjectil(this, fx, fy);
+        this.emails.add(e);
+      } else {
+        e.setPosition(fx, fy).setActive(true).setVisible(true);
+        (e.body as Phaser.Physics.Arcade.Body).enable = true;
+      }
       e.fire(tx, ty);
     };
     boss.onPull = (targetX) => {
@@ -707,6 +735,20 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   update(time: number, delta: number) {
     this.player.update(time, delta);
     this.player.tickPassive(time);
+
+    // Physics body sleep: disable body for enemies far off-screen to save CPU
+    const camBounds = this.cameras.main.worldView;
+    const padding = 300; // px beyond viewport
+    for (const group of [this.estagiarios, this.analistas, this.facilitadores,
+                          this.scrums, this.coordenadores, this.seniors, this.rhs]) {
+      group.getChildren().forEach((child) => {
+        const sprite = child as Phaser.Physics.Arcade.Sprite;
+        if (!sprite.active) return;
+        const inView = sprite.x > camBounds.left - padding &&
+                       sprite.x < camBounds.right + padding;
+        if (sprite.body) (sprite.body as Phaser.Physics.Arcade.Body).enable = inView;
+      });
+    }
 
     // Homing projectile steering
     this.inkProjectiles.getChildren().forEach(obj => {

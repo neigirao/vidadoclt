@@ -144,8 +144,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setVelocityY(-200);
     body.setVelocityX(pushDir * 280);
 
-    if (this.energy <= 0) this.onDeath?.("energy");
-    else if (this.sanity <= 0) this.onDeath?.("burnout");
+    // Camera shake on hit — stronger when low on energy
+    const cam = this.scene.cameras?.main;
+    if (cam) {
+      const intensity = this.energy < 25 ? 0.008 : 0.005;
+      cam.shake(80, intensity);
+    }
+
+    if (this.energy <= 0) {
+      if (cam) cam.shake(300, 0.015);
+      this.onDeath?.("energy");
+    } else if (this.sanity <= 0) {
+      if (cam) cam.shake(300, 0.015);
+      this.onDeath?.("burnout");
+    }
   }
 
   drainSanity(amount: number) {

@@ -13,7 +13,12 @@ export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     body.setSize(20, 14);
-    scene.time.delayedCall(3800, () => { if (this.active) this.destroy(); });
+    scene.time.delayedCall(3800, () => {
+      if (this.active) {
+        this.setActive(false).setVisible(false);
+        (this.body as Phaser.Physics.Arcade.Body).enable = false;
+      }
+    });
   }
 
   fire(toX: number, toY: number) {

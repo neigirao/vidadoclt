@@ -77,7 +77,13 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
     const tween = this.scene.tweens.add({ targets: this, angle: 360, duration: 600, repeat: -1 });
-    this.scene.time.delayedCall(3200, () => { tween.stop(); if (this.active) this.destroy(); });
+    this.scene.time.delayedCall(3200, () => {
+      tween.stop();
+      if (this.active) {
+        this.setActive(false).setVisible(false);
+        (this.body as Phaser.Physics.Arcade.Body).enable = false;
+      }
+    });
   }
 }
 

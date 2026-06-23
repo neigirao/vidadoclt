@@ -17,6 +17,10 @@ import { GAME_WIDTH, GAME_HEIGHT } from "./constants";
 
 export { GAME_WIDTH, GAME_HEIGHT, COLORS } from "./constants";
 
+const _debugMode = new URLSearchParams(
+  typeof location !== "undefined" ? location.search : ""
+).has("debug");
+
 export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConfig {
   return {
     type: Phaser.AUTO,
@@ -25,6 +29,17 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
     height: GAME_HEIGHT,
     backgroundColor: "#2a2d33",
     pixelArt: true,
+    render: {
+      roundPixels: true,
+      antialias: false,
+    },
+    input: {
+      gamepad: true,
+      keyboard: true,
+    },
+    audio: {
+      disableWebAudio: false,
+    },
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -33,7 +48,9 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       default: "arcade",
       arcade: {
         gravity: { x: 0, y: 1200 },
-        debug: false,
+        debug: _debugMode,
+        debugBodyColor: 0x00ff00,
+        debugVelocityColor: 0xffff00,
       },
     },
     scene: [
