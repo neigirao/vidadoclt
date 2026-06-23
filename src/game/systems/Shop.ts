@@ -5,6 +5,36 @@ import { WEAPONS, WeaponId, WeaponDef } from "./WeaponSystem";
 import { PERKS, PerkId, applyPerk } from "./PerkSystem";
 import { Player } from "../entities/Player";
 
+export type ConsumableId = "cafe_triplo" | "pausa_5min";
+
+export type ConsumableDef = {
+  id: ConsumableId;
+  label: string;
+  basePrice: number;
+  healAmount: number;
+  healAmountWithPerk: number;
+  statHealed: "sanity" | "energy";
+};
+
+export const CONSUMABLES: Record<ConsumableId, ConsumableDef> = {
+  cafe_triplo: {
+    id: "cafe_triplo",
+    label: "Café Triplo",
+    basePrice: 4,
+    healAmount: 30,
+    healAmountWithPerk: 45,
+    statHealed: "energy",
+  },
+  pausa_5min: {
+    id: "pausa_5min",
+    label: "Pausa de 5min",
+    basePrice: 6,
+    healAmount: 40,
+    healAmountWithPerk: 60,
+    statHealed: "sanity",
+  },
+};
+
 const RARITY_COLORS: Record<string, string> = {
   comum:    "#aaaaaa",
   raro:     "#4488ff",
@@ -106,13 +136,13 @@ export class ShopUI {
     this.items = [];
 
     // Consumíveis
-    const cafeBase = 4;
-    const cafeHeal = run.cafeForte ? 45 : 30;
+    const cafe = CONSUMABLES.cafe_triplo;
+    const cafeHeal = run.cafeForte ? cafe.healAmountWithPerk : cafe.healAmount;
     this.items.push({
       key: "cafe",
-      label: `Café Triplo (+${cafeHeal} Energia)`,
+      label: `${cafe.label} (+${cafeHeal} Energia)`,
       description: run.cafeForte ? "Café Forte ativo: cura bônus!" : "Restaura Energia.",
-      cost: cafeBase,
+      cost: cafe.basePrice,
       apply: (_r, shop) => {
         if (shop.player) {
           shop.player.energy = Math.min(shop.player.maxEnergy, shop.player.energy + cafeHeal);
@@ -120,13 +150,13 @@ export class ShopUI {
       },
     });
 
-    const pausaBase = 6;
-    const pausaHeal = run.cafeForte ? 60 : 40;
+    const pausa = CONSUMABLES.pausa_5min;
+    const pausaHeal = run.cafeForte ? pausa.healAmountWithPerk : pausa.healAmount;
     this.items.push({
       key: "pausa",
-      label: `Pausa de 5min (+${pausaHeal} Sanidade)`,
+      label: `${pausa.label} (+${pausaHeal} Sanidade)`,
       description: run.cafeForte ? "Café Forte ativo: cura bônus!" : "Restaura Sanidade.",
-      cost: pausaBase,
+      cost: pausa.basePrice,
       apply: (_r, shop) => {
         if (shop.player) {
           shop.player.sanity = Math.min(shop.player.maxSanity, shop.player.sanity + pausaHeal);
