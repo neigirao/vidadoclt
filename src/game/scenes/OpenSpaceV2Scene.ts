@@ -667,8 +667,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       alpha: { start: 1, end: 0 },
       tint: tints,
       gravityY: 600,
-      depth: 600,
-    });
+    }).setDepth(600);
     emitter.explode(count);
     this.time.delayedCall(400, () => { if (emitter.scene) emitter.destroy(); });
   }
