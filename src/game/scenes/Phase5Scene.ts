@@ -43,6 +43,10 @@ export class Phase5Scene extends Phaser.Scene {
     super("Phase5Scene");
   }
 
+  preload() {
+    this.load.image("bg-diretoria", "/assets/bg-diretoria.png");
+  }
+
   create() {
     const run = getRun(this);
     this.platIdx = 0;

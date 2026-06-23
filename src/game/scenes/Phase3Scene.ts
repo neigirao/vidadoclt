@@ -45,6 +45,10 @@ export class Phase3Scene extends Phaser.Scene {
     super("Phase3Scene");
   }
 
+  preload() {
+    this.load.image("bg-comercial", "/assets/bg-comercial.png");
+  }
+
   create() {
     const run = getRun(this);
     this.platIdx = 0;
