@@ -3,6 +3,14 @@ import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { CLASSES, ClassId, WEAPONS } from "../systems/WeaponSystem";
 import { getRun } from "../systems/PlayerState";
 import { applyRunSeed } from "../systems/RNG";
+import { resolveSprite } from "../systems/SpriteLibrary";
+
+const BG_PANEL   = 0x12151a;
+const BG_CARD    = 0x1a1d23;
+const ACCENT     = 0xf2a800;
+const TEXT_LIGHT = "#eaeaea";
+const TEXT_DIM   = "#888888";
+const TEXT_ACCENT = "#f2a800";
 
 const CLASS_IDS: ClassId[] = ["estagiario", "analista", "terceirizado"];
 const CARD_W = 240;
@@ -28,20 +36,32 @@ export class ClassSelectScene extends Phaser.Scene {
     const run = getRun(this);
     applyRunSeed(run.seed);
 
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0d0f14);
+    // Background — match MenuScene palette
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, BG_PANEL);
+    if (this.textures.exists("bg-menu")) {
+      this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
+        .setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setAlpha(0.18).setDepth(-1);
+    }
 
     // Scanlines overlay
     const scan = this.add.graphics();
-    scan.lineStyle(1, 0x000000, 0.12);
+    scan.lineStyle(1, 0x000000, 0.1);
     for (let y = 0; y < GAME_HEIGHT; y += 4) scan.lineBetween(0, y, GAME_WIDTH, y);
 
-    this.add.text(GAME_WIDTH / 2, 26, "ESCOLHA SUA FUNCAO", {
-      fontFamily: "monospace", fontSize: "22px", fontStyle: "bold",
-      color: "#f2a800", stroke: "#000000", strokeThickness: 3,
+    // Header bar
+    const hdrG = this.add.graphics();
+    hdrG.fillStyle(BG_CARD, 1);
+    hdrG.fillRect(0, 0, GAME_WIDTH, 46);
+    hdrG.lineStyle(1, ACCENT, 0.6);
+    hdrG.lineBetween(0, 46, GAME_WIDTH, 46);
+
+    this.add.text(GAME_WIDTH / 2, 14, "ESCOLHA SUA FUNÇÃO", {
+      fontFamily: "monospace", fontSize: "18px", fontStyle: "bold",
+      color: TEXT_ACCENT, stroke: "#000000", strokeThickness: 3,
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 54, "←  →  navegar     ENTER  confirmar", {
-      fontFamily: "monospace", fontSize: "10px", color: "#555555",
+    this.add.text(GAME_WIDTH / 2, 36, "←  →  navegar     ENTER / clique  confirmar", {
+      fontFamily: "monospace", fontSize: "8px", color: TEXT_DIM,
     }).setOrigin(0.5);
 
     this.cardY = Math.floor(GAME_HEIGHT / 2) + 28;
@@ -61,8 +81,8 @@ export class ClassSelectScene extends Phaser.Scene {
 
     this.refreshCards();
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 16, "[ ENTER ] ou clique no card para comecar", {
-      fontFamily: "monospace", fontSize: "9px", color: "#444444",
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 12, "[ ENTER ] ou clique no card para começar", {
+      fontFamily: "monospace", fontSize: "8px", color: "#333333",
     }).setOrigin(0.5);
 
     const kb = this.input.keyboard!;
@@ -94,128 +114,74 @@ export class ClassSelectScene extends Phaser.Scene {
 
     // [1] Color header stripe
     const hdr = this.add.graphics();
-    hdr.fillStyle(def.color, 1);
-    hdr.fillRect(-hw, -hh, CARD_W, 36);
+    hdr.fillStyle(def.color, 0.9);
+    hdr.fillRect(-hw, -hh, CARD_W, 32);
     container.add(hdr);
 
     // [2] Class label
     container.add(
-      this.add.text(0, -hh + 18, def.label.toUpperCase(), {
+      this.add.text(0, -hh + 16, def.label.toUpperCase(), {
         fontFamily: "monospace", fontSize: "13px", fontStyle: "bold",
         color: "#ffffff", stroke: "#000000", strokeThickness: 2,
       }).setOrigin(0.5),
     );
 
-    // [3] Pixel-art character preview
-    const spr = this.add.graphics();
-    const bx = -12;          // left edge (24px wide)
-    const ty = -hh + 44;     // top of character area
-    // Hair
-    spr.fillStyle(0x1a0c06, 1);
-    spr.fillRect(bx + 3, ty, 18, 4);
-    spr.fillRect(bx + 1, ty + 2, 22, 3);
-    // Face skin
-    spr.fillStyle(0xd4a07a, 1);
-    spr.fillRect(bx + 2, ty + 4, 20, 10);
-    // Hair fringe
-    spr.fillStyle(0x1a0c06, 1);
-    spr.fillRect(bx + 3, ty + 4, 18, 2);
-    // Glasses
-    spr.fillStyle(0x222222, 1);
-    spr.fillRect(bx + 3, ty + 7, 6, 4);
-    spr.fillRect(bx + 15, ty + 7, 6, 4);
-    spr.fillRect(bx + 9, ty + 8, 6, 1);
-    spr.fillStyle(0x88aacc, 0.4);
-    spr.fillRect(bx + 4, ty + 8, 4, 2);
-    spr.fillRect(bx + 16, ty + 8, 4, 2);
-    // Mouth
-    spr.fillStyle(0x8a6040, 1);
-    spr.fillRect(bx + 8, ty + 12, 8, 2);
-    // Neck
-    spr.fillStyle(0xd4a07a, 1);
-    spr.fillRect(bx + 9, ty + 14, 6, 3);
-    // White shirt
-    spr.fillStyle(0xe8e8e0, 1);
-    spr.fillRect(bx + 2, ty + 17, 20, 13);
-    // Collar flaps
-    spr.fillRect(bx + 2, ty + 17, 5, 5);
-    spr.fillRect(bx + 17, ty + 17, 5, 5);
-    // Tie in class color
-    spr.fillStyle(def.color, 1);
-    spr.fillRect(bx + 9, ty + 17, 6, 12);
-    spr.fillRect(bx + 8, ty + 23, 8, 5);
-    // Belt
-    spr.fillStyle(0x1a1208, 1);
-    spr.fillRect(bx + 2, ty + 30, 20, 2);
-    // Buckle
-    spr.fillStyle(0xc8a800, 1);
-    spr.fillRect(bx + 9, ty + 30, 6, 2);
-    // Trousers
-    spr.fillStyle(0x1a2030, 1);
-    spr.fillRect(bx + 2, ty + 32, 9, 10);
-    spr.fillRect(bx + 13, ty + 32, 9, 10);
-    // Shoes
-    spr.fillStyle(0x14100a, 1);
-    spr.fillRect(bx + 1, ty + 42, 11, 3);
-    spr.fillRect(bx + 12, ty + 42, 11, 3);
-    container.add(spr);
+    // [3] Player sprite preview using real atlas sprite
+    const classIdx = CLASS_IDS.indexOf(classId);
+    const idleFrame = `tex-player-idle${classIdx + 1}`;
+    const charSpr = this.add.image(0, -hh + 90, ...resolveSprite(idleFrame))
+      .setDisplaySize(72, 72).setTint(def.color);
+    container.add(charSpr);
 
     // [4] Stat bars
     const barG = this.add.graphics();
     const barX = -hw + 14;
     const barW = CARD_W - 28;
-    const barsTop = -hh + 110;
+    const barsTop = -hh + 142;
     const drawBar = (yOff: number, fill: number, color: number) => {
-      barG.fillStyle(0x1a1a1a, 1);
-      barG.fillRect(barX, barsTop + yOff, barW, 6);
+      barG.fillStyle(0x0a0d12, 1);
+      barG.fillRect(barX, barsTop + yOff, barW, 7);
       barG.fillStyle(color, 1);
-      barG.fillRect(barX, barsTop + yOff, Math.max(4, Math.floor(barW * Math.min(fill, 1))), 6);
+      barG.fillRect(barX, barsTop + yOff, Math.max(4, Math.floor(barW * Math.min(fill, 1))), 7);
     };
     drawBar(0,  def.maxEnergy / 130,  0xdd4444);
-    drawBar(18, def.maxSanity / 120,  0x44ddaa);
-    drawBar(36, def.speedMult / 1.2,  0x4488ff);
+    drawBar(20, def.maxSanity / 120,  0x44ddaa);
+    drawBar(40, def.speedMult / 1.2,  0x4488ff);
     container.add(barG);
 
-    // [5,6,7] Stat labels with values
-    const lblStyle = (color: string) => ({
-      fontFamily: "monospace", fontSize: "8px", color,
-    });
-    container.add(
-      this.add.text(barX, barsTop - 10, `ENERGIA  ${def.maxEnergy}`, lblStyle("#dd6666")),
-    );
-    container.add(
-      this.add.text(barX, barsTop + 8, `SANIDADE ${def.maxSanity}`, lblStyle("#44ddaa")),
-    );
-    container.add(
-      this.add.text(barX, barsTop + 26, `VELOCIDADE ${def.speedMult >= 1 ? "+" : ""}${Math.round((def.speedMult - 1) * 100)}%`, lblStyle("#4488ff")),
-    );
+    // [5,6,7] Stat labels
+    const lblStyle = (color: string) => ({ fontFamily: "monospace", fontSize: "8px", color });
+    container.add(this.add.text(barX, barsTop - 11, `ENERGIA  ${def.maxEnergy}`, lblStyle("#dd6666")));
+    container.add(this.add.text(barX, barsTop + 9,  `SANIDADE ${def.maxSanity}`, lblStyle("#44ddaa")));
+    container.add(this.add.text(barX, barsTop + 29,
+      `VELOCIDADE ${def.speedMult >= 1 ? "+" : ""}${Math.round((def.speedMult - 1) * 100)}%`, lblStyle("#4488ff")));
 
     // [8] Description
     container.add(
-      this.add.text(0, -hh + 170, def.description, {
-        fontFamily: "monospace", fontSize: "10px", color: "#aaaaaa",
+      this.add.text(0, -hh + 200, def.description, {
+        fontFamily: "monospace", fontSize: "9px", color: TEXT_DIM,
         align: "center", wordWrap: { width: CARD_W - 20 },
       }).setOrigin(0.5, 0),
     );
 
     // [9] Weapon
     container.add(
-      this.add.text(0, hh - 70, `Arma: ${weapon.name}`, {
-        fontFamily: "monospace", fontSize: "11px", fontStyle: "bold", color: "#f2a800",
+      this.add.text(0, hh - 68, `⚔ ${weapon.name}`, {
+        fontFamily: "monospace", fontSize: "10px", fontStyle: "bold", color: TEXT_ACCENT,
       }).setOrigin(0.5, 0),
     );
 
     // [10] Trait
     container.add(
       this.add.text(0, hh - 48, def.trait, {
-        fontFamily: "monospace", fontSize: "10px", color: "#88ff88",
+        fontFamily: "monospace", fontSize: "9px", color: "#88ff88",
       }).setOrigin(0.5, 0),
     );
 
     // [11] Confirm hint
     container.add(
-      this.add.text(0, hh - 22, "ENTER para jogar", {
-        fontFamily: "monospace", fontSize: "9px", color: "#555555",
+      this.add.text(0, hh - 18, "[ ENTER ] para jogar", {
+        fontFamily: "monospace", fontSize: "8px", color: "#444444",
       }).setOrigin(0.5, 0),
     );
 
@@ -227,21 +193,25 @@ export class ClassSelectScene extends Phaser.Scene {
     const hh = CARD_H / 2;
     this.cards.forEach((container, i) => {
       const bg = container.getAt(0) as Phaser.GameObjects.Graphics;
+      const charSpr = container.getAt(3) as Phaser.GameObjects.Image;
+      const def = CLASSES[CLASS_IDS[i]];
       const selected = i === this.selectedIndex;
       bg.clear();
       if (selected) {
-        bg.fillStyle(0x1e2128, 1);
+        bg.fillStyle(BG_CARD, 1);
         bg.fillRect(-hw, -hh, CARD_W, CARD_H);
-        bg.lineStyle(3, 0xf2a800, 1);
-        bg.strokeRect(-hw, -hh, CARD_W, CARD_H);
+        bg.lineStyle(2, ACCENT, 1);
+        bg.strokeRect(-hw + 1, -hh + 1, CARD_W - 2, CARD_H - 2);
+        charSpr.clearTint();
         container.setAlpha(1);
         container.setY(this.cardY - 8);
       } else {
-        bg.fillStyle(0x12151a, 1);
+        bg.fillStyle(BG_PANEL, 1);
         bg.fillRect(-hw, -hh, CARD_W, CARD_H);
-        bg.lineStyle(1, 0x2a2a2a, 1);
+        bg.lineStyle(1, 0x252830, 1);
         bg.strokeRect(-hw, -hh, CARD_W, CARD_H);
-        container.setAlpha(0.5);
+        charSpr.setTint(def.color);
+        container.setAlpha(0.48);
         container.setY(this.cardY);
       }
     });

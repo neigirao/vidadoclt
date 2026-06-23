@@ -26,9 +26,12 @@ export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
 // ─── Gerente Microgestor ─────────────────────────────────────────────────────
 type BossAttack = "follow_up" | "alinhamento" | "atualizacao" | "reuniao" | "freeze" | "deadline";
 
+const BOSS_HIT_INVULN_MS = 350;
+
 export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   hp = 500;
   maxHp = 500;
+  private _invulnUntil = 0;
   contactDamage = 10;
   dir: 1 | -1 = -1;
 
@@ -267,6 +270,9 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
   hit(damage: number, knockback: number): boolean {
     if (this.bossState === "waiting") return false;
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this._invulnUntil = now + BOSS_HIT_INVULN_MS;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.08);
