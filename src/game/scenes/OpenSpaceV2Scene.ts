@@ -363,8 +363,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       frequency:     500,
       maxAliveParticles: 28,
       gravityY:      2,
-      depth:         2,
-    });
+    }).setDepth(2);
   }
 
   private buildFloor(): void {
