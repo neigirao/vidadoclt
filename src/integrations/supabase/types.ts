@@ -16,36 +16,37 @@ export type Database = {
     Tables: {
       scores: {
         Row: {
-          id: string;
-          apelido: string;
-          reconhecimento: number;
-          loop_count: number;
-          reached_phase: string;
-          seed: string;
-          character_class: string | null;
-          created_at: string;
-        };
+          apelido: string
+          character_class: string | null
+          created_at: string
+          id: string
+          loop_count: number
+          reached_phase: string
+          reconhecimento: number
+          seed: string
+        }
         Insert: {
-          id?: string;
-          apelido?: string;
-          reconhecimento?: number;
-          loop_count?: number;
-          reached_phase?: string;
-          seed?: string;
-          character_class?: string | null;
-          created_at?: string;
-        };
+          apelido?: string
+          character_class?: string | null
+          created_at?: string
+          id?: string
+          loop_count?: number
+          reached_phase?: string
+          reconhecimento?: number
+          seed?: string
+        }
         Update: {
-          id?: string;
-          apelido?: string;
-          reconhecimento?: number;
-          loop_count?: number;
-          reached_phase?: string;
-          seed?: string;
-          character_class?: string | null;
-          created_at?: string;
-        };
-      };
+          apelido?: string
+          character_class?: string | null
+          created_at?: string
+          id?: string
+          loop_count?: number
+          reached_phase?: string
+          reconhecimento?: number
+          seed?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
