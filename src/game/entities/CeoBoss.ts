@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { resolveSprite } from "../systems/SpriteLibrary";
+import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 
 const HIT_INVULN_MS = 400;
 
@@ -40,6 +40,12 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   private _nextDemissaoAt = 0;
   private _nextSpreadAt = 0;
 
+  // Animation
+  private _animState: "run" | "attack" | "special" = "run";
+  private _animFrame = 0;
+  private _animNextAt = 0;
+  private _animLockUntil = 0;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-ceo"));
     scene.add.existing(this);
@@ -57,6 +63,40 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     this._nextParachuteAt = now + 4000;
     this._nextDemissaoAt = now + 6000;
     this._nextSpreadAt = now + 3000;
+  }
+
+  private _applyAnimFrame(t: number) {
+    let prefix: string;
+    let count: number;
+    let interval: number;
+    if (this._animState === "attack") { prefix = "boss-ceo-attack"; count = 4; interval = 80; }
+    else if (this._animState === "special") { prefix = "boss-ceo-special"; count = 4; interval = 90; }
+    else { prefix = "boss-ceo-run"; count = 6; interval = this._charging ? 60 : 110; }
+
+    if (t >= this._animNextAt) {
+      this._animNextAt = t + interval;
+      if (this._animState !== "run") {
+        // play once, then return to run
+        this._animFrame++;
+        if (this._animFrame >= count) {
+          this._animFrame = 0;
+          this._animState = "run";
+          this._animLockUntil = 0;
+        }
+      } else {
+        this._animFrame = (this._animFrame + 1) % count;
+      }
+    }
+    const key = `tex-${prefix}${this._animFrame}`;
+    applyTexture(this, key);
+  }
+
+  private _triggerAnim(state: "attack" | "special") {
+    if (this.scene.time.now < this._animLockUntil) return;
+    this._animState = state;
+    this._animFrame = 0;
+    this._animNextAt = 0;
+    this._animLockUntil = this.scene.time.now + (state === "attack" ? 320 : 360);
   }
 
   preUpdate(t: number, dt: number) {
@@ -82,7 +122,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
       this._nextSpreadAt = t + 1500;
     }
 
-    if (t < this._frozen) { body.setVelocityX(0); return; }
+    if (t < this._frozen) { body.setVelocityX(0); this._applyAnimFrame(t); return; }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -96,6 +136,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
         this._charging = false;
         body.setVelocityX(0);
       }
+      this._applyAnimFrame(t);
       return;
     }
 
@@ -106,6 +147,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     if (this.phase >= 1) {
       if (t >= this._nextMeleeAt) {
         this._nextMeleeAt = t + 2500;
+        this._triggerAnim("attack");
         const hbX = this._dir === 1 ? this.x + 4 : this.x - 60;
         const hb = new Phaser.Geom.Rectangle(hbX, this.y - 20, 60, 40);
         this.swingHitbox = hb;
@@ -115,6 +157,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
       }
       if (t >= this._nextSummonAt) {
         this._nextSummonAt = t + 5000;
+        this._triggerAnim("special");
         const spawnX = this.x + (Math.random() > 0.5 ? 200 : -200);
         this.onSummon?.(spawnX, this.y);
       }
@@ -126,10 +169,12 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
         this._nextChargeAt = t + 2000;
         this._charging = true;
         this._chargeUntil = t + 300;
+        this._triggerAnim("attack");
         body.setVelocityX(this._dir * 400);
       }
       if (t >= this._nextParachuteAt) {
         this._nextParachuteAt = t + 4000;
+        this._triggerAnim("special");
         this.onGoldenParachute?.(this.x, this.y - 20);
       }
     }
@@ -138,13 +183,17 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     if (this.phase >= 3) {
       if (t >= this._nextDemissaoAt) {
         this._nextDemissaoAt = t + 6000;
+        this._triggerAnim("special");
         this.onDemissao?.();
       }
       if (t >= this._nextSpreadAt) {
         this._nextSpreadAt = t + 3000;
+        this._triggerAnim("special");
         this.onSpread?.(this.x, this.y - 10, this._dir);
       }
     }
+
+    this._applyAnimFrame(t);
   }
 
   hit(damage: number, knockback: number): boolean {

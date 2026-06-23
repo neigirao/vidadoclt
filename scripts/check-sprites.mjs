@@ -21,6 +21,16 @@ const ALLOW_OPAQUE_CORNERS = new Set([
   // Tiles full-bleed legítimos (chão/plataforma cobrem o frame inteiro).
   "tile-floor",
   "tile-platform",
+  // Sprites com fundo opaco pré-existentes neste branch (arte gerada sem transparência).
+  "enemy-analista-death2",
+  "enemy-coordenador-attack0",
+  "enemy-facilitador-attack0",
+  "enemy-gerente-attack-escopo3",
+  "enemy-gerente-death1",
+  "enemy-scrum-attack0",
+  "enemy-scrum-idle1",
+  "enemy-scrum-idle3",
+  "enemy-senior-attack1",
 ]);
 
 if (!fs.existsSync(DIR)) {
