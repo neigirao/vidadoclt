@@ -217,7 +217,7 @@ export class Phase5Scene extends Phaser.Scene {
     this.physics.add.existing(doorZone, true);
     this.physics.add.overlap(this.player, doorZone, () => {
       if (!this.allDefeated) return;
-      if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      if (Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed) {
         this.persist();
         const r = getRun(this);
         r.cameFrom = "phase5";

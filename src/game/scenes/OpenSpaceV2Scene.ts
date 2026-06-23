@@ -324,7 +324,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.physics.add.existing(doorZone, true);
     this.physics.add.overlap(this.player, doorZone, () => {
       if (!this.bossDefeated) return;
-      if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      if (Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed) {
         this.persist();
         const r = getRun(this);
         r.cameFrom = "openspace";

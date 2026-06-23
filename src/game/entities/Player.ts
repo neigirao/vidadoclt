@@ -61,6 +61,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevSpecialDown = false;
 
   private keys: PlayerKeys;
+  private pad: Phaser.Input.Gamepad.Gamepad | null = null;
   private lastGroundedAt = 0;
   private lastJumpPressedAt = -9999;
   private dashUntil = 0;
@@ -72,8 +73,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevJumpDown = false;
   private prevAttackDown = false;
   private prevDashDown = false;
+  private prevPadInteractDown = false;
   private lastSanityDrainAt = 0;
   private _frozenTintActive = false;
+
+  /** True for exactly one frame when the gamepad B button is pressed (interact).
+   *  Scenes that use keyboard E for interact can check this alongside JustDown. */
+  gamepadInteractJustPressed = false;
 
   onAttack?: (hitbox: Phaser.Geom.Rectangle, step: number) => void;
   onDeath?: (cause: "burnout" | "energy") => void;
@@ -105,6 +111,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.A).on("up", () => (this.holdA = false));
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.D).on("down", () => (this.holdD = true));
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.D).on("up", () => (this.holdD = false));
+
+    // Gamepad: listen for connection and capture already-connected pad
+    scene.input.gamepad?.on('connected', (pad: Phaser.Input.Gamepad.Gamepad) => {
+      this.pad = pad;
+    });
+    this.pad = scene.input.gamepad?.pad1 ?? null;
   }
 
   private holdA = false;
@@ -198,12 +210,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     const curSpeed = time < this.speedMultUntil ? this.walkSpeed * this.speedMult : this.walkSpeed;
 
-    const left = this.keys.left.isDown || this.holdA;
-    const right = this.keys.right.isDown || this.holdD;
-    const jumpDown = this.keys.jump.isDown || this.keys.jumpAlt.isDown;
-    const attackDown = this.keys.attack.isDown;
-    const dashDown = this.keys.dash.isDown;
-    const specialDown = this.keys.special.isDown;
+    // Gamepad input — prefer cached pad, fall back to pad1 if hot-plugged
+    const pad = this.pad ?? this.scene.input.gamepad?.pad1 ?? null;
+    const STICK_THRESHOLD = 0.3;
+    const stickLeft = (pad?.axes[0]?.getValue() ?? 0) < -STICK_THRESHOLD;
+    const stickRight = (pad?.axes[0]?.getValue() ?? 0) > STICK_THRESHOLD;
+
+    const left = this.keys.left.isDown || this.holdA || stickLeft || (pad?.left ?? false);
+    const right = this.keys.right.isDown || this.holdD || stickRight || (pad?.right ?? false);
+    const jumpDown = this.keys.jump.isDown || this.keys.jumpAlt.isDown || (pad?.A ?? false);
+    const attackDown = this.keys.attack.isDown || (pad?.X ?? false);
+    const dashDown = this.keys.dash.isDown || (pad?.R1 ?? false);
+    const specialDown = this.keys.special.isDown || (pad?.Y ?? false);
 
     const jumpPressed = jumpDown && !this.prevJumpDown;
     const attackPressed = attackDown && !this.prevAttackDown;
@@ -301,6 +319,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.prevJumpDown = jumpDown;
     this.prevAttackDown = attackDown;
     this.prevDashDown = dashDown;
+
+    // Gamepad interact (B button) — edge detection for scenes to consume
+    const padInteractDown = pad?.B ?? false;
+    this.gamepadInteractJustPressed = padInteractDown && !this.prevPadInteractDown;
+    this.prevPadInteractDown = padInteractDown;
 
     this.updateTexture(time);
   }

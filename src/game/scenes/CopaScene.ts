@@ -186,7 +186,7 @@ export class CopaScene extends Phaser.Scene {
     const doorBackZone = this.add.zone(40, FLOOR_Y - 30, 40, 60);
     this.physics.add.existing(doorBackZone, true);
     this.physics.add.overlap(this.player, doorBackZone, () => {
-      if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      if (Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed) {
         this.persist();
         const r = getRun(this);
         const src = r.sourcePhase ?? "openspace";
@@ -277,7 +277,7 @@ export class CopaScene extends Phaser.Scene {
     const nearCoffee = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.coffee.x, this.coffee.y) < 40;
     const nearPonto = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.ponto.x, this.ponto.y) < 40;
 
-    if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+    if (Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed) {
       if (nearCoffee && time >= this.coffeeReadyAt && this.player.vr >= 2) {
         this.player.vr -= 2;
         this.player.energy = Math.min(100, this.player.energy + 25);
