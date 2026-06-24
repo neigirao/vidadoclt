@@ -37,6 +37,8 @@ export class SanityFx {
 
   private chromaRed!: Phaser.GameObjects.Rectangle;
   private chromaCyan!: Phaser.GameObjects.Rectangle;
+  private scanlines: Phaser.GameObjects.Graphics;
+  private scanlinesBuilt = false;
 
   constructor(private scene: Phaser.Scene) {
     // WebGL filters only — Canvas renderer falls back to vignette-less mode
@@ -53,11 +55,24 @@ export class SanityFx {
     // Pixel-static noise kept as Graphics (30–80 dots, cheaper than a GPU texture alloc)
     this.noise = scene.add.graphics().setScrollFactor(0).setDepth(901);
 
+    // CRT scanlines: horizontal dark stripes every 2px, alpha 0 at rest
+    // Built once, alpha driven by stress level
+    this.scanlines = scene.add.graphics().setScrollFactor(0).setDepth(903).setAlpha(0);
+
     // Chromatic aberration: two full-screen tinted rects, alpha 0 at rest
     this.chromaRed  = scene.add.rectangle(GAME_WIDTH / 2 - 3, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0)
       .setScrollFactor(0).setDepth(902).setBlendMode(Phaser.BlendModes.ADD);
     this.chromaCyan = scene.add.rectangle(GAME_WIDTH / 2 + 3, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x00ffff, 0)
       .setScrollFactor(0).setDepth(902).setBlendMode(Phaser.BlendModes.ADD);
+  }
+
+  private buildScanlines(): void {
+    if (this.scanlinesBuilt) return;
+    this.scanlinesBuilt = true;
+    this.scanlines.fillStyle(0x000000, 0.5);
+    for (let y = 0; y < GAME_HEIGHT; y += 4) {
+      this.scanlines.fillRect(0, y, GAME_WIDTH, 2);
+    }
   }
 
   update(time: number, sanity: number) {
@@ -68,6 +83,15 @@ export class SanityFx {
     const stress = Math.max(0, Math.min(1, (100 - sanity) / 100));
 
     if (this.useFilters) this.updateFilters(stress);
+
+    // CRT scanlines — fade in starting at anxious, full at burnout
+    if (stress > 0.6) {
+      this.buildScanlines();
+      const scanAlpha = Math.min(1, (stress - 0.6) / 0.4) * 0.35;
+      this.scanlines.setAlpha(scanAlpha);
+    } else {
+      this.scanlines.setAlpha(0);
+    }
 
     // Periodic camera shake + pixel static
     if (band === "anxious" || band === "burnout") {
@@ -189,6 +213,7 @@ export class SanityFx {
       this.barrel.destroy();
     }
     this.noise.destroy();
+    this.scanlines.destroy();
     this.chromaRed.destroy();
     this.chromaCyan.destroy();
   }

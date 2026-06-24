@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { SpecialType } from "../systems/WeaponSystem";
+import { CombatFx } from "../systems/CombatFx";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -76,6 +77,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevPadInteractDown = false;
   private lastSanityDrainAt = 0;
   private _frozenTintActive = false;
+  private _wasOnGround = true;
 
   /** True for exactly one frame when the gamepad B button is pressed (interact).
    *  Scenes that use keyboard E for interact can check this alongside JustDown. */
@@ -147,8 +149,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.energy = Math.max(0, this.energy - amount);
     if (sanityHit) this.sanity = Math.max(0, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
-    this.setTint(0xff8888);
-    this.scene.time.delayedCall(120, () => this.clearTint());
+    CombatFx.flashSprite(this, 55);
+    this.scene.time.delayedCall(55, () => this.setTint(0xff8888));
+    this.scene.time.delayedCall(175, () => this.clearTint());
     this.onHit?.();
     // knockback — push away from hit source (or away from facing if no source given)
     const pushDir = fromX !== undefined ? (this.x < fromX ? -1 : 1) : -this.facing;
@@ -195,7 +198,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (onGround) {
       this.lastGroundedAt = time;
       this.jumpsUsed = 0;
+      if (!this._wasOnGround) CombatFx.landSquash(this);
     }
+    this._wasOnGround = onGround;
 
     // Freeze: no input, only gravity
     if (time < this.frozenUntil) {
@@ -265,6 +270,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(JUMP_VEL);
       this.lastJumpPressedAt = -9999;
       this.lastGroundedAt = -9999;
+      CombatFx.jumpStretch(this);
     }
     // variable jump cut
     if (!jumpDown && body.velocity.y < -200) {

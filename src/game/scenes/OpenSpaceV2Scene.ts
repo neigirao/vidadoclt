@@ -17,6 +17,7 @@ import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
+import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { addImage } from "../systems/SpriteLibrary";
@@ -43,6 +44,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private bossDefeated = false;
   private startTimeMs = 0;
   private fx!: SanityFx;
+  private combatFx!: CombatFx;
   private hud!: Hud;
   private shadowG!: Phaser.GameObjects.Graphics;
   private doorCopa!: Phaser.GameObjects.Image;
@@ -333,7 +335,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       }
     });
 
-    this.fx  = new SanityFx(this);
+    this.fx       = new SanityFx(this);
+    this.combatFx = new CombatFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.shadowG = this.add.graphics().setDepth(5);
 
@@ -650,12 +653,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         if (!e.active || !tryHit(e)) return;
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
         this.spawnHitSparks(e.x, e.y - 10, step >= comboHits);
-        const dmgText = this.add.text(e.x, e.y - 20, `-${damage}`, {
-          fontFamily: "monospace", fontSize: "11px", fontStyle: "bold",
-          color: step >= comboHits ? "#ff4444" : "#ffcc44",
-          stroke: "#000000", strokeThickness: 2,
-        }).setOrigin(0.5).setDepth(600);
-        this.tweens.add({ targets: dmgText, y: dmgText.y - 28, alpha: 0, duration: 500, onComplete: () => dmgText.destroy() });
+        CombatFx.flashSprite(e as unknown as Phaser.Physics.Arcade.Sprite, 55);
+        if (step >= comboHits) this.combatFx.hitStop(55);
+        this.combatFx.spawnDamageNumber(
+          e.x, e.y - 20, damage,
+          step >= comboHits ? "#ff4444" : "#ffcc44",
+          step >= comboHits,
+        );
         if (e.hit(damage, knockback)) {
           this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
           this.tweens.add({ targets: e, scaleX: 1.6, scaleY: 0.2, alpha: 0, duration: 120, onComplete: () => e.destroy() });
@@ -674,11 +678,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     if (this.boss?.active && tryHit(this.boss)) {
       this.spawnHitSparks(this.boss.x, this.boss.y - 10, step >= comboHits);
-      const dmgText = this.add.text(this.boss.x, this.boss.y - 20, `-${damage}`, {
-        fontFamily: "monospace", fontSize: "11px", fontStyle: "bold",
-        color: step >= comboHits ? "#ff4444" : "#ffcc44", stroke: "#000000", strokeThickness: 2,
-      }).setOrigin(0.5).setDepth(600);
-      this.tweens.add({ targets: dmgText, y: dmgText.y - 28, alpha: 0, duration: 500, onComplete: () => dmgText.destroy() });
+      CombatFx.flashSprite(this.boss as unknown as Phaser.Physics.Arcade.Sprite, 55);
+      if (step >= comboHits) this.combatFx.impactHeavy(65);
+      this.combatFx.spawnDamageNumber(
+        this.boss.x, this.boss.y - 20, damage,
+        step >= comboHits ? "#ff4444" : "#ffcc44",
+        step >= comboHits,
+      );
       const died = this.boss.hit(damage, knockback);
       if (died) return;
     }
