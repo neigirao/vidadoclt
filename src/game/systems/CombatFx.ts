@@ -95,11 +95,11 @@ export class CombatFx {
   // ── Sprite helpers (call on the sprite directly, not camera) ─────────────
 
   /**
-   * White hit-flash on a sprite: fill white for `durationMs` then restore.
-   * More impactful than a tint because it fills every pixel regardless of colour.
+   * Hit-flash on a sprite: briefly tints the sprite orange-white then clears.
+   * Uses setTint (modulate mode) — setTintFill was removed in Phaser 4.
    */
   static flashSprite(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite, durationMs = 60): void {
-    sprite.setTintFill(0xffffff);
+    sprite.setTint(0xffddaa);
     sprite.scene.time.delayedCall(durationMs, () => sprite.clearTint());
   }
 

@@ -44,10 +44,6 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    input: {
-      gamepad: true,
-      keyboard: true,
-    },
     physics: {
       default: "arcade",
       arcade: {

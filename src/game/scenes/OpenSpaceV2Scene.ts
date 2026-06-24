@@ -679,7 +679,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     if (this.boss?.active && tryHit(this.boss)) {
       this.spawnHitSparks(this.boss.x, this.boss.y - 10, step >= comboHits);
       CombatFx.flashSprite(this.boss as unknown as Phaser.Physics.Arcade.Sprite, 55);
-      if (step >= comboHits) this.combatFx.impactHeavy(65);
+      if (step >= comboHits) this.combatFx.hitHeavy();
       this.combatFx.spawnDamageNumber(
         this.boss.x, this.boss.y - 20, damage,
         step >= comboHits ? "#ff4444" : "#ffcc44",

@@ -381,8 +381,8 @@ export class Phase2Scene extends Phaser.Scene {
     this.boss = boss;
     this.physics.add.collider(boss, this.platforms);
     this.hud.showBoss("Coordenador de Sinergia", boss.hp);
+    boss.onHpChange = (hp) => this.hud.updateBoss(hp);
 
-    // Re-register ink vs boss now it's set
     this.physics.add.overlap(this.inkProjectiles, boss, (inkObj) => {
       const ink = inkObj as Phaser.Physics.Arcade.Sprite;
       if (!ink.active || !this.boss?.active) return;

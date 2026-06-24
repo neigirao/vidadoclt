@@ -31,6 +31,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   vr = 0;
 
   facing: 1 | -1 = 1;
+  baseWalkSpeed = WALK_SPEED;
 
   autonomia = false;
   frozenUntil = 0;
@@ -77,7 +78,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevPadInteractDown = false;
   private lastSanityDrainAt = 0;
   private _frozenTintActive = false;
-  private _wasOnGround = true;
 
   /** True for exactly one frame when the gamepad B button is pressed (interact).
    *  Scenes that use keyboard E for interact can check this alongside JustDown. */
@@ -198,9 +198,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (onGround) {
       this.lastGroundedAt = time;
       this.jumpsUsed = 0;
-      if (!this._wasOnGround) CombatFx.landSquash(this);
     }
-    this._wasOnGround = onGround;
 
     // Freeze: no input, only gravity
     if (time < this.frozenUntil) {
@@ -270,7 +268,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(JUMP_VEL);
       this.lastJumpPressedAt = -9999;
       this.lastGroundedAt = -9999;
-      CombatFx.jumpStretch(this);
     }
     // variable jump cut
     if (!jumpDown && body.velocity.y < -200) {

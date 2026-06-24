@@ -65,6 +65,14 @@ export function applyPerk(id: PerkId, player: Player, run: RunState) {
 }
 
 export function reapplyAllPerks(player: Player, run: RunState) {
+  // Reset multiplicative stats to base before stacking perks to prevent
+  // exponential growth when called multiple times (e.g. Copa → next phase)
+  player.damageMult  = 1.0;
+  player.walkSpeed   = player.baseWalkSpeed ?? 200;
+  player.vrDropMult  = 1.0;
+  player.autonomia   = false;
+  player.doubleJump  = false;
+
   for (const id of (run.perks ?? [])) {
     switch (id) {
       case "autonomia":       player.autonomia = true; break;

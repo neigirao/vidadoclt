@@ -428,6 +428,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   private nextBuffAt = 0;
 
   target?: { x: number; y: number };
+  onHpChange?: (hp: number, maxHp: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     // Band-aid: usa sprites limpos do enemy-coordenador até ter arte nova do boss
@@ -477,9 +478,10 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
 
   hit(damage: number, knockback: number) {
     const now = this.scene.time.now;
-    this._frozen = Math.max(this._frozen, now + 75);
+    this._frozen = Math.max(this._frozen, now + 110);
     this._hurtUntil = now + 180;
     this.hp -= damage;
+    this.onHpChange?.(this.hp, this.hp + damage);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.6);
     body.setVelocityY(-150);
@@ -506,6 +508,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   swingDamage = 35;
 
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
+  onHpChange?: (hp: number, maxHp: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-senior-idle0"));
@@ -598,9 +601,10 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
 
   hit(damage: number, knockback: number) {
     const now = this.scene.time.now;
-    this._frozen = Math.max(this._frozen, now + 75);
+    this._frozen = Math.max(this._frozen, now + 110);
     this._hurtUntil = now + 180;
     this.hp -= damage;
+    this.onHpChange?.(this.hp, this.hp + damage);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.25);
     body.setVelocityY(-60);

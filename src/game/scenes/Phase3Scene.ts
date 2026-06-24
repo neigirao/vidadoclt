@@ -396,7 +396,8 @@ export class Phase3Scene extends Phaser.Scene {
     this.seniors.add(boss);
     this.boss = boss;
     this.physics.add.collider(boss, this.platforms);
-    this.hud.showBoss("Analista Sênior Exausto", 100);
+    this.hud.showBoss("Analista Sênior Exausto", boss.hp);
+    boss.onHpChange = (hp) => this.hud.updateBoss(hp);
 
     this.physics.add.overlap(this.inkProjectiles, boss, (inkObj) => {
       const ink = inkObj as Phaser.Physics.Arcade.Sprite;
