@@ -320,6 +320,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
+    // Pause on ESC
+    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
+      this.scene.pause();
+      this.scene.launch("PauseScene", { caller: "OpenSpaceV2Scene" });
+    });
+
     // Copa door interaction zone
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     const doorZone = this.add.zone(this.doorCopa.x, this.doorCopa.y, 40, 60);

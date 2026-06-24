@@ -212,6 +212,10 @@ export class Phase5Scene extends Phaser.Scene {
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
+    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
+      this.scene.pause();
+      this.scene.launch("PauseScene", { caller: "Phase5Scene" });
+    });
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     const doorZone = this.add.zone(this.doorCeo.x, this.doorCeo.y, 40, 60);
     this.physics.add.existing(doorZone, true);

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from "../constants";
 import { ATLAS_KEY } from "./SpriteLibrary";
+import { PERKS, PerkId } from "./PerkSystem";
 
 const F = "monospace";
 export const HUD_TOP_H = 56;
@@ -41,12 +42,12 @@ const PERK_COUNT = 5;
 // ─── Section 4 layout ────────────────────────────────────────────
 const S4_X = SEC1_W + SEC2_W + SEC3_W;
 const MAP_COLS = 5;
-const MAP_ROWS = 2;
-const MAP_CELL_W = 20;
-const MAP_CELL_H = 16;
-const MAP_CELL_GAP = 4;
-const MAP_X0 = S4_X + 12; // relative to botContainer
-const MAP_Y0 = 16;
+const MAP_ROWS = 1;
+const MAP_CELL_W = 44;
+const MAP_CELL_H = 44;
+const MAP_CELL_GAP = 5;
+const MAP_X0 = S4_X + 10; // relative to botContainer
+const MAP_Y0 = 12;
 
 // ─── Top bar right (boss) ─────────────────────────────────────────
 const LEFT_W = 290;
@@ -119,6 +120,13 @@ export class Hud {
     this.buildTopCenter();
     this.buildBossBar();
     this.buildBottomBar();
+    this.buildTopSeparator();
+  }
+
+  private buildTopSeparator() {
+    const sep = this.scene.add.graphics().setScrollFactor(0).setDepth(1000);
+    sep.lineStyle(1, 0x333333, 1);
+    sep.lineBetween(0, HUD_TOP_H, GAME_WIDTH, HUD_TOP_H);
   }
 
   // ─── build top-left ─────────────────────────────────────────────
@@ -178,6 +186,9 @@ export class Hud {
       fontFamily: F, fontSize: "9px", color: "#aaaaaa",
     });
     this.topLeft.add(this.recoT);
+
+    // Hide top-left — bottom bar sec1 shows the same info
+    this.topLeft.setVisible(false);
   }
 
   // ─── build top-center ───────────────────────────────────────────
@@ -467,16 +478,27 @@ export class Hud {
         const col = Phaser.Display.Color.HSLToColor(hue / 360, 0.6, 0.35).color;
         this.perkSlotGraphics.fillStyle(col, 1);
         this.perkSlotGraphics.fillRect(px, py, PERK_SLOT_SIZE, PERK_SLOT_SIZE);
-        this.perkSlotGraphics.lineStyle(1, 0x8888aa, 1);
+        this.perkSlotGraphics.lineStyle(2, 0xaaaacc, 1);
         this.perkSlotGraphics.strokeRect(px, py, PERK_SLOT_SIZE, PERK_SLOT_SIZE);
-        // Abbreviated perk name
-        const abbrev = perk.substring(0, 3).toUpperCase();
-        const t = this.scene.add.text(px + PERK_SLOT_SIZE / 2, py + PERK_SLOT_SIZE / 2, abbrev, {
-          fontFamily: F, fontSize: "7px", fontStyle: "bold", color: "#ffffff",
+        // Icon from PERKS definition, fallback to 3-letter abbreviation
+        const perkDef = PERKS[perk as PerkId];
+        const iconLabel = perkDef ? perkDef.icon : perk.substring(0, 3).toUpperCase();
+        const iconT = this.scene.add.text(px + PERK_SLOT_SIZE / 2, py + PERK_SLOT_SIZE / 2 - 3, iconLabel, {
+          fontFamily: F, fontSize: "14px", color: "#ffffff",
         }).setOrigin(0.5);
-        this.perkSlotGraphics.scene.children.bringToTop(t);
-        (this.botContainer as any).add(t);
-        this.perkTexts.push(t);
+        this.perkSlotGraphics.scene.children.bringToTop(iconT);
+        (this.botContainer as any).add(iconT);
+        this.perkTexts.push(iconT);
+        // Short name label below icon
+        const nameLabel = perkDef ? perkDef.name.split(" ")[0].substring(0, 5).toUpperCase() : "";
+        if (nameLabel) {
+          const nameT = this.scene.add.text(px + PERK_SLOT_SIZE / 2, py + PERK_SLOT_SIZE - 8, nameLabel, {
+            fontFamily: F, fontSize: "5px", color: "#ddddee",
+          }).setOrigin(0.5, 1);
+          this.perkSlotGraphics.scene.children.bringToTop(nameT);
+          (this.botContainer as any).add(nameT);
+          this.perkTexts.push(nameT);
+        }
       } else {
         // Empty slot — dotted border
         this.perkSlotGraphics.fillStyle(0x111318, 1);
@@ -587,14 +609,7 @@ export class Hud {
         ? 0xffaa44
         : (Math.floor(opts.time / 350) % 2 === 0 ? 0xff3322 : 0xff8844);
 
-    // Top-left bars
-    this.drawBar(this.energyBarG, 56, BAR_ENERGY_Y, opts.energy, opts.maxEnergy, COLORS.energyBar);
-    this.drawBar(this.sanityBarG, 56, BAR_SANITY_Y, opts.sanity, opts.maxSanity, sanityColor);
     const sanityHex = sanityPct > 0.5 ? "#cfe2ff" : sanityPct > 0.25 ? "#ffcc88" : "#ff9977";
-    this.energyNumT.setText(`${opts.energy}/${opts.maxEnergy}`);
-    this.sanityNumT.setText(`${opts.sanity}/${opts.maxSanity}`).setColor(sanityHex);
-    this.vrTopT.setText(`VR ${this.fmtVR(opts.vr)}`);
-    this.recoT.setText(`R: ${opts.reconhecimento.toLocaleString("pt-BR")}`);
 
     // Bottom-left bars (section 1)
     this.drawBar(this.sec1EnergyG, STAT_X, BAR_ENERGY_Y, opts.energy, opts.maxEnergy, COLORS.energyBar);

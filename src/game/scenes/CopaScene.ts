@@ -174,6 +174,10 @@ export class CopaScene extends Phaser.Scene {
       this.scene.start(dest);
     };
 
+    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
+      this.scene.pause();
+      this.scene.launch("PauseScene", { caller: "CopaScene" });
+    });
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
     this.hintText = this.add
