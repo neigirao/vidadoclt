@@ -20,6 +20,8 @@ import { SanityFx } from "../systems/SanityFx";
 import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
 import { reapplyAllPerks } from "../systems/PerkSystem";
+import { reapplyAllCulturas } from "../systems/CulturaSystem";
+import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage } from "../systems/SpriteLibrary";
 
 const LEVEL_WIDTH = 1920;
@@ -136,6 +138,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     }
     this.player.vr = run.vr;
     reapplyAllPerks(this.player, run);
+    reapplyAllCulturas(this.player, run);
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.furnitureBodies);
@@ -617,6 +620,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         stroke: "#000000", strokeThickness: 3, align: "center" })
       .setOrigin(0.5).setScrollFactor(0).setDepth(999);
     this.tweens.add({ targets: msg, alpha: 0, duration: 900, delay: 4500, onComplete: () => msg.destroy() });
+
+    this.time.delayedCall(1000, () => {
+      const allIds = Object.keys(CULTURAS) as CulturaId[];
+      const options = (Phaser.Utils.Array.Shuffle([...allIds]) as CulturaId[]).slice(0, 3);
+      this.scene.pause();
+      this.scene.launch("CulturaSelectScene", { caller: "OpenSpaceV2Scene", options });
+    });
   }
 
   private persist(): void {

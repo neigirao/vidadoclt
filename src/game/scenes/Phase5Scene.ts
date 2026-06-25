@@ -160,6 +160,8 @@ export class Phase5Scene extends BasePhaseScene {
         { fontFamily: "monospace", fontSize: "15px", color: "#f2c14e", stroke: "#000000", strokeThickness: 3, align: "center" }
       ).setOrigin(0.5).setScrollFactor(0).setDepth(999);
       this.tweens.add({ targets: msg, alpha: 0, duration: 900, delay: 3500, onComplete: () => msg.destroy() });
+
+      this._launchCulturaSelect();
     }
   }
 }

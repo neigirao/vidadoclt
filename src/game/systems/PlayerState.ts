@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { PerkId } from "./PerkSystem";
 import { WeaponId } from "./WeaponSystem";
 import { generateSeed } from "./RNG";
+import type { CulturaId } from "./CulturaSystem";
 
 const LS_RECNH = "vidadoclt_recnh";
 const LS_FGTS  = "vidadoclt_fgts";
@@ -22,6 +23,7 @@ export type RunState = {
   characterClass?: string;
   weaponId?: string;
   perks?: PerkId[];
+  culturas?: CulturaId[];
   extraLives?: number;
   cafeForte?: boolean;
   shopWeapons?: WeaponId[];
@@ -55,6 +57,7 @@ export function getRun(scene: Phaser.Scene): RunState {
       autonomia: false,
       seed: generateSeed(),
       perks: [],
+      culturas: [],
       extraLives: 0,
       cafeForte: false,
       shopWeapons: undefined,
@@ -77,6 +80,7 @@ export function resetRun(scene: Phaser.Scene): RunState {
     seed: generateSeed(),
     characterClass: old.characterClass,
     perks: [],
+    culturas: [],
     extraLives: 0,
     cafeForte: false,
     shopWeapons: undefined,

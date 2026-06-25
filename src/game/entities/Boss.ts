@@ -37,6 +37,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   hp = 500;
   maxHp = 500;
   private _invulnUntil = 0;
+  private _dying = false;
   contactDamage = 10;
   dir: 1 | -1 = -1;
 
@@ -80,6 +81,11 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
+
+    if (this._dying) {
+      this.updateTexture(t);
+      return;
+    }
 
     if (this.target) this.dir = this.target.x < this.x ? -1 : 1;
     this.setFlipX(this.dir === -1);
@@ -134,7 +140,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
         break;
     }
 
-    this.updateTexture();
+    this.updateTexture(t);
   }
 
   private showIntroText() {
@@ -276,6 +282,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
   hit(damage: number, knockback: number): boolean {
     if (this.bossState === "waiting") return false;
+    if (this._dying) return false;
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
     this._invulnUntil = now + BOSS_HIT_INVULN_MS;
@@ -287,13 +294,27 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     this._hurtUntil = now + 330;
     this.scene.time.delayedCall(180, () => { if (this.active) this.clearTint(); });
     this.onHpChange?.(this.hp, this.maxHp);
-    if (this.hp <= 0) { const fn = this.onDied; this.onDied = undefined; fn?.(); return true; }
+    if (this.hp <= 0) {
+      this._dying = true;
+      const body2 = this.body as Phaser.Physics.Arcade.Body;
+      body2.setVelocity(0, 0);
+      const fn = this.onDied;
+      this.onDied = undefined;
+      this.scene.time.delayedCall(700, () => { fn?.(); });
+      return true;
+    }
     return false;
   }
 
-  private updateTexture() {
-    const now = this.scene.time.now;
+  private updateTexture(now?: number) {
+    if (now === undefined) now = this.scene.time.now;
     let key: string;
+    if (this._dying) {
+      const f = Math.floor(now / 230) % 3;
+      key = `tex-gerente-death${f}`;
+      applyTexture(this, key);
+      return;
+    }
     if (now < this._hurtUntil) {
       const f = Math.floor((now % 330) / 110) % 3;
       key = `tex-gerente-hurt${f}`;

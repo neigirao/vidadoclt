@@ -8,6 +8,7 @@ import { getRun, savePersisted } from "../systems/PlayerState";
 import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { reapplyAllPerks } from "../systems/PerkSystem";
+import { CulturaId, CULTURAS, reapplyAllCulturas } from "../systems/CulturaSystem";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -121,6 +122,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     }
     this.player.vr = run.vr;
     reapplyAllPerks(this.player, run);
+    reapplyAllCulturas(this.player, run);
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.furnitureBodies);
@@ -395,6 +397,15 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       { fontFamily: "monospace", fontSize: "15px", color: "#f2c14e", stroke: "#000000", strokeThickness: 3, align: "center" }
     ).setOrigin(0.5).setScrollFactor(0).setDepth(999);
     this.tweens.add({ targets: msg, alpha: 0, duration: 900, delay: 3500, onComplete: () => msg.destroy() });
+
+    this._launchCulturaSelect();
+  }
+
+  protected _launchCulturaSelect() {
+    const allIds = Object.keys(CULTURAS) as CulturaId[];
+    const options = Phaser.Utils.Array.Shuffle([...allIds]).slice(0, 3) as CulturaId[];
+    this.scene.pause();
+    this.scene.launch("CulturaSelectScene", { caller: this.scene.key, options });
   }
 
   protected resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {

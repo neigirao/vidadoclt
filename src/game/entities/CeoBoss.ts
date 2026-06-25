@@ -24,6 +24,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   swingDamage = 25;
 
   private _invulnUntil = 0;
+  private _dying = false;
   private _frozen = 0;
   private _slow = 0;
   private _dir: 1 | -1 = -1;
@@ -67,6 +68,12 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   }
 
   private _applyAnimFrame(t: number) {
+    // Death animation takes highest priority
+    if (this._dying) {
+      const f = Math.floor(t / 380) % 2;
+      applyTexture(this, `tex-boss-ceo-death${f}`);
+      return;
+    }
     // Hurt takes priority
     if (t < this._hurtUntil) {
       applyTexture(this, "tex-boss-ceo-hurt0");
@@ -114,6 +121,10 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
+    if (this._dying) {
+      this._applyAnimFrame(t);
+      return;
+    }
     const body = this.body as Phaser.Physics.Arcade.Body;
 
     // Phase transitions
@@ -209,6 +220,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number): boolean {
+    if (this._dying) return false;
     const now = this.scene.time.now;
     if (now < this._invulnUntil) return false;
     this._invulnUntil = now + HIT_INVULN_MS;
@@ -220,9 +232,12 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.2); // resistant to knockback
     if (this.hp <= 0) {
-      this.onDeath?.();
+      this._dying = true;
+      body.setVelocity(0, 0);
+      this.scene.time.delayedCall(800, () => { this.onDeath?.(); });
+      return true;
     }
-    return this.hp <= 0;
+    return false;
   }
 
   applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
