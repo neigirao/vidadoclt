@@ -173,6 +173,23 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 8. Subclass populates this.enemyGroups and this.boss
     this.setupEnemiesAndGroups();
 
+    // 8a. Loop HP scaling — each completed loop adds 15% HP to all enemies
+    const loopCount = run.loopCount ?? 0;
+    if (loopCount > 0) {
+      const mult = 1 + loopCount * 0.15;
+      for (const def of this.enemyGroups) {
+        def.group.getChildren().forEach(obj => {
+          const e = obj as any;
+          if (typeof e.hp === "number") e.hp = Math.round(e.hp * mult);
+          if (typeof e.maxHp === "number") e.maxHp = Math.round(e.maxHp * mult);
+        });
+      }
+      if (this.boss) {
+        this.boss.hp = Math.round(this.boss.hp * mult);
+        if (this.boss.maxHp !== undefined) this.boss.maxHp = Math.round(this.boss.maxHp * mult);
+      }
+    }
+
     // 9. Boss wiring
     if (this.boss) {
       const bossMaxHp = this.boss.maxHp ?? this.boss.hp;
