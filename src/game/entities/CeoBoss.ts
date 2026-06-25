@@ -45,6 +45,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   private _animFrame = 0;
   private _animNextAt = 0;
   private _animLockUntil = 0;
+  private _hurtUntil = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-ceo"));
@@ -66,12 +67,23 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   }
 
   private _applyAnimFrame(t: number) {
+    // Hurt takes priority
+    if (t < this._hurtUntil) {
+      applyTexture(this, "tex-boss-ceo-hurt0");
+      return;
+    }
+
     let prefix: string;
     let count: number;
     let interval: number;
     if (this._animState === "attack") { prefix = "boss-ceo-attack"; count = 4; interval = 80; }
     else if (this._animState === "special") { prefix = "boss-ceo-special"; count = 4; interval = 90; }
-    else { prefix = "boss-ceo-run"; count = 6; interval = this._charging ? 60 : 110; }
+    else {
+      const body = this.body as Phaser.Physics.Arcade.Body;
+      const moving = body && Math.abs(body.velocity.x) > 10;
+      if (!moving && !this._charging) { prefix = "boss-ceo-idle"; count = 2; interval = 500; }
+      else { prefix = "boss-ceo-run"; count = 6; interval = this._charging ? 60 : 110; }
+    }
 
     if (t >= this._animNextAt) {
       this._animNextAt = t + interval;
@@ -203,7 +215,8 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     this.hp -= damage;
     this.onHpChange?.(this.hp, this.maxHp);
     this.setTint(0xff8888);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this._hurtUntil = now + 150;
+    this.scene.time.delayedCall(150, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.2); // resistant to knockback
     if (this.hp <= 0) {

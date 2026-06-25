@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { resolveSprite } from "../systems/SpriteLibrary";
+import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 
 /**
  * Faxineiro Noturno — patrulha lenta, swing largo de vassoura, drena sanidade ao acertar.
@@ -16,6 +16,10 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
   swingActive = false;
 
   target?: { x: number; y: number };
+
+  private _animFrame = 0;
+  private _animNextAt = 0;
+  private _hurtUntil = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-faxineiro"));
@@ -83,6 +87,33 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
         break;
       }
     }
+
+    this._updateAnim(t);
+  }
+
+  private _updateAnim(t: number) {
+    if (t < this._hurtUntil) {
+      const f = Math.floor((t % 220) / 110) % 2;
+      applyTexture(this, `tex-faxineiro-hurt${f}`);
+      return;
+    }
+
+    let prefix: string;
+    let count: number;
+    let interval: number;
+
+    switch (this.aiState) {
+      case "walk":      prefix = "faxineiro-walk";    count = 4; interval = 140; break;
+      case "telegraph": prefix = "faxineiro-special";  count = 3; interval = 180; break;
+      case "swing":     prefix = "faxineiro-attack";   count = 3; interval = 60;  break;
+      default:          prefix = "faxineiro-idle";     count = 3; interval = 220; break;
+    }
+
+    if (t >= this._animNextAt) {
+      this._animNextAt = t + interval;
+      this._animFrame = (this._animFrame + 1) % count;
+    }
+    applyTexture(this, `tex-${prefix}${this._animFrame}`);
   }
 
   hit(damage: number, knockback: number) {
@@ -91,6 +122,8 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
     body.setVelocityX(knockback * 0.4);
     body.setVelocityY(-140);
     this.setTint(0xffffff);
+    this._hurtUntil = this.scene.time.now + 220;
+    this._animFrame = 0;
     this.scene.time.delayedCall(80, () => this.clearTint());
     if (this.aiState === "swing" || this.aiState === "telegraph") {
       this.aiState = "recover";

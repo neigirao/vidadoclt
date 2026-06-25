@@ -41,6 +41,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   dir: 1 | -1 = -1;
 
   private bossState: "waiting" | "enter" | "idle" | "telegraph" | "attack" | "recover" = "waiting";
+  private _hurtUntil = 0;
   private currentAttack: BossAttack = "follow_up";
   private stateUntil = 0;
   private phase2 = false;
@@ -283,6 +284,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     body.setVelocityX(knockback * 0.08);
     body.setVelocityY(-30);
     this.setTint(0xff4444);
+    this._hurtUntil = now + 330;
     this.scene.time.delayedCall(180, () => { if (this.active) this.clearTint(); });
     this.onHpChange?.(this.hp, this.maxHp);
     if (this.hp <= 0) { const fn = this.onDied; this.onDied = undefined; fn?.(); return true; }
@@ -290,15 +292,19 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateTexture() {
-    // Arte nova full-body do gerente: idle / walk0-2 / attack0 / hurt / death.
+    const now = this.scene.time.now;
     let key: string;
-    if (this.bossState === "telegraph" || this.bossState === "attack") {
+    if (now < this._hurtUntil) {
+      const f = Math.floor((now % 330) / 110) % 3;
+      key = `tex-gerente-hurt${f}`;
+    } else if (this.bossState === "telegraph" || this.bossState === "attack") {
       key = `tex-gerente-attack0`;
     } else if (this.bossState === "enter" || this.bossState === "recover") {
-      const f = Math.floor(this.scene.time.now / 140) % 3;
+      const f = Math.floor(now / 140) % 3;
       key = `tex-gerente-walk${f}`;
     } else {
-      key = `tex-gerente-idle0`;
+      const f = Math.floor(now / 600) % 2;
+      key = f === 0 ? `tex-gerente-idle0` : `tex-gerente-idle1`;
     }
     applyTexture(this, key);
   }
