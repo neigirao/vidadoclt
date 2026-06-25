@@ -14,8 +14,8 @@ import os
 SRC = "public/assets/sprites/Gemini_Generated_Image_iiu1fniiu1fniiu1-Photoroom.png"
 OUT = "public/assets/sprites"
 CANVAS_W, CANVAS_H = 80, 80
-PAD_BOTTOM = 4
-MAX_W, MAX_H = 72, 70
+PAD_BOTTOM = 10   # margem inferior (pés)
+MAX_W, MAX_H = 60, 60  # deixa ~10px de margem em cada lado
 ALPHA_T = 32
 
 # Coords calibradas no sheet Photoroom 2400×1341.
