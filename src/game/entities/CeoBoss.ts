@@ -54,8 +54,9 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(34, 52);
-    body.setOffset(15, 12);
+    // sprite 128×128; body cobre torso/pernas, centrado horizontalmente
+    body.setSize(52, 90);
+    body.setOffset(38, 30);
     body.setCollideWorldBounds(true);
 
     const now = scene.time.now;

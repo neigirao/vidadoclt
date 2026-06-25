@@ -88,7 +88,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   onHit?: () => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-player-idle"));
+    super(scene, x, y, ...resolveSprite("tex-player-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
@@ -352,7 +352,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (body.velocity.y < -60) {
         key = `tex-player-jump${Math.floor(now / 80) % 6}`;  // subindo (6 frames)
       } else {
-        key = `tex-player-fall${Math.floor(now / 80) % 7}`;  // caindo (7 frames)
+        key = `tex-player-fall${Math.floor(now / 100) % 3}`;  // caindo (3 frames)
       }
     } else if (speed > 300) {
       key = `tex-player-run${Math.floor(now / 90) % 8}`;   // ciclo de corrida (8)
