@@ -6,12 +6,16 @@ import {
   CarimbadorAutomatico,
   ArquivoAmbulante,
   BateriaSocial,
+  ImpressoraNecromorfa,
+  EvangelistaMegaCorp,
 } from "../entities/PhaseEnemies";
 
 export class Phase5Scene extends BasePhaseScene {
   private carimbadores!: Phaser.Physics.Arcade.Group;
   private arquivos!: Phaser.Physics.Arcade.Group;
   private baterias!: Phaser.Physics.Arcade.Group;
+  private impressorasN!: Phaser.Physics.Arcade.Group;
+  private evangelistasM!: Phaser.Physics.Arcade.Group;
   private allDefeated = false;
   private enemyCount = 8;
 
@@ -54,9 +58,11 @@ export class Phase5Scene extends BasePhaseScene {
   protected getBossName() { return ""; }
 
   protected setupEnemiesAndGroups() {
-    this.carimbadores = this.physics.add.group({ runChildUpdate: false });
-    this.arquivos     = this.physics.add.group({ runChildUpdate: false });
-    this.baterias     = this.physics.add.group({ runChildUpdate: false });
+    this.carimbadores  = this.physics.add.group({ runChildUpdate: false });
+    this.arquivos      = this.physics.add.group({ runChildUpdate: false });
+    this.baterias      = this.physics.add.group({ runChildUpdate: false });
+    this.impressorasN  = this.physics.add.group({ runChildUpdate: false });
+    this.evangelistasM = this.physics.add.group({ runChildUpdate: false });
 
     this.enemyCount = 0;
 
@@ -104,13 +110,45 @@ export class Phase5Scene extends BasePhaseScene {
       this.enemyCount++;
     });
 
+    [500, 1300].forEach((x) => {
+      const imn = new ImpressoraNecromorfa(this, x, FLOOR_Y - 60);
+      imn.target = this.player;
+      imn.onFire = (fx, fy, dir) => this.spawnEnemyProjectile(fx, fy, fx + dir * 200, fy, 18, 0x440022, 240);
+      imn.onDeath = () => {
+        // ao morrer, cospe 3 projéteis
+        for (let i = -1; i <= 1; i++) {
+          this.spawnEnemyProjectile(imn.x, imn.y - 10, imn.x + i * 120, imn.y - 80, 12, 0x440022, 200);
+        }
+      };
+      this.impressorasN.add(imn);
+      this.enemyCount++;
+    });
+
+    [800, 1600].forEach((x) => {
+      const ev = new EvangelistaMegaCorp(this, x, FLOOR_Y - 60);
+      ev.target = this.player;
+      ev.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 12, 0xff6600, 200);
+      ev.onHeal = () => {
+        [this.carimbadores, this.arquivos, this.baterias, this.impressorasN, this.evangelistasM].forEach(g =>
+          g.getChildren().forEach(c => {
+            const en = c as any;
+            if (en.active && en.hp !== undefined) en.hp = Math.min(en.hp + 50, en.hp + 50);
+          })
+        );
+      };
+      this.evangelistasM.add(ev);
+      this.enemyCount++;
+    });
+
     // No boss for Phase5
     this.boss = undefined;
 
     this.enemyGroups.push(
-      { group: this.carimbadores, vrDrop: 4 },
-      { group: this.arquivos,     vrDrop: 15 },
-      { group: this.baterias,     vrDrop: 4 },
+      { group: this.carimbadores,  vrDrop: 4 },
+      { group: this.arquivos,      vrDrop: 15 },
+      { group: this.baterias,      vrDrop: 4 },
+      { group: this.impressorasN,  vrDrop: 16 },
+      { group: this.evangelistasM, vrDrop: 9 },
     );
 
     // Update objective now that we know enemyCount
@@ -133,7 +171,9 @@ export class Phase5Scene extends BasePhaseScene {
     const remaining =
       this.carimbadores.countActive() +
       this.arquivos.countActive() +
-      this.baterias.countActive();
+      this.baterias.countActive() +
+      this.impressorasN.countActive() +
+      this.evangelistasM.countActive();
 
     this.hud.setObjective(remaining > 0
       ? `Derrote todos os inimigos (${remaining} restantes)`

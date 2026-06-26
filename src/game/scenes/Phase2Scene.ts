@@ -5,6 +5,7 @@ import {
   ImpressoraAssombrada,
   GuardiaoDoCafe,
   NuvemBoardSentinela,
+  ReuniaoCorportiva,
 } from "../entities/PhaseEnemies";
 
 export class Phase2Scene extends BasePhaseScene {
@@ -12,6 +13,7 @@ export class Phase2Scene extends BasePhaseScene {
   private impressoras!: import("phaser").Physics.Arcade.Group;
   private guardioes!: import("phaser").Physics.Arcade.Group;
   private nuvens!: import("phaser").Physics.Arcade.Group;
+  private reunioes!: import("phaser").Physics.Arcade.Group;
   private coordenadores!: import("phaser").Physics.Arcade.Group;
 
   constructor() {
@@ -57,6 +59,7 @@ export class Phase2Scene extends BasePhaseScene {
     this.impressoras    = this.physics.add.group({ runChildUpdate: false });
     this.guardioes      = this.physics.add.group({ runChildUpdate: false });
     this.nuvens         = this.physics.add.group({ runChildUpdate: false });
+    this.reunioes       = this.physics.add.group({ runChildUpdate: false });
     this.coordenadores  = this.physics.add.group({ runChildUpdate: false });
 
     [300, 550, 800, 1100, 1400].forEach((x) => {
@@ -87,6 +90,18 @@ export class Phase2Scene extends BasePhaseScene {
       this.nuvens.add(e);
     });
 
+    [500, 1100, 1500].forEach((x) => {
+      const r = new ReuniaoCorportiva(this, x, FLOOR_Y - 60);
+      r.target = this.player;
+      r.onAura = () => {
+        if (!this.player.isInvulnerable(this.time.now)) {
+          this.player.applyFreeze(600);
+          this.player.takeDamage(8, 0);
+        }
+      };
+      this.reunioes.add(r);
+    });
+
     // Boss — stored in this.boss, NOT in coordenadores group (prevents double-damage)
     const boss = new CoordenadorDeSinergia(this, 1800, FLOOR_Y - 60);
     boss.target = this.player;
@@ -98,6 +113,7 @@ export class Phase2Scene extends BasePhaseScene {
       { group: this.impressoras,   vrDrop: 8 },
       { group: this.guardioes,     vrDrop: 4 },
       { group: this.nuvens,        vrDrop: 3, aerial: true },
+      { group: this.reunioes,      vrDrop: 5 },
       { group: this.coordenadores, vrDrop: 4 },
     );
   }

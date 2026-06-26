@@ -6,6 +6,8 @@ import {
   TiSuporte,
   DroneDeVigilancia,
   SegurancaCorporativa,
+  ImpressoraFantasma,
+  EvangelistaAvancado,
 } from "../entities/PhaseEnemies";
 
 export class Phase4Scene extends BasePhaseScene {
@@ -13,6 +15,8 @@ export class Phase4Scene extends BasePhaseScene {
   private tiSuportes!: Phaser.Physics.Arcade.Group;
   private drones!: Phaser.Physics.Arcade.Group;
   private segurancas!: Phaser.Physics.Arcade.Group;
+  private impressorasF!: Phaser.Physics.Arcade.Group;
+  private evangelistasA!: Phaser.Physics.Arcade.Group;
 
   constructor() {
     super("Phase4Scene");
@@ -53,10 +57,12 @@ export class Phase4Scene extends BasePhaseScene {
   protected getBossName() { return "Scrum Master Caótico"; }
 
   protected setupEnemiesAndGroups() {
-    this.cabos      = this.physics.add.group({ runChildUpdate: false });
-    this.tiSuportes = this.physics.add.group({ runChildUpdate: false });
-    this.drones     = this.physics.add.group({ runChildUpdate: false });
-    this.segurancas = this.physics.add.group({ runChildUpdate: false });
+    this.cabos        = this.physics.add.group({ runChildUpdate: false });
+    this.tiSuportes   = this.physics.add.group({ runChildUpdate: false });
+    this.drones       = this.physics.add.group({ runChildUpdate: false });
+    this.segurancas   = this.physics.add.group({ runChildUpdate: false });
+    this.impressorasF = this.physics.add.group({ runChildUpdate: false });
+    this.evangelistasA = this.physics.add.group({ runChildUpdate: false });
 
     [280, 700, 1200].forEach((x) => {
       const e = new CaboDeRede(this, x, FLOOR_Y - 60);
@@ -113,6 +119,28 @@ export class Phase4Scene extends BasePhaseScene {
       this.segurancas.add(seg);
     });
 
+    [400, 1200].forEach((x) => {
+      const imf = new ImpressoraFantasma(this, x, FLOOR_Y - 60);
+      imf.target = this.player;
+      imf.onFire = (fx, fy, dir) => this.spawnEnemyProjectile(fx, fy, fx + dir * 200, fy, 14, 0x8822cc, 230);
+      this.impressorasF.add(imf);
+    });
+
+    [750, 1450].forEach((x) => {
+      const ev = new EvangelistaAvancado(this, x, FLOOR_Y - 60);
+      ev.target = this.player;
+      ev.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 10, 0xff6600, 190);
+      ev.onHeal = () => {
+        [this.cabos, this.tiSuportes, this.segurancas, this.impressorasF, this.evangelistasA].forEach(g =>
+          g.getChildren().forEach(c => {
+            const en = c as any;
+            if (en.active && en.hp !== undefined) en.hp = Math.min(en.hp + 30, en.hp + 30);
+          })
+        );
+      };
+      this.evangelistasA.add(ev);
+    });
+
     // Boss — stored in this.boss, NOT in scrums group (prevents double-damage)
     const boss = new ScrumMasterCaotico(this, 1800, FLOOR_Y - 60);
     boss.target = this.player;
@@ -140,10 +168,12 @@ export class Phase4Scene extends BasePhaseScene {
     this.boss = boss as any;
 
     this.enemyGroups.push(
-      { group: this.cabos,      vrDrop: 2 },
-      { group: this.tiSuportes, vrDrop: 3 },
-      { group: this.drones,     vrDrop: 3, aerial: true },
-      { group: this.segurancas, vrDrop: 4 },
+      { group: this.cabos,         vrDrop: 2 },
+      { group: this.tiSuportes,    vrDrop: 3 },
+      { group: this.drones,        vrDrop: 3, aerial: true },
+      { group: this.segurancas,    vrDrop: 4 },
+      { group: this.impressorasF,  vrDrop: 12 },
+      { group: this.evangelistasA, vrDrop: 6 },
     );
   }
 

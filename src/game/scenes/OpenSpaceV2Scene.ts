@@ -5,7 +5,9 @@ import { addPhaseBackground } from "../systems/Background";
 import { Player } from "../entities/Player";
 import {
   EstagiarioDesesperado,
+  EstagiarioSobrecarregado,
   AnalistaJunior,
+  AnalistaOnboarding,
   EnemyRH,
   FacilitadorDeWorkshop,
   PostIt,
@@ -32,7 +34,9 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private furnitureBodies!: Phaser.Physics.Arcade.StaticGroup;
   private estagiarios!: Phaser.Physics.Arcade.Group;
+  private sobrecarregados!: Phaser.Physics.Arcade.Group;
   private analistas!: Phaser.Physics.Arcade.Group;
+  private onboardings!: Phaser.Physics.Arcade.Group;
   private facilitadores!: Phaser.Physics.Arcade.Group;
   private scrums!: Phaser.Physics.Arcade.Group;
   private coordenadores!: Phaser.Physics.Arcade.Group;
@@ -191,7 +195,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           this.spawnProjectile({ x: fx + facing * 20, y: fy - 10, velX: facing * 700, damage: def.hitDamages[1] * 2 });
           break;
         case "emp_pulse":
-          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
+          [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
             g?.getChildren().forEach(e => (e as Phaser.Physics.Arcade.Sprite & { applyFreeze?: (ms: number) => void }).applyFreeze?.(1200))
           );
           break;
@@ -202,7 +206,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           this.resolveAttack(new Phaser.Geom.Rectangle(fx + facing * 20 - 20, fy - 20, 80, 40), 3);
           break;
         case "clock_slow":
-          [this.estagiarios, this.analistas, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
+          [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings, this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
             g?.getChildren().forEach(e => (e as Phaser.Physics.Arcade.Sprite & { applySlowdown?: (ms: number) => void }).applySlowdown?.(2500))
           );
           break;
@@ -210,13 +214,15 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     };
 
     // Enemy groups (no classType — entities added manually)
-    this.estagiarios  = this.physics.add.group({ runChildUpdate: false });
-    this.analistas    = this.physics.add.group({ runChildUpdate: false });
-    this.facilitadores = this.physics.add.group({ runChildUpdate: false });
-    this.scrums       = this.physics.add.group({ runChildUpdate: false });
-    this.coordenadores = this.physics.add.group({ runChildUpdate: false });
-    this.seniors      = this.physics.add.group({ runChildUpdate: false });
-    this.rhs          = this.physics.add.group({ runChildUpdate: false });
+    this.estagiarios     = this.physics.add.group({ runChildUpdate: false });
+    this.sobrecarregados = this.physics.add.group({ runChildUpdate: false });
+    this.analistas       = this.physics.add.group({ runChildUpdate: false });
+    this.onboardings     = this.physics.add.group({ runChildUpdate: false });
+    this.facilitadores   = this.physics.add.group({ runChildUpdate: false });
+    this.scrums          = this.physics.add.group({ runChildUpdate: false });
+    this.coordenadores   = this.physics.add.group({ runChildUpdate: false });
+    this.seniors         = this.physics.add.group({ runChildUpdate: false });
+    this.rhs             = this.physics.add.group({ runChildUpdate: false });
     this.postits      = this.physics.add.group();
     this.emails       = this.physics.add.group();
     this.inkProjectiles = this.physics.add.group();
@@ -245,13 +251,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     }
 
     // Colliders: enemy groups land on platform surfaces
-    [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
-     this.coordenadores, this.seniors, this.rhs, this.drops].forEach(g =>
+    [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
+     this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs, this.drops].forEach(g =>
       this.physics.add.collider(g, this.platforms)
     );
     // Inimigos respeitam a mesma física do player: não atravessam os corpos das mesas
-    [this.estagiarios, this.analistas, this.facilitadores, this.scrums,
-     this.coordenadores, this.seniors, this.rhs].forEach(g =>
+    [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
+     this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
       this.physics.add.collider(g, this.furnitureBodies)
     );
 
@@ -263,11 +269,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         this.player.takeDamage(dmg(e), 4, e.x);
       });
     };
-    contactDamage(this.estagiarios,  (e) => (e as EstagiarioDesesperado).contactDamage);
-    contactDamage(this.scrums,       (e) => (e as ScrumMasterCaotico).contactDamage);
-    contactDamage(this.coordenadores,(e) => (e as CoordenadorDeSinergia).contactDamage);
-    contactDamage(this.seniors,      (e) => (e as AnalistaSeniorExausto).contactDamage);
-    contactDamage(this.rhs,          (e) => (e as EnemyRH).contactDamage);
+    contactDamage(this.estagiarios,     (e) => (e as EstagiarioDesesperado).contactDamage);
+    contactDamage(this.sobrecarregados, (e) => (e as EstagiarioSobrecarregado).contactDamage);
+    contactDamage(this.scrums,          (e) => (e as ScrumMasterCaotico).contactDamage);
+    contactDamage(this.coordenadores,   (e) => (e as CoordenadorDeSinergia).contactDamage);
+    contactDamage(this.seniors,         (e) => (e as AnalistaSeniorExausto).contactDamage);
+    contactDamage(this.rhs,             (e) => (e as EnemyRH).contactDamage);
 
     this.physics.add.overlap(this.player, this.postits, (_p, pObj) => {
       const p = pObj as PostIt;
@@ -299,8 +306,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     });
 
     const inkDmgGroups: [Phaser.Physics.Arcade.Group, number][] = [
-      [this.estagiarios, 1], [this.analistas, 3], [this.facilitadores, 2],
-      [this.scrums, 2], [this.coordenadores, 4], [this.seniors, 6], [this.rhs, 3],
+      [this.estagiarios, 1], [this.sobrecarregados, 2], [this.analistas, 3], [this.onboardings, 2],
+      [this.facilitadores, 2], [this.scrums, 2], [this.coordenadores, 4], [this.seniors, 6], [this.rhs, 3],
     ];
     inkDmgGroups.forEach(([group, vrDrop]) => {
       this.physics.add.overlap(this.inkProjectiles, group, (inkObj, enemyObj) => {
@@ -467,6 +474,31 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     [380, 560, 700].forEach(x => {
       const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
       this.estagiarios.add(e);
+    });
+
+    // Estagiários Sobrecarregados — intercalados com os desesperados
+    [450, 640].forEach(x => {
+      const e = new EstagiarioSobrecarregado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
+      e.target = this.player;
+      this.sobrecarregados.add(e);
+    });
+
+    // Analistas em Onboarding — ranged nervosos perto dos facilitadores
+    [760, 1080].forEach(x => {
+      const a = new AnalistaOnboarding(this, x, FLOOR_Y - 60);
+      a.target = this.player;
+      a.onShoot = (fx, fy, tx, ty) => {
+        let p = this.postits.getFirstDead(false) as PostIt | null;
+        if (!p) {
+          p = new PostIt(this, fx, fy);
+          this.postits.add(p);
+        } else {
+          p.setPosition(fx, fy).setActive(true).setVisible(true);
+          (p.body as Phaser.Physics.Arcade.Body).enable = true;
+        }
+        p.fire(tx, ty);
+      };
+      this.onboardings.add(a);
     });
 
     [820, 1020].forEach(x => {
@@ -684,13 +716,15 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       });
     };
 
-    hitGroup(this.estagiarios,   1, c => c as EstagiarioDesesperado);
-    hitGroup(this.analistas,     3, c => c as AnalistaJunior);
-    hitGroup(this.facilitadores, 2, c => c as FacilitadorDeWorkshop);
-    hitGroup(this.scrums,        2, c => c as ScrumMasterCaotico);
-    hitGroup(this.coordenadores, 4, c => c as CoordenadorDeSinergia);
-    hitGroup(this.seniors,       6, c => c as AnalistaSeniorExausto);
-    hitGroup(this.rhs,           3, c => c as EnemyRH);
+    hitGroup(this.estagiarios,     1, c => c as EstagiarioDesesperado);
+    hitGroup(this.sobrecarregados, 2, c => c as EstagiarioSobrecarregado);
+    hitGroup(this.analistas,       3, c => c as AnalistaJunior);
+    hitGroup(this.onboardings,     2, c => c as AnalistaOnboarding);
+    hitGroup(this.facilitadores,   2, c => c as FacilitadorDeWorkshop);
+    hitGroup(this.scrums,          2, c => c as ScrumMasterCaotico);
+    hitGroup(this.coordenadores,   4, c => c as CoordenadorDeSinergia);
+    hitGroup(this.seniors,         6, c => c as AnalistaSeniorExausto);
+    hitGroup(this.rhs,             3, c => c as EnemyRH);
 
     if (this.boss?.active && tryHit(this.boss)) {
       this.spawnHitSparks(this.boss.x, this.boss.y - 10, step >= comboHits);

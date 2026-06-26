@@ -5,12 +5,14 @@ import {
   EvangelistaCorporativo,
   ColetorDeDados,
   PlanilhaViva,
+  ImpressoraVermelha,
 } from "../entities/PhaseEnemies";
 
 export class Phase3Scene extends BasePhaseScene {
   private evangelistas!: Phaser.Physics.Arcade.Group;
   private coletores!: Phaser.Physics.Arcade.Group;
   private planilhas!: Phaser.Physics.Arcade.Group;
+  private impressorasV!: Phaser.Physics.Arcade.Group;
   private seniors!: Phaser.Physics.Arcade.Group;
 
   constructor() {
@@ -52,10 +54,11 @@ export class Phase3Scene extends BasePhaseScene {
   protected getBossName() { return "Analista Sênior Exausto"; }
 
   protected setupEnemiesAndGroups() {
-    this.evangelistas = this.physics.add.group({ runChildUpdate: false });
-    this.coletores    = this.physics.add.group({ runChildUpdate: false });
-    this.planilhas    = this.physics.add.group({ runChildUpdate: false });
-    this.seniors      = this.physics.add.group({ runChildUpdate: false });
+    this.evangelistas  = this.physics.add.group({ runChildUpdate: false });
+    this.coletores     = this.physics.add.group({ runChildUpdate: false });
+    this.planilhas     = this.physics.add.group({ runChildUpdate: false });
+    this.impressorasV  = this.physics.add.group({ runChildUpdate: false });
+    this.seniors       = this.physics.add.group({ runChildUpdate: false });
 
     [250, 600, 950, 1300].forEach((x) => {
       const e = new EvangelistaCorporativo(this, x, FLOOR_Y - 60);
@@ -112,6 +115,13 @@ export class Phase3Scene extends BasePhaseScene {
       this.planilhas.add(planilha);
     });
 
+    [350, 1050].forEach((x) => {
+      const iv = new ImpressoraVermelha(this, x, FLOOR_Y - 60);
+      iv.target = this.player;
+      iv.onFire = (fx, fy, dir) => this.spawnEnemyProjectile(fx, fy, fx + dir * 200, fy, 12, 0xcc2200, 220);
+      this.impressorasV.add(iv);
+    });
+
     // Boss — stored in this.boss, NOT in seniors group (prevents double-damage)
     const boss = new AnalistaSeniorExausto(this, 1750, FLOOR_Y - 60);
     boss.target = this.player;
@@ -124,6 +134,7 @@ export class Phase3Scene extends BasePhaseScene {
       { group: this.evangelistas, vrDrop: 3 },
       { group: this.coletores,    vrDrop: 1, aerial: true },
       { group: this.planilhas,    vrDrop: 6 },
+      { group: this.impressorasV, vrDrop: 10 },
       { group: this.seniors,      vrDrop: 6 },
     );
   }
