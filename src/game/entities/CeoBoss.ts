@@ -90,7 +90,8 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
       const body = this.body as Phaser.Physics.Arcade.Body;
       const moving = body && Math.abs(body.velocity.x) > 10;
       if (!moving && !this._charging) { prefix = "boss-ceo-idle"; count = 2; interval = 500; }
-      else { prefix = "boss-ceo-run"; count = 6; interval = this._charging ? 60 : 110; }
+      else if (this._charging) { prefix = "boss-ceo-run"; count = 6; interval = 60; }
+      else { prefix = "boss-ceo-walk"; count = 2; interval = 180; }
     }
 
     if (t >= this._animNextAt) {

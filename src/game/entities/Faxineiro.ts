@@ -20,6 +20,7 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
   private _animFrame = 0;
   private _animNextAt = 0;
   private _hurtUntil = 0;
+  private _dying = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-faxineiro"));
@@ -92,6 +93,11 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
   }
 
   private _updateAnim(t: number) {
+    if (this._dying) {
+      const f = Math.min(2, Math.floor((t - this._hurtUntil) / 120));
+      applyTexture(this, `tex-faxineiro-death${f}`);
+      return;
+    }
     if (t < this._hurtUntil) {
       const f = Math.floor((t % 220) / 110) % 2;
       applyTexture(this, `tex-faxineiro-hurt${f}`);
@@ -117,6 +123,7 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
   }
 
   hit(damage: number, knockback: number) {
+    if (this._dying) return false;
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.4);
@@ -131,6 +138,13 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
       this.swingActive = false;
       this.swingHitbox = null;
     }
-    return this.hp <= 0;
+    if (this.hp <= 0) {
+      this._dying = true;
+      this._hurtUntil = this.scene.time.now; // death anim starts from now
+      body.setVelocity(0, 0);
+      this.scene.time.delayedCall(380, () => { if (this.active) this.destroy(); });
+      return true;
+    }
+    return false;
   }
 }
