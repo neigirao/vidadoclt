@@ -67,7 +67,7 @@ export class CombatFx {
   wipeOut(onComplete?: () => void, durationMs = 600): void {
     const cam = this.scene.cameras.main;
     // Phaser 4 Wipe filter: amount 0→1 sweeps the reveal from left to right
-    const wipeFilter = cam.filters.internal.addWipe({ direction: 0, axis: 0 });
+    const wipeFilter = cam.filters.internal.addWipe(0.1, 0, 0);
 
     this.scene.tweens.add({
       targets: wipeFilter,

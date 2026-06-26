@@ -1,103 +1,97 @@
-## Análise V1 vs V2 (Open Space)
 
-**OpenSpaceScene (V1) – 882 linhas**
-- Layout em "zonas" (Entrada, Open Space A/B, Boss) com clusters de mesas/estantes/armários.
-- `buildPlatform(x, kind, tiles)` — altura derivada do tipo de móvel.
-- Mais inimigos no roster (inclui `ConviteReuniao`), tem `phase2Active`, `buildDecor()` e `buildInteractiveObjects()` separados.
-- Mais "vida" e variação visual, porém com mais acoplamento e código duplicado.
+# Auditoria de qualidade dos sprites + plano de refazer os defeituosos
 
-**OpenSpaceV2Scene (V2) – 660 linhas**
-- Layout linear: 6 plataformas alternando mesa (30 px) / prateleira (72 px) com `buildPlatform(x, y, tiles)` explícito → previsível.
-- Decorativos coerentes (café, bebedouro, ponto eletrônico, extintor, monitores nas mesas, quadros motivacionais em parallax).
-- Sem `ConviteReuniao` e sem fase 2 separada — fluxo mais limpo.
-- Código ~25% menor, mais legível, mais fácil de evoluir.
+## Diagnóstico (1.021 PNGs em `public/assets/sprites/`)
 
-**Veredito:** V2 é melhor como base de progressão (legibilidade, parallax, pacing de plataformas). V1 tem variedade visual interessante mas está sobrecarregada. Recomendo **manter V2 como padrão** e portar 2 ideias de V1 quando fizer sentido: cluster de baias variado e o inimigo `ConviteReuniao`.
+### O que está bom
+- **Tamanhos consistentes por entidade**: 0 entidades misturando canvas diferentes entre estados (`idle/walk/attack/hurt/death`). A grade canônica é:
+  - **Inimigos comuns**: `48×64` (231 frames) ou `32×48` (128 frames placeholder)
+  - **Player**: `64×64` (279 frames)
+  - **Bosses**: `80×80`, `128×128` (CEO)
+  - **Itens/objetos**: `40×48`, `44×44`, `36×44`, `52×52`
+- **Alpha** validado pelo `check-sprites.mjs` (984 PNGs OK).
+
+### Problemas encontrados (163 frames com defeito real)
+
+O script de extração (`scripts/extract-*`) recortou várias linhas das spritesheets fonte com **bounding box errado** — o desenho ocupa <40% do canvas, ficando "perdido no vazio". Causa visual em jogo: pixel art parecendo flutuar, hitbox visualmente desalinhada, animação que "treme" porque cada frame tem o sprite num lugar diferente do canvas.
+
+**Casos críticos (cobertura alpha <6%):**
+
+| Arquivo | Canvas | bbox | Diagnóstico |
+|---|---|---|---|
+| `enemy-analista-hurt0` | 48×64 | 7×15 | **quase vazio** — recorte falhou |
+| `enemy-planilha-attack1/death2/hurt1` | 48×64 | 42×12-21 | sprite achatado vertical |
+| `enemy-arquivo-death1` | 48×64 | 42×21 | só metade superior |
+| `enemy-drone-attack1/2`, `death2`, `walk3`, `idle3` | 48×64 | bh 13-24 | série inteira mal recortada |
+| `enemy-bateria-hurt0/attack1/2/death1` | 48×64 | 14-19 wide | tudo deslocado |
+| `enemy-carimbador-walk3/idle1/death1` | 48×64 | bh ~23 | sprite cortado no meio |
+| `enemy-coletor-attack2/death1` | 48×64 | bbox <50% | recorte parcial |
+| `enemy-cabo-death2`, `enemy-telemarketer-hurt0`, `enemy-noticeboard-death1` | 48×64 | bbox <40% | idem |
+| `enemy-facilitador-death0` | 64×64 | 29×58 | OK em altura, padding lateral |
+| `obj-pen-drive-use/active` | 28×20 | 9×12 | item minúsculo dentro de canvas pequeno |
+| `obj-bomba-energia-*`, `obj-planta-empresa-*`, `obj-teclado-destroyed`, `obj-chave-inglesa-active` | 36-44 | <50% | extração truncada |
+| `item-cafe-hot1` | 44×44 | 36×5 | **linha fina** — frame quebrado |
+| `item-convite-idle1/expired1/expired2` | 48×36 | bbox <60% | recorte parcial |
+| `boss-ceo-run2` | 128×128 | 74×117 | OK (sprite alto, padding lateral aceitável) |
+
+**Total a refazer:** ~50 frames críticos + ~110 com padding excessivo aceitável.
+
+### Arquivos a ignorar (fontes, não bugs)
+- 32 PNGs em `1536×1024` (`ChatGPT Image *`, `Gemini_Generated_Image_*`, hashes `0b97…`, `40d08d2f…`, `4f9ff812…`) — são **as spritesheets fonte** dos quais os frames foram extraídos. Mover para `public/assets/sprites/_sources/` (fora do atlas) para limpar.
+- 10 PNGs `enemy-<nome>.png` em `32×48` — placeholders pré-extração; podem ser excluídos.
 
 ---
 
-## Pendências de Sprites
+## Posso refazer? Sim — três abordagens, do mais barato ao mais robusto
 
-> Atualizado em 2026-06-22. Marcar como ✅ quando concluído.
+### Opção A — Re-extrair das spritesheets fonte (recomendada, custo zero)
+Os PNGs fonte (`Gemini_Generated_Image_*`, `ChatGPT Image *`) **ainda contêm os frames bons** — o problema é só o grid de recorte no script. Eu posso:
 
-### 🔴 Alta prioridade
+1. Inspecionar cada spritesheet fonte (já estão na pasta).
+2. Re-medir grid (linhas/colunas, offsets) frame por frame com `auto-bbox`: detectar bounding box opaco de cada célula e re-centralizar no canvas alvo (48×64 ou o que for).
+3. Reescrever `scripts/extract-phase-enemies.py` / `extract-enemies-v2.cjs` com **auto-trim + center on canvas** — independe de coordenadas hardcoded.
+4. Rodar `node scripts/pack-atlas.mjs` para regerar atlas.
 
-| Status | Item | Problema | Ação |
-|---|---|---|---|
-| ⬜ | **Gerente Microgestor (Chefão F1)** | Arte atual 56×72 é *menor* que o player 80×80. Frames `hurt0-1`, `death0`, `run-charge0-2` existem no atlas mas não são usados no código. Arte de 44×56 misturada deve ser removida. | Enviar sheet novo com personagem maior que o player. Pasta: `public/assets/sprites/chefao/` |
-| ⬜ | **Player walk / run / jump / fall** | Personagem preenche o frame 80×80 sem margem — corte em poses extremas. Sheets enviados: `personagem/ozydij` (walk), `nk603k` (run), `iiu1fn` (jump). Frames extraídos mas ainda com borda cheia. | Verificar in-game se animação está aceitável; se não, pedir sheets com margem |
+**Vantagens:** preserva arte original; sem regeração via IA; reprodutível.
 
-### 🟡 Média prioridade — sprites faltando no atlas
+### Opção B — Auto-corrigir os 50 frames críticos (script único)
+Para cada PNG defeituoso já em `sprites/`:
+- Detectar bbox opaco; se < 50% do canvas, tentar reconstruir a partir do **frame irmão** (ex: `hurt0` defeituoso → usar `idle0` + tint vermelho).
+- Útil só para `hurt` e alguns `death` — não recupera animação real.
 
-| Status | Chave `tex-` | Cena que usa | Ação |
-|---|---|---|---|
-| ⬜ | `tex-extintor` | OpenSpaceV2Scene, OpenSpaceScene | Criar/enviar sprite do extintor |
-| ⬜ | `tex-cadeira` | OpenSpaceScene (V1) | Criar/enviar sprite da cadeira |
-| ⬜ | `tex-armario` | OpenSpaceScene (V1) | Criar/enviar sprite do armário |
-| ⬜ | `tex-estante` | OpenSpaceScene (V1) | Criar/enviar sprite da estante |
-| ⬜ | `tex-vaso` | OpenSpaceScene (V1) | Criar/enviar sprite do vaso |
+**Vantagens:** rápido. **Desvantagens:** perde animação genuína.
 
-> Nota: `tex-armario-body`, `tex-estante-body`, `tex-mesa-body`, `tex-vaso-body`, `tex-impressora-body` são texturas geradas em runtime pelo TextureFactory — não precisam de PNG.
+### Opção C — Regerar via geração de imagem (mais caro)
+Usar `imagegen` para refazer cada inimigo defeituoso como um set completo (idle/walk/attack/hurt/death), em estilo pixel-art consistente.
 
-### 🟡 Média prioridade — frames no atlas não conectados ao código
-
-| Status | Personagem | Frames disponíveis mas ignorados | Ação |
-|---|---|---|---|
-| ⬜ | **CEO** | `walk0-1`, `attack0-1`, `hurt0`, `death0-1`, `special0-1` | Conectar no `CeoBoss.ts` `updateTexture` |
-| ⬜ | **Faxineiro** | `idle0-2`, `walk0-3`, `attack0-2`, `hurt0-1`, `death0-2`, `special0-2` | Conectar no `Faxineiro.ts` |
-| ⬜ | **Gerente** | `hurt0-1`, `death0`, `run-charge0-2` | Conectar após novos sprites aprovados |
-
-### 🟢 OK — bem servidos
-
-| Personagem | Animações no atlas |
-|---|---|
-| Estagiário | idle, walk, attack, hurt, death ✅ |
-| Analista | idle, walk, attack, hurt, death ✅ |
-| Facilitador | idle, walk, attack, hurt, death ✅ |
-| Scrum Master | idle, walk, attack, hurt, death ✅ |
-| Coordenador | idle, walk, attack, hurt, death ✅ |
-| Analista Sênior | idle, walk, attack, hurt, death ✅ |
-| RH | idle, walk, attack, hurt, death ✅ |
-| Moeda VR | idle, active, broken, used, empty ✅ (padding corrigido) |
-| Items / Objetos | 226 frames com padding corrigido ✅ |
+**Vantagens:** qualidade visual potencialmente superior. **Desvantagens:** custo de geração; risco de quebrar consistência estilística com os ~800 frames que já estão bons.
 
 ---
 
-## Mudanças propostas (backlog técnico)
+## Plano proposto (Opção A primeiro, B como complemento)
 
-### 1. Tornar V2 o caminho padrão
-- `ClassSelectScene.ts` linha 265: trocar `run.v2Mode ? "OpenSpaceV2Scene" : "OpenSpaceScene"` por `"OpenSpaceV2Scene"` sempre.
-- `MenuScene.ts`: remover a opção "JOGAR V2" e deixar só "JOGAR" (mantém comportamento V2).
-- Não deletar `OpenSpaceScene.ts` ainda — fica como referência até a próxima iteração.
+1. **Mover fontes para `_sources/`** — limpa `sprites/` e impede que o `pack-atlas` puxe sheets gigantes por engano. (~32 arquivos)
+2. **Excluir placeholders** `enemy-<nome>.png` (sem sufixo de estado) — 10 arquivos.
+3. **Criar `scripts/refit-sprites.mjs`** — varre `sprites/*.png`, e para cada arquivo com bbox <50% do canvas:
+   - Detecta bbox opaco real.
+   - Crop + paste centralizado no canvas alvo do mesmo tamanho.
+   - Sobrescreve com versão "refit". (Não destrói arte, só re-centra.)
+4. **Reescrever extração com auto-bbox** (`scripts/extract-auto.mjs`) e re-extrair os 4 inimigos com defeitos profundos: `analista-hurt`, `drone`, `bateria`, `carimbador`, `planilha`. Lê o JSON de grid existente, mas aplica `trim → center` em cada célula.
+5. **Re-empacotar atlas** (`node scripts/pack-atlas.mjs`).
+6. **Validar** com `check-sprites.mjs` + relatório novo de cobertura alpha (≥30% em todos os ≤48×64).
+7. **Ajustes finos manuais** (lista curta, com `imagegen.edit_image`) só para frames que o refit não salva — provavelmente `item-cafe-hot1` (linha fina) e `enemy-analista-hurt0` (quase vazio).
 
-### 2. Conectar animações existentes no código
-- `CeoBoss.ts`: implementar `updateTexture()` usando frames `boss-ceo-*` já existentes no atlas.
-- `Faxineiro.ts`: animar com frames `npc-faxineiro-*` já existentes.
-- `Boss.ts` (Gerente): conectar `hurt` e `death` quando novos sprites forem aprovados.
+### Vantagens de ter o pipeline corrigido
+- **Animações deixam de tremer** (cada frame centralizado igual).
+- **Hitbox visual = hitbox física** (sprite ocupa o canvas previsto).
+- **Adicionar inimigo novo** vira só "joga sheet em `_sources/`, roda extract-auto, roda pack-atlas". Hoje exige ajustar coordenadas no script.
+- **CI guard**: `check-sprites.mjs` ganha verificação de cobertura mínima (falha se algum frame voltar a ficar <30%).
 
-### 3. Substituir sprite do player (histórico)
-Arquivo: `public/assets/sprites/Gemini_Generated_Image_iiu1fniiu1fniiu1.png` (2750×1536, RGBA com transparência completa, frames declarados como 64×96).
+---
 
-O sheet **não é uma grade limpa** — tem títulos, paleta e painel de acessórios. Cada seção (IDLE, WALK, RUN, JUMP, FALL, DASH, ATTACK, HURT, INTERACT, BURNOUT) começa em um Y diferente e tem contagens distintas. Estratégia:
+## Pergunta de aprovação
 
-1. **Novo script `scripts/extract-player-from-sheet.py`** que:
-   - Recebe um mapa hardcoded de seções (animName → {x, y, count, frameW=64, frameH=96}).
-   - Para cada seção, recorta `count` células 64×96 a partir de (x, y), salva como `player-<anim><i>.png` em `public/assets/sprites/`.
-   - Detecta o offset inicial de cada banda automaticamente procurando o primeiro pixel não-transparente (robustez contra ajuste fino dos Y).
-   - Reduz para o padrão atual (idle 6, walk 8, run 8, jump 4, fall 3, dash 4, attack 6, hurt 2, interact 3, burnout 4) **amostrando frames uniformemente** para não quebrar o `Player.ts` (que indexa por `Math.floor(now/N) % count`).
-2. Rodar `scripts/normalize-frames.py` para padronizar para 48×64 com pés alinhados (já existe e é o que o resto do jogo espera).
-3. Rodar `scripts/check-sprites.mjs` para garantir que todos têm alpha.
-4. Rodar `scripts/pack-atlas.py` para reempacotar `atlas.png` + `atlas.json`.
-5. Atualizar `mem://design/player-sprite` com a origem do novo sheet.
-
-### 4. Validações gerais
-- Abrir o preview e verificar idle/walk/run/jump/fall/dash/attack visualmente.
-- Conferir alinhamento dos pés (já corrigido via `setOffset(14, 28)`).
-- Build TS deve passar (sem mudança de API).
-
-## Arquivos tocados
-- `src/game/scenes/ClassSelectScene.ts` (1 linha)
-- `src/game/scenes/MenuScene.ts` (1 item de menu)
-- `scripts/extract-player-from-sheet.py` (novo)
-- ~41 PNGs em `public/assets/sprites/player-*.png` (regerados)
-- `public/assets/atlas.png` + `public/assets/atlas.json` (regerados)
+Para começar (em modo build), prefere:
+- **(a) Opção A completa** — passos 1-7 acima, ~50-80 frames corrigidos sem regerar arte.
+- **(b) Opção A + C híbrido** — passos 1-5 + regerar via IA só os ~5 frames mais quebrados (analista-hurt0, item-cafe-hot1, enemy-drone série).
+- **(c) Só o refit-sprites.mjs** (passo 3) — correção rápida, sem mexer no pipeline de extração.

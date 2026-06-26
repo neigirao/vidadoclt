@@ -1,4 +1,4 @@
-import sharp from '/home/user/vidadoclt/node_modules/sharp/dist/index.mjs';
+import sharp from 'sharp';
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
 import { join, basename } from 'path';
 

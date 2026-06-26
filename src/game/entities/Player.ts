@@ -223,7 +223,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const right = this.keys.right.isDown || this.holdD || stickRight || (pad?.right ?? false);
     const jumpDown = this.keys.jump.isDown || this.keys.jumpAlt.isDown || (pad?.A ?? false);
     const attackDown = this.keys.attack.isDown || (pad?.X ?? false);
-    const dashDown = this.keys.dash.isDown || (pad?.R1 ?? false);
+    const dashDown = this.keys.dash.isDown || !!(pad?.R1);
     const specialDown = this.keys.special.isDown || (pad?.Y ?? false);
 
     const jumpPressed = jumpDown && !this.prevJumpDown;
