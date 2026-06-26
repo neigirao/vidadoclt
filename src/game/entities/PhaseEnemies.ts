@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { resolveSprite } from "../systems/SpriteLibrary";
+import { markKilled } from "../systems/BestiarySystem";
 
 const HIT_INVULN_MS = 400;
 
@@ -60,6 +61,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("telemarketer_zumbi");
     return this.hp <= 0;
   }
 
@@ -115,6 +117,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("impressora_assombrada");
     return this.hp <= 0;
   }
 
@@ -186,6 +189,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("guardiao_cafe");
     return this.hp <= 0;
   }
 
@@ -247,6 +251,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("nuvem_board_sentinela");
     return this.hp <= 0;
   }
 
@@ -337,6 +342,7 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("evangelista_corporativo");
     return this.hp <= 0;
   }
 
@@ -393,6 +399,7 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("coletor_dados");
     return this.hp <= 0;
   }
 
@@ -464,6 +471,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
       this.split = true;
       this.onSplit?.(this.x, this.y);
     }
+    if (this.hp <= 0) markKilled("planilha_viva");
     return this.hp <= 0;
   }
 
@@ -548,6 +556,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("cabo_rede");
     return this.hp <= 0;
   }
 
@@ -612,6 +621,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("ti_suporte");
     return this.hp <= 0;
   }
 
@@ -679,6 +689,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("drone_vigilancia");
     return this.hp <= 0;
   }
 
@@ -774,6 +785,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("seguranca_corporativa");
     return this.hp <= 0;
   }
 
@@ -838,6 +850,7 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("carimbador_automatico");
     return this.hp <= 0;
   }
 
@@ -894,6 +907,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.3); // very heavy
+    if (this.hp <= 0) markKilled("arquivo_ambulante");
     return this.hp <= 0;
   }
 
@@ -956,6 +970,7 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
     body.setVelocityX(knockback);
     if (this.hp <= 0) {
       this.onDeath?.();
+      markKilled("bateria_social");
     }
     return this.hp <= 0;
   }

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { noise2d } from "../systems/CorporateAI";
+import { markKilled } from "../systems/BestiarySystem";
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
 // Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
@@ -154,6 +155,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     body.setVelocityY(-200);
+    if (this.hp <= 0) markKilled("estagiario_desesperado");
     return this.hp <= 0;
   }
 
@@ -257,6 +259,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
       this.aiState = "cooldown";
       this.stateUntil = now + 500;
     }
+    if (this.hp <= 0) markKilled("facilitador_workshop");
     return this.hp <= 0;
   }
 
@@ -408,6 +411,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
       this.aiState = "recover";
       this.stateUntil = now + 500;
     }
+    if (this.hp <= 0) markKilled("scrum_master_caotico");
     return this.hp <= 0;
   }
 
@@ -485,6 +489,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.6);
     body.setVelocityY(-150);
+    if (this.hp <= 0) markKilled("coordenador_sinergia");
     return this.hp <= 0;
   }
 
@@ -614,6 +619,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
       this.swingActive = false;
       this.swingHitbox = null;
     }
+    if (this.hp <= 0) markKilled("analista_senior_exausto");
     return this.hp <= 0;
   }
 
@@ -729,6 +735,7 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
       this.swingActive = false;
       this.swingHitbox = null;
     }
+    if (this.hp <= 0) markKilled("enemy_rh");
     return this.hp <= 0;
   }
 
@@ -849,6 +856,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
       this.swingActive = false;
       this.swingHitbox = null;
     }
+    if (this.hp <= 0) markKilled("analista_junior");
     return this.hp <= 0;
   }
 
