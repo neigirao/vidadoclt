@@ -593,6 +593,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     boss.onDied = () => this.handleBossDefeat(boss);
     this.boss = boss;
     this.physics.add.collider(boss, this.platforms);
+    this.physics.add.collider(boss, this.furnitureBodies);
 
     this.physics.add.overlap(this.inkProjectiles, boss, (inkObj) => {
       const ink = inkObj as Phaser.Physics.Arcade.Sprite;

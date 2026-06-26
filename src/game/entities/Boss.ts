@@ -112,15 +112,19 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
         if (t >= this.stateUntil) { this.bossState = "idle"; this.stateUntil = t + 200; }
         break;
 
-      case "idle":
-        body.setVelocityX(0);
+      case "idle": {
+        const idleDx = this.target ? this.target.x - this.x : 0;
+        body.setVelocityX(Math.abs(idleDx) > 120 ? Math.sign(idleDx) * 90 : 0);
         if (t >= this.stateUntil) this.startTelegraph(t);
         break;
+      }
 
-      case "telegraph":
-        body.setVelocityX(0);
+      case "telegraph": {
+        const telDx = this.target ? this.target.x - this.x : 0;
+        body.setVelocityX(Math.abs(telDx) > 160 ? Math.sign(telDx) * 60 : 0);
         if (t >= this.stateUntil) this.doAttack(t);
         break;
+      }
 
       case "attack":
         if (this.currentAttack === "atualizacao") {
@@ -131,13 +135,15 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
         }
         break;
 
-      case "recover":
-        body.setVelocityX(0);
+      case "recover": {
+        const recDx = this.target ? this.target.x - this.x : 0;
+        body.setVelocityX(Math.abs(recDx) > 120 ? Math.sign(recDx) * 70 : 0);
         if (t >= this.stateUntil) {
           this.bossState = "idle";
           this.stateUntil = t + (this.phase2 ? 320 : 520);
         }
         break;
+      }
     }
 
     this.updateTexture(t);
