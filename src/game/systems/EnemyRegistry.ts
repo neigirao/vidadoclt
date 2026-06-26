@@ -1,5 +1,14 @@
 import Phaser from "phaser";
-import { EnemyId, ENEMIES } from "./EnemyCatalog";
+import { ENEMIES, EnemyId, EnemyDef } from "./EnemyCatalog";
+import {
+  EstagiarioDesesperado,
+  FacilitadorDeWorkshop,
+  ScrumMasterCaotico,
+  CoordenadorDeSinergia,
+  AnalistaSeniorExausto,
+  EnemyRH,
+  AnalistaJunior,
+} from "../entities/Enemies";
 import {
   TelemarketerZumbi,
   ImpressoraAssombrada,
@@ -16,87 +25,101 @@ import {
   ArquivoAmbulante,
   BateriaSocial,
 } from "../entities/PhaseEnemies";
-import {
-  EstagiarioDesesperado,
-  FacilitadorDeWorkshop,
-  ScrumMasterCaotico,
-  CoordenadorDeSinergia,
-  AnalistaSeniorExausto,
-  EnemyRH,
-  AnalistaJunior,
-} from "../entities/Enemies";
 
-type AnyEnemy = Phaser.Physics.Arcade.Sprite & { hp: number; maxHp?: number };
+type AnyEnemySprite = Phaser.Physics.Arcade.Sprite & {
+  hp?: number;
+  contactDamage?: number;
+};
 
-type ConstructorFn = (scene: Phaser.Scene, x: number, y: number) => AnyEnemy;
+type EnemyCtor = new (
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+) => AnyEnemySprite;
 
-const CONSTRUCTORS: Partial<Record<EnemyId, ConstructorFn>> = {
-  estagiario_desesperado:  (s, x, y) => new EstagiarioDesesperado(s, x, y) as unknown as AnyEnemy,
-  facilitador_workshop:    (s, x, y) => new FacilitadorDeWorkshop(s, x, y) as unknown as AnyEnemy,
-  scrum_master_caotico:    (s, x, y) => new ScrumMasterCaotico(s, x, y) as unknown as AnyEnemy,
-  coordenador_sinergia:    (s, x, y) => new CoordenadorDeSinergia(s, x, y) as unknown as AnyEnemy,
-  analista_senior_exausto: (s, x, y) => new AnalistaSeniorExausto(s, x, y) as unknown as AnyEnemy,
-  enemy_rh:                (s, x, y) => new EnemyRH(s, x, y) as unknown as AnyEnemy,
-  analista_junior:         (s, x, y) => new AnalistaJunior(s, x, y) as unknown as AnyEnemy,
-
-  telemarketer_zumbi:      (s, x, y) => new TelemarketerZumbi(s, x, y) as unknown as AnyEnemy,
-  impressora_assombrada:   (s, x, y) => new ImpressoraAssombrada(s, x, y) as unknown as AnyEnemy,
-  guardiao_cafe:           (s, x, y) => new GuardiaoDoCafe(s, x, y) as unknown as AnyEnemy,
-  nuvem_board_sentinela:   (s, x, y) => new NuvemBoardSentinela(s, x, y) as unknown as AnyEnemy,
-  evangelista_corporativo: (s, x, y) => new EvangelistaCorporativo(s, x, y) as unknown as AnyEnemy,
-  coletor_dados:           (s, x, y) => new ColetorDeDados(s, x, y) as unknown as AnyEnemy,
-  planilha_viva:           (s, x, y) => new PlanilhaViva(s, x, y) as unknown as AnyEnemy,
-  cabo_rede:               (s, x, y) => new CaboDeRede(s, x, y) as unknown as AnyEnemy,
-  ti_suporte:              (s, x, y) => new TiSuporte(s, x, y) as unknown as AnyEnemy,
-  drone_vigilancia:        (s, x, y) => new DroneDeVigilancia(s, x, y) as unknown as AnyEnemy,
-  seguranca_corporativa:   (s, x, y) => new SegurancaCorporativa(s, x, y) as unknown as AnyEnemy,
-  carimbador_automatico:   (s, x, y) => new CarimbadorAutomatico(s, x, y) as unknown as AnyEnemy,
-  arquivo_ambulante:       (s, x, y) => new ArquivoAmbulante(s, x, y) as unknown as AnyEnemy,
-  bateria_social:          (s, x, y) => new BateriaSocial(s, x, y) as unknown as AnyEnemy,
+const REGISTRY: Record<EnemyId, EnemyCtor> = {
+  estagiario_desesperado: EstagiarioDesesperado as unknown as EnemyCtor,
+  facilitador_workshop: FacilitadorDeWorkshop as unknown as EnemyCtor,
+  scrum_master_caotico: ScrumMasterCaotico as unknown as EnemyCtor,
+  coordenador_sinergia: CoordenadorDeSinergia as unknown as EnemyCtor,
+  analista_senior_exausto: AnalistaSeniorExausto as unknown as EnemyCtor,
+  enemy_rh: EnemyRH as unknown as EnemyCtor,
+  analista_junior: AnalistaJunior as unknown as EnemyCtor,
+  telemarketer_zumbi: TelemarketerZumbi as unknown as EnemyCtor,
+  impressora_assombrada: ImpressoraAssombrada as unknown as EnemyCtor,
+  guardiao_cafe: GuardiaoDoCafe as unknown as EnemyCtor,
+  nuvem_board_sentinela: NuvemBoardSentinela as unknown as EnemyCtor,
+  evangelista_corporativo: EvangelistaCorporativo as unknown as EnemyCtor,
+  coletor_dados: ColetorDeDados as unknown as EnemyCtor,
+  planilha_viva: PlanilhaViva as unknown as EnemyCtor,
+  cabo_rede: CaboDeRede as unknown as EnemyCtor,
+  ti_suporte: TiSuporte as unknown as EnemyCtor,
+  drone_vigilancia: DroneDeVigilancia as unknown as EnemyCtor,
+  seguranca_corporativa: SegurancaCorporativa as unknown as EnemyCtor,
+  carimbador_automatico: CarimbadorAutomatico as unknown as EnemyCtor,
+  arquivo_ambulante: ArquivoAmbulante as unknown as EnemyCtor,
+  bateria_social: BateriaSocial as unknown as EnemyCtor,
 };
 
 export type SpawnOpts = {
-  loopCount?: number;
-  group?: Phaser.Physics.Arcade.Group;
+  scaleHp?: number;
+  scaleDmg?: number;
 };
 
+/**
+ * Factory unificada de inimigos. Instancia a classe correspondente ao `id`
+ * do catálogo, aplica `bodySize` (se definido) e escala HP/dano por loop.
+ *
+ * As cenas existentes continuam a instanciar classes diretamente; este
+ * registry é opt-in para novos spawns e para reativar `EnemySpawns.ts`.
+ */
 export function spawnEnemy(
   scene: Phaser.Scene,
   id: EnemyId,
   x: number,
   y: number,
   opts: SpawnOpts = {},
-): AnyEnemy | null {
-  const ctor = CONSTRUCTORS[id];
-  if (!ctor) {
-    console.warn(`[EnemyRegistry] No constructor for "${id}"`);
-    return null;
+): AnyEnemySprite {
+  const Ctor = REGISTRY[id];
+  if (!Ctor) {
+    throw new Error(`[EnemyRegistry] Unknown enemy id: ${id}`);
   }
+  const def: EnemyDef = ENEMIES[id];
+  const enemy = new Ctor(scene, x, y);
 
-  const def = ENEMIES[id];
-  const enemy = ctor(scene, x, y);
-
-  // Apply bodySize override from catalog if defined
+  // Aplica bodySize do catálogo se a classe não tiver setado um próprio.
   if (def.bodySize && enemy.body) {
     const body = enemy.body as Phaser.Physics.Arcade.Body;
-    const bs = def.bodySize;
-    body.setSize(bs.w, bs.h);
-    body.setOffset(bs.offsetX ?? 0, bs.offsetY ?? 0);
-  }
-
-  // Loop HP scaling
-  const loopCount = opts.loopCount ?? 0;
-  if (loopCount > 0) {
-    const mult = 1 + loopCount * 0.15;
-    enemy.hp = Math.round(enemy.hp * mult);
-    if (typeof enemy.maxHp === "number") {
-      enemy.maxHp = Math.round(enemy.maxHp * mult);
+    body.setSize(def.bodySize.w, def.bodySize.h);
+    if (def.bodySize.offsetX != null || def.bodySize.offsetY != null) {
+      body.setOffset(def.bodySize.offsetX ?? 0, def.bodySize.offsetY ?? 0);
     }
   }
 
-  if (opts.group) {
-    opts.group.add(enemy, true);
+  // Scaling de loop / dificuldade.
+  const scaleHp = opts.scaleHp ?? 1;
+  const scaleDmg = opts.scaleDmg ?? 1;
+  if (scaleHp !== 1 && typeof enemy.hp === "number") {
+    enemy.hp = Math.round(enemy.hp * scaleHp);
+  }
+  if (scaleDmg !== 1 && typeof enemy.contactDamage === "number") {
+    enemy.contactDamage = Math.round(enemy.contactDamage * scaleDmg);
   }
 
   return enemy;
+}
+
+/**
+ * Calcula multiplicador de scaling a partir do `loopCount` do RunState.
+ * 15% de HP e 8% de dano por loop, cap em 3x.
+ */
+export function loopScaling(loopCount: number): Required<SpawnOpts> {
+  return {
+    scaleHp: Math.min(3, 1 + loopCount * 0.15),
+    scaleDmg: Math.min(3, 1 + loopCount * 0.08),
+  };
+}
+
+export function isKnownEnemyId(id: string): id is EnemyId {
+  return id in REGISTRY;
 }
