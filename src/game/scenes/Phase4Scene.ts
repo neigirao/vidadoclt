@@ -23,6 +23,7 @@ export class Phase4Scene extends BasePhaseScene {
   }
 
   protected getBgKey() { return "bg-tecnologia"; }
+  protected getPhaseNumber(): 4 { return 4; }
   protected getPhaseTitle() { return "FASE 4 — TI / SERVIDORES"; }
   protected getInitialObjective() { return "Derrote o Scrum Master e avance"; }
 

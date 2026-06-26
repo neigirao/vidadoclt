@@ -24,6 +24,7 @@ export class Phase5Scene extends BasePhaseScene {
   }
 
   protected getBgKey() { return "bg-diretoria"; }
+  protected getPhaseNumber(): 5 { return 5; }
   protected getPhaseTitle() { return "FASE 5 — DIRETORIA"; }
   protected getInitialObjective() { return `Derrote todos os inimigos (${this.enemyCount} restantes)`; }
 

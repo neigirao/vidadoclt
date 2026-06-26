@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H, Hud } from "../systems/Hud";
-import { addPhaseBackground } from "../systems/Background";
+import { addPhaseBackground, addPhaseDecor } from "../systems/Background";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
@@ -43,6 +43,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   // --- Abstract methods ---
   protected abstract getBgKey(): string;
   protected abstract getPhaseTitle(): string;
+  protected getPhaseNumber(): 1 | 2 | 3 | 4 | 5 | null { return null; }
   protected abstract getInitialObjective(): string;
   protected abstract getPlatformLayout(): Array<[number, number, number]>;
   protected abstract getDoorConfig(): {
@@ -74,6 +75,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
     addPhaseBackground(this, this.getBgKey(), HUD_TOP_H, FLOOR_Y);
+    const pn = this.getPhaseNumber();
+    if (pn !== null) addPhaseDecor(this, pn, FLOOR_Y);
 
     // 2. Platforms + furnitureBodies, floor, platform layout
     this.platforms = this.physics.add.staticGroup();

@@ -23,6 +23,7 @@ export class Phase2Scene extends BasePhaseScene {
   }
 
   protected getBgKey() { return "bg-atendimento"; }
+  protected getPhaseNumber(): 2 { return 2; }
   protected getPhaseTitle() { return "FASE 2 — REUNIAO INFINITA"; }
   protected getInitialObjective() { return "Derrote o Coordenador e avance"; }
 

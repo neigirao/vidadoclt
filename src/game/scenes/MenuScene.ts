@@ -15,6 +15,7 @@ const BG_MENU = 0x1a1d23;
 const MENU_ITEMS = [
   { label: "JOGAR", icon: "▶" },
   { label: "RANKING", icon: "🏆" },
+  { label: "BESTIARIO", icon: "👾" },
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
   { label: "CONFIGURAÇÕES", icon: "⚙" },
@@ -319,6 +320,11 @@ export class MenuScene extends Phaser.Scene {
       this.cameras.main.fadeOut(200, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("RankingScene");
+      });
+    } else if (item.label === "BESTIARIO") {
+      this.cameras.main.fadeOut(200, 0, 0, 0);
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        this.scene.start("BestiaryScene");
       });
     } else if (item.label === "ARSENAL") {
       this.showOverlay("arsenal");

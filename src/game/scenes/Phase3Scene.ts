@@ -22,6 +22,7 @@ export class Phase3Scene extends BasePhaseScene {
   }
 
   protected getBgKey() { return "bg-comercial"; }
+  protected getPhaseNumber(): 3 { return 3; }
   protected getPhaseTitle() { return "FASE 3 — RH / ENDOMARKETING"; }
   protected getInitialObjective() { return "Derrote o Analista Sênior e avance"; }
 
