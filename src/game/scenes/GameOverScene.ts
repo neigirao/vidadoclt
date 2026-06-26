@@ -18,6 +18,7 @@ export class GameOverScene extends Phaser.Scene {
     run.loopCount += 1;
     savePersisted(run.reconhecimento, run.fgts, run.loopCount);
 
+    run.lastDeathCause = cause;
     const isBurnout = cause === "burnout";
     this.cameras.main.setBackgroundColor(isBurnout ? "#1d0f15" : "#15171b");
 

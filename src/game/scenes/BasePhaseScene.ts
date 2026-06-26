@@ -9,6 +9,7 @@ import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CulturaId, CULTURAS, reapplyAllCulturas } from "../systems/CulturaSystem";
+import { CombatFx } from "../systems/CombatFx";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -37,6 +38,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected interactKey!: Phaser.Input.Keyboard.Key;
   protected levelWidth = LEVEL_WIDTH;
   protected enemyGroups: EnemyGroupDef[] = [];
+  protected combatFx!: CombatFx;
 
   // --- Abstract methods ---
   protected abstract getBgKey(): string;
@@ -167,8 +169,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.drops            = this.physics.add.group();
 
     // 7. FX + HUD — BEFORE setupEnemiesAndGroups
-    this.fx  = new SanityFx(this);
-    this.hud = new Hud(this, LEVEL_WIDTH);
+    this.fx       = new SanityFx(this);
+    this.hud      = new Hud(this, LEVEL_WIDTH);
+    this.combatFx = new CombatFx(this);
 
     // 8. Subclass populates this.enemyGroups and this.boss
     this.setupEnemiesAndGroups();
@@ -442,7 +445,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
-    if (step >= comboHits) this.cameras.main.shake(80, 0.006);
+    const isFinal = step >= comboHits;
+    if (isFinal) this.cameras.main.shake(80, 0.006);
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
       Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
@@ -453,7 +457,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         const e = c as Phaser.Physics.Arcade.Sprite & { hit: (d: number, k: number) => boolean; applySlowdown?: (ms: number) => void };
         if (!e.active || !tryHit(e)) return;
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
-        if (e.hit(damage, knockback)) {
+        CombatFx.flashSprite(e as unknown as Phaser.Physics.Arcade.Sprite, 55);
+        const died = e.hit(damage, knockback);
+        this.combatFx.spawnDamageNumber(e.x, e.y - 20, damage, isFinal ? "#ffdd44" : "#ffffff", isFinal);
+        if (isFinal) this.combatFx.hitStop(50);
+        if (died) {
           this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
           this.onEnemyKilledByMelee(e);
           if ((e as any).active !== false) e.destroy();
@@ -462,7 +470,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     }
 
     if (this.boss && this.boss.active && tryHit(this.boss as Phaser.Physics.Arcade.Sprite)) {
+      CombatFx.flashSprite(this.boss as unknown as Phaser.Physics.Arcade.Sprite, 55);
       const died = this.boss.hit(damage, knockback);
+      this.combatFx.spawnDamageNumber(this.boss.x, this.boss.y - 40, damage, "#ff8800", isFinal);
+      if (isFinal) this.combatFx.hitHeavy();
       if (died) this.handleBossDefeat();
     }
   }

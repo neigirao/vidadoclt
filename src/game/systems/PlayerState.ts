@@ -29,6 +29,7 @@ export type RunState = {
   shopWeapons?: WeaponId[];
   shopPerks?: PerkId[];
   openSpaceCleared?: boolean;
+  lastDeathCause?: "burnout" | "energy";
 };
 
 function lsGet(key: string): number {

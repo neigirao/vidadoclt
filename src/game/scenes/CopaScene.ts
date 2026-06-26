@@ -110,9 +110,25 @@ export class CopaScene extends Phaser.Scene {
       this.faxineiros.add(f);
     });
 
-    // Faxineiro dialogue based on loopCount
+    // Faxineiro dialogue — contextual based on cause of death + loopCount
     const loopCount = run.loopCount ?? 0;
-    const falas = [
+    const cause = run.lastDeathCause;
+    const causeLines: string[] = cause === "burnout"
+      ? [
+          "Burnout de novo? Descansa um pouco...",
+          "Sanidade zerada. Impressionante.",
+          "A mente tem limites, você sabe.",
+          "Fala sério, cuida de você.",
+        ]
+      : cause === "energy"
+      ? [
+          "Levou muito porrada dessa vez.",
+          "Energia foi pro saco. Acontece.",
+          "Tá bem machucado não?",
+          "Sobrevivência é subestimada aqui.",
+        ]
+      : [];
+    const loopLines = [
       "Mais um dia de trabalho...",
       "De novo você? Que semana estranha.",
       "Achei que tinha saído ontem.",
@@ -121,7 +137,8 @@ export class CopaScene extends Phaser.Scene {
       "Cara, você tá bem? Já perdi as contas.",
       "A sindicância vai ser enorme quando isso acabar.",
     ];
-    const fala = falas[Math.min(loopCount, falas.length - 1)];
+    const pool = causeLines.length > 0 ? causeLines : loopLines;
+    const fala = pool[Math.min(loopCount % pool.length, pool.length - 1)];
     this.time.delayedCall(1200, () => {
       const bubble = this.add.text(520, FLOOR_Y - 130, fala, {
         fontFamily: "monospace", fontSize: "11px", color: "#c9e8c9",
