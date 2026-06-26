@@ -1,15 +1,12 @@
 ## Estado atual (o que já está pronto)
 
-- ✅ **Refit de sprites concluído**: `scripts/refit-sprites.mjs` corrigiu 406 frames; `check-sprites.mjs` valida 987 PNGs. Frames com bbox < 35% caíram de 163 → 91 (remanescentes são itens naturalmente pequenos).
-- ✅ Spritesheets fonte movidas para `_sources/`; placeholders removidos.
-- ✅ Build fixes (`Player.ts`, `CombatFx.ts`) aplicados.
-- ✅ Atlas re-empacotado (988 frames).
-
-O runtime error atual ("Importing a module script failed") é transient do dev server pós-reload — não relacionado ao plano. Vou verificar e corrigir junto.
+- ✅ **Refit de sprites concluído**: 406 frames re-centralizados; atlas re-empacotado (988 frames); `check-sprites.mjs` valida 987 PNGs.
+- ✅ **Etapa 1 — `EnemyDef` estendido** (`src/game/systems/EnemyCatalog.ts`): 21 inimigos catalogados com `archetype`, `spritePrefix`, `bodySize`, `attacks`, `drops`, `description`. Helpers `getEnemyDef`, `getEnemiesByPhase`, `getEnemiesByArchetype`.
+- ✅ **Etapa 2 — `EnemyRegistry`** (`src/game/systems/EnemyRegistry.ts`): `spawnEnemy(scene, id, x, y, opts)` + `loopScaling(loopCount)`. Não-destrutivo: cenas existentes seguem instanciando classes diretamente.
 
 ## Próximas adequações (continuação do roadmap)
 
-Conforme discussão anterior do catálogo de personagens, retomamos os 5 passos pendentes. Essa frente alimenta diretamente os Milestones 1-2 do roadmap (`balanceamento`, `meta-progressão visível`, `run summary`).
+Etapas 3 a 5 da expansão do catálogo, ainda pendentes:
 
 ### Etapa 1 — Estender `EnemyDef` (não-destrutivo)
 Adicionar campos opcionais ao `src/game/systems/EnemyCatalog.ts`:
