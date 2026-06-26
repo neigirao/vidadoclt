@@ -1,5 +1,7 @@
 export type EnemyId =
   | "estagiario_desesperado"
+  | "estagiario_sobrecarregado"
+  | "analista_onboarding"
   | "facilitador_workshop"
   | "scrum_master_caotico"
   | "coordenador_sinergia"
@@ -8,9 +10,15 @@ export type EnemyId =
   | "analista_junior"
   | "telemarketer_zumbi"
   | "impressora_assombrada"
+  | "impressora_vermelha"
+  | "impressora_fantasma"
+  | "impressora_necromorfa"
   | "guardiao_cafe"
   | "nuvem_board_sentinela"
+  | "reuniao_corporativa"
   | "evangelista_corporativo"
+  | "evangelista_avancado"
+  | "evangelista_megacorp"
   | "coletor_dados"
   | "planilha_viva"
   | "cabo_rede"
@@ -77,6 +85,35 @@ export type EnemyDef = {
 };
 
 export const ENEMIES: Record<EnemyId, EnemyDef> = {
+  estagiario_sobrecarregado: {
+    id: "estagiario_sobrecarregado",
+    label: "Estagiário Sobrecarregado",
+    hp: 22,
+    speed: 180,
+    contactDamage: 12,
+    vrReward: 2,
+    phase: 1,
+    archetype: "rusher",
+    spritePrefix: "estagiario-b",
+    bodySize: { w: 20, h: 28 },
+    drops: { vr: [1, 3], coffeeChance: 0.08 },
+    description: "Faz o trabalho de três. Recebe de zero.",
+  },
+  analista_onboarding: {
+    id: "analista_onboarding",
+    label: "Analista em Onboarding",
+    hp: 18,
+    speed: 90,
+    contactDamage: 0,
+    vrReward: 2,
+    phase: 1,
+    archetype: "ranged",
+    spritePrefix: "analista-novo",
+    bodySize: { w: 24, h: 36 },
+    attacks: [{ name: "duvida_existencial", telegraphMs: 350, damage: 4, cooldownMs: 1200 }],
+    drops: { vr: [1, 3], postitChance: 0.2 },
+    description: "Ainda no período de experiência. Mas já te manda dúvida no chat.",
+  },
   estagiario_desesperado: {
     id: "estagiario_desesperado",
     label: "Estagiário Desesperado",
@@ -193,6 +230,94 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 32, h: 56 },
     drops: { vr: [1, 3] },
     description: "Repete o script desde 2008. Não respira.",
+  },
+  impressora_vermelha: {
+    id: "impressora_vermelha",
+    label: "Impressora Vermelha",
+    hp: 480,
+    speed: 30,
+    contactDamage: 12,
+    vrReward: 10,
+    phase: 3,
+    archetype: "tank",
+    spritePrefix: "impressora-b",
+    bodySize: { w: 44, h: 56 },
+    attacks: [{ name: "toner_burst", telegraphMs: 550, damage: 16, cooldownMs: 2000 }],
+    drops: { vr: [8, 14] },
+    description: "Errou o cartucho. Imprime a raiva.",
+  },
+  impressora_fantasma: {
+    id: "impressora_fantasma",
+    label: "Impressora Fantasma",
+    hp: 560,
+    speed: 50,
+    contactDamage: 15,
+    vrReward: 12,
+    phase: 4,
+    archetype: "tank",
+    spritePrefix: "impressora-c",
+    bodySize: { w: 44, h: 56 },
+    attacks: [{ name: "ghost_print", telegraphMs: 700, damage: 18, cooldownMs: 2400 }],
+    drops: { vr: [10, 16] },
+    description: "Imprime documentos que ninguém pediu às 3h da manhã.",
+  },
+  impressora_necromorfa: {
+    id: "impressora_necromorfa",
+    label: "Impressora Necromorfa",
+    hp: 720,
+    speed: 65,
+    contactDamage: 22,
+    vrReward: 16,
+    phase: 5,
+    archetype: "tank",
+    spritePrefix: "impressora-d",
+    bodySize: { w: 44, h: 56 },
+    attacks: [{ name: "paper_storm", telegraphMs: 800, damage: 24, cooldownMs: 2800 }],
+    drops: { vr: [14, 22], coffeeChance: 0.3 },
+    description: "Mutação final. Alimentada por toner e ressentimento.",
+  },
+  reuniao_corporativa: {
+    id: "reuniao_corporativa",
+    label: "Reunião Corporativa",
+    hp: 320,
+    speed: 45,
+    contactDamage: 0,
+    vrReward: 5,
+    phase: 2,
+    archetype: "support",
+    spritePrefix: "reuniao",
+    bodySize: { w: 40, h: 52 },
+    attacks: [{ name: "pauta_infinita", telegraphMs: 800, damage: 10, cooldownMs: 3000 }],
+    drops: { vr: [4, 7] },
+    description: "Convocada sem pauta. Dura mais que o expediente.",
+  },
+  evangelista_avancado: {
+    id: "evangelista_avancado",
+    label: "Evangelista Avançado",
+    hp: 400,
+    speed: 80,
+    contactDamage: 12,
+    vrReward: 6,
+    phase: 4,
+    archetype: "support",
+    spritePrefix: "evangelista-boss",
+    bodySize: { w: 34, h: 58 },
+    drops: { vr: [5, 8], postitChance: 0.25 },
+    description: "Palestrante motivacional com síndrome do impostor avançado.",
+  },
+  evangelista_megacorp: {
+    id: "evangelista_megacorp",
+    label: "Evangelista MegaCorp",
+    hp: 600,
+    speed: 100,
+    contactDamage: 16,
+    vrReward: 9,
+    phase: 5,
+    archetype: "support",
+    spritePrefix: "evangelista-mega",
+    bodySize: { w: 38, h: 60 },
+    drops: { vr: [8, 14], postitChance: 0.35 },
+    description: "Transcendeu o corporativo. É o corporativo agora.",
   },
   impressora_assombrada: {
     id: "impressora_assombrada",

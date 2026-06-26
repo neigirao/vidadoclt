@@ -978,3 +978,450 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
   applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
   applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
 }
+
+// ─── ReuniaoCorportiva ─────────────────────────────────────────────────────────
+// Fase 2 — Anda devagar; quando player entra em range dispara "pauta infinita"
+// (callback onAura → cena aplica freeze/slow no player por 600ms).
+export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
+  hp = 320;
+  speed = 45;
+  contactDamage = 0;
+  vrReward = 5;
+
+  target?: Phaser.GameObjects.Sprite;
+  onAura?: (tx: number, ty: number) => void;
+
+  private _invulnUntil = 0;
+  private _frozen = 0;
+  private _slow = 0;
+  private _auraAt = 0;
+  private _patrolDir: 1 | -1 = 1;
+  private _startX: number;
+  private _animOffset: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "sprites", "enemy-reuniao-idle0");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(40, 52);
+    body.setOffset(4, 8);
+    body.setCollideWorldBounds(true);
+    this._startX = x;
+    this._animOffset = Math.random() * 2000 | 0;
+    this._auraAt = scene.time.now + 5000;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    if (!this.active || !this.body) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) return;
+    const speedMult = t < this._slow ? 0.4 : 1;
+
+    if (this.x < this._startX - 120) this._patrolDir = 1;
+    else if (this.x > this._startX + 120) this._patrolDir = -1;
+    this.setFlipX(this._patrolDir === -1);
+    body.setVelocityX(this._patrolDir * this.speed * speedMult);
+
+    const walkFrame = Math.floor((t + this._animOffset) / 220) % 4;
+    this.setTexture("sprites", `enemy-reuniao-walk${walkFrame}`);
+
+    if (this.target && t >= this._auraAt && Math.abs(this.target.x - this.x) < 200) {
+      this._auraAt = t + 3000;
+      this.onAura?.(this.target.x, this.target.y);
+    }
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
+    this._invulnUntil = now + HIT_INVULN_MS;
+    this.hp -= damage;
+    this.setTint(0xff8888);
+    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("reuniao_corporativa");
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+}
+
+// ─── ImpressoraVermelha ────────────────────────────────────────────────────────
+// Fase 3 — Move-se lentamente, atira toner em cadência regular.
+export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
+  hp = 480;
+  contactDamage = 12;
+  vrReward = 10;
+
+  target?: Phaser.GameObjects.Sprite;
+  onFire?: (fx: number, fy: number, dir: number) => void;
+
+  private _invulnUntil = 0;
+  private _frozen = 0;
+  private _slow = 0;
+  private _nextFireAt = 0;
+  private _animOffset: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "sprites", "enemy-impressora-b-idle0");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(44, 40);
+    body.setOffset(2, 16);
+    body.setCollideWorldBounds(true);
+    this._nextFireAt = scene.time.now + 3500;
+    this._animOffset = Math.random() * 2000 | 0;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    if (!this.active || !this.body) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) return;
+    const speedMult = t < this._slow ? 0.4 : 1;
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      const dir = dx >= 0 ? 1 : -1;
+      this.setFlipX(dir === -1);
+      body.setVelocityX(dir * 30 * speedMult);
+
+      if (t >= this._nextFireAt) {
+        this._nextFireAt = t + 2000;
+        this.onFire?.(this.x, this.y - 8, dir);
+      }
+    }
+
+    const walkFrame = Math.floor((t + this._animOffset) / 250) % 6;
+    this.setTexture("sprites", `enemy-impressora-b-walk${walkFrame}`);
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
+    this._invulnUntil = now + HIT_INVULN_MS;
+    this.hp -= damage;
+    this.setTint(0xff8888);
+    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("impressora_vermelha");
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+}
+
+// ─── ImpressoraFantasma ────────────────────────────────────────────────────────
+// Fase 4 — Burst de 2 tiros seguidos, depois pausa longa.
+export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
+  hp = 560;
+  contactDamage = 15;
+  vrReward = 12;
+
+  target?: Phaser.GameObjects.Sprite;
+  onFire?: (fx: number, fy: number, dir: number) => void;
+
+  private _invulnUntil = 0;
+  private _frozen = 0;
+  private _slow = 0;
+  private _nextFireAt = 0;
+  private _burstCount = 0;
+  private _animOffset: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "sprites", "enemy-impressora-c-idle0");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(44, 40);
+    body.setOffset(2, 16);
+    body.setCollideWorldBounds(true);
+    this._nextFireAt = scene.time.now + 3000;
+    this._animOffset = Math.random() * 2000 | 0;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    if (!this.active || !this.body) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) return;
+    const speedMult = t < this._slow ? 0.4 : 1;
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      const dir = dx >= 0 ? 1 : -1;
+      this.setFlipX(dir === -1);
+      body.setVelocityX(dir * 50 * speedMult);
+
+      if (t >= this._nextFireAt) {
+        this._burstCount++;
+        this.onFire?.(this.x, this.y - 8, dir);
+        this._nextFireAt = this._burstCount % 2 === 0 ? t + 2400 : t + 350;
+      }
+    }
+
+    const walkFrame = Math.floor((t + this._animOffset) / 230) % 6;
+    this.setTexture("sprites", `enemy-impressora-c-walk${walkFrame}`);
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
+    this._invulnUntil = now + HIT_INVULN_MS;
+    this.hp -= damage;
+    this.setTint(0xff8888);
+    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("impressora_fantasma");
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+}
+
+// ─── ImpressoraNecromorfa ──────────────────────────────────────────────────────
+// Fase 5 — Mais rápida, dispara dobrado quando HP < 50%.
+export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
+  hp = 720;
+  contactDamage = 22;
+  vrReward = 16;
+
+  target?: Phaser.GameObjects.Sprite;
+  onFire?: (fx: number, fy: number, dir: number) => void;
+  onDeath?: () => void;
+
+  private _invulnUntil = 0;
+  private _frozen = 0;
+  private _slow = 0;
+  private _nextFireAt = 0;
+  private _animOffset: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "sprites", "enemy-impressora-d-idle0");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(44, 40);
+    body.setOffset(2, 16);
+    body.setCollideWorldBounds(true);
+    this._nextFireAt = scene.time.now + 2500;
+    this._animOffset = Math.random() * 2000 | 0;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    if (!this.active || !this.body) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) return;
+    const speedMult = t < this._slow ? 0.4 : 1;
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      const dir = dx >= 0 ? 1 : -1;
+      this.setFlipX(dir === -1);
+      body.setVelocityX(dir * 65 * speedMult);
+
+      if (t >= this._nextFireAt) {
+        this._nextFireAt = t + 1800;
+        this.onFire?.(this.x, this.y - 8, dir);
+        if (this.hp < 360) {
+          this.scene.time.delayedCall(300, () => {
+            if (this.active) this.onFire?.(this.x, this.y - 8, dir);
+          });
+        }
+      }
+    }
+
+    const walkFrame = Math.floor((t + this._animOffset) / 210) % 6;
+    this.setTexture("sprites", `enemy-impressora-d-walk${walkFrame}`);
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
+    this._invulnUntil = now + HIT_INVULN_MS;
+    this.hp -= damage;
+    this.setTint(0xff8888);
+    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
+    if (this.hp <= 0) {
+      this.onDeath?.();
+      markKilled("impressora_necromorfa");
+    }
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+}
+
+// ─── EvangelistaAvancado ───────────────────────────────────────────────────────
+// Fase 4 — Mais agressivo; cura inimigos próximos via onHeal callback a cada 6s.
+export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
+  hp = 400;
+  speed = 80;
+  contactDamage = 12;
+  vrReward = 6;
+
+  target?: Phaser.GameObjects.Sprite;
+  onFire?: (fx: number, fy: number, tx: number, ty: number) => void;
+  onHeal?: () => void;
+
+  private _invulnUntil = 0;
+  private _frozen = 0;
+  private _slow = 0;
+  private _nextFireAt = 0;
+  private _nextHealAt = 0;
+  private _animOffset: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "sprites", "enemy-evangelista-boss-idle0");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(34, 56);
+    body.setOffset(7, 8);
+    body.setCollideWorldBounds(true);
+    this._nextFireAt = scene.time.now + 2500;
+    this._nextHealAt = scene.time.now + 6000;
+    this._animOffset = Math.random() * 2000 | 0;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    if (!this.active || !this.body) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) return;
+    const speedMult = t < this._slow ? 0.4 : 1;
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      const dir = dx >= 0 ? 1 : -1;
+      this.setFlipX(dir === -1);
+      body.setVelocityX(dir * this.speed * speedMult);
+
+      if (t >= this._nextFireAt && Math.abs(dx) < 350) {
+        this._nextFireAt = t + 1800;
+        this.onFire?.(this.x, this.y - 12, this.target.x, this.target.y);
+      }
+      if (t >= this._nextHealAt) {
+        this._nextHealAt = t + 6000;
+        this.onHeal?.();
+      }
+    }
+
+    const walkFrame = Math.floor((t + this._animOffset) / 240) % 3;
+    this.setTexture("sprites", `enemy-evangelista-boss-walk${walkFrame}`);
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
+    this._invulnUntil = now + HIT_INVULN_MS;
+    this.hp -= damage;
+    this.setTint(0xff8888);
+    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("evangelista_avancado");
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+}
+
+// ─── EvangelistaMegaCorp ───────────────────────────────────────────────────────
+// Fase 5 — Forma final: dispara 3 PostIts em leque, cura inimigos a cada 4s.
+export class EvangelistaMegaCorp extends Phaser.Physics.Arcade.Sprite {
+  hp = 600;
+  speed = 100;
+  contactDamage = 16;
+  vrReward = 9;
+
+  target?: Phaser.GameObjects.Sprite;
+  onFire?: (fx: number, fy: number, tx: number, ty: number) => void;
+  onHeal?: () => void;
+
+  private _invulnUntil = 0;
+  private _frozen = 0;
+  private _slow = 0;
+  private _nextFireAt = 0;
+  private _nextHealAt = 0;
+  private _animOffset: number;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "sprites", "enemy-evangelista-mega-idle0");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(38, 60);
+    body.setOffset(5, 4);
+    body.setCollideWorldBounds(true);
+    this._nextFireAt = scene.time.now + 2000;
+    this._nextHealAt = scene.time.now + 4000;
+    this._animOffset = Math.random() * 2000 | 0;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    if (!this.active || !this.body) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) return;
+    const speedMult = t < this._slow ? 0.4 : 1;
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      const dir = dx >= 0 ? 1 : -1;
+      this.setFlipX(dir === -1);
+      body.setVelocityX(dir * this.speed * speedMult);
+
+      if (t >= this._nextFireAt && Math.abs(dx) < 400) {
+        this._nextFireAt = t + 1400;
+        // leque de 3 PostIts: centro, acima, abaixo
+        this.onFire?.(this.x, this.y - 12, this.target.x, this.target.y);
+        this.onFire?.(this.x, this.y - 12, this.target.x, this.target.y - 30);
+        this.onFire?.(this.x, this.y - 12, this.target.x, this.target.y + 30);
+      }
+      if (t >= this._nextHealAt) {
+        this._nextHealAt = t + 4000;
+        this.onHeal?.();
+      }
+    }
+
+    const walkFrame = Math.floor((t + this._animOffset) / 220) % 2;
+    this.setTexture("sprites", `enemy-evangelista-mega-walk${walkFrame}`);
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    if (now < this._invulnUntil) return false;
+    this.applyFreeze(75);
+    this._invulnUntil = now + HIT_INVULN_MS;
+    this.hp -= damage;
+    this.setTint(0xff8888);
+    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
+    if (this.hp <= 0) markKilled("evangelista_megacorp");
+    return this.hp <= 0;
+  }
+
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+}

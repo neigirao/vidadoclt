@@ -862,3 +862,153 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
 
   applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
+
+// ─── EstagiarioSobrecarregado ─────────────────────────────────────────────────
+// Variante B do estagiário: carrega mais tarefas, persegue o player ativamente,
+// animação de 5 frames de walk.
+export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
+  hp = 22;
+  contactDamage = 12;
+  speed = 180;
+  dir: 1 | -1 = -1;
+  private _frozen = 0;
+  private _hurtUntil = 0;
+  private _animOffset: number;
+
+  target?: Phaser.GameObjects.GameObject & { x: number; y: number };
+
+  constructor(scene: Phaser.Scene, x: number, y: number, dir: 1 | -1 = -1) {
+    super(scene, x, y, ...resolveSprite("tex-estagiario-b-idle0"));
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(20, 28);
+    body.setOffset(14, 36);
+    body.setCollideWorldBounds(true);
+    this.dir = dir;
+    this.setFlipX(dir === -1);
+    this._animOffset = Math.random() * 2000 | 0;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) {
+      applyTexture(this, "tex-estagiario-b-hurt0");
+      return;
+    }
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      this.dir = dx >= 0 ? 1 : -1;
+    } else {
+      if (body.blocked.left) this.dir = 1;
+      else if (body.blocked.right) this.dir = -1;
+    }
+    this.setFlipX(this.dir === -1);
+    body.setVelocityX(this.dir * this.speed);
+
+    if (t < this._hurtUntil) {
+      applyTexture(this, "tex-estagiario-b-hurt0");
+    } else {
+      const frame = Math.floor((t + this._animOffset) / 180) % 5;
+      applyTexture(this, `tex-estagiario-b-walk${frame}`);
+    }
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
+    this.hp -= damage;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocityX(knockback);
+    body.setVelocityY(-180);
+    if (this.hp <= 0) markKilled("estagiario_sobrecarregado");
+    return this.hp <= 0;
+  }
+
+  applyFreezeE2(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+}
+
+// ─── AnalistaOnboarding ───────────────────────────────────────────────────────
+// Analista Novo: mantém distância, dispara PostIts nervosos, 5 frames de walk.
+export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
+  hp = 18;
+  contactDamage = 0;
+  speed = 90;
+  dir: 1 | -1 = -1;
+  private _frozen = 0;
+  private _hurtUntil = 0;
+  private _nextFireAt = 0;
+  private _animOffset: number;
+
+  target?: Phaser.GameObjects.GameObject & { x: number; y: number };
+  onShoot?: (fx: number, fy: number, tx: number, ty: number) => void;
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, ...resolveSprite("tex-analista-novo-idle0"));
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.setDepth(10);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(24, 36);
+    body.setOffset(12, 28);
+    body.setCollideWorldBounds(true);
+    this._animOffset = Math.random() * 2000 | 0;
+    this._nextFireAt = scene.time.now + 2000 + Math.random() * 1000;
+  }
+
+  preUpdate(t: number, dt: number) {
+    super.preUpdate(t, dt);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (t < this._frozen) {
+      applyTexture(this, "tex-analista-novo-hurt0");
+      return;
+    }
+
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      const dist = Math.abs(dx);
+      if (dist < 100) {
+        this.dir = dx >= 0 ? -1 : 1; // foge se muito perto
+      } else if (dist > 220) {
+        this.dir = dx >= 0 ? 1 : -1;
+      }
+      body.setVelocityX(this.dir * this.speed);
+      this.setFlipX(this.dir === -1);
+
+      if (t >= this._nextFireAt && dist < 300) {
+        this._nextFireAt = t + 1200;
+        this.onShoot?.(this.x, this.y - 10, this.target.x, (this.target as any).y ?? this.y);
+      }
+    } else {
+      if (body.blocked.left) this.dir = 1;
+      else if (body.blocked.right) this.dir = -1;
+      body.setVelocityX(this.dir * this.speed * 0.5);
+      this.setFlipX(this.dir === -1);
+    }
+
+    if (t < this._hurtUntil) {
+      applyTexture(this, "tex-analista-novo-hurt0");
+    } else {
+      const frame = Math.floor((t + this._animOffset) / 190) % 5;
+      applyTexture(this, `tex-analista-novo-walk${frame}`);
+    }
+  }
+
+  hit(damage: number, knockback: number): boolean {
+    const now = this.scene.time.now;
+    this._frozen = Math.max(this._frozen, now + 75);
+    this._hurtUntil = now + 180;
+    this.hp -= damage;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocityX(knockback);
+    body.setVelocityY(-150);
+    if (this.hp <= 0) markKilled("analista_onboarding");
+    return this.hp <= 0;
+  }
+
+  applyFreezeA(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+}
