@@ -55,7 +55,15 @@ const _resolveCache = new Map<string, [string, string?]>();
  * O primeiro candidato que existir de fato no atlas vence; nada batendo cai
  * para a textura standalone (geradas em runtime, backgrounds, vr/coffee etc).
  */
-const EXPLICIT_ALIASES: Record<string, string> = {
+
+/**
+ * Mapeamento explícito de chave-stripped → frame do atlas para casos que não
+ * seguem nenhum dos padrões automáticos de candidateFrames. Exportado para que
+ * código externo possa injetar entradas sem editar este arquivo:
+ *   import { EXPLICIT_ALIASES } from "@/game/systems/SpriteLibrary";
+ *   EXPLICIT_ALIASES["meu-sprite"] = "obj-meu-sprite-idle";
+ */
+export const EXPLICIT_ALIASES: Record<string, string> = {
   "planta-deco": "obj-planta-empresa-idle",
   "bebedouro-deco": "obj-bebedouro-idle",
   "pilha-docs": "obj-pilha-papel-idle",
@@ -150,4 +158,95 @@ export function addSprite(
   key: string,
 ): Phaser.GameObjects.Sprite {
   return scene.add.sprite(x, y, ...resolveSprite(key));
+}
+
+/**
+ * Retorna um array de chaves de frame do atlas para um dado prefixo e lista de
+ * estados de animação, com `countPerState` frames por estado (numerados 0-based).
+ *
+ * Usa a mesma lógica de resolução de resolveSprite: para cada chave lógica
+ * `tex-<prefixo>-<estado><n>` o frame resolvido do atlas é adicionado ao array.
+ * Frames não encontrados no atlas são omitidos silenciosamente.
+ *
+ * @example
+ * getAnimFrames("estagiario", ["idle","walk","hurt"], 2)
+ * // → ["enemy-estagiario-idle0","enemy-estagiario-idle1",
+ * //    "enemy-estagiario-walk0","enemy-estagiario-walk1",
+ * //    "enemy-estagiario-hurt0","enemy-estagiario-hurt1"]
+ */
+export function getAnimFrames(
+  prefix: string,
+  stateNames: string[],
+  countPerState: number,
+): string[] {
+  const frames: string[] = [];
+  for (const state of stateNames) {
+    for (let i = 0; i < countPerState; i++) {
+      const logicalKey = `tex-${prefix}-${state}${i}`;
+      const [tex, frame] = resolveSprite(logicalKey);
+      // Only include frames that resolved to the atlas (not standalone fallbacks).
+      if (tex === ATLAS_KEY && frame !== undefined) {
+        frames.push(frame);
+      }
+    }
+  }
+  return frames;
+}
+
+/**
+ * Aplica textura+frame a um Phaser.Physics.Arcade.Sprite usando resolveSprite e
+ * define a origem nos pés (0.5, 1) — padrão de ancoragem de todos os inimigos.
+ *
+ * @param sprite - O sprite a ser configurado (deve estar criado previamente).
+ * @param texKey - Chave lógica `tex-*` do sprite inicial (e.g. `tex-estagiario-idle0`).
+ */
+export function bindEnemySprite(
+  sprite: Phaser.Physics.Arcade.Sprite,
+  texKey: string,
+): void {
+  const [tex, frame] = resolveSprite(texKey);
+  sprite.setTexture(tex, frame);
+  sprite.setOrigin(0.5, 1);
+}
+
+/**
+ * Verifica se os frames padrão de um prefixo de inimigo existem no atlas e emite
+ * console.warn para cada frame ausente. Útil para detectar assets faltando cedo
+ * (chamar no create() da cena).
+ *
+ * Frames verificados: `<prefixo>-idle0`, `<prefixo>-walk0`, `<prefixo>-hurt0`
+ * (usando a lógica completa de resolveSprite, incluindo EXPLICIT_ALIASES e
+ * prefixos automáticos como `enemy-`).
+ *
+ * @returns Array de chaves de frame que NÃO foram encontradas no atlas.
+ */
+export function warnMissing(scene: Phaser.Scene, prefix: string): string[] {
+  const standardStates = ["idle0", "walk0", "hurt0"];
+  const missing: string[] = [];
+
+  for (const state of standardStates) {
+    const logicalKey = `tex-${prefix}-${state}`;
+    const [tex, frame] = resolveSprite(logicalKey);
+
+    let found = false;
+    if (tex === ATLAS_KEY && frame !== undefined) {
+      // Confirmed in atlas via resolveSprite's own index.
+      found = true;
+    } else if (scene.textures.exists(tex)) {
+      // Standalone texture (runtime-generated or loaded separately).
+      found = true;
+    }
+
+    if (!found) {
+      const candidateLabel =
+        frame !== undefined ? `${tex}[${frame}]` : logicalKey;
+      console.warn(
+        `[SpriteLibrary] warnMissing: frame not found for "${logicalKey}" ` +
+          `(resolved candidate: "${candidateLabel}")`,
+      );
+      missing.push(logicalKey);
+    }
+  }
+
+  return missing;
 }
