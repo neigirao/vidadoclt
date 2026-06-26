@@ -21,6 +21,43 @@ export type EnemyId =
   | "arquivo_ambulante"
   | "bateria_social";
 
+export type EnemyArchetype =
+  | "rusher"
+  | "ranged"
+  | "charger"
+  | "tank"
+  | "healer"
+  | "aerial"
+  | "splitter"
+  | "support";
+
+export type EnemyAttackDef = {
+  name: string;
+  telegraphMs: number;
+  damage: number;
+  cooldownMs: number;
+};
+
+export type EnemyBodySize = {
+  w: number;
+  h: number;
+  offsetX?: number;
+  offsetY?: number;
+};
+
+export type EnemyDrops = {
+  vr?: [number, number];
+  coffeeChance?: number;
+  postitChance?: number;
+};
+
+export type EnemyAudio = {
+  spawn?: string;
+  hurt?: string;
+  death?: string;
+  attack?: string;
+};
+
 export type EnemyDef = {
   id: EnemyId;
   label: string;
@@ -29,6 +66,14 @@ export type EnemyDef = {
   contactDamage: number;
   vrReward: number;
   phase: 1 | 2 | 3 | 4 | 5;
+  // Campos opcionais (Etapa 1 — não-destrutivos)
+  archetype?: EnemyArchetype;
+  spritePrefix?: string;
+  bodySize?: EnemyBodySize;
+  attacks?: EnemyAttackDef[];
+  drops?: EnemyDrops;
+  audio?: EnemyAudio;
+  description?: string;
 };
 
 export const ENEMIES: Record<EnemyId, EnemyDef> = {
@@ -40,6 +85,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 15,
     vrReward: 1,
     phase: 1,
+    archetype: "rusher",
+    spritePrefix: "estagiario",
+    bodySize: { w: 28, h: 48 },
+    attacks: [{ name: "lunge", telegraphMs: 200, damage: 15, cooldownMs: 900 }],
+    drops: { vr: [1, 2], coffeeChance: 0.05 },
+    description: "Foi contratado pela 'oportunidade'. Agora corre por café.",
   },
   facilitador_workshop: {
     id: "facilitador_workshop",
@@ -49,6 +100,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 0,
     vrReward: 2,
     phase: 1,
+    archetype: "support",
+    spritePrefix: "facilitador",
+    bodySize: { w: 32, h: 52 },
+    drops: { vr: [2, 3], postitChance: 0.15 },
+    description: "Cobra dynamics até no horário de almoço.",
   },
   scrum_master_caotico: {
     id: "scrum_master_caotico",
@@ -58,6 +114,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 8,
     vrReward: 2,
     phase: 1,
+    archetype: "ranged",
+    spritePrefix: "scrum",
+    bodySize: { w: 30, h: 52 },
+    attacks: [{ name: "postit_throw", telegraphMs: 300, damage: 6, cooldownMs: 1400 }],
+    drops: { vr: [2, 3], postitChance: 0.4 },
+    description: "Move o post-it sem perguntar. Joga o post-it em você.",
   },
   coordenador_sinergia: {
     id: "coordenador_sinergia",
@@ -67,6 +129,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 5,
     vrReward: 4,
     phase: 1,
+    archetype: "support",
+    spritePrefix: "coordenador",
+    bodySize: { w: 36, h: 56 },
+    drops: { vr: [3, 5] },
+    description: "Convoca reunião sem pauta para drenar tua sanidade.",
   },
   analista_senior_exausto: {
     id: "analista_senior_exausto",
@@ -76,6 +143,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 5,
     vrReward: 6,
     phase: 1,
+    archetype: "tank",
+    spritePrefix: "senior",
+    bodySize: { w: 38, h: 58 },
+    attacks: [{ name: "slam_planilha", telegraphMs: 500, damage: 10, cooldownMs: 1800 }],
+    drops: { vr: [5, 8], coffeeChance: 0.5 },
+    description: "Sustentou o time por 12 anos. Restam casca e Excel.",
   },
   enemy_rh: {
     id: "enemy_rh",
@@ -85,6 +158,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 8,
     vrReward: 3,
     phase: 1,
+    archetype: "charger",
+    spritePrefix: "rh",
+    bodySize: { w: 32, h: 56 },
+    attacks: [{ name: "feedback_360", telegraphMs: 400, damage: 12, cooldownMs: 1600 }],
+    drops: { vr: [2, 4] },
+    description: "Quer 'bater um papo rápido na salinha'.",
   },
   analista_junior: {
     id: "analista_junior",
@@ -94,6 +173,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 0,
     vrReward: 3,
     phase: 1,
+    archetype: "ranged",
+    spritePrefix: "analista",
+    bodySize: { w: 30, h: 52 },
+    attacks: [{ name: "email_storm", telegraphMs: 250, damage: 5, cooldownMs: 1100 }],
+    drops: { vr: [2, 4] },
+    description: "Dispara e-mails em cópia oculta. Letais.",
   },
   telemarketer_zumbi: {
     id: "telemarketer_zumbi",
@@ -103,6 +188,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 12,
     vrReward: 2,
     phase: 2,
+    archetype: "rusher",
+    spritePrefix: "telemarketer",
+    bodySize: { w: 32, h: 56 },
+    drops: { vr: [1, 3] },
+    description: "Repete o script desde 2008. Não respira.",
   },
   impressora_assombrada: {
     id: "impressora_assombrada",
@@ -112,6 +202,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 8,
     vrReward: 8,
     phase: 2,
+    archetype: "tank",
+    spritePrefix: "impressora",
+    bodySize: { w: 44, h: 56 },
+    attacks: [{ name: "ink_burst", telegraphMs: 600, damage: 14, cooldownMs: 2200 }],
+    drops: { vr: [6, 12] },
+    description: "Atola toner com olhos vermelhos.",
   },
   guardiao_cafe: {
     id: "guardiao_cafe",
@@ -121,6 +217,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 20,
     vrReward: 4,
     phase: 2,
+    archetype: "charger",
+    spritePrefix: "guardiao-cafe",
+    bodySize: { w: 40, h: 58 },
+    attacks: [{ name: "hot_splash", telegraphMs: 450, damage: 18, cooldownMs: 1700 }],
+    drops: { vr: [3, 6], coffeeChance: 0.6 },
+    description: "Defende a cafeteira como se fosse a última.",
   },
   nuvem_board_sentinela: {
     id: "nuvem_board_sentinela",
@@ -130,6 +232,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 0,
     vrReward: 3,
     phase: 2,
+    archetype: "aerial",
+    spritePrefix: "noticeboard",
+    bodySize: { w: 40, h: 40 },
+    attacks: [{ name: "broadcast", telegraphMs: 700, damage: 8, cooldownMs: 2500 }],
+    drops: { vr: [2, 4] },
+    description: "Anuncia metas impossíveis em alto-falante.",
   },
   evangelista_corporativo: {
     id: "evangelista_corporativo",
@@ -139,6 +247,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 8,
     vrReward: 3,
     phase: 3,
+    archetype: "support",
+    spritePrefix: "evangelista",
+    bodySize: { w: 34, h: 56 },
+    drops: { vr: [2, 5], postitChance: 0.2 },
+    description: "Posta no LinkedIn enquanto te ataca.",
   },
   coletor_dados: {
     id: "coletor_dados",
@@ -148,6 +261,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 0,
     vrReward: 1,
     phase: 3,
+    archetype: "aerial",
+    spritePrefix: "coletor",
+    bodySize: { w: 30, h: 32 },
+    attacks: [{ name: "scrape", telegraphMs: 200, damage: 6, cooldownMs: 1000 }],
+    drops: { vr: [1, 2] },
+    description: "Quer só 'mais alguns dados pra melhorar o serviço'.",
   },
   planilha_viva: {
     id: "planilha_viva",
@@ -157,6 +276,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 10,
     vrReward: 6,
     phase: 3,
+    archetype: "tank",
+    spritePrefix: "planilha",
+    bodySize: { w: 42, h: 50 },
+    attacks: [{ name: "vlookup", telegraphMs: 550, damage: 16, cooldownMs: 2000 }],
+    drops: { vr: [5, 9] },
+    description: "12.000 linhas. Sem cabeçalho. Está cheia de macros.",
   },
   cabo_rede: {
     id: "cabo_rede",
@@ -166,6 +291,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 10,
     vrReward: 2,
     phase: 4,
+    archetype: "rusher",
+    spritePrefix: "cabo",
+    bodySize: { w: 30, h: 54 },
+    drops: { vr: [1, 3] },
+    description: "Chicoteia quem ousar tropeçar.",
   },
   ti_suporte: {
     id: "ti_suporte",
@@ -175,6 +305,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 12,
     vrReward: 3,
     phase: 4,
+    archetype: "ranged",
+    spritePrefix: "ti-suporte",
+    bodySize: { w: 34, h: 56 },
+    attacks: [{ name: "have_you_tried_restarting", telegraphMs: 350, damage: 12, cooldownMs: 1500 }],
+    drops: { vr: [2, 5] },
+    description: "Pergunta se você reiniciou. Três vezes.",
   },
   drone_vigilancia: {
     id: "drone_vigilancia",
@@ -184,6 +320,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 0,
     vrReward: 3,
     phase: 4,
+    archetype: "aerial",
+    spritePrefix: "drone",
+    bodySize: { w: 32, h: 28 },
+    attacks: [{ name: "laser", telegraphMs: 400, damage: 10, cooldownMs: 1400 }],
+    drops: { vr: [2, 4] },
+    description: "Reporta seus minutos no banheiro à diretoria.",
   },
   seguranca_corporativa: {
     id: "seguranca_corporativa",
@@ -193,6 +335,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 10,
     vrReward: 4,
     phase: 4,
+    archetype: "charger",
+    spritePrefix: "seguranca",
+    bodySize: { w: 36, h: 60 },
+    attacks: [{ name: "headlock", telegraphMs: 500, damage: 14, cooldownMs: 1800 }],
+    drops: { vr: [3, 6] },
+    description: "Crachá vence em segundos. Você também.",
   },
   carimbador_automatico: {
     id: "carimbador_automatico",
@@ -202,6 +350,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 8,
     vrReward: 4,
     phase: 5,
+    archetype: "tank",
+    spritePrefix: "carimbador",
+    bodySize: { w: 38, h: 56 },
+    attacks: [{ name: "stamp", telegraphMs: 400, damage: 11, cooldownMs: 1300 }],
+    drops: { vr: [3, 6] },
+    description: "Carimba 'INDEFERIDO' na sua testa.",
   },
   arquivo_ambulante: {
     id: "arquivo_ambulante",
@@ -211,6 +365,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 35,
     vrReward: 15,
     phase: 5,
+    archetype: "tank",
+    spritePrefix: "arquivo",
+    bodySize: { w: 48, h: 60 },
+    attacks: [{ name: "paper_avalanche", telegraphMs: 800, damage: 28, cooldownMs: 2800 }],
+    drops: { vr: [12, 20], coffeeChance: 0.4 },
+    description: "Contém todos os RHs que vieram antes.",
   },
   bateria_social: {
     id: "bateria_social",
@@ -220,5 +380,23 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     contactDamage: 8,
     vrReward: 4,
     phase: 5,
+    archetype: "support",
+    spritePrefix: "bateria",
+    bodySize: { w: 32, h: 52 },
+    attacks: [{ name: "drain", telegraphMs: 600, damage: 9, cooldownMs: 2000 }],
+    drops: { vr: [3, 6] },
+    description: "Drena sua energia só de existir perto.",
   },
 };
+
+export function getEnemyDef(id: EnemyId): EnemyDef {
+  return ENEMIES[id];
+}
+
+export function getEnemiesByPhase(phase: 1 | 2 | 3 | 4 | 5): EnemyDef[] {
+  return Object.values(ENEMIES).filter((e) => e.phase === phase);
+}
+
+export function getEnemiesByArchetype(archetype: EnemyArchetype): EnemyDef[] {
+  return Object.values(ENEMIES).filter((e) => e.archetype === archetype);
+}
