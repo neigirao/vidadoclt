@@ -162,7 +162,7 @@ Nenhum band-aid ativo no momento.
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 
 ### Pendente / em aberto
-- Áudio
+- (nenhum item crítico — áudio procedural implementado via Web Audio API em `AudioSystem.ts`)
 
 ## Padrões e convenções
 
