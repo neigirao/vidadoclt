@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { getRun } from "../systems/PlayerState";
 import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
+import { Sfx } from "../systems/AudioSystem";
 
 export class CulturaSelectScene extends Phaser.Scene {
   constructor() {
@@ -91,6 +92,7 @@ export class CulturaSelectScene extends Phaser.Scene {
     });
 
     const select = (id: CulturaId) => {
+      Sfx.culturaSelect();
       run.culturas = [...(run.culturas ?? []), id];
       // Apply banco_horas immediately on selection (not via reapplyAllCulturas)
       if (id === "banco_horas") {

@@ -10,6 +10,7 @@ import { SanityFx } from "../systems/SanityFx";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CulturaId, CULTURAS, reapplyAllCulturas } from "../systems/CulturaSystem";
 import { CombatFx } from "../systems/CombatFx";
+import { Sfx } from "../systems/AudioSystem";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -150,6 +151,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
 
     this.player.onRangedAttack = (fx, fy, facing) => {
+      Sfx.inkShot();
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
       this.spawnProjectile({
         x: fx + facing * 20, y: fy - 5,
@@ -200,6 +202,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     if (this.boss) {
       const bossMaxHp = this.boss.maxHp ?? this.boss.hp;
       this.hud.showBoss(this.getBossName(), bossMaxHp);
+      Sfx.bossAppear();
       this.boss.onHpChange = (hp: number) => this.hud.updateBoss(hp);
       this.physics.add.collider(this.boss as Phaser.Physics.Arcade.Sprite, this.platforms);
     }
@@ -283,6 +286,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 16. Player → drops
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
       this.player.addVR(1);
+      Sfx.vrPickup();
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
@@ -400,6 +404,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.bossDefeated = true;
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
+    Sfx.bossDefeat();
 
     if (this.boss?.active) {
       for (let i = 0; i < 12; i++) {
@@ -449,7 +454,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
     const isFinal = step >= comboHits;
-    if (isFinal) this.cameras.main.shake(80, 0.006);
+    if (isFinal) { this.cameras.main.shake(80, 0.006); Sfx.meleeHeavy(); }
+    else Sfx.meleeLight();
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
       Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());

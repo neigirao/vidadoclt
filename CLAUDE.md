@@ -163,9 +163,6 @@ Nenhum band-aid ativo no momento.
 
 ### Pendente / em aberto
 - Áudio
-- Cultura Corporativa (modificadores de run)
-- Extração dos sprite sheets `40d08d2f` (inimigos comuns v2) e `4f9ff812` (fase 2-5 v2)
-- Integração do tileset de fases (`ChatGPT Image 13_47_28`) nas cenas Phase2–5
 
 ## Padrões e convenções
 

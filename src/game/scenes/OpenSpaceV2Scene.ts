@@ -25,6 +25,7 @@ import { reapplyAllPerks } from "../systems/PerkSystem";
 import { reapplyAllCulturas } from "../systems/CulturaSystem";
 import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage } from "../systems/SpriteLibrary";
+import { Sfx } from "../systems/AudioSystem";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -164,6 +165,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
 
     this.player.onRangedAttack = (fx, fy, facing) => {
+      Sfx.inkShot();
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
       this.spawnProjectile({
         x: fx + facing * 20, y: fy - 5,
@@ -327,6 +329,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
       this.player.addVR(1);
+      Sfx.vrPickup();
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
@@ -558,6 +561,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     boss.onActivate = () => {
       this.hud.showBoss("Gerente Microgestor", boss.maxHp);
       this.hud.setObjective("Derrote o Gerente Microgestor!");
+      Sfx.bossAppear();
     };
     boss.onHpChange = (hp) => this.hud.updateBoss(hp);
     boss.onShoot = (fx, fy, tx, ty) => {
@@ -611,6 +615,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     getRun(this).openSpaceCleared = true;
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
+    Sfx.bossDefeat();
 
     // Death animation: flash white, shake camera, then shrink+fade
     boss.setTint(0xffffff);
@@ -687,7 +692,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
-    if (step >= comboHits) this.cameras.main.shake(80, 0.006);
+    if (step >= comboHits) { this.cameras.main.shake(80, 0.006); Sfx.meleeHeavy(); }
+    else Sfx.meleeLight();
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
       Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());

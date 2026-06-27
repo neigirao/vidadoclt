@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { getRun, resetRun, savePersisted } from "../systems/PlayerState";
 import { submitScore, phaseLabel } from "../systems/Ranking";
+import { Sfx } from "../systems/AudioSystem";
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -17,6 +18,7 @@ export class GameOverScene extends Phaser.Scene {
     run.reconhecimento += earned;
     run.loopCount += 1;
     savePersisted(run.reconhecimento, run.fgts, run.loopCount);
+    Sfx.gameOver();
 
     run.lastDeathCause = cause;
     const isBurnout = cause === "burnout";

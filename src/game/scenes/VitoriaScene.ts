@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { getRun, savePersisted } from "../systems/PlayerState";
+import { Sfx } from "../systems/AudioSystem";
 
 export class VitoriaScene extends Phaser.Scene {
   constructor() {
@@ -12,6 +13,7 @@ export class VitoriaScene extends Phaser.Scene {
     const reconhecimento = data.reconhecimento ?? run.reconhecimento;
     const loopCount = data.loopCount ?? run.loopCount ?? 1;
 
+    Sfx.victory();
     this.cameras.main.setBackgroundColor("#0a0c10");
 
     // Gold shimmer

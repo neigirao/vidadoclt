@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { getRun, RunState } from "./PlayerState";
+import { Sfx } from "./AudioSystem";
 import { WEAPONS, WeaponId, WeaponDef } from "./WeaponSystem";
 import { PERKS, PerkId, applyPerk } from "./PerkSystem";
 import { Player } from "../entities/Player";
@@ -299,6 +300,7 @@ export class ShopUI {
       return;
     }
     run.vr -= item.cost;
+    Sfx.buy();
     const result = item.apply(run, this);
     if (result === "next") {
       this.close();

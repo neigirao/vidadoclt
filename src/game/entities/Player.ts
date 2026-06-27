@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
+import { Sfx } from "../systems/AudioSystem";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -149,6 +150,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.energy = Math.max(0, this.energy - amount);
     if (sanityHit) this.sanity = Math.max(0, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
+    Sfx.playerHit();
     CombatFx.flashSprite(this, 55);
     this.scene.time.delayedCall(55, () => this.setTint(0xff8888));
     this.scene.time.delayedCall(175, () => this.clearTint());
@@ -268,6 +270,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(JUMP_VEL);
       this.lastJumpPressedAt = -9999;
       this.lastGroundedAt = -9999;
+      Sfx.jump();
     }
     // variable jump cut
     if (!jumpDown && body.velocity.y < -200) {
@@ -279,6 +282,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(JUMP_VEL);
       this.jumpsUsed++;
       this.lastJumpPressedAt = -9999;
+      Sfx.jump();
     }
 
     // Dash
@@ -288,6 +292,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(0);
       this.setAlpha(0.6);
       this.scene.time.delayedCall(DASH_MS, () => this.setAlpha(1));
+      Sfx.dash();
     }
 
     // Attack combo
@@ -316,6 +321,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (specialPressed && time >= this.specialCooldownUntil) {
       this.specialCooldownUntil = time + this.specialCooldown;
       this.onSpecialAttack?.(this.specialType, this.x, this.y, this.facing);
+      Sfx.special();
     }
     this.prevSpecialDown = specialDown;
 
