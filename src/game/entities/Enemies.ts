@@ -309,7 +309,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
         body.setVelocityX(this.dir * this.speed);
         if (this.target) {
           const dist = Math.abs(this.target.x - this.x);
-          if (this.isBoss && dist < 300 && t >= this.retrospectivaCooldown) {
+          if (dist < 300 && t >= this.retrospectivaCooldown) {
             this.aiState = "retro_tele";
             this.stateUntil = t + 700;
             this.setTint(0xaa44ff);
@@ -427,9 +427,10 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   private _frozen = 0;
   private _hurtUntil = 0;
 
-  // Buff aura: set by preUpdate, consumed by OpenSpaceScene
   isBuffing = false;
   private nextBuffAt = 0;
+  /** Callback disparado quando o buff ativa — cena injeta lógica de heal nos aliados próximos */
+  onBuff?: (cx: number, cy: number, radius: number) => void;
 
   target?: { x: number; y: number };
   onHpChange?: (hp: number, maxHp: number) => void;
@@ -461,7 +462,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
       this.nextBuffAt = t + 3200;
       this.isBuffing = true;
       this.setTint(0x44ff88);
-      // Spawn aura ring visual
+      this.onBuff?.(this.x, this.y, 160);
       const ring = this.scene.add.graphics().setDepth(400);
       ring.lineStyle(2, 0x44ff88, 0.8);
       ring.strokeCircle(this.x, this.y, 160);
@@ -929,7 +930,7 @@ export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreezeE2(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
 
 // ─── AnalistaOnboarding ───────────────────────────────────────────────────────
@@ -1010,5 +1011,5 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreezeA(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
 }
