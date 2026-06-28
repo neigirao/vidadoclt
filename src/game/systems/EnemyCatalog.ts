@@ -240,6 +240,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 32, h: 56 },
     drops: { vr: [1, 3] },
     description: "Repete o script desde 2008. Não respira.",
+    lore: "Discou para 3.847 números hoje. Só você atendeu. Não sabe se isso é sorte ou punição.",
   },
   impressora_vermelha: {
     id: "impressora_vermelha",
@@ -255,6 +256,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "toner_burst", telegraphMs: 550, damage: 16, cooldownMs: 2000 }],
     drops: { vr: [8, 14] },
     description: "Errou o cartucho. Imprime a raiva.",
+    lore: "Chamou a TI 14 vezes. Cada chamado foi 'resolvido' com Ctrl+P. O toner vermelho não é toner.",
   },
   impressora_fantasma: {
     id: "impressora_fantasma",
@@ -270,6 +272,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "ghost_print", telegraphMs: 700, damage: 18, cooldownMs: 2400 }],
     drops: { vr: [10, 16] },
     description: "Imprime documentos que ninguém pediu às 3h da manhã.",
+    lore: "Ninguém sabe quem mandou imprimir. O papel sumiu. O fantasma ficou. Dicen que é uma ata de reunião de 2019 que nunca foi assinada.",
   },
   impressora_necromorfa: {
     id: "impressora_necromorfa",
@@ -285,6 +288,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "paper_storm", telegraphMs: 800, damage: 24, cooldownMs: 2800 }],
     drops: { vr: [14, 22], coffeeChance: 0.3 },
     description: "Mutação final. Alimentada por toner e ressentimento.",
+    lore: "Começou como uma Brother compacta em 2004. Sobreviveu a sete reformas, dois incêndios e a três gerações de TI. O contrato de manutenção expirou em 2017.",
   },
   reuniao_corporativa: {
     id: "reuniao_corporativa",
@@ -300,6 +304,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "pauta_infinita", telegraphMs: 800, damage: 10, cooldownMs: 3000 }],
     drops: { vr: [4, 7] },
     description: "Convocada sem pauta. Dura mais que o expediente.",
+    lore: "A reunião foi marcada 'rapidinho, 15 minutinhos'. Hora e meia depois ainda está discutindo o font do slide. Nenhuma decisão foi tomada.",
   },
   evangelista_avancado: {
     id: "evangelista_avancado",
@@ -314,6 +319,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 34, h: 58 },
     drops: { vr: [5, 8], postitChance: 0.25 },
     description: "Palestrante motivacional com síndrome do impostor avançado.",
+    lore: "Vendeu 800 cursos online sobre 'mindset de alta performance'. Ele mesmo nunca leu um até o fim. Tem uma camiseta do TED.",
   },
   evangelista_megacorp: {
     id: "evangelista_megacorp",
@@ -328,6 +334,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 38, h: 60 },
     drops: { vr: [8, 14], postitChance: 0.35 },
     description: "Transcendeu o corporativo. É o corporativo agora.",
+    lore: "Nem ele sabe mais onde termina a pessoa e começa o cargo. No último feedback 360 deu nota 10 pra si mesmo em todas as competências.",
   },
   impressora_assombrada: {
     id: "impressora_assombrada",
@@ -343,6 +350,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "ink_burst", telegraphMs: 600, damage: 14, cooldownMs: 2200 }],
     drops: { vr: [6, 12] },
     description: "Atola toner com olhos vermelhos.",
+    lore: "Deu paper jam no mesmo papel três vezes. A quarta vez o papel gritou. Ninguém chamou a TI porque 'já chamaram ontem'.",
   },
   guardiao_cafe: {
     id: "guardiao_cafe",
@@ -358,6 +366,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "hot_splash", telegraphMs: 450, damage: 18, cooldownMs: 1700 }],
     drops: { vr: [3, 6], coffeeChance: 0.6 },
     description: "Defende a cafeteira como se fosse a última.",
+    lore: "A cafeteira é dele. Sempre foi. Não importa que o CNPJ da empresa seja dono. Se você colocar descafeinado, não vai sair daqui.",
   },
   nuvem_board_sentinela: {
     id: "nuvem_board_sentinela",
@@ -373,6 +382,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "broadcast", telegraphMs: 700, damage: 8, cooldownMs: 2500 }],
     drops: { vr: [2, 4] },
     description: "Anuncia metas impossíveis em alto-falante.",
+    lore: "A meta Q4 foi calculada numa planilha aberta há 8 anos. A célula com a fórmula tem um erro de referência circular. Ninguém consertou.",
   },
   evangelista_corporativo: {
     id: "evangelista_corporativo",
@@ -387,6 +397,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 34, h: 56 },
     drops: { vr: [2, 5], postitChance: 0.2 },
     description: "Posta no LinkedIn enquanto te ataca.",
+    lore: "Já teve 1.200 conexões de 1o grau. Cada post começa com 'Hoje aprendi que...' e termina com '#gratidão'. O último teve 4 likes, 3 eram contas fake.",
   },
   coletor_dados: {
     id: "coletor_dados",
@@ -402,6 +413,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "scrape", telegraphMs: 200, damage: 6, cooldownMs: 1000 }],
     drops: { vr: [1, 2] },
     description: "Quer só 'mais alguns dados pra melhorar o serviço'.",
+    lore: "Já coletou seu histórico de cliques, padrão de digitação, frequência cardíaca estimada e preferência de assentos de toalete. Tudo 'anonimizado'.",
   },
   planilha_viva: {
     id: "planilha_viva",
@@ -417,6 +429,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "vlookup", telegraphMs: 550, damage: 16, cooldownMs: 2000 }],
     drops: { vr: [5, 9] },
     description: "12.000 linhas. Sem cabeçalho. Está cheia de macros.",
+    lore: "A macro roda há 11 anos sem ninguém saber o que faz. No dia que alguém desativar, o ERP vai parar. O CFO já sabe disso.",
   },
   cabo_rede: {
     id: "cabo_rede",
@@ -431,6 +444,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 30, h: 54 },
     drops: { vr: [1, 3] },
     description: "Chicoteia quem ousar tropeçar.",
+    lore: "Estava pregado na parede há anos. A reforma da sala de servidores o libertou. Nunca foi etiquetado. Ninguém sabe para onde ia.",
   },
   ti_suporte: {
     id: "ti_suporte",
@@ -446,6 +460,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "have_you_tried_restarting", telegraphMs: 350, damage: 12, cooldownMs: 1500 }],
     drops: { vr: [2, 5] },
     description: "Pergunta se você reiniciou. Três vezes.",
+    lore: "Abriu um chamado no sistema de chamados para consertar o sistema de chamados. O chamado foi encerrado como 'sem reprodução'. Reiniciou o computador.",
   },
   drone_vigilancia: {
     id: "drone_vigilancia",
@@ -461,6 +476,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "laser", telegraphMs: 400, damage: 10, cooldownMs: 1400 }],
     drops: { vr: [2, 4] },
     description: "Reporta seus minutos no banheiro à diretoria.",
+    lore: "Instalado no Q3 de 2023 como 'melhoria da segurança'. O relatório de uso vai direto para uma planilha que ninguém abre — exceto no PIP.",
   },
   seguranca_corporativa: {
     id: "seguranca_corporativa",
@@ -476,6 +492,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "headlock", telegraphMs: 500, damage: 14, cooldownMs: 1800 }],
     drops: { vr: [3, 6] },
     description: "Crachá vence em segundos. Você também.",
+    lore: "Trabalhou 6 anos no banco. Migrou para o corporativo por 'ambiente mais dinâmico'. A pistola é de brincadeira, mas o olhar, não.",
   },
   carimbador_automatico: {
     id: "carimbador_automatico",
@@ -491,6 +508,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "stamp", telegraphMs: 400, damage: 11, cooldownMs: 1300 }],
     drops: { vr: [3, 6] },
     description: "Carimba 'INDEFERIDO' na sua testa.",
+    lore: "Carimbou 40.000 documentos na vida. Nunca leu um. Tem um cartucho de tinta azul no bolso como amuleto da sorte. Funciona.",
   },
   arquivo_ambulante: {
     id: "arquivo_ambulante",
@@ -506,6 +524,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "paper_avalanche", telegraphMs: 800, damage: 28, cooldownMs: 2800 }],
     drops: { vr: [12, 20], coffeeChance: 0.4 },
     description: "Contém todos os RHs que vieram antes.",
+    lore: "Cada pasta dentro dele tem outra pasta. Dentro da última há uma foto de alguém que foi demitido em 2001. O nome foi apagado. O olhar ficou.",
   },
   bateria_social: {
     id: "bateria_social",
@@ -521,6 +540,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "drain", telegraphMs: 600, damage: 9, cooldownMs: 2000 }],
     drops: { vr: [3, 6] },
     description: "Drena sua energia só de existir perto.",
+    lore: "Chegou no happy hour uma vez. Ficou até o fim. No dia seguinte ninguém conseguiu trabalhar. O café não resolveu. A reunião de alinhamento piorou.",
   },
 };
 

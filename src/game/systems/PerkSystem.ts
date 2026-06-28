@@ -64,6 +64,92 @@ export function applyPerk(id: PerkId, player: Player, run: RunState) {
   }
 }
 
+// ── Synergy system ────────────────────────────────────────────────────────────
+
+export type SynergyId =
+  | "valkyria" | "overtime_rush" | "workflow" | "deep_work"
+  | "procrastination" | "impostor_strike" | "barista" | "golden_hour";
+
+type SynergyDef = {
+  perks: PerkId[];
+  name: string;
+  desc: string;
+  icon: string;
+  apply: (player: Player, run: RunState) => void;
+};
+
+export const SYNERGIES: Record<SynergyId, SynergyDef> = {
+  valkyria: {
+    perks: ["piso_de_vidro", "hora_extra"],
+    name: "Valkyria CLT",
+    desc: "Pulo duplo + Hora Extra = +40% dano em ataques no ar.",
+    icon: "⚡",
+    apply: (player) => { player.airAttackBonus = 0.4; },
+  },
+  overtime_rush: {
+    perks: ["hora_extra", "vale_transporte"],
+    name: "Overtime Rush",
+    desc: "Dano e velocidade ao mesmo tempo: +25% dano extra, +20% velocidade.",
+    icon: "🚀",
+    apply: (player) => { player.damageMult *= 1.25; player.walkSpeed *= 1.2; },
+  },
+  workflow: {
+    perks: ["cafe_forte", "autonomia"],
+    name: "Workflow Otimizado",
+    desc: "Café + Autonomia = dash recarrega ao matar inimigos.",
+    icon: "☕",
+    apply: (player) => { player.dashResetOnKill = true; },
+  },
+  deep_work: {
+    perks: ["vale_transporte", "autonomia"],
+    name: "Deep Work",
+    desc: "Velocidade + Autonomia = pulo duplo desbloqueado.",
+    icon: "🧠",
+    apply: (player) => { player.doubleJump = true; },
+  },
+  procrastination: {
+    perks: ["sindrome_impostor", "hora_extra"],
+    name: "Procrastinação Estratégica",
+    desc: "First strike + Dano = 1º hit de cada sala causa stun de 1s.",
+    icon: "⏳",
+    apply: (player) => { player.firstStrikeStun = true; },
+  },
+  impostor_strike: {
+    perks: ["sindrome_impostor", "vale_transporte"],
+    name: "Impostorzinho Veloz",
+    desc: "Velocidade + First strike = dash causa 15 de dano por contato.",
+    icon: "👻",
+    apply: (player) => { player.dashDamage = 15; },
+  },
+  barista: {
+    perks: ["cafe_forte", "seguro_de_vida"],
+    name: "Barista Corporativo",
+    desc: "Café + Seguro = consumíveis restauram também +12 sanidade.",
+    icon: "☕",
+    apply: (player) => { player.consumivelSanityBonus = 12; },
+  },
+  golden_hour: {
+    perks: ["plr", "hora_extra"],
+    name: "Golden Hour",
+    desc: "PLR + Dano = VR dobrado ao matar inimigo em 3 hits ou menos.",
+    icon: "💰",
+    apply: (_player, run) => { run.goldenHourActive = true; },
+  },
+};
+
+export function checkAndApplySynergies(player: Player, run: RunState): SynergyId[] {
+  const perks = run.perks ?? [];
+  const activated: SynergyId[] = [];
+  for (const [id, syn] of Object.entries(SYNERGIES) as [SynergyId, SynergyDef][]) {
+    if (syn.perks.every(p => perks.includes(p))) {
+      syn.apply(player, run);
+      activated.push(id);
+    }
+  }
+  run.activeSynergies = activated;
+  return activated;
+}
+
 export function reapplyAllPerks(player: Player, run: RunState) {
   // Reset multiplicative stats to base before stacking perks to prevent
   // exponential growth when called multiple times (e.g. Copa → next phase)

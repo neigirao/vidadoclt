@@ -60,9 +60,10 @@ export class SanityFx {
     this.scanlines = scene.add.graphics().setScrollFactor(0).setDepth(903).setAlpha(0);
 
     // Chromatic aberration: two full-screen tinted rects, alpha 0 at rest
-    this.chromaRed  = scene.add.rectangle(GAME_WIDTH / 2 - 3, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0)
+    // Offset increased to 8px for stronger visual impact per artist audit
+    this.chromaRed  = scene.add.rectangle(GAME_WIDTH / 2 - 8, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0)
       .setScrollFactor(0).setDepth(902).setBlendMode(Phaser.BlendModes.ADD);
-    this.chromaCyan = scene.add.rectangle(GAME_WIDTH / 2 + 3, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x00ffff, 0)
+    this.chromaCyan = scene.add.rectangle(GAME_WIDTH / 2 + 8, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x00ffff, 0)
       .setScrollFactor(0).setDepth(902).setBlendMode(Phaser.BlendModes.ADD);
   }
 
@@ -163,13 +164,24 @@ export class SanityFx {
       this.colorMatrix.colorMatrix.reset();
     }
 
-    // ── Barrel distortion (subtle pincushion at burnout) ──────────────────────
-    // 1.0 = neutral; <1.0 = pincushion pinch — only in burnout territory
-    if (stress > 0.85) {
-      const t = (stress - 0.85) / 0.15;              // 0 → 1 over last 15%
-      this.barrel.amount = 1.0 - t * 0.04;           // 1.0 → 0.96
+    // ── Barrel distortion (pincushion at anxious+) ──────────────────────────
+    // Increased range: starts earlier (0.5 stress) and goes deeper (→ 0.88)
+    if (stress > 0.5) {
+      const t = (stress - 0.5) / 0.5;               // 0 → 1 over upper half
+      this.barrel.amount = 1.0 - t * 0.12;          // 1.0 → 0.88
     } else {
       this.barrel.amount = 1.0;
+    }
+
+    // ── Color temperature shift (warm→cold as stress rises) ──────────────────
+    // Boost chromatic aberration alpha proportional to stress
+    if (stress > 0.3) {
+      const chromaAmt = (stress - 0.3) / 0.7 * 0.07;
+      this.chromaRed.setAlpha(chromaAmt);
+      this.chromaCyan.setAlpha(chromaAmt * 0.75);
+    } else {
+      this.chromaRed.setAlpha(0);
+      this.chromaCyan.setAlpha(0);
     }
   }
 

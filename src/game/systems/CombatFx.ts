@@ -1,34 +1,57 @@
 import Phaser from "phaser";
+import { ParticleFactory } from "./ParticleFactory";
 
 /**
  * CombatFx — centralises all combat-feedback effects so every scene
  * gets the same feel without copy-pasting shake/flash/hitstop logic.
- *
- * Usage:
- *   this.combatFx = new CombatFx(this);
- *   this.combatFx.hitLight();   // on regular hit
- *   this.combatFx.hitHeavy();   // on boss hit / player near death
- *   this.combatFx.hitStop(60);  // freeze frame on strong impact
- *   this.combatFx.deathBurst(); // on player or boss death
- *   this.combatFx.wipeOut(cb);  // door/transition wipe
  */
 export class CombatFx {
   constructor(private scene: Phaser.Scene) {}
 
   // ── Hit feedback ──────────────────────────────────────────────────────────
 
-  /** Light hit: short shake + white screen flash */
-  hitLight(): void {
+  /** Light hit: short shake + white screen flash + light particles */
+  hitLight(x?: number, y?: number): void {
     const cam = this.scene.cameras.main;
     cam.shake(80, 0.005);
     cam.flash(60, 255, 255, 255, false);
+    if (x !== undefined && y !== undefined) {
+      ParticleFactory.hitLight(this.scene, x, y);
+    }
   }
 
-  /** Heavy hit: longer shake + stronger flash. Use when player hp < 25% or boss phase change. */
-  hitHeavy(): void {
+  /** Heavy hit: longer shake + stronger flash + heavy particles */
+  hitHeavy(x?: number, y?: number): void {
     const cam = this.scene.cameras.main;
     cam.shake(180, 0.012);
     cam.flash(90, 255, 80, 80, false);
+    if (x !== undefined && y !== undefined) {
+      ParticleFactory.hitHeavy(this.scene, x, y);
+    }
+  }
+
+  /**
+   * Combo finisher: screen-tilt + zoom pop + heavy impact.
+   * Call on combo step 3 when an enemy was hit.
+   */
+  comboFinisher(playerX: number, enemyX: number): void {
+    const cam = this.scene.cameras.main;
+    const tiltDeg = playerX > enemyX ? 1.5 : -1.5;
+    this.scene.tweens.add({
+      targets: cam,
+      rotation: Phaser.Math.DegToRad(tiltDeg),
+      duration: 55,
+      yoyo: true,
+      ease: "Quad.easeInOut",
+    });
+    this.scene.tweens.add({
+      targets: cam,
+      zoom: cam.zoom * 1.06,
+      duration: 40,
+      yoyo: true,
+      ease: "Quad.easeInOut",
+    });
+    this.finisherImpact();
   }
 
   /**

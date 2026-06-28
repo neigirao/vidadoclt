@@ -338,6 +338,14 @@ function drawOffice(scene: Phaser.Scene, key: string, t: OfficeTheme): void {
     gr.fillRect(wx - 8, WT + WH, WW + 16, 2);
   });
 
+  // 4b. Dot-grid on wall (pixel art detail pattern)
+  gr.fillStyle(t.wallDark, 0.25);
+  for (let gy = CEIL + 16; gy < H - 100; gy += 16) {
+    for (let gx2 = 8; gx2 < W; gx2 += 16) {
+      gr.fillRect(gx2, gy, 1, 1);
+    }
+  }
+
   // 5b. AC vent grilles near ceiling (between columns)
   [250, 550, 850, 1150, 1450, 1750].forEach(vx => {
     gr.fillStyle(t.wallDark, 1);
@@ -751,20 +759,26 @@ function makeBebedouro(scene: Phaser.Scene) {
 
 function makeFloorTile(scene: Phaser.Scene) {
   const gr = scene.add.graphics();
-  gr.fillStyle(0x2a303c, 1); gr.fillRect(0, 0, 32, 16);
+  // Base carpet — two-tone checkerboard 16x16 tiles
+  gr.fillStyle(0x2a303c, 1); gr.fillRect(0, 0, 16, 8);
+  gr.fillStyle(0x252b37, 1); gr.fillRect(16, 0, 16, 8);
+  gr.fillStyle(0x252b37, 1); gr.fillRect(0, 8, 16, 8);
+  gr.fillStyle(0x2a303c, 1); gr.fillRect(16, 8, 16, 8);
   // grout lines
-  gr.fillStyle(0x1e242e, 1);
+  gr.fillStyle(0x1a1f28, 1);
   gr.fillRect(0, 0, 32, 1);   // top
   gr.fillRect(0, 15, 32, 1);  // bottom
   gr.fillRect(0, 0, 1, 16);   // left
-  gr.fillRect(15, 0, 1, 16);  // mid vertical (tiles are 16px each in pattern)
-  // subtle carpet texture speckles
-  gr.fillStyle(0x34404e, 1);
-  gr.fillRect(3, 4, 2, 1); gr.fillRect(10, 8, 2, 1);
-  gr.fillRect(18, 3, 2, 1); gr.fillRect(25, 10, 2, 1);
-  gr.fillRect(6, 12, 2, 1); gr.fillRect(21, 6, 2, 1);
-  // top highlight line (where floor meets wall)
-  gr.fillStyle(0x3c4a58, 1); gr.fillRect(0, 1, 32, 1);
+  gr.fillRect(15, 0, 2, 16);  // mid vertical grout
+  gr.fillRect(0, 7, 32, 2);   // mid horizontal grout
+  // carpet texture speckles — pixel art noise
+  gr.fillStyle(0x38465a, 1);
+  gr.fillRect(3, 3, 2, 1); gr.fillRect(8, 5, 1, 2); gr.fillRect(12, 2, 1, 1);
+  gr.fillRect(20, 4, 2, 1); gr.fillRect(27, 3, 1, 2); gr.fillRect(24, 6, 1, 1);
+  gr.fillRect(4, 11, 1, 2); gr.fillRect(11, 12, 2, 1); gr.fillRect(7, 14, 1, 1);
+  gr.fillRect(19, 10, 1, 2); gr.fillRect(22, 13, 2, 1); gr.fillRect(29, 11, 1, 1);
+  // top highlight line
+  gr.fillStyle(0x3c4a5c, 1); gr.fillRect(0, 1, 32, 1);
   gr.generateTexture("tex-floor", 32, 16);
   gr.destroy();
 }

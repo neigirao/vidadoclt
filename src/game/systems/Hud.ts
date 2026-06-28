@@ -111,6 +111,8 @@ export class Hud {
 
   private prevVr = -1;
   private prevEnergy = -1;
+  private prevPerkCount = 0;
+  private heatText!: Phaser.GameObjects.Text;
 
   private levelWidth: number;
 
@@ -123,6 +125,13 @@ export class Hud {
     this.buildBossBar();
     this.buildBottomBar();
     this.buildTopSeparator();
+    this.buildHeatIndicator();
+  }
+
+  private buildHeatIndicator() {
+    this.heatText = this.scene.add.text(GAME_WIDTH / 2 + 60, 4, "", {
+      fontFamily: F, fontSize: "10px", color: "#ff8800",
+    }).setScrollFactor(0).setDepth(1001).setOrigin(0, 0);
   }
 
   private buildTopSeparator() {
@@ -614,6 +623,7 @@ export class Hud {
     interactHint?: string;
     dashCooldown?: number;
     perks?: string[];
+    heatLevel?: number;
     /** "active" = janela aberta, "cooldown" = em recarga, "low_sanity" = sem sanidade, undefined = pronto */
     parryState?: "active" | "cooldown" | "low_sanity";
   }) {
@@ -695,10 +705,19 @@ export class Hud {
       }
     }
 
-    // Perks
-    if (opts.perks && opts.perks.length !== this.activePerks.length) {
-      this.setPerks(opts.perks);
+    // Heat indicator
+    const heatLevel = opts.heatLevel ?? 0;
+    if (this.heatText) {
+      this.heatText.setText(heatLevel > 0 ? "🔥".repeat(Math.min(heatLevel, 6)) + ` HEAT ${heatLevel}` : "");
     }
+
+    // Perks — detect new perk gained for elastic animation
+    const currentPerkCount = (opts.perks ?? []).length;
+    if (opts.perks && opts.perks.length !== this.activePerks.length) {
+      const gained = currentPerkCount > this.prevPerkCount;
+      this.setPerks(opts.perks, gained);
+    }
+    this.prevPerkCount = currentPerkCount;
 
     // Interact hint
     if (opts.interactHint) {
@@ -758,9 +777,43 @@ export class Hud {
     }
   }
 
-  setPerks(names: string[]): void {
+  setPerks(names: string[], animateNew = false): void {
     this.activePerks = names.slice(0, PERK_COUNT);
     this.drawPerkSlots();
+
+    if (animateNew && names.length > 0) {
+      // Find the last perk text element and animate it
+      const lastIdx = Math.min(names.length - 1, PERK_COUNT - 1);
+      const target = this.perkTexts[lastIdx];
+      if (target) {
+        target.setScale(0.4);
+        this.scene.tweens.add({
+          targets: target,
+          scaleX: 1.2, scaleY: 1.2,
+          duration: 150,
+          ease: "Back.easeOut",
+          onComplete: () => {
+            this.scene.tweens.add({
+              targets: target,
+              scaleX: 1, scaleY: 1,
+              duration: 120,
+              ease: "Quad.easeInOut",
+            });
+          },
+        });
+        // Golden glow flash on perk slot
+        const slotX = S3_X + lastIdx * (PERK_SLOT_SIZE + PERK_SLOT_GAP) + PERK_SLOT_GAP / 2;
+        const glow = this.scene.add.graphics().setScrollFactor(0).setDepth(1001);
+        glow.fillStyle(0xffdd44, 0.55);
+        glow.fillRect(slotX, PERK_SLOT_Y - 2, PERK_SLOT_SIZE, PERK_SLOT_SIZE);
+        this.scene.tweens.add({
+          targets: glow,
+          alpha: 0,
+          duration: 400,
+          onComplete: () => glow.destroy(),
+        });
+      }
+    }
   }
 
   addMinimapDot(worldX: number, _worldY: number, color: number) {

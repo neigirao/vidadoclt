@@ -123,35 +123,28 @@ export class CopaScene extends Phaser.Scene {
       this.faxineiros.add(f);
     });
 
-    // Faxineiro dialogue — contextual based on cause of death + loopCount
+    // Faxineiro dialogue — loop-count progression + cause overlay
     const loopCount = run.loopCount ?? 0;
     const cause = run.lastDeathCause;
-    const causeLines: string[] = cause === "burnout"
-      ? [
-          "Burnout de novo? Descansa um pouco...",
-          "Sanidade zerada. Impressionante.",
-          "A mente tem limites, você sabe.",
-          "Fala sério, cuida de você.",
-        ]
-      : cause === "energy"
-      ? [
-          "Levou muito porrada dessa vez.",
-          "Energia foi pro saco. Acontece.",
-          "Tá bem machucado não?",
-          "Sobrevivência é subestimada aqui.",
-        ]
-      : [];
-    const loopLines = [
-      "Mais um dia de trabalho...",
-      "De novo você? Que semana estranha.",
-      "Achei que tinha saído ontem.",
-      "Sério que você tá aqui de novo?",
-      `${loopCount + 1}ª vez hoje. Eu contei.`,
-      "Cara, você tá bem? Já perdi as contas.",
-      "A sindicância vai ser enorme quando isso acabar.",
-    ];
-    const pool = causeLines.length > 0 ? causeLines : loopLines;
-    const fala = pool[Math.min(loopCount % pool.length, pool.length - 1)];
+
+    let fala: string;
+    if (loopCount <= 1) {
+      fala = cause === "burnout"
+        ? "Bom dia! Parece cansado... O café tá fresquinho."
+        : "Bom dia! A copa é sua. Café tá fresquinho.";
+    } else if (loopCount <= 3) {
+      fala = cause === "burnout"
+        ? "De novo com a cabeça pesada? Eu conheço esse olho."
+        : "De novo? Você parece familiar... Café?";
+    } else if (loopCount <= 6) {
+      fala = cause === "energy"
+        ? `Cara... você tá bem? Já te vi sair machucado umas ${loopCount} vezes hoje.`
+        : `Cara... você tá bem? Já te vi sair daqui umas ${loopCount} vezes hoje.`;
+    } else if (loopCount <= 10) {
+      fala = "Olha, entre nós... eu também não consigo sair daqui. Só finjo que limpo.";
+    } else {
+      fala = "Talvez a saída não seja às 18h. Talvez a saída seja... dentro de você.";
+    }
     this.time.delayedCall(1200, () => {
       const bubble = this.add.text(520, FLOOR_Y - 130, fala, {
         fontFamily: "monospace", fontSize: "11px", color: "#c9e8c9",

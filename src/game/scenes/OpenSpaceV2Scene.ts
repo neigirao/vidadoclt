@@ -18,10 +18,11 @@ import {
 import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
+import { ParticleFactory } from "../systems/ParticleFactory";
 import { SanityFx } from "../systems/SanityFx";
 import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
-import { reapplyAllPerks, applyPerk, PERKS, PerkId } from "../systems/PerkSystem";
+import { reapplyAllPerks, applyPerk, checkAndApplySynergies, PERKS, SYNERGIES, PerkId } from "../systems/PerkSystem";
 import { reapplyAllCulturas } from "../systems/CulturaSystem";
 import { HEAT_LEVELS } from "./HoraExtraScene";
 import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
@@ -178,6 +179,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.player.vr = run.vr;
     reapplyAllPerks(this.player, run);
     reapplyAllCulturas(this.player, run);
+    checkAndApplySynergies(this.player, run);
     // Feature 7: Apply heat VR multiplier
     const heatLvl = HEAT_LEVELS[run.heatLevel ?? 0] ?? HEAT_LEVELS[0];
     this.player.vrDropMult *= heatLvl.vrMult;
@@ -792,6 +794,21 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     r.autonomia = this.player.autonomia;
   }
 
+  private checkSynergiesAndPopup(run: import("../systems/PlayerState").RunState): void {
+    const prevSynergies = run.activeSynergies ?? [];
+    const newSynergies = checkAndApplySynergies(this.player, run);
+    const gained = newSynergies.filter(id => !prevSynergies.includes(id));
+    if (gained.length === 0) return;
+    const syn = SYNERGIES[gained[0]];
+    if (!syn) return;
+    const popup = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 90,
+      `${syn.icon} SINERGIA ATIVADA!\n${syn.name}\n${syn.desc}`,
+      { fontFamily: "monospace", fontSize: "12px", color: "#ffdd44",
+        stroke: "#000000", strokeThickness: 3, align: "center" })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(1100);
+    this.tweens.add({ targets: popup, alpha: 0, duration: 800, delay: 2500, onComplete: () => popup.destroy() });
+  }
+
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number): void {
     const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
     const comboHits = def.hitDamages[2] === 0 ? 2 : 3;
@@ -809,8 +826,11 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
-    if (step >= comboHits) { this.combatFx.finisherImpact(); Sfx.meleeHeavy(); Sfx.comboFinisher(); }
+    const isFinisher = step >= comboHits;
+    if (isFinisher) { Sfx.meleeHeavy(); Sfx.comboFinisher(); }
     else Sfx.meleeLight();
+
+    let hitAnything = false;
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
       Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
@@ -823,16 +843,22 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       group.getChildren().forEach(c => {
         const e = cast(c);
         if (!e.active || !tryHit(e)) return;
+        hitAnything = true;
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
-        this.spawnHitSparks(e.x, e.y - 10, step >= comboHits);
+        this.spawnHitSparks(e.x, e.y - 10, isFinisher);
         CombatFx.flashSprite(e as unknown as Phaser.Physics.Arcade.Sprite, 55);
-        if (step >= comboHits) this.combatFx.finisherImpact();
+        if (isFinisher) {
+          ParticleFactory.hitHeavy(this, e.x, e.y - 20);
+        } else {
+          ParticleFactory.hitLight(this, e.x, e.y - 20);
+        }
         this.combatFx.spawnDamageNumber(
           e.x, e.y - 20, damage,
-          step >= comboHits ? "#ff4444" : "#ffcc44",
-          step >= comboHits,
+          isFinisher ? "#ff4444" : "#ffcc44",
+          isFinisher,
         );
         if (e.hit(damage, knockback)) {
+          ParticleFactory.enemyDeath(this, e.x, e.y - 10);
           this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
           this.tweens.add({ targets: e, scaleX: 1.6, scaleY: 0.2, alpha: 0, duration: 120, onComplete: () => e.destroy() });
           e.setActive(false);
@@ -851,16 +877,32 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     hitGroup(this.rhs,             3, c => c as EnemyRH);
 
     if (this.boss?.active && tryHit(this.boss)) {
-      this.spawnHitSparks(this.boss.x, this.boss.y - 10, step >= comboHits);
+      hitAnything = true;
+      this.spawnHitSparks(this.boss.x, this.boss.y - 10, isFinisher);
       CombatFx.flashSprite(this.boss as unknown as Phaser.Physics.Arcade.Sprite, 55);
-      if (step >= comboHits) this.combatFx.hitHeavy();
+      if (isFinisher) {
+        ParticleFactory.hitHeavy(this, this.boss.x, this.boss.y - 20);
+        this.combatFx.hitHeavy();
+      } else {
+        ParticleFactory.hitLight(this, this.boss.x, this.boss.y - 20);
+      }
       this.combatFx.spawnDamageNumber(
         this.boss.x, this.boss.y - 20, damage,
-        step >= comboHits ? "#ff4444" : "#ffcc44",
-        step >= comboHits,
+        isFinisher ? "#ff4444" : "#ffcc44",
+        isFinisher,
       );
       const died = this.boss.hit(damage, knockback);
       if (died) return;
+    }
+
+    if (hitAnything) {
+      const hitPauseMs = Math.min(120, 30 + damage * 3);
+      this.combatFx.hitStop(hitPauseMs);
+      if (isFinisher) {
+        this.combatFx.comboFinisher(this.player.x, hb.x + hb.width / 2);
+      } else {
+        this.combatFx.hitLight();
+      }
     }
   }
 
@@ -926,6 +968,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         if (available.length > 0) {
           const chosen = Phaser.Utils.Array.GetRandom(available) as PerkId;
           applyPerk(chosen, this.player, run);
+          this.checkSynergiesAndPopup(run);
           this.hud.setPerks(run.perks ?? []);
           const perk = PERKS[chosen];
           const msg = this.add.text(this.player.x, this.player.y - 50,
@@ -1012,6 +1055,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       hitArea.on("pointerout",  () => { cardG.lineStyle(2, 0xf2a800, 0.8); cardG.strokeRect(bx - 130, by - 60, 260, 140); });
       hitArea.on("pointerdown", () => {
         applyPerk(perkId, this.player, run);
+        this.checkSynergiesAndPopup(run);
         overlay.destroy();
         npcG.destroy();
         npcLabel.destroy();
@@ -1036,6 +1080,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       if (!perkId) return;
       const perk = PERKS[perkId];
       applyPerk(perkId, this.player, run);
+      this.checkSynergiesAndPopup(run);
       overlay.destroy();
       npcG.destroy();
       npcLabel.destroy();

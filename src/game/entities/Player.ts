@@ -51,7 +51,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   consumivel: string | null = null;
   consumivelUses = 0;
+  consumivelSanityBonus = 0;
   secondaryWeaponId: string | null = null;
+  // Synergy fields
+  airAttackBonus = 0;
+  dashResetOnKill = false;
+  firstStrikeStun = false;
+  dashDamage = 0;
 
   parryWindowBonus = 0;      // ms adicionais ao PARRY_WINDOW_MS via upgrade
   dashCooldownBonus = 0;     // ms subtraídos do cooldown do dash
@@ -416,6 +422,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.consumivelUses--;
       const restore = this.consumivel === "cafe" ? 25 : 20;
       this.energy = Math.min(this.maxEnergy, this.energy + restore);
+      if (this.consumivelSanityBonus > 0) {
+        this.sanity = Math.min(this.maxSanity, this.sanity + this.consumivelSanityBonus);
+      }
       this.setTint(0xffee88);
       this.scene.time.delayedCall(200, () => this.clearTint());
       this.onConsumivelUsed?.();

@@ -42,6 +42,15 @@ export type RunState = {
   upgParryVrDrop?: number;
   upgComboHitsBonus?: number;
   heatLevel?: number;
+  heatMods?: string[];
+  heatBossHpMult?: number;
+  heatSanityDrainMult?: number;
+  heatNoConsumibles?: boolean;
+  heatFastClock?: boolean;
+  heatEnemySpeedMult?: number;
+  heatBonus?: number;
+  activeSynergies?: string[];
+  goldenHourActive?: boolean;
 };
 
 function lsGet(key: string): number {
