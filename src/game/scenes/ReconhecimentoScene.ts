@@ -31,13 +31,13 @@ export class ReconhecimentoScene extends Phaser.Scene {
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, BG);
 
     // Title
-    this.add.text(GAME_WIDTH / 2, 28, "RECONHECIMENTO PROFISSIONAL", {
-      fontSize: "18px", color: TEXT_ACCENT, fontFamily: "monospace", stroke: "#000", strokeThickness: 2,
+    this.add.text(GAME_WIDTH / 2, 8, "RECONHECIMENTO PROFISSIONAL", {
+      fontSize: "16px", color: TEXT_ACCENT, fontFamily: "monospace", stroke: "#000", strokeThickness: 2,
     }).setOrigin(0.5, 0);
 
     // Reconhecimento counter
-    const vrText = this.add.text(GAME_WIDTH / 2, 54, "", {
-      fontSize: "13px", color: "#88ffbb", fontFamily: "monospace",
+    const vrText = this.add.text(GAME_WIDTH / 2, 30, "", {
+      fontSize: "12px", color: "#88ffbb", fontFamily: "monospace",
     }).setOrigin(0.5, 0);
 
     const refresh = () => {
@@ -48,11 +48,11 @@ export class ReconhecimentoScene extends Phaser.Scene {
     // Grid of upgrade cards
     const COLS = 3;
     const CARD_W = 190;
-    const CARD_H = 116;
+    const CARD_H = 84;
     const PAD_X = 16;
-    const PAD_Y = 10;
+    const PAD_Y = 5;
     const startX = (GAME_WIDTH - (COLS * CARD_W + (COLS - 1) * PAD_X)) / 2;
-    const startY = 78;
+    const startY = 62;
 
     const cardTexts: Map<UpgradeId, Phaser.GameObjects.Text[]> = new Map();
 
@@ -66,24 +66,24 @@ export class ReconhecimentoScene extends Phaser.Scene {
       const bg = this.add.rectangle(cx + CARD_W / 2, cy + CARD_H / 2, CARD_W, CARD_H, CARD_BG)
         .setStrokeStyle(1, 0x333344);
 
-      const iconT = this.add.text(cx + 12, cy + 7, def.icon, { fontSize: "20px" });
-      const nameT = this.add.text(cx + 40, cy + 9, def.name, {
-        fontSize: "10px", color: def.color, fontFamily: "monospace",
-        wordWrap: { width: CARD_W - 46 },
+      const iconT = this.add.text(cx + 12, cy + 5, def.icon, { fontSize: "16px" });
+      const nameT = this.add.text(cx + 36, cy + 6, def.name, {
+        fontSize: "9px", color: def.color, fontFamily: "monospace",
+        wordWrap: { width: CARD_W - 42 },
       });
-      const descT = this.add.text(cx + 8, cy + 36, def.desc, {
-        fontSize: "9px", color: TEXT_DIM, fontFamily: "monospace",
+      const descT = this.add.text(cx + 8, cy + 26, def.desc, {
+        fontSize: "8px", color: TEXT_DIM, fontFamily: "monospace",
         wordWrap: { width: CARD_W - 16 },
       });
-      const lvlT = this.add.text(cx + 8, cy + 68, "", {
-        fontSize: "10px", color: TEXT_LIGHT, fontFamily: "monospace",
+      const lvlT = this.add.text(cx + 8, cy + 50, "", {
+        fontSize: "9px", color: TEXT_LIGHT, fontFamily: "monospace",
       });
-      const costT = this.add.text(cx + 8, cy + 82, "", {
-        fontSize: "9px", color: TEXT_ACCENT, fontFamily: "monospace",
+      const costT = this.add.text(cx + 8, cy + 61, "", {
+        fontSize: "8px", color: TEXT_ACCENT, fontFamily: "monospace",
       });
-      const btnT = this.add.text(cx + CARD_W / 2, cy + CARD_H - 16, "[ INVESTIR ]", {
-        fontSize: "10px", color: "#00ff88", fontFamily: "monospace",
-      }).setOrigin(0.5);
+      const btnT = this.add.text(cx + 8, cy + 72, "[ INVESTIR ]", {
+        fontSize: "9px", color: "#00ff88", fontFamily: "monospace",
+      });
 
       cardTexts.set(id, [lvlT, costT, btnT]);
 
@@ -139,7 +139,7 @@ export class ReconhecimentoScene extends Phaser.Scene {
       bg.on("pointerdown", tryBuy);
       bg.on("pointerover", () => bg.setFillStyle(0x22263a));
       bg.on("pointerout", () => bg.setFillStyle(CARD_BG));
-      btnT.setInteractive({ useHandCursor: true }).on("pointerdown", tryBuy);
+      btnT.setInteractive({ useHandCursor: true, hitArea: new Phaser.Geom.Rectangle(0, 0, CARD_W - 16, 14), hitAreaCallback: Phaser.Geom.Rectangle.Contains }).on("pointerdown", tryBuy);
 
       void iconT; void nameT; void descT;
     });
