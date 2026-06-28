@@ -26,6 +26,7 @@ import { reapplyAllCulturas } from "../systems/CulturaSystem";
 import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
+import { Music } from "../systems/MusicSystem";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -67,6 +68,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     const run = getRun(this);
     this.startTimeMs = this.time.now;
     this.bossDefeated = false;
+    Music.start("office");
 
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
@@ -100,28 +102,11 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     // (computadores agora ficam em cima das mesas — ver buildPlatform)
 
-    // Wall decoratives — very back (parallax 0.2x)
+    // Wall decoratives (parallax, very back)
     [450, 1100, 1650].forEach(x =>
       addImage(this, x, HUD_TOP_H + 80, "tex-quadro-motivacional")
         .setDepth(2).setDisplaySize(48, 56).setScrollFactor(0.2, 0)
     );
-
-    // Mid parallax — janelas/divisórias (scrollFactor 0.5x) dão profundidade extra
-    const midY = HUD_TOP_H + (FLOOR_Y - HUD_TOP_H) * 0.38;
-    const windowColor = 0x1a2a3a;
-    const glowColor   = 0x3a5a7a;
-    for (let wx = 160; wx < LEVEL_WIDTH; wx += 220) {
-      const g = this.add.graphics().setDepth(1).setScrollFactor(0.5, 0);
-      g.fillStyle(windowColor, 0.55);
-      g.fillRect(wx, midY, 80, 52);
-      g.lineStyle(1, glowColor, 0.7);
-      g.strokeRect(wx, midY, 80, 52);
-      // blinds
-      for (let b = 8; b < 52; b += 10) {
-        g.lineStyle(1, glowColor, 0.25);
-        g.lineBetween(wx + 4, midY + b, wx + 76, midY + b);
-      }
-    }
 
     // Copa door — locked until boss defeated
     this.doorCopa = addImage(this, LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door");
@@ -150,7 +135,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.player.isRangedPrimary   = weaponDef.type === "ranged";
     this.player.comboHits         = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
     this.player.attackIntervalMs  = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
-    this.player.autonomia         = run.autonomia ?? false;
+    this.player.autonomia           = run.autonomia ?? false;
+    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
+    this.player.dashCooldownBonus   = run.upgDashCooldownBonus ?? 0;
+    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
+    this.player.parryEnergyRestore  = run.upgParryEnergyRestore ?? 0;
+    this.player.parryVrDrop         = run.upgParryVrDrop ?? 0;
+    if ((run.upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
 
     if (run.cameFrom === "copa") {
       this.player.energy = run.energy;
@@ -183,7 +174,6 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
 
     this.player.onRangedAttack = (fx, fy, facing) => {
-      Sfx.inkShot();
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
       this.spawnProjectile({
         x: fx + facing * 20, y: fy - 5,
@@ -233,39 +223,29 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       }
     };
 
-    // Parry "Reclamar": stun o inimigo mais próximo do ponto de ataque
-    this.player.onParrySuccess = (fromX: number) => {
-      const allGroups = [this.estagiarios, this.sobrecarregados, this.analistas,
-        this.onboardings, this.facilitadores, this.scrums, this.coordenadores,
-        this.seniors, this.rhs];
+    // Parry "Reclamar" — stun nearest enemy, gold burst VFX
+    this.player.onParrySuccess = (_fromX: number) => {
+      const allGroups = [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
+        this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs];
       let closest: (Phaser.Physics.Arcade.Sprite & { frozenUntil?: number }) | null = null;
-      let closestDist = 160; // raio máximo do stun
+      let closestDist = 160;
       allGroups.forEach(g => g?.getChildren().forEach(c => {
         const e = c as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
         if (!e.active) return;
-        const d = Phaser.Math.Distance.Between(e.x, e.y, fromX, this.player.y);
+        const d = Math.abs(e.x - this.player.x);
         if (d < closestDist) { closestDist = d; closest = e; }
       }));
       if (closest) {
-        const enemy = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
-        enemy.frozenUntil = this.time.now + 800;
-        enemy.setTint(0xffdd00);
-        this.time.delayedCall(800, () => { if (enemy.active) enemy.clearTint(); });
+        const e = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+        e.frozenUntil = this.time.now + 800;
+        e.setTint(0x00ffdd);
+        this.time.delayedCall(800, () => { if (e.active) e.clearTint(); });
       }
-      // VFX: burst dourado na posição do player
-      const burst = this.add.circle(this.player.x, this.player.y - 20, 18, 0xffdd00, 0.85)
-        .setDepth(20);
-      this.tweens.add({ targets: burst, radius: 40, alpha: 0, duration: 200,
-        onComplete: () => burst.destroy() });
-      this.add.text(this.player.x, this.player.y - 48, "RECLAMEI!", {
-        fontSize: "13px", color: "#ffdd00", stroke: "#000000", strokeThickness: 3,
-      }).setDepth(21).setOrigin(0.5).setScrollFactor(1);
-      this.time.delayedCall(700, () => {
-        // just destroy the last text added — find it by scene list
-        this.children.list.filter(o => o instanceof Phaser.GameObjects.Text &&
-          (o as Phaser.GameObjects.Text).text === "RECLAMEI!")
-          .forEach(o => (o as Phaser.GameObjects.Text).destroy());
-      });
+      const burst = this.add.text(this.player.x, this.player.y - 40, "RECLAMEI!", {
+        fontFamily: "monospace", fontSize: "13px", color: "#ffdd00",
+        stroke: "#000000", strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(200);
+      this.tweens.add({ targets: burst, y: burst.y - 30, alpha: 0, duration: 700, onComplete: () => burst.destroy() });
     };
 
     // Enemy groups (no classType — entities added manually)
@@ -382,7 +362,6 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
       this.player.addVR(1);
-      Sfx.vrPickup();
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
@@ -391,9 +370,6 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch("PauseScene", { caller: "OpenSpaceV2Scene" });
     });
-
-    // Cleanup door tween on scene shutdown to prevent leak
-    this.events.once("shutdown", () => this.tweens.killAll());
 
     // Copa door interaction zone
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -415,24 +391,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.shadowG = this.add.graphics().setDepth(5);
 
-    // Camera flash + chromatic aberration on player hit
+    // #5 Camera flash + #6 Chromatic aberration on player hit
     this.player.onHit = () => {
       this.cameras.main.flash(60, 255, 20, 20, false);
       this.fx.triggerChromaticHit();
     };
-    this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
+    this.hud.setPhaseTitle("FASE 1 — OPEN SPACE  [v2]");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
-
-    // Intro pan: câmera faz pan da direita para o player, só na entrada inicial
-    if (run.cameFrom !== "copa") {
-      this.cameras.main.stopFollow();
-      this.cameras.main.setScroll(400, 0);
-      this.time.delayedCall(200, () => {
-        this.cameras.main.pan(this.player.x, this.player.y, 900, "Cubic.easeOut", false, (_cam, progress) => {
-          if (progress >= 1) this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-        });
-      });
-    }
   }
 
   private spawnDustParticles(): void {
@@ -541,31 +506,54 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   }
 
   private spawnEnemies(): void {
-    // ── Curva Mario: zona segura (x<300), escalada por seção ──────────────────
-    // Seção 1 (300–600): introdução — 1 Estagiário por vez, sem ranged
-    const e1 = new EstagiarioDesesperado(this, 380, FLOOR_Y - 40, 1);
-    this.estagiarios.add(e1);
+    [380, 560, 700].forEach(x => {
+      const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
+      this.estagiarios.add(e);
+    });
 
-    const e2 = new EstagiarioSobrecarregado(this, 540, FLOOR_Y - 40, 1);
-    e2.target = this.player;
-    this.sobrecarregados.add(e2);
+    // Estagiários Sobrecarregados — intercalados com os desesperados
+    [450, 640].forEach(x => {
+      const e = new EstagiarioSobrecarregado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
+      e.target = this.player;
+      this.sobrecarregados.add(e);
+    });
 
-    // Seção 2 (600–900): introdução ao ranged — Facilitador + Onboarding
-    const f1 = new FacilitadorDeWorkshop(this, 680, FLOOR_Y - 60);
-    f1.target = this.player;
-    f1.onShoot = (fx, fy, tx, ty) => this.firePostIt(fx, fy, tx, ty);
-    this.facilitadores.add(f1);
+    // Analistas em Onboarding — ranged nervosos perto dos facilitadores
+    [760, 1080].forEach(x => {
+      const a = new AnalistaOnboarding(this, x, FLOOR_Y - 60);
+      a.target = this.player;
+      a.onShoot = (fx, fy, tx, ty) => {
+        let p = this.postits.getFirstDead(false) as PostIt | null;
+        if (!p) {
+          p = new PostIt(this, fx, fy);
+          this.postits.add(p);
+        } else {
+          p.setPosition(fx, fy).setActive(true).setVisible(true);
+          (p.body as Phaser.Physics.Arcade.Body).enable = true;
+        }
+        p.fire(tx, ty);
+      };
+      this.onboardings.add(a);
+    });
 
-    const e3 = new EstagiarioDesesperado(this, 780, FLOOR_Y - 40, -1);
-    this.estagiarios.add(e3);
+    [820, 1020].forEach(x => {
+      const f = new FacilitadorDeWorkshop(this, x, FLOOR_Y - 60);
+      f.target = this.player;
+      f.onShoot = (fx, fy, tx, ty) => {
+        let p = this.postits.getFirstDead(false) as PostIt | null;
+        if (!p) {
+          p = new PostIt(this, fx, fy);
+          this.postits.add(p);
+        } else {
+          p.setPosition(fx, fy).setActive(true).setVisible(true);
+          (p.body as Phaser.Physics.Arcade.Body).enable = true;
+        }
+        p.fire(tx, ty);
+      };
+      this.facilitadores.add(f);
+    });
 
-    const ao1 = new AnalistaOnboarding(this, 880, FLOOR_Y - 60);
-    ao1.target = this.player;
-    ao1.onShoot = (fx, fy, tx, ty) => this.firePostIt(fx, fy, tx, ty);
-    this.onboardings.add(ao1);
-
-    // Seção 3 (900–1150): introdução ao melee pesado — Scrum + RH
-    const scrum = new ScrumMasterCaotico(this, 960, FLOOR_Y - 60);
+    const scrum = new ScrumMasterCaotico(this, 950, FLOOR_Y - 60);
     scrum.target = this.player;
     scrum.onShout = (fromX) => {
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, fromX, this.player.y) < 260) {
@@ -573,60 +561,27 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         (this.player.body as Phaser.Physics.Arcade.Body).setVelocityX(dir * -220);
       }
     };
-    scrum.onRetrospectiva = (fromX, fromY) => {
-      // Retrospectiva: knockback em área maior
-      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, fromX, fromY) < 380) {
-        const dir = fromX < this.player.x ? -1 : 1;
-        (this.player.body as Phaser.Physics.Arcade.Body).setVelocityX(dir * -340);
-        (this.player.body as Phaser.Physics.Arcade.Body).setVelocityY(-200);
-      }
-    };
     this.scrums.add(scrum);
 
-    const rh1 = new EnemyRH(this, 1060, FLOOR_Y - 60);
-    rh1.target = this.player;
-    this.rhs.add(rh1);
-
-    // Seção 4 (1150–1500): combo melee + ranged simultâneos
-    const ao2 = new AnalistaOnboarding(this, 1150, FLOOR_Y - 60);
-    ao2.target = this.player;
-    ao2.onShoot = (fx, fy, tx, ty) => this.firePostIt(fx, fy, tx, ty);
-    this.onboardings.add(ao2);
-
-    [1250, 1400].forEach(x => {
+    [1150, 1250, 1400].forEach(x => {
       const a = new AnalistaJunior(this, x, FLOOR_Y - 60);
       a.target = this.player;
       this.analistas.add(a);
     });
 
-    const f2 = new FacilitadorDeWorkshop(this, 1340, FLOOR_Y - 60);
-    f2.target = this.player;
-    f2.onShoot = (fx, fy, tx, ty) => this.firePostIt(fx, fy, tx, ty);
-    this.facilitadores.add(f2);
+    [1500, 1700].forEach(x => {
+      const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
+      this.estagiarios.add(e);
+    });
 
-    const rh2 = new EnemyRH(this, 1460, FLOOR_Y - 60);
-    rh2.target = this.player;
-    this.rhs.add(rh2);
+    [600, 900, 1300].forEach(x => {
+      const rh = new EnemyRH(this, x, FLOOR_Y - 60);
+      rh.target = this.player;
+      this.rhs.add(rh);
+    });
 
-    // Seção 5 (1500–1750): elite antes do boss — Coordenador + Senior com buff real
-    const coord = new CoordenadorDeSinergia(this, 1560, FLOOR_Y - 60);
+    const coord = new CoordenadorDeSinergia(this, 1620, FLOOR_Y - 60);
     coord.target = this.player;
-    coord.onBuff = (cx, cy, radius) => {
-      // Buff: restaura 8 HP de cada inimigo vivo no raio
-      const allGroups = [this.estagiarios, this.sobrecarregados, this.analistas,
-        this.onboardings, this.facilitadores, this.scrums, this.rhs, this.seniors];
-      allGroups.forEach(g => g.getChildren().forEach(c => {
-        const e = c as Phaser.Physics.Arcade.Sprite & { hp?: number };
-        if (!e.active || !e.hp) return;
-        if (Phaser.Math.Distance.Between(e.x, e.y, cx, cy) <= radius) {
-          e.hp = Math.min(e.hp + 8, e.hp + 8); // HP restore
-          // Pulse tint amarelo no aliado buffado
-          const prevTint = e.tintTopLeft;
-          e.setTint(0x88ff88);
-          this.time.delayedCall(400, () => { if (e.active) e.clearTint(); });
-        }
-      }));
-    };
     this.coordenadores.add(coord);
 
     const sr = new AnalistaSeniorExausto(this, 1700, FLOOR_Y - 60);
@@ -639,6 +594,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.hud.showBoss("Gerente Microgestor", boss.maxHp);
       this.hud.setObjective("Derrote o Gerente Microgestor!");
       Sfx.bossAppear();
+      Music.start("boss");
     };
     boss.onHpChange = (hp) => this.hud.updateBoss(hp);
     boss.onShoot = (fx, fy, tx, ty) => {
@@ -686,25 +642,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     });
   }
 
-  private firePostIt(fx: number, fy: number, tx: number, ty: number): void {
-    let p = this.postits.getFirstDead(false) as PostIt | null;
-    if (!p) {
-      p = new PostIt(this, fx, fy);
-      this.postits.add(p);
-    } else {
-      p.setPosition(fx, fy).setActive(true).setVisible(true);
-      (p.body as Phaser.Physics.Arcade.Body).enable = true;
-    }
-    p.fire(tx, ty);
-  }
-
   private handleBossDefeat(boss: GerenteMicrogestor): void {
     if (this.bossDefeated) return;
     this.bossDefeated = true;
     getRun(this).openSpaceCleared = true;
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
-    Sfx.bossDefeat();
 
     // Death animation: flash white, shake camera, then shrink+fade
     boss.setTint(0xffffff);
@@ -781,7 +724,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
-    if (step >= comboHits) { this.cameras.main.shake(80, 0.006); Sfx.meleeHeavy(); Sfx.comboFinisher(); }
+    if (step >= comboHits) { this.combatFx.finisherImpact(); Sfx.meleeHeavy(); Sfx.comboFinisher(); }
     else Sfx.meleeLight();
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
@@ -798,10 +741,10 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
         this.spawnHitSparks(e.x, e.y - 10, step >= comboHits);
         CombatFx.flashSprite(e as unknown as Phaser.Physics.Arcade.Sprite, 55);
-        if (step >= comboHits) this.combatFx.hitStop(55);
+        if (step >= comboHits) this.combatFx.finisherImpact();
         this.combatFx.spawnDamageNumber(
           e.x, e.y - 20, damage,
-          step >= comboHits ? "#ffdd44" : "#ffffff",
+          step >= comboHits ? "#ff4444" : "#ffcc44",
           step >= comboHits,
         );
         if (e.hit(damage, knockback)) {
@@ -1009,7 +952,6 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       playerX: this.player.x,
       interactHint: nearDoor ? "[ E ]  Entrar na Copa" : undefined,
       dashCooldown: this.player.getDashCooldownRatio(time),
-      parryState: this.player.getParryState(time),
     });
   }
 }

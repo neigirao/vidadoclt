@@ -11,6 +11,7 @@ import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CulturaId, CULTURAS, reapplyAllCulturas } from "../systems/CulturaSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
+import { Music } from "../systems/MusicSystem";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -70,6 +71,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.startTimeMs = this.time.now;
     this.bossDefeated = false;
     this.enemyGroups = [];
+    Music.start("office");
 
     // 1. World bounds, camera, background
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
@@ -118,7 +120,13 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.player.isRangedPrimary  = weaponDef.type === "ranged";
     this.player.comboHits        = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
     this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
-    this.player.autonomia        = run.autonomia ?? false;
+    this.player.autonomia           = run.autonomia ?? false;
+    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
+    this.player.dashCooldownBonus   = run.upgDashCooldownBonus ?? 0;
+    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
+    this.player.parryEnergyRestore  = run.upgParryEnergyRestore ?? 0;
+    this.player.parryVrDrop         = run.upgParryVrDrop ?? 0;
+    if ((run.upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
 
     if (run.cameFrom === "copa") {
       this.player.energy = run.energy;
@@ -152,7 +160,6 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
 
     this.player.onRangedAttack = (fx, fy, facing) => {
-      Sfx.inkShot();
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
       this.spawnProjectile({
         x: fx + facing * 20, y: fy - 5,
@@ -169,32 +176,30 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.handleSpecial(type, fx, fy, facing, def);
     };
 
-    // Parry "Reclamar" — stun o inimigo mais próximo
-    this.player.onParrySuccess = (fromX: number) => {
+    // Parry "Reclamar" — stun nearest enemy, gold burst VFX
+    this.player.onParrySuccess = (_fromX: number) => {
       let closest: (Phaser.Physics.Arcade.Sprite & { frozenUntil?: number }) | null = null;
       let closestDist = 160;
       for (const gDef of this.enemyGroups) {
         gDef.group.getChildren().forEach(c => {
           const e = c as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
           if (!e.active) return;
-          const d = Phaser.Math.Distance.Between(e.x, e.y, fromX, this.player.y);
+          const d = Math.abs(e.x - this.player.x);
           if (d < closestDist) { closestDist = d; closest = e; }
         });
       }
       if (closest) {
-        const enemy = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
-        enemy.frozenUntil = this.time.now + 800;
-        enemy.setTint(0xffdd00);
-        this.time.delayedCall(800, () => { if (enemy.active) enemy.clearTint(); });
+        const e = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+        e.frozenUntil = this.time.now + 800;
+        e.setTint(0x00ffdd);
+        this.time.delayedCall(800, () => { if (e.active) e.clearTint(); });
       }
-      // VFX
-      const burst = this.add.circle(this.player.x, this.player.y - 20, 18, 0xffdd00, 0.85).setDepth(20);
-      this.tweens.add({ targets: burst, radius: 40, alpha: 0, duration: 200,
-        onComplete: () => burst.destroy() });
-      const label = this.add.text(this.player.x, this.player.y - 48, "RECLAMEI!", {
-        fontSize: "13px", color: "#ffdd00", stroke: "#000000", strokeThickness: 3,
-      }).setDepth(21).setOrigin(0.5);
-      this.time.delayedCall(700, () => { if (label.scene) label.destroy(); });
+      // Gold burst
+      const burst = this.add.text(this.player.x, this.player.y - 40, "RECLAMEI!", {
+        fontFamily: "monospace", fontSize: "13px", color: "#ffdd00",
+        stroke: "#000000", strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(200);
+      this.tweens.add({ targets: burst, y: burst.y - 30, alpha: 0, duration: 700, onComplete: () => burst.destroy() });
     };
 
     // 6. Projectile + drop groups
@@ -210,24 +215,20 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 8. Subclass populates this.enemyGroups and this.boss
     this.setupEnemiesAndGroups();
 
-    // 8a. Loop scaling — HP +15%/loop, contactDamage +10%/loop
+    // 8a. Loop HP scaling — each completed loop adds 15% HP to all enemies
     const loopCount = run.loopCount ?? 0;
     if (loopCount > 0) {
-      const hpMult    = 1 + loopCount * 0.15;
-      const dmgMult   = 1 + loopCount * 0.10;
+      const mult = 1 + loopCount * 0.15;
       for (const def of this.enemyGroups) {
         def.group.getChildren().forEach(obj => {
           const e = obj as any;
-          if (typeof e.hp === "number") e.hp = Math.round(e.hp * hpMult);
-          if (typeof e.maxHp === "number") e.maxHp = Math.round(e.maxHp * hpMult);
-          if (typeof e.contactDamage === "number") e.contactDamage = Math.round(e.contactDamage * dmgMult);
+          if (typeof e.hp === "number") e.hp = Math.round(e.hp * mult);
+          if (typeof e.maxHp === "number") e.maxHp = Math.round(e.maxHp * mult);
         });
       }
       if (this.boss) {
-        this.boss.hp = Math.round(this.boss.hp * hpMult);
-        if (this.boss.maxHp !== undefined) this.boss.maxHp = Math.round(this.boss.maxHp * hpMult);
-        if (typeof (this.boss as any).contactDamage === "number")
-          (this.boss as any).contactDamage = Math.round((this.boss as any).contactDamage * dmgMult);
+        this.boss.hp = Math.round(this.boss.hp * mult);
+        if (this.boss.maxHp !== undefined) this.boss.maxHp = Math.round(this.boss.maxHp * mult);
       }
     }
 
@@ -236,6 +237,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       const bossMaxHp = this.boss.maxHp ?? this.boss.hp;
       this.hud.showBoss(this.getBossName(), bossMaxHp);
       Sfx.bossAppear();
+      Music.start("boss");
       this.boss.onHpChange = (hp: number) => this.hud.updateBoss(hp);
       this.physics.add.collider(this.boss as Phaser.Physics.Arcade.Sprite, this.platforms);
     }
@@ -319,7 +321,6 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 16. Player → drops
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
       this.player.addVR(1);
-      Sfx.vrPickup();
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
@@ -430,7 +431,6 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       interactHint: nearDoor ? `[ E ]  ${this.getDoorConfig().nearLabel}` : undefined,
       dashCooldown: this.player.getDashCooldownRatio(time),
       perks: run.perks,
-      parryState: this.player.getParryState(time),
     });
   }
 
@@ -438,7 +438,6 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.bossDefeated = true;
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
-    Sfx.bossDefeat();
 
     if (this.boss?.active) {
       for (let i = 0; i < 12; i++) {
@@ -488,7 +487,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
     const isFinal = step >= comboHits;
-    if (isFinal) { this.cameras.main.shake(80, 0.006); Sfx.meleeHeavy(); Sfx.comboFinisher(); }
+    if (isFinal) { this.combatFx.finisherImpact(); Sfx.meleeHeavy(); Sfx.comboFinisher(); }
     else Sfx.meleeLight();
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
@@ -503,7 +502,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         CombatFx.flashSprite(e as unknown as Phaser.Physics.Arcade.Sprite, 55);
         const died = e.hit(damage, knockback);
         this.combatFx.spawnDamageNumber(e.x, e.y - 20, damage, isFinal ? "#ffdd44" : "#ffffff", isFinal);
-        if (isFinal) this.combatFx.hitStop(50);
+        if (isFinal) this.combatFx.finisherImpact();
         if (died) {
           this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
           this.onEnemyKilledByMelee(e);
@@ -516,7 +515,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       CombatFx.flashSprite(this.boss as unknown as Phaser.Physics.Arcade.Sprite, 55);
       const died = this.boss.hit(damage, knockback);
       this.combatFx.spawnDamageNumber(this.boss.x, this.boss.y - 40, damage, "#ff8800", isFinal);
-      if (isFinal) this.combatFx.hitHeavy();
+      if (isFinal) this.combatFx.impactHeavy(120);
       if (died) this.handleBossDefeat();
     }
   }

@@ -10,12 +10,13 @@ const COYOTE_MS = 100;
 const JUMP_BUFFER_MS = 100;
 const DASH_SPEED = 600;
 const DASH_MS = 150;
-const DASH_COOLDOWN_MS = 1500;
+const DASH_COOLDOWN_MS = 950;
 const COMBO_WINDOW_MS = 450;
 const HIT_INVULN_MS = 350;
-const PARRY_WINDOW_MS = 200;   // janela ativa do parry
-const PARRY_COOLDOWN_MS = 1200; // cooldown após parry bem-sucedido
-const PARRY_SANITY_RESTORE = 10;
+const PARRY_WINDOW_MS = 200;    // janela ativa do parry
+const PARRY_COOLDOWN_MS = 1000; // cooldown após parry bem-sucedido
+const PARRY_SANITY_RESTORE = 12; // sanidade restaurada num parry bem-sucedido
+const PARRY_WHIFF_ENERGY_COST = 6; // energia perdida ao errar o parry
 
 export type PlayerKeys = {
   left: Phaser.Input.Keyboard.Key;
@@ -46,14 +47,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   vrDropMult = 1.0;
   weaponId = "grampeador";
 
-  parryWindowBonus = 0; // ms adicionais ao PARRY_WINDOW_MS via upgrade
+  parryWindowBonus = 0;      // ms adicionais ao PARRY_WINDOW_MS via upgrade
+  dashCooldownBonus = 0;     // ms subtraídos do cooldown do dash
+  specialCooldownMult = 1.0; // multiplicador do cooldown do especial
+  damageReductionMult = 1.0; // multiplicador de dano recebido (0.9^n)
+  parryEnergyRestore = 0;    // energia restaurada num parry bem-sucedido
+  parryVrDrop = 0;           // VR ganho num parry bem-sucedido
   doubleJump = false;
   aggroRadius = 200;
   firstStrikeReady = false;
   hitAutoRanged = false;
   isRangedPrimary = false;
   attackIntervalMs = 220;
-  comboHits: 2 | 3 = 3;
+  comboHits: 2 | 3 | 4 = 3;
   specialCooldown = 3000;
   specialType: SpecialType = "burst_ranged";
   onSpecialAttack?: (type: SpecialType, x: number, y: number, facing: 1 | -1) => void;
@@ -82,16 +88,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevAttackDown = false;
   private prevDashDown = false;
   private prevPadInteractDown = false;
-  private lastSanityDrainAt = 0;
-  private _frozenTintActive = false;
-  private _blinkTimer?: Phaser.Time.TimerEvent;
+  private prevParryDown = false;
 
   // Parry "Reclamar"
-  private parryActiveUntil = 0;    // janela onde um hit é absorvido
-  private parryCooldownUntil = 0;  // cooldown após parry bem-sucedido
-  private prevParryDown = false;
-  /** Callback invocado quando o parry absorve um golpe — cena adiciona VFX/stun. */
+  private parryActiveUntil = 0;
+  private parryCooldownUntil = 0;
   onParrySuccess?: (fromX: number) => void;
+  private lastSanityDrainAt = 0;
+  private _frozenTintActive = false;
 
   /** True for exactly one frame when the gamepad B button is pressed (interact).
    *  Scenes that use keyboard E for interact can check this alongside JustDown. */
@@ -155,13 +159,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   getDashCooldownRatio(now: number): number {
     if (now >= this.dashCooldownUntil) return 0;
-    return (this.dashCooldownUntil - now) / DASH_COOLDOWN_MS;
+    const effectiveDashCooldown = Math.max(200, DASH_COOLDOWN_MS - this.dashCooldownBonus);
+    return (this.dashCooldownUntil - now) / effectiveDashCooldown;
   }
 
   getParryState(now: number): "active" | "cooldown" | "low_sanity" | undefined {
     if (now < this.parryActiveUntil) return "active";
     if (now < this.parryCooldownUntil) return "cooldown";
-    if (this.sanity < 8) return "low_sanity";
     return undefined;
   }
 
@@ -176,6 +180,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.parryCooldownUntil = now + PARRY_COOLDOWN_MS;
       this.invulnUntil = now + 400; // pequena i-frame pós-parry
       this.sanity = Math.min(this.maxSanity, this.sanity + PARRY_SANITY_RESTORE);
+      if (this.parryEnergyRestore > 0) this.energy = Math.min(this.maxEnergy, this.energy + this.parryEnergyRestore);
+      if (this.parryVrDrop > 0) this.vr += this.parryVrDrop;
       Sfx.parrySuccess();
       this.setTint(0xffdd00);
       this.scene.time.delayedCall(180, () => this.clearTint());
@@ -184,17 +190,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return true;
     }
 
-    this.energy = Math.max(0, this.energy - amount);
+    const reducedAmount = Math.round(amount * this.damageReductionMult);
+    this.energy = Math.max(0, this.energy - reducedAmount);
     if (sanityHit) this.sanity = Math.max(0, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
-    Sfx.playerHit();
-    this.startInvulnBlink(now + HIT_INVULN_MS);
+    CombatFx.flashSprite(this, 55);
+    this.scene.time.delayedCall(55, () => this.setTint(0xff8888));
+    this.scene.time.delayedCall(175, () => this.clearTint());
     this.onHit?.();
     // knockback — push away from hit source (or away from facing if no source given)
     const pushDir = fromX !== undefined ? (this.x < fromX ? -1 : 1) : -this.facing;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setVelocityY(-220);
-    body.setVelocityX(pushDir * 400);
+    body.setVelocityY(-200);
+    body.setVelocityX(pushDir * 280);
 
     // Camera shake on hit — stronger when low on energy
     const cam = this.scene.cameras?.main;
@@ -210,26 +218,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (cam) cam.shake(300, 0.015);
       this.onDeath?.("burnout");
     }
-    return false;
-  }
-
-  private startInvulnBlink(until: number) {
-    this._blinkTimer?.remove();
-    let tintOn = true;
-    this._blinkTimer = this.scene.time.addEvent({
-      delay: 80,
-      repeat: Math.ceil(HIT_INVULN_MS / 80),
-      callback: () => {
-        if (this.scene.time.now >= until) {
-          this.clearTint();
-          this._blinkTimer = undefined;
-          return;
-        }
-        if (tintOn) this.setTint(0xff8888);
-        else this.clearTint();
-        tintOn = !tintOn;
-      },
-    });
   }
 
   drainSanity(amount: number) {
@@ -282,8 +270,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const attackDown = this.keys.attack.isDown || (pad?.X ?? false);
     const dashDown = this.keys.dash.isDown || !!(pad?.R1);
     const specialDown = this.keys.special.isDown || (pad?.Y ?? false);
-
     const parryDown = this.keys.parry.isDown || !!(pad?.L1);
+
     const jumpPressed = jumpDown && !this.prevJumpDown;
     const attackPressed = attackDown && !this.prevAttackDown;
     const dashPressed = dashDown && !this.prevDashDown;
@@ -303,7 +291,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
           .setFlipX(this.flipX)
           .setDisplaySize(this.displayWidth, this.displayHeight)
           .setTint(0x88ccff);
-        this.scene.tweens.add({ targets: ghost, alpha: 0, duration: 250, onComplete: () => ghost.destroy() });
+        this.scene.tweens.add({ targets: ghost, alpha: 0, duration: 160, onComplete: () => ghost.destroy() });
       }
     } else {
       if (left && !right) {
@@ -327,7 +315,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(JUMP_VEL);
       this.lastJumpPressedAt = -9999;
       this.lastGroundedAt = -9999;
-      Sfx.jump();
     }
     // variable jump cut
     if (!jumpDown && body.velocity.y < -200) {
@@ -343,14 +330,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Parry "Reclamar" — abre janela de absorção (F / LB)
-    // Custa 8 sanidade ao ativar (sanidade como recurso ativo)
-    if (parryPressed && time >= this.parryCooldownUntil && this.sanity >= 8) {
-      this.sanity = Math.max(0, this.sanity - 8);
+    // Gratuito para ativar; se a janela expirar sem absorver, custa energia
+    if (parryPressed && time >= this.parryCooldownUntil) {
       this.parryActiveUntil = time + PARRY_WINDOW_MS + this.parryWindowBonus;
       this.setTint(0x00ffdd);
       const windowEnd = this.parryActiveUntil;
-      this.scene.time.delayedCall(PARRY_WINDOW_MS + this.parryWindowBonus, () => {
-        if (this.scene?.time && this.scene.time.now >= windowEnd - 1) {
+      this.scene.time.delayedCall(PARRY_WINDOW_MS + this.parryWindowBonus + 10, () => {
+        if (!this.scene?.time) return;
+        // Só penaliza se a janela expirou SEM absorver (parryActiveUntil não foi zerado)
+        if (this.parryActiveUntil >= windowEnd) {
+          this.energy = Math.max(0, this.energy - PARRY_WHIFF_ENERGY_COST);
           this.clearTint();
           Sfx.parryWhiff();
         }
@@ -359,12 +348,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Dash
     if (dashPressed && time >= this.dashCooldownUntil) {
+      const effectiveDashCooldown = Math.max(200, DASH_COOLDOWN_MS - this.dashCooldownBonus);
       this.dashUntil = time + DASH_MS;
-      this.dashCooldownUntil = time + DASH_COOLDOWN_MS;
+      this.dashCooldownUntil = time + effectiveDashCooldown;
       body.setVelocityY(0);
       this.setAlpha(0.6);
       this.scene.time.delayedCall(DASH_MS, () => this.setAlpha(1));
-      Sfx.dash();
     }
 
     // Attack combo
@@ -391,7 +380,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Special attack (K)
     if (specialPressed && time >= this.specialCooldownUntil) {
-      this.specialCooldownUntil = time + this.specialCooldown;
+      this.specialCooldownUntil = time + Math.round(this.specialCooldown * this.specialCooldownMult);
       // Charge flash: tint white briefly before firing
       this.setTint(0xffffff);
       this.scene.time.delayedCall(120, () => {
@@ -429,7 +418,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // "troca de pose brusca". idle usa idle1..idle4 (idle0 é o busto/portrait).
     let key: string;
     if (now < this.parryActiveUntil) {
-      key = 'tex-player-attack0'; // pose de "mão estendida" — reutiliza frame de ataque
+      key = 'tex-player-attack0'; // pose de "mão estendida" durante parry
     } else if (now < this.invulnUntil && now >= this.dashUntil) {
       key = 'tex-player-hurt0';
     } else if (now < this.dashUntil) {

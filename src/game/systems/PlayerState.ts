@@ -35,6 +35,12 @@ export type RunState = {
   upgMaxSanity?: number;
   upgVrDropMult?: number;
   upgParryWindowBonus?: number;
+  upgSpecialCooldownMult?: number;
+  upgDashCooldownBonus?: number;
+  upgDamageReductionMult?: number;
+  upgParryEnergyRestore?: number;
+  upgParryVrDrop?: number;
+  upgComboHitsBonus?: number;
 };
 
 function lsGet(key: string): number {

@@ -11,7 +11,15 @@ export type UpgradeId =
   | "plr"
   | "resiliencia"
   | "networking"
-  | "autonomia_base";
+  | "autonomia_base"
+  | "carteira_assinada"
+  | "banco_de_horas"
+  | "insalubridade"
+  | "vale_alimentacao"
+  | "inss"
+  | "participacao_lucros"
+  | "beneficios_clt"
+  | "processei_empresa";
 
 export type UpgradeDef = {
   name: string;
@@ -79,6 +87,70 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     icon: "⭐",
     color: "#ffdd00",
   },
+  carteira_assinada: {
+    name: "Carteira Assinada",
+    desc: "Parry bem-sucedido restaura 15 Energia",
+    maxLevel: 1,
+    costs: [90],
+    icon: "📋",
+    color: "#88ff88",
+  },
+  banco_de_horas: {
+    name: "Banco de Horas",
+    desc: "Cooldown do especial -15% por nível",
+    maxLevel: 2,
+    costs: [60, 130],
+    icon: "⏱",
+    color: "#ff88cc",
+  },
+  insalubridade: {
+    name: "Insalubridade",
+    desc: "Cooldown do dash -150ms por nível",
+    maxLevel: 2,
+    costs: [40, 90],
+    icon: "⚗",
+    color: "#aaffaa",
+  },
+  vale_alimentacao: {
+    name: "Vale Alimentação",
+    desc: "+3 VR no início de cada run por nível",
+    maxLevel: 3,
+    costs: [25, 55, 110],
+    icon: "🍱",
+    color: "#ffaa44",
+  },
+  inss: {
+    name: "INSS Garantido",
+    desc: "Combo de 4 hits (golpe extra no final)",
+    maxLevel: 1,
+    costs: [200],
+    icon: "🏛",
+    color: "#ff6666",
+  },
+  participacao_lucros: {
+    name: "Participação nos Lucros",
+    desc: "+50% VR em drops de inimigos",
+    maxLevel: 1,
+    costs: [110],
+    icon: "📈",
+    color: "#f2c14e",
+  },
+  beneficios_clt: {
+    name: "Benefícios CLT",
+    desc: "-10% dano recebido por nível",
+    maxLevel: 3,
+    costs: [45, 95, 180],
+    icon: "🛡",
+    color: "#88aaff",
+  },
+  processei_empresa: {
+    name: "Processei a Empresa",
+    desc: "Parry bem-sucedido dropa 2 VR",
+    maxLevel: 1,
+    costs: [75],
+    icon: "⚖",
+    color: "#ffdd44",
+  },
 };
 
 const LS_KEY = "vidadoclt_upgrades";
@@ -116,26 +188,40 @@ export function applyUpgradesToRun(
     vr: number;
     extraLives?: number;
     autonomia: boolean;
-    _upgradesApplied?: boolean;
   },
   playerMods: {
     maxEnergy: number;
     maxSanity: number;
     vrDropMult: number;
     parryWindowBonus: number;
+    specialCooldownMult: number;   // multiplicador de cooldown (0.85^n)
+    dashCooldownBonus: number;     // ms a subtrair do dash cooldown
+    damageReductionMult: number;   // multiplicador de dano recebido (0.90^n)
+    parryEnergyRestore: number;    // energia restaurada no parry bem-sucedido
+    parryVrDrop: number;           // VR dropado no parry bem-sucedido
+    comboHitsBonus: number;        // +1 hit no combo
   }
 ) {
-  const cafeLvl = getLevel(levels, "cafe");
-  playerMods.maxEnergy += cafeLvl * 10;
+  playerMods.maxEnergy       += getLevel(levels, "cafe") * 10;
+  playerMods.maxSanity       += getLevel(levels, "sindicalismo") * 10;
+  playerMods.vrDropMult      += getLevel(levels, "hora_extra") * 0.25;
+  playerMods.vrDropMult      += getLevel(levels, "participacao_lucros") >= 1 ? 0.5 : 0;
 
-  const sindLvl = getLevel(levels, "sindicalismo");
-  playerMods.maxSanity += sindLvl * 10;
-
-  const horaLvl = getLevel(levels, "hora_extra");
-  playerMods.vrDropMult += horaLvl * 0.25;
-
-  if (getLevel(levels, "plr") >= 1) run.vr += 5;
-  if (getLevel(levels, "resiliencia") >= 1) run.extraLives = (run.extraLives ?? 0) + 1;
-  if (getLevel(levels, "networking") >= 1) playerMods.parryWindowBonus += 80;
+  if (getLevel(levels, "plr") >= 1)            run.vr += 5;
+  run.vr += getLevel(levels, "vale_alimentacao") * 3;
+  if (getLevel(levels, "resiliencia") >= 1)    run.extraLives = (run.extraLives ?? 0) + 1;
+  if (getLevel(levels, "networking") >= 1)     playerMods.parryWindowBonus += 80;
   if (getLevel(levels, "autonomia_base") >= 1) run.autonomia = true;
+  if (getLevel(levels, "carteira_assinada") >= 1) playerMods.parryEnergyRestore = 15;
+  if (getLevel(levels, "processei_empresa") >= 1) playerMods.parryVrDrop = 2;
+  if (getLevel(levels, "inss") >= 1)           playerMods.comboHitsBonus = 1;
+
+  const bancoLvl = getLevel(levels, "banco_de_horas");
+  if (bancoLvl > 0) playerMods.specialCooldownMult = Math.pow(0.85, bancoLvl);
+
+  const insalLvl = getLevel(levels, "insalubridade");
+  playerMods.dashCooldownBonus += insalLvl * 150;
+
+  const beneLvl = getLevel(levels, "beneficios_clt");
+  if (beneLvl > 0) playerMods.damageReductionMult = Math.pow(0.90, beneLvl);
 }

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from "../constants";
 import { getRun } from "../systems/PlayerState";
+import { Music } from "../systems/MusicSystem";
 import { WEAPONS } from "../systems/WeaponSystem";
 import { PERKS } from "../systems/PerkSystem";
 
@@ -38,6 +39,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    Music.start("office");
     // Full-screen reference art background (loaded from assets)
     this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT);

@@ -15,7 +15,10 @@ const TEXT_ACCENT = "#f2a800";
 
 const UPGRADE_ORDER: UpgradeId[] = [
   "cafe", "sindicalismo", "hora_extra",
-  "plr", "resiliencia", "networking", "autonomia_base",
+  "plr", "resiliencia", "networking",
+  "autonomia_base", "carteira_assinada", "banco_de_horas",
+  "insalubridade", "vale_alimentacao", "inss",
+  "participacao_lucros", "beneficios_clt", "processei_empresa",
 ];
 
 export class ReconhecimentoScene extends Phaser.Scene {
@@ -45,11 +48,11 @@ export class ReconhecimentoScene extends Phaser.Scene {
     // Grid of upgrade cards
     const COLS = 3;
     const CARD_W = 190;
-    const CARD_H = 140;
+    const CARD_H = 116;
     const PAD_X = 16;
-    const PAD_Y = 14;
+    const PAD_Y = 10;
     const startX = (GAME_WIDTH - (COLS * CARD_W + (COLS - 1) * PAD_X)) / 2;
-    const startY = 90;
+    const startY = 78;
 
     const cardTexts: Map<UpgradeId, Phaser.GameObjects.Text[]> = new Map();
 
@@ -63,23 +66,23 @@ export class ReconhecimentoScene extends Phaser.Scene {
       const bg = this.add.rectangle(cx + CARD_W / 2, cy + CARD_H / 2, CARD_W, CARD_H, CARD_BG)
         .setStrokeStyle(1, 0x333344);
 
-      const iconT = this.add.text(cx + 12, cy + 10, def.icon, { fontSize: "22px" });
-      const nameT = this.add.text(cx + 44, cy + 12, def.name, {
-        fontSize: "11px", color: def.color, fontFamily: "monospace",
-        wordWrap: { width: CARD_W - 50 },
+      const iconT = this.add.text(cx + 12, cy + 7, def.icon, { fontSize: "20px" });
+      const nameT = this.add.text(cx + 40, cy + 9, def.name, {
+        fontSize: "10px", color: def.color, fontFamily: "monospace",
+        wordWrap: { width: CARD_W - 46 },
       });
-      const descT = this.add.text(cx + 8, cy + 44, def.desc, {
-        fontSize: "10px", color: TEXT_DIM, fontFamily: "monospace",
+      const descT = this.add.text(cx + 8, cy + 36, def.desc, {
+        fontSize: "9px", color: TEXT_DIM, fontFamily: "monospace",
         wordWrap: { width: CARD_W - 16 },
       });
-      const lvlT = this.add.text(cx + 8, cy + 82, "", {
-        fontSize: "11px", color: TEXT_LIGHT, fontFamily: "monospace",
+      const lvlT = this.add.text(cx + 8, cy + 68, "", {
+        fontSize: "10px", color: TEXT_LIGHT, fontFamily: "monospace",
       });
-      const costT = this.add.text(cx + 8, cy + 98, "", {
-        fontSize: "10px", color: TEXT_ACCENT, fontFamily: "monospace",
+      const costT = this.add.text(cx + 8, cy + 82, "", {
+        fontSize: "9px", color: TEXT_ACCENT, fontFamily: "monospace",
       });
-      const btnT = this.add.text(cx + CARD_W / 2, cy + CARD_H - 20, "[ INVESTIR ]", {
-        fontSize: "11px", color: "#00ff88", fontFamily: "monospace",
+      const btnT = this.add.text(cx + CARD_W / 2, cy + CARD_H - 16, "[ INVESTIR ]", {
+        fontSize: "10px", color: "#00ff88", fontFamily: "monospace",
       }).setOrigin(0.5);
 
       cardTexts.set(id, [lvlT, costT, btnT]);

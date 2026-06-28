@@ -32,19 +32,37 @@ export class CombatFx {
   }
 
   /**
-   * Hit-stop: pauses physics for `durationMs` (default 60ms).
-   * Creates the "freeze frame" feel on a heavy impact without stopping tweens or timers.
+   * Hit-stop: pauses physics for `durationMs` (default 85ms).
+   * Uses setTimeout (real time) so the resume fires even while scene time is paused.
    */
-  hitStop(durationMs = 60): void {
+  hitStop(durationMs = 85): void {
     const phys = this.scene.physics as Phaser.Physics.Arcade.ArcadePhysics;
     phys.pause();
-    this.scene.time.delayedCall(durationMs, () => phys.resume());
+    // Use real-time setTimeout so the physics.resume() fires regardless of scene time scale
+    setTimeout(() => {
+      try { phys.resume(); } catch {}
+    }, durationMs);
+  }
+
+  /**
+   * Finisher impact: hitStop + heavy shake + chromatic-aberration-style flash.
+   * Call on the last hit of a combo or any heavy melee finisher.
+   */
+  finisherImpact(): void {
+    this.hitStop(110);
+    const cam = this.scene.cameras.main;
+    cam.shake(140, 0.009);
+    // Two-colour flash: white then orange — simulates chromatic split
+    cam.flash(40, 255, 255, 255, false);
+    this.scene.time.delayedCall(40, () => {
+      if (cam.scene) cam.flash(60, 255, 140, 40, false);
+    });
   }
 
   /**
    * Hit-stop + heavy shake combo. Use for boss slams, finishing blow on an enemy.
    */
-  impactHeavy(stopMs = 60): void {
+  impactHeavy(stopMs = 85): void {
     this.hitStop(stopMs);
     this.hitHeavy();
   }
