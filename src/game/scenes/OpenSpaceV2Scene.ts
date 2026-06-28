@@ -232,6 +232,41 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       }
     };
 
+    // Parry "Reclamar": stun o inimigo mais próximo do ponto de ataque
+    this.player.onParrySuccess = (fromX: number) => {
+      const allGroups = [this.estagiarios, this.sobrecarregados, this.analistas,
+        this.onboardings, this.facilitadores, this.scrums, this.coordenadores,
+        this.seniors, this.rhs];
+      let closest: (Phaser.Physics.Arcade.Sprite & { frozenUntil?: number }) | null = null;
+      let closestDist = 160; // raio máximo do stun
+      allGroups.forEach(g => g?.getChildren().forEach(c => {
+        const e = c as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+        if (!e.active) return;
+        const d = Phaser.Math.Distance.Between(e.x, e.y, fromX, this.player.y);
+        if (d < closestDist) { closestDist = d; closest = e; }
+      }));
+      if (closest) {
+        const enemy = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+        enemy.frozenUntil = this.time.now + 800;
+        enemy.setTint(0xffdd00);
+        this.time.delayedCall(800, () => { if (enemy.active) enemy.clearTint(); });
+      }
+      // VFX: burst dourado na posição do player
+      const burst = this.add.circle(this.player.x, this.player.y - 20, 18, 0xffdd00, 0.85)
+        .setDepth(20);
+      this.tweens.add({ targets: burst, radius: 40, alpha: 0, duration: 200,
+        onComplete: () => burst.destroy() });
+      this.add.text(this.player.x, this.player.y - 48, "RECLAMEI!", {
+        fontSize: "13px", color: "#ffdd00", stroke: "#000000", strokeThickness: 3,
+      }).setDepth(21).setOrigin(0.5).setScrollFactor(1);
+      this.time.delayedCall(700, () => {
+        // just destroy the last text added — find it by scene list
+        this.children.list.filter(o => o instanceof Phaser.GameObjects.Text &&
+          (o as Phaser.GameObjects.Text).text === "RECLAMEI!")
+          .forEach(o => (o as Phaser.GameObjects.Text).destroy());
+      });
+    };
+
     // Enemy groups (no classType — entities added manually)
     this.estagiarios     = this.physics.add.group({ runChildUpdate: false });
     this.sobrecarregados = this.physics.add.group({ runChildUpdate: false });

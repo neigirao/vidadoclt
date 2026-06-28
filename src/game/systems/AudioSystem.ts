@@ -212,4 +212,16 @@ export const Sfx = {
     tone("square", 240, 0.08, 0.002, 0.07, 0.6, 120);
     tone("sine", 960, 0.12, 0.005, 0.1, 0.4, 480);
   },
+
+  /** Parry "Reclamar" bem-sucedido — soco metálico + acorde ascendente. */
+  parrySuccess() {
+    noise(0.05, 2400, 1.2);
+    tone("square", 600, 0.06, 0.001, 0.05, 0.7, 900);
+    tone("sine", 1320, 0.14, 0.002, 0.12, 0.6, 1760);
+  },
+
+  /** Parry ativado mas sem inimigo — clique seco. */
+  parryWhiff() {
+    tone("square", 300, 0.04, 0.001, 0.035, 0.2, 260);
+  },
 };
