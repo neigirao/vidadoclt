@@ -163,7 +163,8 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     if (this.target) {
       const dist = Math.abs(this.target.x - this.x);
       if (dist < 150) {
-        // charge toward player
+        // charge toward player — telegraph with yellow tint
+        this.setTint(0xffdd00);
         const dir = this.target.x >= this.x ? 1 : -1;
         this._dir = dir;
         this.setFlipX(dir === -1);
@@ -171,6 +172,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
         return;
       }
     }
+    this.setTint(0x884422); // restore brown base tint when not charging
 
     // patrol
     if (this.x < this._startX - 100) { this._dir = 1; }
@@ -312,9 +314,11 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
       }
       case "stop":
         body.setVelocityX(0);
+        this.setTint(0xffdd00); // telegraph yellow
         if (t >= this._stateUntil) {
           this._aiState = "fire";
           this._stateUntil = t + 200;
+          this.clearTint();
           this.onFire?.(this.x, this.y - 10, this.target.x, this.target.y);
         }
         break;

@@ -17,6 +17,7 @@ import { PauseScene } from "./scenes/PauseScene";
 import { CulturaSelectScene } from "./scenes/CulturaSelectScene";
 import { BestiaryScene } from "./scenes/BestiaryScene";
 import { ReconhecimentoScene } from "./scenes/ReconhecimentoScene";
+import { HoraExtraScene } from "./scenes/HoraExtraScene";
 import { GAME_WIDTH, GAME_HEIGHT } from "./constants";
 
 export { GAME_WIDTH, GAME_HEIGHT, COLORS } from "./constants";
@@ -63,7 +64,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       Phase2Scene, Phase3Scene, Phase4Scene, Phase5Scene,
       CeoScene, VitoriaScene,
       GameOverScene, RankingScene, PauseScene, CulturaSelectScene, BestiaryScene,
-      ReconhecimentoScene,
+      ReconhecimentoScene, HoraExtraScene,
     ],
   };
 }
