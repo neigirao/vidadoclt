@@ -4,6 +4,7 @@ import { CLASSES, ClassId, WEAPONS } from "../systems/WeaponSystem";
 import { getRun } from "../systems/PlayerState";
 import { applyRunSeed } from "../systems/RNG";
 import { resolveSprite } from "../systems/SpriteLibrary";
+import { loadUpgrades, applyUpgradesToRun } from "../systems/ReconhecimentoSystem";
 
 const BG_PANEL   = 0x12151a;
 const BG_CARD    = 0x1a1d23;
