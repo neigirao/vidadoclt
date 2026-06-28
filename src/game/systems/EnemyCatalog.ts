@@ -82,6 +82,8 @@ export type EnemyDef = {
   drops?: EnemyDrops;
   audio?: EnemyAudio;
   description?: string;
+  /** Lore text unlocked after 10 kills — shown in Bestiary */
+  lore?: string;
 };
 
 export const ENEMIES: Record<EnemyId, EnemyDef> = {
@@ -98,6 +100,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 20, h: 28 },
     drops: { vr: [1, 3], coffeeChance: 0.08 },
     description: "Faz o trabalho de três. Recebe de zero.",
+    lore: "Tinha sonhos antes. Agora só tem pendências. Carrega oito backpacks de tarefas que ninguém pediu em reunião mas estão no Jira.",
   },
   analista_onboarding: {
     id: "analista_onboarding",
@@ -128,6 +131,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "lunge", telegraphMs: 200, damage: 15, cooldownMs: 900 }],
     drops: { vr: [1, 2], coffeeChance: 0.05 },
     description: "Foi contratado pela 'oportunidade'. Agora corre por café.",
+    lore: "O contrato de experiência venceu três vezes. Renovou sempre. Hoje corre mais rápido que qualquer CLT — tem muito a provar e nada a perder.",
   },
   facilitador_workshop: {
     id: "facilitador_workshop",
@@ -142,6 +146,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 32, h: 52 },
     drops: { vr: [2, 3], postitChance: 0.15 },
     description: "Cobra dynamics até no horário de almoço.",
+    lore: "Fez um MBA em Facilitação Vivencial. Acredita que post-its salvam relacionamentos. Atirou o primeiro em você porque 'vibes não batem'.",
   },
   scrum_master_caotico: {
     id: "scrum_master_caotico",
@@ -157,6 +162,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "postit_throw", telegraphMs: 300, damage: 6, cooldownMs: 1400 }],
     drops: { vr: [2, 3], postitChance: 0.4 },
     description: "Move o post-it sem perguntar. Joga o post-it em você.",
+    lore: "Nunca entregou uma sprint. Sempre organizou o board. Seus post-its têm uma aura de autoridade que a empresa nunca questionou.",
   },
   coordenador_sinergia: {
     id: "coordenador_sinergia",
@@ -171,6 +177,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     bodySize: { w: 36, h: 56 },
     drops: { vr: [3, 5] },
     description: "Convoca reunião sem pauta para drenar tua sanidade.",
+    lore: "Passou anos em cargos de sinergia sem que ninguém entendesse o que faz. Tem um salário 40% acima do mercado. Sua presença causa confusão nos sistemas de RH.",
   },
   analista_senior_exausto: {
     id: "analista_senior_exausto",
@@ -186,6 +193,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "slam_planilha", telegraphMs: 500, damage: 10, cooldownMs: 1800 }],
     drops: { vr: [5, 8], coffeeChance: 0.5 },
     description: "Sustentou o time por 12 anos. Restam casca e Excel.",
+    lore: "Entrou para 'só dois anos'. Virou referência técnica. Agora carrega o peso de todas as gambiarras que ele mesmo criou. A planilha tem 18 abas.",
   },
   enemy_rh: {
     id: "enemy_rh",
@@ -201,6 +209,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "feedback_360", telegraphMs: 400, damage: 12, cooldownMs: 1600 }],
     drops: { vr: [2, 4] },
     description: "Quer 'bater um papo rápido na salinha'.",
+    lore: "Toda conversa começa com 'sem julgamentos'. Termina com uma advertência. Tem três templates de desligamento salvos em Favoritos.",
   },
   analista_junior: {
     id: "analista_junior",
@@ -216,6 +225,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     attacks: [{ name: "email_storm", telegraphMs: 250, damage: 5, cooldownMs: 1100 }],
     drops: { vr: [2, 4] },
     description: "Dispara e-mails em cópia oculta. Letais.",
+    lore: "Aprendeu a política de CCO antes de aprender a linguagem de programação. Nunca escreve 'obrigado' sem BCC no gestor.",
   },
   telemarketer_zumbi: {
     id: "telemarketer_zumbi",

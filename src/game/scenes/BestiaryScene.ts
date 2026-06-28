@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { ENEMIES, EnemyId } from "../systems/EnemyCatalog";
 import { resolveSprite } from "../systems/SpriteLibrary";
-import { hasKilled, getAllKilled } from "../systems/BestiarySystem";
+import { hasKilled, getAllKilled, getKillCount } from "../systems/BestiarySystem";
 
 const COLS = 3;
 const CARD_W = 220;
@@ -103,6 +103,9 @@ export class BestiaryScene extends Phaser.Scene {
       this.container.add(sprite);
 
       if (discovered) {
+        const killCount = getKillCount(id);
+        const loreUnlocked = killCount >= 10;
+
         // Name
         this.container.add(this.add.text(x + 70, y + 8, def.label.toUpperCase(), {
           fontFamily: "monospace", fontSize: "9px", color: "#eaeaea", wordWrap: { width: 140 },
@@ -116,6 +119,13 @@ export class BestiaryScene extends Phaser.Scene {
           }));
         }
 
+        // Kill count
+        this.container.add(this.add.text(x + CARD_W - 8, y + 22,
+          `×${killCount}${loreUnlocked ? " ★" : ""}`, {
+            fontFamily: "monospace", fontSize: "7px",
+            color: loreUnlocked ? "#f2c14e" : "#445566",
+          }).setOrigin(1, 0));
+
         // Stats
         const stats = [
           `HP: ${def.hp}   SPD: ${def.speed}`,
@@ -127,12 +137,22 @@ export class BestiaryScene extends Phaser.Scene {
           }));
         });
 
-        // Description
-        if (def.description) {
+        // Description or lore (unlocked at 10 kills)
+        if (loreUnlocked && def.lore) {
+          this.container.add(this.add.text(x + 70, y + 66, `"${def.lore}"`, {
+            fontFamily: "monospace", fontSize: "7px", color: "#c8b840",
+            fontStyle: "italic", wordWrap: { width: 142 },
+          }));
+        } else if (def.description) {
           this.container.add(this.add.text(x + 70, y + 66, def.description, {
             fontFamily: "monospace", fontSize: "7px", color: "#555566",
             wordWrap: { width: 142 },
           }));
+          if (killCount < 10) {
+            this.container.add(this.add.text(x + 70, y + 88, `Lore: ${killCount}/10 abates`, {
+              fontFamily: "monospace", fontSize: "6px", color: "#333344",
+            }));
+          }
         }
 
         // First attack
