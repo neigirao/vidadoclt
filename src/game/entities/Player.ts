@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
+import { Sfx } from "../systems/AudioSystem";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -9,9 +10,13 @@ const COYOTE_MS = 100;
 const JUMP_BUFFER_MS = 100;
 const DASH_SPEED = 600;
 const DASH_MS = 150;
-const DASH_COOLDOWN_MS = 1500;
-const COMBO_WINDOW_MS = 250;
-const HIT_INVULN_MS = 600;
+const DASH_COOLDOWN_MS = 950;
+const COMBO_WINDOW_MS = 450;
+const HIT_INVULN_MS = 350;
+const PARRY_WINDOW_MS = 200;    // janela ativa do parry
+const PARRY_COOLDOWN_MS = 1000; // cooldown após parry bem-sucedido
+const PARRY_SANITY_RESTORE = 12; // sanidade restaurada num parry bem-sucedido
+const PARRY_WHIFF_ENERGY_COST = 6; // energia perdida ao errar o parry
 
 export type PlayerKeys = {
   left: Phaser.Input.Keyboard.Key;
@@ -21,6 +26,7 @@ export type PlayerKeys = {
   dash: Phaser.Input.Keyboard.Key;
   attack: Phaser.Input.Keyboard.Key;
   special: Phaser.Input.Keyboard.Key;
+  parry: Phaser.Input.Keyboard.Key;
 };
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -41,13 +47,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   vrDropMult = 1.0;
   weaponId = "grampeador";
 
+  parryWindowBonus = 0;      // ms adicionais ao PARRY_WINDOW_MS via upgrade
+  dashCooldownBonus = 0;     // ms subtraídos do cooldown do dash
+  specialCooldownMult = 1.0; // multiplicador do cooldown do especial
+  damageReductionMult = 1.0; // multiplicador de dano recebido (0.9^n)
+  parryEnergyRestore = 0;    // energia restaurada num parry bem-sucedido
+  parryVrDrop = 0;           // VR ganho num parry bem-sucedido
   doubleJump = false;
   aggroRadius = 200;
   firstStrikeReady = false;
   hitAutoRanged = false;
   isRangedPrimary = false;
   attackIntervalMs = 220;
-  comboHits: 2 | 3 = 3;
+  comboHits: 2 | 3 | 4 = 3;
   specialCooldown = 3000;
   specialType: SpecialType = "burst_ranged";
   onSpecialAttack?: (type: SpecialType, x: number, y: number, facing: 1 | -1) => void;
@@ -76,6 +88,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevAttackDown = false;
   private prevDashDown = false;
   private prevPadInteractDown = false;
+  private prevParryDown = false;
+
+  // Parry "Reclamar"
+  private parryActiveUntil = 0;
+  private parryCooldownUntil = 0;
+  onParrySuccess?: (fromX: number) => void;
   private lastSanityDrainAt = 0;
   private _frozenTintActive = false;
 
@@ -107,6 +125,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       dash: kb.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
       attack: kb.addKey(Phaser.Input.Keyboard.KeyCodes.J),
       special: kb.addKey(Phaser.Input.Keyboard.KeyCodes.K),
+      parry: kb.addKey(Phaser.Input.Keyboard.KeyCodes.F),
     };
     // A/D
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.A).on("down", () => (this.holdA = true));
@@ -140,13 +159,39 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   getDashCooldownRatio(now: number): number {
     if (now >= this.dashCooldownUntil) return 0;
-    return (this.dashCooldownUntil - now) / DASH_COOLDOWN_MS;
+    const effectiveDashCooldown = Math.max(200, DASH_COOLDOWN_MS - this.dashCooldownBonus);
+    return (this.dashCooldownUntil - now) / effectiveDashCooldown;
   }
 
-  takeDamage(amount: number, sanityHit = 0, fromX?: number) {
+  getParryState(now: number): "active" | "cooldown" | "low_sanity" | undefined {
+    if (now < this.parryActiveUntil) return "active";
+    if (now < this.parryCooldownUntil) return "cooldown";
+    return undefined;
+  }
+
+  /** Returns true if the hit was parried. */
+  takeDamage(amount: number, sanityHit = 0, fromX?: number): boolean {
     const now = this.scene.time.now;
-    if (this.isInvulnerable(now)) return;
-    this.energy = Math.max(0, this.energy - amount);
+    if (this.isInvulnerable(now)) return false;
+
+    // Parry "Reclamar": absorve o hit se a janela estiver ativa
+    if (now < this.parryActiveUntil) {
+      this.parryActiveUntil = 0;
+      this.parryCooldownUntil = now + PARRY_COOLDOWN_MS;
+      this.invulnUntil = now + 400; // pequena i-frame pós-parry
+      this.sanity = Math.min(this.maxSanity, this.sanity + PARRY_SANITY_RESTORE);
+      if (this.parryEnergyRestore > 0) this.energy = Math.min(this.maxEnergy, this.energy + this.parryEnergyRestore);
+      if (this.parryVrDrop > 0) this.vr += this.parryVrDrop;
+      Sfx.parrySuccess();
+      this.setTint(0xffdd00);
+      this.scene.time.delayedCall(180, () => this.clearTint());
+      this.scene.cameras?.main?.shake(60, 0.01);
+      this.onParrySuccess?.(fromX ?? this.x);
+      return true;
+    }
+
+    const reducedAmount = Math.round(amount * this.damageReductionMult);
+    this.energy = Math.max(0, this.energy - reducedAmount);
     if (sanityHit) this.sanity = Math.max(0, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
     CombatFx.flashSprite(this, 55);
@@ -225,11 +270,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const attackDown = this.keys.attack.isDown || (pad?.X ?? false);
     const dashDown = this.keys.dash.isDown || !!(pad?.R1);
     const specialDown = this.keys.special.isDown || (pad?.Y ?? false);
+    const parryDown = this.keys.parry.isDown || !!(pad?.L1);
 
     const jumpPressed = jumpDown && !this.prevJumpDown;
     const attackPressed = attackDown && !this.prevAttackDown;
     const dashPressed = dashDown && !this.prevDashDown;
     const specialPressed = specialDown && !this.prevSpecialDown;
+    const parryPressed = parryDown && !this.prevParryDown;
 
     // Horizontal movement (locked during dash)
     if (time < this.dashUntil) {
@@ -279,12 +326,31 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(JUMP_VEL);
       this.jumpsUsed++;
       this.lastJumpPressedAt = -9999;
+      Sfx.jump();
+    }
+
+    // Parry "Reclamar" — abre janela de absorção (F / LB)
+    // Gratuito para ativar; se a janela expirar sem absorver, custa energia
+    if (parryPressed && time >= this.parryCooldownUntil) {
+      this.parryActiveUntil = time + PARRY_WINDOW_MS + this.parryWindowBonus;
+      this.setTint(0x00ffdd);
+      const windowEnd = this.parryActiveUntil;
+      this.scene.time.delayedCall(PARRY_WINDOW_MS + this.parryWindowBonus + 10, () => {
+        if (!this.scene?.time) return;
+        // Só penaliza se a janela expirou SEM absorver (parryActiveUntil não foi zerado)
+        if (this.parryActiveUntil >= windowEnd) {
+          this.energy = Math.max(0, this.energy - PARRY_WHIFF_ENERGY_COST);
+          this.clearTint();
+          Sfx.parryWhiff();
+        }
+      });
     }
 
     // Dash
     if (dashPressed && time >= this.dashCooldownUntil) {
+      const effectiveDashCooldown = Math.max(200, DASH_COOLDOWN_MS - this.dashCooldownBonus);
       this.dashUntil = time + DASH_MS;
-      this.dashCooldownUntil = time + DASH_COOLDOWN_MS;
+      this.dashCooldownUntil = time + effectiveDashCooldown;
       body.setVelocityY(0);
       this.setAlpha(0.6);
       this.scene.time.delayedCall(DASH_MS, () => this.setAlpha(1));
@@ -314,14 +380,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Special attack (K)
     if (specialPressed && time >= this.specialCooldownUntil) {
-      this.specialCooldownUntil = time + this.specialCooldown;
-      this.onSpecialAttack?.(this.specialType, this.x, this.y, this.facing);
+      this.specialCooldownUntil = time + Math.round(this.specialCooldown * this.specialCooldownMult);
+      // Charge flash: tint white briefly before firing
+      this.setTint(0xffffff);
+      this.scene.time.delayedCall(120, () => {
+        this.setTint(0xffffaa);
+        this.scene.time.delayedCall(120, () => {
+          this.clearTint();
+          this.onSpecialAttack?.(this.specialType, this.x, this.y, this.facing);
+          Sfx.special();
+        });
+      });
     }
     this.prevSpecialDown = specialDown;
 
     this.prevJumpDown = jumpDown;
     this.prevAttackDown = attackDown;
     this.prevDashDown = dashDown;
+    this.prevParryDown = parryDown;
 
     // Gamepad interact (B button) — edge detection for scenes to consume
     const padInteractDown = pad?.B ?? false;
@@ -341,7 +417,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // alinhados pelos pés), então agora podemos tocar os ciclos completos sem a
     // "troca de pose brusca". idle usa idle1..idle4 (idle0 é o busto/portrait).
     let key: string;
-    if (now < this.invulnUntil && now >= this.dashUntil) {
+    if (now < this.parryActiveUntil) {
+      key = 'tex-player-attack0'; // pose de "mão estendida" durante parry
+    } else if (now < this.invulnUntil && now >= this.dashUntil) {
       key = 'tex-player-hurt0';
     } else if (now < this.dashUntil) {
       key = 'tex-player-dash0';

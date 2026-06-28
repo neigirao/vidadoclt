@@ -30,6 +30,17 @@ export type RunState = {
   shopPerks?: PerkId[];
   openSpaceCleared?: boolean;
   lastDeathCause?: "burnout" | "energy";
+  // Upgrade mods (applied once at run start by ReconhecimentoSystem)
+  upgMaxEnergy?: number;
+  upgMaxSanity?: number;
+  upgVrDropMult?: number;
+  upgParryWindowBonus?: number;
+  upgSpecialCooldownMult?: number;
+  upgDashCooldownBonus?: number;
+  upgDamageReductionMult?: number;
+  upgParryEnergyRestore?: number;
+  upgParryVrDrop?: number;
+  upgComboHitsBonus?: number;
 };
 
 function lsGet(key: string): number {

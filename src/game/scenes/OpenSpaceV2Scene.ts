@@ -25,6 +25,8 @@ import { reapplyAllPerks } from "../systems/PerkSystem";
 import { reapplyAllCulturas } from "../systems/CulturaSystem";
 import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage } from "../systems/SpriteLibrary";
+import { Sfx } from "../systems/AudioSystem";
+import { Music } from "../systems/MusicSystem";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -66,6 +68,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     const run = getRun(this);
     this.startTimeMs = this.time.now;
     this.bossDefeated = false;
+    Music.start("office");
 
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
@@ -118,11 +121,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
     this.player = new Player(this, spawnX, FLOOR_Y - 60);
-    this.player.maxEnergy         = classDef.maxEnergy;
-    this.player.maxSanity         = classDef.maxSanity;
+    this.player.maxEnergy         = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
+    this.player.maxSanity         = classDef.maxSanity + (run.upgMaxSanity ?? 0);
     this.player.walkSpeed         = 200 * classDef.speedMult;
     this.player.damageMult        = classDef.damageMult;
-    this.player.vrDropMult        = classDef.vrMult;
+    this.player.vrDropMult        = classDef.vrMult + (run.upgVrDropMult ?? 0);
+    this.player.parryWindowBonus  = run.upgParryWindowBonus ?? 0;
     this.player.weaponId          = weaponId;
     this.player.attackRange       = weaponDef.attackRange;
     this.player.specialCooldown   = weaponDef.specialCooldown;
@@ -131,14 +135,20 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.player.isRangedPrimary   = weaponDef.type === "ranged";
     this.player.comboHits         = (weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0) ? 2 : 3;
     this.player.attackIntervalMs  = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
-    this.player.autonomia         = run.autonomia ?? false;
+    this.player.autonomia           = run.autonomia ?? false;
+    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
+    this.player.dashCooldownBonus   = run.upgDashCooldownBonus ?? 0;
+    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
+    this.player.parryEnergyRestore  = run.upgParryEnergyRestore ?? 0;
+    this.player.parryVrDrop         = run.upgParryVrDrop ?? 0;
+    if ((run.upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
 
     if (run.cameFrom === "copa") {
       this.player.energy = run.energy;
       this.player.sanity = run.sanity;
     } else {
-      this.player.energy = classDef.maxEnergy;
-      this.player.sanity = classDef.maxSanity;
+      this.player.energy = this.player.maxEnergy;
+      this.player.sanity = this.player.maxSanity;
     }
     this.player.vr = run.vr;
     reapplyAllPerks(this.player, run);
@@ -211,6 +221,31 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           );
           break;
       }
+    };
+
+    // Parry "Reclamar" — stun nearest enemy, gold burst VFX
+    this.player.onParrySuccess = (_fromX: number) => {
+      const allGroups = [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
+        this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs];
+      let closest: (Phaser.Physics.Arcade.Sprite & { frozenUntil?: number }) | null = null;
+      let closestDist = 160;
+      allGroups.forEach(g => g?.getChildren().forEach(c => {
+        const e = c as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+        if (!e.active) return;
+        const d = Math.abs(e.x - this.player.x);
+        if (d < closestDist) { closestDist = d; closest = e; }
+      }));
+      if (closest) {
+        const e = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+        e.frozenUntil = this.time.now + 800;
+        e.setTint(0x00ffdd);
+        this.time.delayedCall(800, () => { if (e.active) e.clearTint(); });
+      }
+      const burst = this.add.text(this.player.x, this.player.y - 40, "RECLAMEI!", {
+        fontFamily: "monospace", fontSize: "13px", color: "#ffdd00",
+        stroke: "#000000", strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(200);
+      this.tweens.add({ targets: burst, y: burst.y - 30, alpha: 0, duration: 700, onComplete: () => burst.destroy() });
     };
 
     // Enemy groups (no classType — entities added manually)
@@ -558,6 +593,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     boss.onActivate = () => {
       this.hud.showBoss("Gerente Microgestor", boss.maxHp);
       this.hud.setObjective("Derrote o Gerente Microgestor!");
+      Sfx.bossAppear();
+      Music.start("boss");
     };
     boss.onHpChange = (hp) => this.hud.updateBoss(hp);
     boss.onShoot = (fx, fy, tx, ty) => {
@@ -687,7 +724,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
-    if (step >= comboHits) this.cameras.main.shake(80, 0.006);
+    if (step >= comboHits) { this.combatFx.finisherImpact(); Sfx.meleeHeavy(); Sfx.comboFinisher(); }
+    else Sfx.meleeLight();
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
       Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
@@ -703,7 +741,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
         this.spawnHitSparks(e.x, e.y - 10, step >= comboHits);
         CombatFx.flashSprite(e as unknown as Phaser.Physics.Arcade.Sprite, 55);
-        if (step >= comboHits) this.combatFx.hitStop(55);
+        if (step >= comboHits) this.combatFx.finisherImpact();
         this.combatFx.spawnDamageNumber(
           e.x, e.y - 20, damage,
           step >= comboHits ? "#ff4444" : "#ffcc44",

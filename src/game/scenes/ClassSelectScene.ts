@@ -235,6 +235,26 @@ export class ClassSelectScene extends Phaser.Scene {
   private confirm() {
     const run = getRun(this);
     run.characterClass = CLASS_IDS[this.selectedIndex];
+
+    // Apply permanent upgrades from Reconhecimento meta-progression
+    const levels = loadUpgrades();
+    const mods = {
+      maxEnergy: 0, maxSanity: 0, vrDropMult: 0, parryWindowBonus: 0,
+      specialCooldownMult: 1.0, dashCooldownBonus: 0, damageReductionMult: 1.0,
+      parryEnergyRestore: 0, parryVrDrop: 0, comboHitsBonus: 0,
+    };
+    applyUpgradesToRun(levels, run, mods);
+    run.upgMaxEnergy           = mods.maxEnergy;
+    run.upgMaxSanity           = mods.maxSanity;
+    run.upgVrDropMult          = mods.vrDropMult;
+    run.upgParryWindowBonus    = mods.parryWindowBonus;
+    run.upgSpecialCooldownMult = mods.specialCooldownMult;
+    run.upgDashCooldownBonus   = mods.dashCooldownBonus;
+    run.upgDamageReductionMult = mods.damageReductionMult;
+    run.upgParryEnergyRestore  = mods.parryEnergyRestore;
+    run.upgParryVrDrop         = mods.parryVrDrop;
+    run.upgComboHitsBonus      = mods.comboHitsBonus;
+
     this.cameras.main.fadeOut(280, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => {
       this.scene.start("OpenSpaceV2Scene");

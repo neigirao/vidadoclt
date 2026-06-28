@@ -4,9 +4,11 @@ import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import { Faxineiro } from "../entities/Faxineiro";
 import { getRun, savePersisted } from "../systems/PlayerState";
+import { CLASSES, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { ShopUI } from "../systems/Shop";
 import { Hud } from "../systems/Hud";
+import { Music } from "../systems/MusicSystem";
 
 const LEVEL_WIDTH = 1280;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -34,6 +36,7 @@ export class CopaScene extends Phaser.Scene {
   create() {
     const run = getRun(this);
     this.startTimeMs = this.time.now;
+    Music.start("copa");
 
     if (run.cameFrom === "openspace") {
       run.fgts += 10;
@@ -89,7 +92,17 @@ export class CopaScene extends Phaser.Scene {
     doorBack.setData("door", "back");
 
     // Player
+    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
     this.player = new Player(this, 80, FLOOR_Y - 60);
+    this.player.maxEnergy           = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
+    this.player.maxSanity           = classDef.maxSanity + (run.upgMaxSanity ?? 0);
+    this.player.vrDropMult          = classDef.vrMult + (run.upgVrDropMult ?? 0);
+    this.player.parryWindowBonus    = run.upgParryWindowBonus ?? 0;
+    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
+    this.player.dashCooldownBonus   = run.upgDashCooldownBonus ?? 0;
+    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
+    this.player.parryEnergyRestore  = run.upgParryEnergyRestore ?? 0;
+    this.player.parryVrDrop         = run.upgParryVrDrop ?? 0;
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;
