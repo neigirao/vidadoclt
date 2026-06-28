@@ -136,11 +136,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
     this.player = new Player(this, spawnX, FLOOR_Y - 60);
-    this.player.maxEnergy         = classDef.maxEnergy;
-    this.player.maxSanity         = classDef.maxSanity;
+    this.player.maxEnergy         = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
+    this.player.maxSanity         = classDef.maxSanity + (run.upgMaxSanity ?? 0);
     this.player.walkSpeed         = 200 * classDef.speedMult;
     this.player.damageMult        = classDef.damageMult;
-    this.player.vrDropMult        = classDef.vrMult;
+    this.player.vrDropMult        = classDef.vrMult + (run.upgVrDropMult ?? 0);
+    this.player.parryWindowBonus  = run.upgParryWindowBonus ?? 0;
     this.player.weaponId          = weaponId;
     this.player.attackRange       = weaponDef.attackRange;
     this.player.specialCooldown   = weaponDef.specialCooldown;
@@ -155,8 +156,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.player.energy = run.energy;
       this.player.sanity = run.sanity;
     } else {
-      this.player.energy = classDef.maxEnergy;
-      this.player.sanity = classDef.maxSanity;
+      this.player.energy = this.player.maxEnergy;
+      this.player.sanity = this.player.maxSanity;
     }
     this.player.vr = run.vr;
     reapplyAllPerks(this.player, run);

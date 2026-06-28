@@ -14,6 +14,7 @@ const BG_MENU = 0x1a1d23;
 
 const MENU_ITEMS = [
   { label: "JOGAR", icon: "▶" },
+  { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
   { label: "BESTIARIO", icon: "👾" },
   { label: "ARSENAL", icon: "🎒" },
@@ -315,6 +316,11 @@ export class MenuScene extends Phaser.Scene {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("ClassSelectScene");
+      });
+    } else if (item.label === "EVOLUÇÃO") {
+      this.cameras.main.fadeOut(200, 0, 0, 0);
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        this.scene.start("ReconhecimentoScene");
       });
     } else if (item.label === "RANKING") {
       this.cameras.main.fadeOut(200, 0, 0, 0);

@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { CLASSES, ClassId, WEAPONS } from "../systems/WeaponSystem";
 import { getRun } from "../systems/PlayerState";
 import { applyRunSeed } from "../systems/RNG";
+import { loadUpgrades, applyUpgradesToRun } from "../systems/ReconhecimentoSystem";
 import { resolveSprite } from "../systems/SpriteLibrary";
 
 const BG_PANEL   = 0x12151a;
@@ -235,6 +236,16 @@ export class ClassSelectScene extends Phaser.Scene {
   private confirm() {
     const run = getRun(this);
     run.characterClass = CLASS_IDS[this.selectedIndex];
+
+    // Apply permanent upgrades from Reconhecimento meta-progression
+    const levels = loadUpgrades();
+    const mods = { maxEnergy: 0, maxSanity: 0, vrDropMult: 0, parryWindowBonus: 0 };
+    applyUpgradesToRun(levels, run, mods);
+    run.upgMaxEnergy = mods.maxEnergy;
+    run.upgMaxSanity = mods.maxSanity;
+    run.upgVrDropMult = mods.vrDropMult;
+    run.upgParryWindowBonus = mods.parryWindowBonus;
+
     this.cameras.main.fadeOut(280, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => {
       this.scene.start("OpenSpaceV2Scene");

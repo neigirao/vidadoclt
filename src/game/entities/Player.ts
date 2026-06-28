@@ -46,6 +46,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   vrDropMult = 1.0;
   weaponId = "grampeador";
 
+  parryWindowBonus = 0; // ms adicionais ao PARRY_WINDOW_MS via upgrade
   doubleJump = false;
   aggroRadius = 200;
   firstStrikeReady = false;
@@ -336,7 +337,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Parry "Reclamar" — abre janela de absorção (F / LB)
     if (parryPressed && time >= this.parryCooldownUntil) {
-      this.parryActiveUntil = time + PARRY_WINDOW_MS;
+      this.parryActiveUntil = time + PARRY_WINDOW_MS + this.parryWindowBonus;
       // Indicador visual: flash ciano breve
       this.setTint(0x00ffdd);
       this.scene.time.delayedCall(PARRY_WINDOW_MS, () => {
