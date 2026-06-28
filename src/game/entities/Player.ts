@@ -218,6 +218,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (cam) cam.shake(300, 0.015);
       this.onDeath?.("burnout");
     }
+    return false;
   }
 
   drainSanity(amount: number) {
