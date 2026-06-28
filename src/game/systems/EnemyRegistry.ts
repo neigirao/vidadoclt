@@ -37,7 +37,7 @@ type EnemyCtor = new (
   y: number,
 ) => AnyEnemySprite;
 
-const REGISTRY: Record<EnemyId, EnemyCtor> = {
+const REGISTRY: Partial<Record<EnemyId, EnemyCtor>> = {
   estagiario_desesperado: EstagiarioDesesperado as unknown as EnemyCtor,
   facilitador_workshop: FacilitadorDeWorkshop as unknown as EnemyCtor,
   scrum_master_caotico: ScrumMasterCaotico as unknown as EnemyCtor,
