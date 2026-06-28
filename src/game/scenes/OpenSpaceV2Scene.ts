@@ -21,8 +21,9 @@ import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
-import { reapplyAllPerks } from "../systems/PerkSystem";
+import { reapplyAllPerks, applyPerk, PERKS, PerkId } from "../systems/PerkSystem";
 import { reapplyAllCulturas } from "../systems/CulturaSystem";
+import { HEAT_LEVELS } from "./HoraExtraScene";
 import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
@@ -48,6 +49,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private emails!: Phaser.Physics.Arcade.Group;
   private inkProjectiles!: Phaser.Physics.Arcade.Group;
   private drops!: Phaser.Physics.Arcade.Group;
+  private coffeeDrops!: Phaser.Physics.Arcade.Group;
   private boss?: GerenteMicrogestor;
   private bossDefeated = false;
   private startTimeMs = 0;
@@ -59,6 +61,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private doorLabel!: Phaser.GameObjects.Text;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private levelWidth = LEVEL_WIDTH;
+  private reuniaoUsed = false;
 
   constructor() {
     super("OpenSpaceV2Scene");
@@ -86,13 +89,33 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.furnitureBodies = this.physics.add.staticGroup();
     this.buildFloor();
 
-    // Platforms: alternating desk (30 px) and shelf (72 px)
-    this.buildPlatform(200,  FLOOR_Y - 30, 5);
-    this.buildPlatform(460,  FLOOR_Y - 72, 4);
-    this.buildPlatform(700,  FLOOR_Y - 30, 5);
-    this.buildPlatform(1000, FLOOR_Y - 72, 6);
-    this.buildPlatform(1350, FLOOR_Y - 30, 5);
-    this.buildPlatform(1620, FLOOR_Y - 72, 4);
+    // Feature 4: Platforms vary by seed variant (3 layouts)
+    if (seedVariant === 0) {
+      // Default layout
+      this.buildPlatform(200,  FLOOR_Y - 30, 5);
+      this.buildPlatform(460,  FLOOR_Y - 72, 4);
+      this.buildPlatform(700,  FLOOR_Y - 30, 5);
+      this.buildPlatform(1000, FLOOR_Y - 72, 6);
+      this.buildPlatform(1350, FLOOR_Y - 30, 5);
+      this.buildPlatform(1620, FLOOR_Y - 72, 4);
+    } else if (seedVariant === 1) {
+      // Elevated layout — more platforms high up
+      this.buildPlatform(180,  FLOOR_Y - 72, 4);
+      this.buildPlatform(440,  FLOOR_Y - 30, 5);
+      this.buildPlatform(720,  FLOOR_Y - 72, 5);
+      this.buildPlatform(1040, FLOOR_Y - 30, 6);
+      this.buildPlatform(1380, FLOOR_Y - 72, 5);
+      this.buildPlatform(1640, FLOOR_Y - 30, 4);
+    } else {
+      // Dense layout — more platforms, smaller gaps
+      this.buildPlatform(150,  FLOOR_Y - 30, 4);
+      this.buildPlatform(380,  FLOOR_Y - 60, 4);
+      this.buildPlatform(620,  FLOOR_Y - 30, 4);
+      this.buildPlatform(860,  FLOOR_Y - 60, 5);
+      this.buildPlatform(1140, FLOOR_Y - 30, 5);
+      this.buildPlatform(1400, FLOOR_Y - 60, 4);
+      this.buildPlatform(1660, FLOOR_Y - 30, 3);
+    }
 
     // Floor-level decoratives
     addImage(this, 60,   FLOOR_Y - 28, "tex-cafe-machine").setDepth(8).setDisplaySize(40, 56);
@@ -114,6 +137,10 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.doorLabel = this.add.text(LEVEL_WIDTH - 60, FLOOR_Y - 72, "COPA\n[BLOQUEADO]", {
       fontFamily: "monospace", fontSize: "9px", color: "#666666", align: "center",
     }).setOrigin(0.5);
+
+    // Feature 4: Seed-based platform variation
+    const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
+    const seedVariant = seedNum % 3; // 0, 1, or 2 for 3 layout variants
 
     const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
     const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
@@ -153,6 +180,9 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.player.vr = run.vr;
     reapplyAllPerks(this.player, run);
     reapplyAllCulturas(this.player, run);
+    // Feature 7: Apply heat VR multiplier
+    const heatLvl = HEAT_LEVELS[run.heatLevel ?? 0] ?? HEAT_LEVELS[0];
+    this.player.vrDropMult *= heatLvl.vrMult;
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.furnitureBodies);
@@ -260,6 +290,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.rhs             = this.physics.add.group({ runChildUpdate: false });
     this.postits      = this.physics.add.group();
     this.emails       = this.physics.add.group();
+    this.coffeeDrops  = this.physics.add.group();
     this.inkProjectiles = this.physics.add.group();
     this.drops        = this.physics.add.group();
 
@@ -365,6 +396,22 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
+    // Feature 5: Coffee pickup
+    this.physics.add.collider(this.coffeeDrops, this.platforms);
+    this.physics.add.overlap(this.player, this.coffeeDrops, (_p, cObj) => {
+      (cObj as Phaser.Physics.Arcade.Sprite).destroy();
+      if (this.player.consumivel && this.player.consumivelUses > 0) {
+        this.player.consumivelUses++;
+      } else {
+        this.player.consumivel = "cafe";
+        this.player.consumivelUses = 2;
+      }
+      const msg = this.add.text(this.player.x, this.player.y - 40, "☕ CAFÉ +2",
+        { fontFamily: "monospace", fontSize: "12px", color: "#ffcc44", stroke: "#000000", strokeThickness: 2 })
+        .setOrigin(0.5).setDepth(200);
+      this.tweens.add({ targets: msg, y: msg.y - 28, alpha: 0, duration: 700, onComplete: () => msg.destroy() });
+    });
+
     // Pause on ESC
     this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
       this.scene.pause();
@@ -385,6 +432,14 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         this.scene.start("CopaScene");
       }
     });
+
+    // Feature 2: Reunião Relâmpago NPC at x=900
+    this.spawnReuniao(900, run);
+
+    // Feature 6: MEMO perk collectible on elevated platform
+    if (!run.openSpaceCleared) {
+      this.spawnMemo(1000, FLOOR_Y - 105, run);
+    }
 
     this.fx       = new SanityFx(this);
     this.combatFx = new CombatFx(this);
@@ -582,6 +637,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const coord = new CoordenadorDeSinergia(this, 1620, FLOOR_Y - 60);
     coord.target = this.player;
+    coord.onCoffeeDrop = (cx, cy) => this.spawnCoffeeDrop(cx, cy);
     this.coordenadores.add(coord);
 
     const sr = new AnalistaSeniorExausto(this, 1700, FLOOR_Y - 60);
@@ -631,6 +687,37 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.boss = boss;
     this.physics.add.collider(boss, this.platforms);
     this.physics.add.collider(boss, this.furnitureBodies);
+
+    // Feature 3 + 7: Loop difficulty + Heat scaling
+    const runNow = getRun(this);
+    const loop = runNow.loopCount ?? 0;
+    const heatDef = HEAT_LEVELS[runNow.heatLevel ?? 0] ?? HEAT_LEVELS[0];
+    if (loop > 0 || heatDef.hpMult > 1) {
+      const hpMult = (1 + loop * 0.2) * heatDef.hpMult; // +20% per loop + heat mult
+      const allEnemyGroups = [
+        this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
+        this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs,
+      ];
+      allEnemyGroups.forEach(g => g.getChildren().forEach(c => {
+        const e = c as Phaser.Physics.Arcade.Sprite & { hp: number };
+        if (e.hp !== undefined) e.hp = Math.round(e.hp * hpMult);
+      }));
+      // At loop >= 3, make 1 enemy per group "jammed" (golden tint, +50% HP)
+      if (loop >= 3) {
+        allEnemyGroups.forEach(g => {
+          const children = g.getChildren();
+          if (children.length === 0) return;
+          const jammed = children[0] as Phaser.Physics.Arcade.Sprite & { hp: number };
+          jammed.setTint(0xffaa00);
+          if (jammed.hp !== undefined) jammed.hp = Math.round(jammed.hp * 1.5);
+          // Label it
+          const jamLabel = this.add.text(jammed.x, jammed.y - 30, "TRAVADO", {
+            fontFamily: "monospace", fontSize: "7px", color: "#ffaa00",
+          }).setOrigin(0.5).setDepth(500);
+          this.time.delayedCall(2000, () => { if (jamLabel.scene) jamLabel.destroy(); });
+        });
+      }
+    }
 
     this.physics.add.overlap(this.inkProjectiles, boss, (inkObj) => {
       const ink = inkObj as Phaser.Physics.Arcade.Sprite;
@@ -808,6 +895,180 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     ink.setData("homing", opts.homing ?? false);
     ink.setData("lifetime", this.time.now + 4000);
     return ink;
+  }
+
+  private spawnMemo(mx: number, my: number, run: import("../systems/PlayerState").RunState): void {
+    // White rectangle MEMO collectible — press E near it to get a random perk
+    const memoG = this.add.graphics().setDepth(9);
+    memoG.fillStyle(0xffffff, 1);
+    memoG.fillRect(mx - 10, my - 14, 20, 26);
+    memoG.lineStyle(1, 0xcccccc, 1);
+    memoG.strokeRect(mx - 10, my - 14, 20, 26);
+    // Lines on memo
+    memoG.lineStyle(1, 0xaaaaaa, 0.5);
+    for (let li = 0; li < 4; li++) memoG.lineBetween(mx - 7, my - 10 + li * 5, mx + 7, my - 10 + li * 5);
+
+    const memoLabel = this.add.text(mx, my - 22, "MEMO", {
+      fontFamily: "monospace", fontSize: "8px", color: "#f2a800",
+    }).setOrigin(0.5).setDepth(10);
+    this.tweens.add({ targets: [memoG, memoLabel], y: "-=5", duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+
+    let memoTaken = false;
+    const memoZone = this.add.zone(mx, my, 40, 40);
+    this.physics.add.existing(memoZone, true);
+    this.physics.add.overlap(this.player, memoZone, () => {
+      if (memoTaken) return;
+      if (Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed) {
+        memoTaken = true;
+        memoG.destroy();
+        memoLabel.destroy();
+        // Apply a random perk the player doesn't have yet
+        const allPerkIds = Object.keys(PERKS) as PerkId[];
+        const available = allPerkIds.filter(id => !(run.perks ?? []).includes(id));
+        if (available.length > 0) {
+          const chosen = Phaser.Utils.Array.GetRandom(available) as PerkId;
+          applyPerk(chosen, this.player, run);
+          this.hud.setPerks(run.perks ?? []);
+          const perk = PERKS[chosen];
+          const msg = this.add.text(this.player.x, this.player.y - 50,
+            `MEMO!\nPerk: ${perk.name}`,
+            { fontFamily: "monospace", fontSize: "13px", color: "#ffffff",
+              stroke: "#000000", strokeThickness: 2, align: "center" })
+            .setOrigin(0.5).setDepth(999);
+          this.tweens.add({ targets: msg, alpha: 0, duration: 800, delay: 2200, onComplete: () => msg.destroy() });
+        }
+      }
+    });
+  }
+
+  private spawnReuniao(nx: number, run: import("../systems/PlayerState").RunState): void {
+    // "?" NPC that offers 2 random free perks to choose from
+    const npcG = this.add.graphics().setDepth(9);
+    npcG.fillStyle(0xf2a800, 1);
+    npcG.fillRect(nx - 12, FLOOR_Y - 48, 24, 40);
+    npcG.fillStyle(0xe8d0b0, 1);
+    npcG.fillEllipse(nx, FLOOR_Y - 52, 20, 20);
+    const npcLabel = this.add.text(nx, FLOOR_Y - 72, "?", {
+      fontFamily: "monospace", fontSize: "22px", fontStyle: "bold",
+      color: "#ffdd00", stroke: "#000000", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(10);
+    // bob animation
+    this.tweens.add({ targets: npcLabel, y: npcLabel.y - 6, duration: 800, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+
+    const npcZone = this.add.zone(nx, FLOOR_Y - 30, 60, 60);
+    this.physics.add.existing(npcZone, true);
+    this.physics.add.overlap(this.player, npcZone, () => {
+      if (this.reuniaoUsed) return;
+      if (Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed) {
+        this.reuniaoUsed = true;
+        this.showPerkChoice(run, npcG, npcLabel);
+      }
+    });
+  }
+
+  private showPerkChoice(run: import("../systems/PlayerState").RunState, npcG: Phaser.GameObjects.Graphics, npcLabel: Phaser.GameObjects.Text): void {
+    const allPerkIds = Object.keys(PERKS) as PerkId[];
+    const available = allPerkIds.filter(id => !(run.perks ?? []).includes(id));
+    if (available.length === 0) return;
+    const options = Phaser.Utils.Array.Shuffle([...available]).slice(0, 2) as PerkId[];
+
+    this.scene.pause();
+
+    const overlay = this.add.container(0, 0).setDepth(2000).setScrollFactor(0);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.8);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    overlay.add(bg);
+
+    overlay.add(this.add.text(GAME_WIDTH / 2, 120, "REUNIAO RELAMPAGO", {
+      fontFamily: "monospace", fontSize: "20px", fontStyle: "bold", color: "#f2a800",
+      stroke: "#000000", strokeThickness: 3,
+    }).setOrigin(0.5));
+    overlay.add(this.add.text(GAME_WIDTH / 2, 148, "Escolha um perk gratuito:", {
+      fontFamily: "monospace", fontSize: "11px", color: "#aaaaaa",
+    }).setOrigin(0.5));
+
+    options.forEach((perkId, i) => {
+      const perk = PERKS[perkId];
+      const bx = GAME_WIDTH / 2 + (i === 0 ? -170 : 170);
+      const by = GAME_HEIGHT / 2;
+
+      const cardG = this.add.graphics();
+      cardG.fillStyle(0x12151a, 1);
+      cardG.fillRect(bx - 130, by - 60, 260, 140);
+      cardG.lineStyle(2, 0xf2a800, 0.8);
+      cardG.strokeRect(bx - 130, by - 60, 260, 140);
+      overlay.add(cardG);
+
+      overlay.add(this.add.text(bx, by - 40, perk.icon, { fontFamily: "monospace", fontSize: "28px" }).setOrigin(0.5));
+      overlay.add(this.add.text(bx, by - 10, perk.name.toUpperCase(), {
+        fontFamily: "monospace", fontSize: "12px", fontStyle: "bold", color: "#f2c14e",
+      }).setOrigin(0.5));
+      overlay.add(this.add.text(bx, by + 10, perk.description, {
+        fontFamily: "monospace", fontSize: "8px", color: "#cccccc", wordWrap: { width: 240 }, align: "center",
+      }).setOrigin(0.5, 0));
+
+      const hitArea = this.add.rectangle(bx, by, 260, 140, 0xffffff, 0)
+        .setInteractive({ useHandCursor: true });
+      hitArea.on("pointerover", () => { cardG.lineStyle(2, 0xffffff, 1); cardG.strokeRect(bx - 130, by - 60, 260, 140); });
+      hitArea.on("pointerout",  () => { cardG.lineStyle(2, 0xf2a800, 0.8); cardG.strokeRect(bx - 130, by - 60, 260, 140); });
+      hitArea.on("pointerdown", () => {
+        applyPerk(perkId, this.player, run);
+        overlay.destroy();
+        npcG.destroy();
+        npcLabel.destroy();
+        this.scene.resume();
+        this.hud.setPerks(run.perks ?? []);
+        const msg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60,
+          `PERK: ${perk.name}\n${perk.description}`,
+          { fontFamily: "monospace", fontSize: "13px", color: "#f2c14e",
+            stroke: "#000000", strokeThickness: 2, align: "center" })
+          .setOrigin(0.5).setScrollFactor(0).setDepth(999);
+        this.tweens.add({ targets: msg, alpha: 0, duration: 800, delay: 2200, onComplete: () => msg.destroy() });
+      });
+      overlay.add(hitArea);
+    });
+
+    // Also handle keyboard selection
+    const k1 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+    const k2 = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+    const pickPerk = (idx: number) => {
+      if (!overlay.active) return;
+      const perkId = options[idx];
+      if (!perkId) return;
+      const perk = PERKS[perkId];
+      applyPerk(perkId, this.player, run);
+      overlay.destroy();
+      npcG.destroy();
+      npcLabel.destroy();
+      k1.destroy();
+      k2.destroy();
+      this.scene.resume();
+      this.hud.setPerks(run.perks ?? []);
+      const msg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60,
+        `PERK: ${perk.name}\n${perk.description}`,
+        { fontFamily: "monospace", fontSize: "13px", color: "#f2c14e",
+          stroke: "#000000", strokeThickness: 2, align: "center" })
+        .setOrigin(0.5).setScrollFactor(0).setDepth(999);
+      this.tweens.add({ targets: msg, alpha: 0, duration: 800, delay: 2200, onComplete: () => msg.destroy() });
+    };
+    overlay.add(this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 100, "[1] Esquerda   [2] Direita", {
+      fontFamily: "monospace", fontSize: "10px", color: "#666666",
+    }).setOrigin(0.5));
+    k1.on("down", () => pickPerk(0));
+    k2.on("down", () => pickPerk(1));
+  }
+
+  private spawnCoffeeDrop(x: number, y: number): void {
+    const coffee = this.coffeeDrops.create(x, y - 10, "__WHITE") as Phaser.Physics.Arcade.Sprite;
+    coffee.setDisplaySize(14, 14).setTint(0x8b4513).setDepth(9);
+    const body = coffee.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(Phaser.Math.Between(-80, 80), Phaser.Math.Between(-200, -120));
+    body.setBounce(0.3);
+    // Label
+    const lbl = this.add.text(x, y - 20, "☕", { fontSize: "16px" }).setOrigin(0.5).setDepth(10);
+    lbl.setData("follow", coffee);
+    this.time.delayedCall(10000, () => { if (coffee.active) coffee.destroy(); if (lbl.active) lbl.destroy(); });
   }
 
   private dropVR(x: number, y: number, count = 1): void {

@@ -41,6 +41,7 @@ export type RunState = {
   upgParryEnergyRestore?: number;
   upgParryVrDrop?: number;
   upgComboHitsBonus?: number;
+  heatLevel?: number;
 };
 
 function lsGet(key: string): number {
