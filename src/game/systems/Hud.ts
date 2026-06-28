@@ -93,6 +93,8 @@ export class Hud {
   private weaponNameT!: Phaser.GameObjects.Text;
   private specialNameT!: Phaser.GameObjects.Text;
   private dashCooldownG!: Phaser.GameObjects.Graphics;
+  private parryLabelT!: Phaser.GameObjects.Text;
+  private parryStateT!: Phaser.GameObjects.Text;
 
   // Section 3 perks
   private perkSlotGraphics!: Phaser.GameObjects.Graphics;
@@ -440,6 +442,18 @@ export class Hud {
     // Dash cooldown overlay graphics (draw over slot index 2, i.e. 3rd slot — SHIFT/DASH)
     this.dashCooldownG = this.scene.add.graphics();
     this.botContainer.add(this.dashCooldownG);
+
+    // Parry indicator — "F" label + status text below slots
+    this.parryLabelT = this.scene.add.text(
+      S2_X + SEC2_W - 48, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 4,
+      "F  RECLAMAR", { fontFamily: F, fontSize: "7px", color: "#00ffdd" }
+    );
+    this.botContainer.add(this.parryLabelT);
+    this.parryStateT = this.scene.add.text(
+      S2_X + SEC2_W - 48, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 14,
+      "PRONTO", { fontFamily: F, fontSize: "7px", color: "#00bb99" }
+    );
+    this.botContainer.add(this.parryStateT);
   }
 
   // ─── Section 3: Perks Ativos ────────────────────────────────────
@@ -600,6 +614,8 @@ export class Hud {
     interactHint?: string;
     dashCooldown?: number;
     perks?: string[];
+    /** "active" = janela aberta, "cooldown" = em recarga, "low_sanity" = sem sanidade, undefined = pronto */
+    parryState?: "active" | "cooldown" | "low_sanity";
   }) {
     // Sanity color: green→orange at 50%, orange→pulsing red at 25%
     const sanityPct = opts.sanity / opts.maxSanity;
@@ -660,6 +676,23 @@ export class Hud {
       this.dashCooldownG.fillRect(dsx, ITEM_SLOT_Y, ITEM_SLOT_SIZE, Math.round(dashRatio * ITEM_SLOT_SIZE));
       this.dashCooldownG.lineStyle(1, 0x6688cc, 0.9);
       this.dashCooldownG.strokeRect(dsx, ITEM_SLOT_Y, ITEM_SLOT_SIZE, ITEM_SLOT_SIZE);
+    }
+
+    // Parry indicator
+    if (this.parryStateT) {
+      if (opts.parryState === "active") {
+        this.parryStateT.setText("● ATIVO").setColor("#00ffdd");
+        this.parryLabelT.setColor("#00ffdd");
+      } else if (opts.parryState === "cooldown") {
+        this.parryStateT.setText("RECARGA").setColor("#556655");
+        this.parryLabelT.setColor("#446655");
+      } else if (opts.parryState === "low_sanity") {
+        this.parryStateT.setText("SEM SANIDADE").setColor("#885544");
+        this.parryLabelT.setColor("#885544");
+      } else {
+        this.parryStateT.setText("PRONTO").setColor("#00bb99");
+        this.parryLabelT.setColor("#00ffdd");
+      }
     }
 
     // Perks

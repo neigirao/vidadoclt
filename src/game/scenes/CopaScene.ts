@@ -4,6 +4,7 @@ import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import { Faxineiro } from "../entities/Faxineiro";
 import { getRun, savePersisted } from "../systems/PlayerState";
+import { CLASSES, ClassId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { ShopUI } from "../systems/Shop";
 import { Hud } from "../systems/Hud";
@@ -88,8 +89,13 @@ export class CopaScene extends Phaser.Scene {
     }).setOrigin(0.5);
     doorBack.setData("door", "back");
 
-    // Player
+    // Player — aplicar upgrades de Reconhecimento
+    const classDef2 = CLASSES[(run.characterClass ?? "analista") as ClassId];
     this.player = new Player(this, 80, FLOOR_Y - 60);
+    this.player.maxEnergy = classDef2.maxEnergy + (run.upgMaxEnergy ?? 0);
+    this.player.maxSanity = classDef2.maxSanity + (run.upgMaxSanity ?? 0);
+    this.player.vrDropMult = classDef2.vrMult + (run.upgVrDropMult ?? 0);
+    this.player.parryWindowBonus = run.upgParryWindowBonus ?? 0;
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;
@@ -101,6 +107,11 @@ export class CopaScene extends Phaser.Scene {
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
     this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
+    this.player.onParrySuccess = (_fromX: number) => {
+      // Na Copa, parry bem-sucedido contra Faxineiro: VFX dourado
+      const burst = this.add.circle(this.player.x, this.player.y - 20, 18, 0xffdd00, 0.85).setDepth(20);
+      this.tweens.add({ targets: burst, radius: 40, alpha: 0, duration: 200, onComplete: () => burst.destroy() });
+    };
 
     // Faxineiros
     this.faxineiros = this.physics.add.group({ classType: Faxineiro, runChildUpdate: false });
@@ -136,16 +147,41 @@ export class CopaScene extends Phaser.Scene {
       `${loopCount + 1}ª vez hoje. Eu contei.`,
       "Cara, você tá bem? Já perdi as contas.",
       "A sindicância vai ser enorme quando isso acabar.",
+      "Dica: aperta F antes de levar porrada. Funciona.",
+      "Reclamar tem que ter timing, sabia? F antes do golpe.",
     ];
-    const pool = causeLines.length > 0 ? causeLines : loopLines;
-    const fala = pool[Math.min(loopCount % pool.length, pool.length - 1)];
+    const highLoopLines = [
+      `Loop ${loopCount}... você não vai desistir né?`,
+      "Eu limpo esse chão todo dia. Assim como você.",
+      "Resistência se aprende. Continue.",
+      "Mais de 5 tentativas? Isso é determinação.",
+    ];
+    const pool = causeLines.length > 0
+      ? causeLines
+      : loopCount >= 5
+        ? highLoopLines
+        : loopLines;
+    const fala = pool[loopCount % pool.length];
     this.time.delayedCall(1200, () => {
       const bubble = this.add.text(520, FLOOR_Y - 130, fala, {
         fontFamily: "monospace", fontSize: "11px", color: "#c9e8c9",
         backgroundColor: "#1a2a1a", padding: { x: 6, y: 4 },
+        wordWrap: { width: 280 },
       }).setOrigin(0.5).setDepth(500);
-      this.tweens.add({ targets: bubble, alpha: 0, delay: 2800, duration: 600, onComplete: () => bubble.destroy() });
+      this.tweens.add({ targets: bubble, alpha: 0, delay: 3200, duration: 600, onComplete: () => bubble.destroy() });
     });
+
+    // Alta sanidade: segundo diálogo de dica sobre Reconhecimento quando loopCount >= 3
+    if (loopCount >= 3 && (run.reconhecimento ?? 0) < 30) {
+      this.time.delayedCall(5000, () => {
+        const tip = this.add.text(880, FLOOR_Y - 130,
+          "Menu > Evolução: gaste seu Reconhecimento.",
+          { fontFamily: "monospace", fontSize: "10px", color: "#f2c14e",
+            backgroundColor: "#1a1a0a", padding: { x: 6, y: 4 } }
+        ).setOrigin(0.5).setDepth(500);
+        this.tweens.add({ targets: tip, alpha: 0, delay: 3000, duration: 600, onComplete: () => tip.destroy() });
+      });
+    }
     this.physics.add.collider(this.faxineiros, this.platforms);
 
     this.drops = this.physics.add.group();
@@ -320,9 +356,10 @@ export class CopaScene extends Phaser.Scene {
     const run = getRun(this);
     this.hud.update({
       energy: Math.ceil(this.player.energy),
-      maxEnergy: 100,
+      maxEnergy: this.player.maxEnergy,
       sanity: Math.ceil(this.player.sanity),
-      maxSanity: 100,
+      maxSanity: this.player.maxSanity,
+      parryState: this.player.getParryState(time),
       vr: this.player.vr,
       reconhecimento: run.reconhecimento,
       time,

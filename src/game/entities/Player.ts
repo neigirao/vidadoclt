@@ -158,6 +158,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return (this.dashCooldownUntil - now) / DASH_COOLDOWN_MS;
   }
 
+  getParryState(now: number): "active" | "cooldown" | "low_sanity" | undefined {
+    if (now < this.parryActiveUntil) return "active";
+    if (now < this.parryCooldownUntil) return "cooldown";
+    if (this.sanity < 8) return "low_sanity";
+    return undefined;
+  }
+
   /** Returns true if the hit was parried. */
   takeDamage(amount: number, sanityHit = 0, fromX?: number): boolean {
     const now = this.scene.time.now;
@@ -336,13 +343,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Parry "Reclamar" — abre janela de absorção (F / LB)
-    if (parryPressed && time >= this.parryCooldownUntil) {
+    // Custa 8 sanidade ao ativar (sanidade como recurso ativo)
+    if (parryPressed && time >= this.parryCooldownUntil && this.sanity >= 8) {
+      this.sanity = Math.max(0, this.sanity - 8);
       this.parryActiveUntil = time + PARRY_WINDOW_MS + this.parryWindowBonus;
-      // Indicador visual: flash ciano breve
       this.setTint(0x00ffdd);
-      this.scene.time.delayedCall(PARRY_WINDOW_MS, () => {
-        if (time >= this.parryActiveUntil - 1) {
-          // Janela expirou sem absorver nada
+      const windowEnd = this.parryActiveUntil;
+      this.scene.time.delayedCall(PARRY_WINDOW_MS + this.parryWindowBonus, () => {
+        if (this.scene?.time && this.scene.time.now >= windowEnd - 1) {
           this.clearTint();
           Sfx.parryWhiff();
         }

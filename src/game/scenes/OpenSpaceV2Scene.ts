@@ -1009,6 +1009,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       playerX: this.player.x,
       interactHint: nearDoor ? "[ E ]  Entrar na Copa" : undefined,
       dashCooldown: this.player.getDashCooldownRatio(time),
+      parryState: this.player.getParryState(time),
     });
   }
 }

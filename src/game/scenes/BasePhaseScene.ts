@@ -104,11 +104,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
     this.player = new Player(this, spawnX, FLOOR_Y - 60);
 
-    this.player.maxEnergy        = classDef.maxEnergy;
-    this.player.maxSanity        = classDef.maxSanity;
+    this.player.maxEnergy        = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
+    this.player.maxSanity        = classDef.maxSanity + (run.upgMaxSanity ?? 0);
     this.player.walkSpeed        = 200 * classDef.speedMult;
     this.player.damageMult       = classDef.damageMult;
-    this.player.vrDropMult       = classDef.vrMult;
+    this.player.vrDropMult       = classDef.vrMult + (run.upgVrDropMult ?? 0);
+    this.player.parryWindowBonus = run.upgParryWindowBonus ?? 0;
     this.player.weaponId         = weaponId;
     this.player.attackRange      = weaponDef.attackRange;
     this.player.specialCooldown  = weaponDef.specialCooldown;
@@ -123,8 +124,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.player.energy = run.energy;
       this.player.sanity = run.sanity;
     } else {
-      this.player.energy = classDef.maxEnergy;
-      this.player.sanity = classDef.maxSanity;
+      this.player.energy = this.player.maxEnergy;
+      this.player.sanity = this.player.maxSanity;
     }
     this.player.vr = run.vr;
     reapplyAllPerks(this.player, run);
@@ -168,6 +169,34 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.handleSpecial(type, fx, fy, facing, def);
     };
 
+    // Parry "Reclamar" — stun o inimigo mais próximo
+    this.player.onParrySuccess = (fromX: number) => {
+      let closest: (Phaser.Physics.Arcade.Sprite & { frozenUntil?: number }) | null = null;
+      let closestDist = 160;
+      for (const gDef of this.enemyGroups) {
+        gDef.group.getChildren().forEach(c => {
+          const e = c as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+          if (!e.active) return;
+          const d = Phaser.Math.Distance.Between(e.x, e.y, fromX, this.player.y);
+          if (d < closestDist) { closestDist = d; closest = e; }
+        });
+      }
+      if (closest) {
+        const enemy = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+        enemy.frozenUntil = this.time.now + 800;
+        enemy.setTint(0xffdd00);
+        this.time.delayedCall(800, () => { if (enemy.active) enemy.clearTint(); });
+      }
+      // VFX
+      const burst = this.add.circle(this.player.x, this.player.y - 20, 18, 0xffdd00, 0.85).setDepth(20);
+      this.tweens.add({ targets: burst, radius: 40, alpha: 0, duration: 200,
+        onComplete: () => burst.destroy() });
+      const label = this.add.text(this.player.x, this.player.y - 48, "RECLAMEI!", {
+        fontSize: "13px", color: "#ffdd00", stroke: "#000000", strokeThickness: 3,
+      }).setDepth(21).setOrigin(0.5);
+      this.time.delayedCall(700, () => { if (label.scene) label.destroy(); });
+    };
+
     // 6. Projectile + drop groups
     this.inkProjectiles   = this.physics.add.group();
     this.enemyProjectiles = this.physics.add.group();
@@ -181,20 +210,24 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 8. Subclass populates this.enemyGroups and this.boss
     this.setupEnemiesAndGroups();
 
-    // 8a. Loop HP scaling — each completed loop adds 15% HP to all enemies
+    // 8a. Loop scaling — HP +15%/loop, contactDamage +10%/loop
     const loopCount = run.loopCount ?? 0;
     if (loopCount > 0) {
-      const mult = 1 + loopCount * 0.15;
+      const hpMult    = 1 + loopCount * 0.15;
+      const dmgMult   = 1 + loopCount * 0.10;
       for (const def of this.enemyGroups) {
         def.group.getChildren().forEach(obj => {
           const e = obj as any;
-          if (typeof e.hp === "number") e.hp = Math.round(e.hp * mult);
-          if (typeof e.maxHp === "number") e.maxHp = Math.round(e.maxHp * mult);
+          if (typeof e.hp === "number") e.hp = Math.round(e.hp * hpMult);
+          if (typeof e.maxHp === "number") e.maxHp = Math.round(e.maxHp * hpMult);
+          if (typeof e.contactDamage === "number") e.contactDamage = Math.round(e.contactDamage * dmgMult);
         });
       }
       if (this.boss) {
-        this.boss.hp = Math.round(this.boss.hp * mult);
-        if (this.boss.maxHp !== undefined) this.boss.maxHp = Math.round(this.boss.maxHp * mult);
+        this.boss.hp = Math.round(this.boss.hp * hpMult);
+        if (this.boss.maxHp !== undefined) this.boss.maxHp = Math.round(this.boss.maxHp * hpMult);
+        if (typeof (this.boss as any).contactDamage === "number")
+          (this.boss as any).contactDamage = Math.round((this.boss as any).contactDamage * dmgMult);
       }
     }
 
@@ -397,6 +430,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       interactHint: nearDoor ? `[ E ]  ${this.getDoorConfig().nearLabel}` : undefined,
       dashCooldown: this.player.getDashCooldownRatio(time),
       perks: run.perks,
+      parryState: this.player.getParryState(time),
     });
   }
 
