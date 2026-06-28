@@ -204,7 +204,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
         if (dist > 70 && dist < 280) {
           this.aiState = "telegraph";
           this.stateUntil = t + 350;
-          this.setTint(0xffee22);
+          this.setTint(0xffdd00);
           body.setVelocityX(0);
         }
         break;
@@ -312,7 +312,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
           if (dist < 300 && t >= this.retrospectivaCooldown) {
             this.aiState = "retro_tele";
             this.stateUntil = t + 700;
-            this.setTint(0xaa44ff);
+            this.setTint(0xffdd00);
             body.setVelocityX(0);
             const label = this.scene.add.text(this.x, this.y - 36, "RETROSPECTIVA!", {
               fontFamily: "monospace", fontSize: "14px", fontStyle: "bold",
@@ -325,7 +325,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
           } else if (dist < 320) {
             this.aiState = "charge";
             this.stateUntil = t + 500;
-            this.setTint(0xff8800);
+            this.setTint(0xffdd00);
             body.setVelocityX(0);
           }
         }
@@ -434,6 +434,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
 
   target?: { x: number; y: number };
   onHpChange?: (hp: number, maxHp: number) => void;
+  onCoffeeDrop?: (x: number, y: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     // Band-aid: usa sprites limpos do enemy-coordenador até ter arte nova do boss
@@ -490,7 +491,13 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.6);
     body.setVelocityY(-150);
-    if (this.hp <= 0) markKilled("coordenador_sinergia");
+    if (this.hp <= 0) {
+      markKilled("coordenador_sinergia");
+      // 30% chance to drop coffee
+      if (Math.random() < 0.3) {
+        this.onCoffeeDrop?.(this.x, this.y);
+      }
+    }
     return this.hp <= 0;
   }
 
@@ -543,7 +550,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
         if (this.target && Math.abs(this.target.x - this.x) < 58) {
           this.aiState = "telegraph";
           this.stateUntil = t + 650;
-          this.setTint(0xdd3333);
+          this.setTint(0xffdd00);
           body.setVelocityX(0);
         }
         break;
@@ -671,7 +678,7 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
         if (this.target && Math.abs(this.target.x - this.x) < 48) {
           this.aiState = "telegraph";
           this.stateUntil = t + 380;
-          this.setTint(0xff88bb);
+          this.setTint(0xffdd00);
           body.setVelocityX(0);
         }
         break;
@@ -789,7 +796,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
         if (this.target && Math.abs(this.target.x - this.x) < 44) {
           this.aiState = "telegraph";
           this.stateUntil = t + 400;
-          this.setTint(0xffdd66);
+          this.setTint(0xffdd00);
           body.setVelocityX(0);
         }
         break;

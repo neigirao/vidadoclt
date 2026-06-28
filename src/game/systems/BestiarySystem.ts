@@ -1,7 +1,9 @@
 import { EnemyId } from "./EnemyCatalog";
 
-const LS_KEY = "vidadoclt_bestiary";
+const LS_KEY        = "vidadoclt_bestiary";
+const LS_COUNTS_KEY = "vidadoclt_bestiary_counts";
 
+// --- Boolean kill set (has seen / killed once) ---
 let _cache: Set<EnemyId> | null = null;
 
 function load(): Set<EnemyId> {
@@ -21,16 +23,43 @@ function cache(): Set<EnemyId> {
   return _cache;
 }
 
+// --- Kill counts ---
+let _counts: Record<string, number> | null = null;
+
+function loadCounts(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(LS_COUNTS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, number>;
+  } catch { return {}; }
+}
+
+function persistCounts(counts: Record<string, number>) {
+  try { localStorage.setItem(LS_COUNTS_KEY, JSON.stringify(counts)); } catch {}
+}
+
+function counts(): Record<string, number> {
+  if (!_counts) _counts = loadCounts();
+  return _counts;
+}
+
 export function markKilled(id: EnemyId): void {
   const s = cache();
   if (!s.has(id)) {
     s.add(id);
     persist(s);
   }
+  const c = counts();
+  c[id] = (c[id] ?? 0) + 1;
+  persistCounts(c);
 }
 
 export function hasKilled(id: EnemyId): boolean {
   return cache().has(id);
+}
+
+export function getKillCount(id: EnemyId): number {
+  return counts()[id] ?? 0;
 }
 
 export function getAllKilled(): ReadonlySet<EnemyId> {

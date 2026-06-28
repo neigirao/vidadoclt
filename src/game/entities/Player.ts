@@ -27,6 +27,8 @@ export type PlayerKeys = {
   attack: Phaser.Input.Keyboard.Key;
   special: Phaser.Input.Keyboard.Key;
   parry: Phaser.Input.Keyboard.Key;
+  consumivel: Phaser.Input.Keyboard.Key;
+  secondary: Phaser.Input.Keyboard.Key;
 };
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -46,6 +48,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   damageMult = 1.0;
   vrDropMult = 1.0;
   weaponId = "grampeador";
+
+  consumivel: string | null = null;
+  consumivelUses = 0;
+  secondaryWeaponId: string | null = null;
 
   parryWindowBonus = 0;      // ms adicionais ao PARRY_WINDOW_MS via upgrade
   dashCooldownBonus = 0;     // ms subtraídos do cooldown do dash
@@ -89,6 +95,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevDashDown = false;
   private prevPadInteractDown = false;
   private prevParryDown = false;
+  private prevConsumivelDown = false;
+  private prevSecondaryDown = false;
+
+  onConsumivelUsed?: () => void;
+  onSecondarySwap?: () => void;
 
   // Parry "Reclamar"
   private parryActiveUntil = 0;
@@ -126,6 +137,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       attack: kb.addKey(Phaser.Input.Keyboard.KeyCodes.J),
       special: kb.addKey(Phaser.Input.Keyboard.KeyCodes.K),
       parry: kb.addKey(Phaser.Input.Keyboard.KeyCodes.F),
+      consumivel: kb.addKey(Phaser.Input.Keyboard.KeyCodes.C),
+      secondary: kb.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
     };
     // A/D
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.A).on("down", () => (this.holdA = true));
@@ -272,6 +285,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const dashDown = this.keys.dash.isDown || !!(pad?.R1);
     const specialDown = this.keys.special.isDown || (pad?.Y ?? false);
     const parryDown = this.keys.parry.isDown || !!(pad?.L1);
+    const consumivelDown = this.keys.consumivel.isDown;
+    const secondaryDown = this.keys.secondary.isDown;
 
     const jumpPressed = jumpDown && !this.prevJumpDown;
     const attackPressed = attackDown && !this.prevAttackDown;
@@ -394,6 +409,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       });
     }
     this.prevSpecialDown = specialDown;
+
+    // Consumível (C) — use coffee/consumable
+    const consumivelPressed = consumivelDown && !this.prevConsumivelDown;
+    if (consumivelPressed && this.consumivel && this.consumivelUses > 0) {
+      this.consumivelUses--;
+      const restore = this.consumivel === "cafe" ? 25 : 20;
+      this.energy = Math.min(this.maxEnergy, this.energy + restore);
+      this.setTint(0xffee88);
+      this.scene.time.delayedCall(200, () => this.clearTint());
+      this.onConsumivelUsed?.();
+      if (this.consumivelUses <= 0) this.consumivel = null;
+    }
+    this.prevConsumivelDown = consumivelDown;
+
+    // Secondary weapon (Q) — swap active weapon
+    const secondaryPressed = secondaryDown && !this.prevSecondaryDown;
+    if (secondaryPressed && this.secondaryWeaponId) {
+      const tmp = this.secondaryWeaponId;
+      this.secondaryWeaponId = this.weaponId;
+      this.weaponId = tmp;
+      this.onSecondarySwap?.();
+    }
+    this.prevSecondaryDown = secondaryDown;
 
     this.prevJumpDown = jumpDown;
     this.prevAttackDown = attackDown;

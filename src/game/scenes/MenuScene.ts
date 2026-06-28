@@ -15,7 +15,7 @@ const BG_MENU = 0x1a1d23;
 
 const MENU_ITEMS = [
   { label: "JOGAR", icon: "▶" },
-  { label: "HORA EXTRA", icon: "⏰" },
+  { label: "HORA EXTRA", icon: "🔥" },
   { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
   { label: "BESTIARIO", icon: "👾" },
