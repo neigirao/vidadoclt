@@ -205,4 +205,11 @@ export const Sfx = {
     tone("sine", 660, 0.06, 0.002, 0.05, 0.35);
     tone("sine", 880, 0.06, 0.006, 0.05, 0.3);
   },
+
+  /** Stinger no hit final do combo. */
+  comboFinisher() {
+    noise(0.08, 600, 1.0);
+    tone("square", 240, 0.08, 0.002, 0.07, 0.6, 120);
+    tone("sine", 960, 0.12, 0.005, 0.1, 0.4, 480);
+  },
 };

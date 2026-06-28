@@ -454,7 +454,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
     const isFinal = step >= comboHits;
-    if (isFinal) { this.cameras.main.shake(80, 0.006); Sfx.meleeHeavy(); }
+    if (isFinal) { this.cameras.main.shake(80, 0.006); Sfx.meleeHeavy(); Sfx.comboFinisher(); }
     else Sfx.meleeLight();
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>

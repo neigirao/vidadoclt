@@ -692,7 +692,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
     this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
-    if (step >= comboHits) { this.cameras.main.shake(80, 0.006); Sfx.meleeHeavy(); }
+    if (step >= comboHits) { this.cameras.main.shake(80, 0.006); Sfx.meleeHeavy(); Sfx.comboFinisher(); }
     else Sfx.meleeLight();
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
@@ -712,7 +712,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         if (step >= comboHits) this.combatFx.hitStop(55);
         this.combatFx.spawnDamageNumber(
           e.x, e.y - 20, damage,
-          step >= comboHits ? "#ff4444" : "#ffcc44",
+          step >= comboHits ? "#ffdd44" : "#ffffff",
           step >= comboHits,
         );
         if (e.hit(damage, knockback)) {

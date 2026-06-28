@@ -11,8 +11,8 @@ const JUMP_BUFFER_MS = 100;
 const DASH_SPEED = 600;
 const DASH_MS = 150;
 const DASH_COOLDOWN_MS = 1500;
-const COMBO_WINDOW_MS = 250;
-const HIT_INVULN_MS = 600;
+const COMBO_WINDOW_MS = 450;
+const HIT_INVULN_MS = 350;
 
 export type PlayerKeys = {
   left: Phaser.Input.Keyboard.Key;
@@ -79,6 +79,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private prevPadInteractDown = false;
   private lastSanityDrainAt = 0;
   private _frozenTintActive = false;
+  private _blinkTimer?: Phaser.Time.TimerEvent;
 
   /** True for exactly one frame when the gamepad B button is pressed (interact).
    *  Scenes that use keyboard E for interact can check this alongside JustDown. */
@@ -151,15 +152,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (sanityHit) this.sanity = Math.max(0, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
     Sfx.playerHit();
-    CombatFx.flashSprite(this, 55);
-    this.scene.time.delayedCall(55, () => this.setTint(0xff8888));
-    this.scene.time.delayedCall(175, () => this.clearTint());
+    this.startInvulnBlink(now + HIT_INVULN_MS);
     this.onHit?.();
     // knockback — push away from hit source (or away from facing if no source given)
     const pushDir = fromX !== undefined ? (this.x < fromX ? -1 : 1) : -this.facing;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setVelocityY(-200);
-    body.setVelocityX(pushDir * 280);
+    body.setVelocityY(-220);
+    body.setVelocityX(pushDir * 400);
 
     // Camera shake on hit — stronger when low on energy
     const cam = this.scene.cameras?.main;
@@ -175,6 +174,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (cam) cam.shake(300, 0.015);
       this.onDeath?.("burnout");
     }
+  }
+
+  private startInvulnBlink(until: number) {
+    this._blinkTimer?.remove();
+    let tintOn = true;
+    this._blinkTimer = this.scene.time.addEvent({
+      delay: 80,
+      repeat: Math.ceil(HIT_INVULN_MS / 80),
+      callback: () => {
+        if (this.scene.time.now >= until) {
+          this.clearTint();
+          this._blinkTimer = undefined;
+          return;
+        }
+        if (tintOn) this.setTint(0xff8888);
+        else this.clearTint();
+        tintOn = !tintOn;
+      },
+    });
   }
 
   drainSanity(amount: number) {
@@ -246,7 +264,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
           .setFlipX(this.flipX)
           .setDisplaySize(this.displayWidth, this.displayHeight)
           .setTint(0x88ccff);
-        this.scene.tweens.add({ targets: ghost, alpha: 0, duration: 160, onComplete: () => ghost.destroy() });
+        this.scene.tweens.add({ targets: ghost, alpha: 0, duration: 250, onComplete: () => ghost.destroy() });
       }
     } else {
       if (left && !right) {
@@ -320,8 +338,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Special attack (K)
     if (specialPressed && time >= this.specialCooldownUntil) {
       this.specialCooldownUntil = time + this.specialCooldown;
-      this.onSpecialAttack?.(this.specialType, this.x, this.y, this.facing);
-      Sfx.special();
+      // Charge flash: tint white briefly before firing
+      this.setTint(0xffffff);
+      this.scene.time.delayedCall(120, () => {
+        this.setTint(0xffffaa);
+        this.scene.time.delayedCall(120, () => {
+          this.clearTint();
+          this.onSpecialAttack?.(this.specialType, this.x, this.y, this.facing);
+          Sfx.special();
+        });
+      });
     }
     this.prevSpecialDown = specialDown;
 
