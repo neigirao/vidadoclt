@@ -267,14 +267,14 @@ function drawOffice(scene: Phaser.Scene, key: string, t: OfficeTheme): void {
     gr.fillRect(lx - 30, 12, 60, 10);
     gr.fillStyle(t.lightColor, 1);
     gr.fillRect(lx - 28, 13, 56, 8);
-    // downward glow (4 fading layers)
-    gr.fillStyle(t.lightColor, 0.18);
+    // downward glow (4 fading layers — discrete alpha steps for pixel art)
+    gr.fillStyle(t.lightColor, 0.125);
     gr.fillRect(lx - 50, CEIL + 3, 100, 16);
-    gr.fillStyle(t.lightColor, 0.10);
+    gr.fillStyle(t.lightColor, 0.125);
     gr.fillRect(lx - 80, CEIL + 19, 160, 14);
-    gr.fillStyle(t.lightColor, 0.05);
+    gr.fillStyle(t.lightColor, 0.0);
     gr.fillRect(lx - 110, CEIL + 33, 220, 12);
-    gr.fillStyle(t.lightColor, 0.02);
+    gr.fillStyle(t.lightColor, 0.0);
     gr.fillRect(lx - 140, CEIL + 45, 280, 10);
   }
 
@@ -306,10 +306,10 @@ function drawOffice(scene: Phaser.Scene, key: string, t: OfficeTheme): void {
     gr.fillRect(wx + 3, WT + 3, pw, ph);
     gr.fillRect(wx + WW / 2 + 2, WT + 3, pw, ph);
     // sky gradient
-    gr.fillStyle(t.skyLight, 0.40);
+    gr.fillStyle(t.skyLight, 0.375);
     gr.fillRect(wx + 3, WT + 3, WW - 6, (ph * 0.40) | 0);
     // glare strip
-    gr.fillStyle(0xffffff, 0.22);
+    gr.fillStyle(0xffffff, 0.25);
     gr.fillRect(wx + 5, WT + 5, 14, (ph * 0.55) | 0);
 
     // Lower panes — venetian blinds (partially closed)
@@ -572,7 +572,8 @@ function makeMesaBody(scene: Phaser.Scene) {
  * Total = surface(14) + body(34) = 48px ≈ player height ✓
  */
 function makeEstanteBody(scene: Phaser.Scene) {
-  const bkColors = [0x3060c0, 0xb03020, 0x308040, 0xb09020, 0x703090, 0x208060, 0x804020, 0x205090, 0xb03060];
+  // 5 colors: 3 warm + 2 cool — max palette discipline for small sprite
+  const bkColors = [0xb03020, 0xb09020, 0x804020, 0x3060c0, 0x703090];
   const gr = scene.add.graphics();
   // back wall (dark recess)
   gr.fillStyle(0x3a2208, 1); gr.fillRect(6, 0, 20, 34);
@@ -674,9 +675,9 @@ function makeArmarioSurf(scene: Phaser.Scene) {
 
 function makeArmarioBody(scene: Phaser.Scene) {
   const gr = scene.add.graphics();
-  // Dark steel sides
+  // Directional lighting: left side lighter, right side darker
   gr.fillStyle(0x808488, 1); gr.fillRect(0, 0, 4, 36);   // left 4px
-  gr.fillStyle(0x808488, 1); gr.fillRect(28, 0, 4, 36);  // right 4px
+  gr.fillStyle(0x505458, 1); gr.fillRect(28, 0, 4, 36);  // right 4px darker (shadow)
   gr.fillStyle(0xa0a4a8, 1); gr.fillRect(4, 0, 1, 36);   // left inner highlight
   gr.fillStyle(0xa0a4a8, 1); gr.fillRect(27, 0, 1, 36);  // right inner highlight
   // 3 drawer rows (each 10px high)

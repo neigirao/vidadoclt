@@ -4,67 +4,73 @@ export class ParticleFactory {
   static hitLight(scene: Phaser.Scene, x: number, y: number) {
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
-      const speed = 55 + Math.random() * 40;
+      const speed = 48 + Math.floor(Math.random() * 3) * 16; // multiples of 16 for pixel grid
       const g = scene.add.graphics().setDepth(50);
       g.fillStyle(0xffffff, 1);
       g.fillRect(-2, -2, 4, 4);
-      g.setPosition(x, y);
+      g.setPosition(Math.round(x), Math.round(y));
       scene.tweens.add({
         targets: g,
-        x: x + Math.cos(angle) * speed,
-        y: y + Math.sin(angle) * speed,
+        x: Math.round(x + Math.cos(angle) * speed),
+        y: Math.round(y + Math.sin(angle) * speed),
         alpha: 0,
-        scaleX: 0.2,
-        scaleY: 0.2,
-        duration: 180,
+        scaleX: 0.25,
+        scaleY: 0.25,
+        duration: 176, // multiple of 16ms
         ease: "Quad.easeOut",
+        onUpdate: () => { g.setPosition(Math.round(g.x), Math.round(g.y)); },
         onComplete: () => g.destroy(),
       });
     }
   }
 
+  // Corporate-themed heavy hit: paper/ink blue palette
   static hitHeavy(scene: Phaser.Scene, x: number, y: number) {
+    const corpColors = [0x4a90d9, 0xd0e4f8, 0x2a5a9a, 0xffffff, 0x1a3a6a];
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
-      const speed = 70 + Math.random() * 70;
-      const color = Math.random() > 0.5 ? 0xff6600 : 0xff3300;
+      const speed = 64 + Math.floor(Math.random() * 4) * 16; // 64,80,96,112
+      const color = corpColors[Math.floor(Math.random() * corpColors.length)];
       const g = scene.add.graphics().setDepth(50);
       g.fillStyle(color, 1);
       const size = 2 + Math.floor(Math.random() * 3);
       g.fillRect(-size / 2, -size / 2, size, size);
-      g.setPosition(x, y);
+      g.setPosition(Math.round(x), Math.round(y));
       scene.tweens.add({
         targets: g,
-        x: x + Math.cos(angle) * speed,
-        y: y + Math.sin(angle) * speed - 20,
+        x: Math.round(x + Math.cos(angle) * speed),
+        y: Math.round(y + Math.sin(angle) * speed - 16),
         alpha: 0,
         duration: 320,
         ease: "Quad.easeOut",
+        onUpdate: () => { g.setPosition(Math.round(g.x), Math.round(g.y)); },
         onComplete: () => g.destroy(),
       });
     }
   }
 
+  // Corporate-themed death: paper shreds + coffee spill
   static enemyDeath(scene: Phaser.Scene, x: number, y: number) {
-    const colors = [0xffffff, 0xffaa00, 0xff4444, 0xaaaaaa, 0xffdd00];
+    const corpColors = [0xffffff, 0x4a90d9, 0xd0e4f8, 0xaaaaaa, 0x2a3a5a];
     for (let i = 0; i < 22; i++) {
       const angle = (i / 22) * Math.PI * 2 + Math.random() * 0.3;
-      const speed = 45 + Math.random() * 110;
-      const color = colors[Math.floor(Math.random() * colors.length)];
+      const speed = 48 + Math.floor(Math.random() * 5) * 16; // 48,64,80,96,112
+      const color = corpColors[Math.floor(Math.random() * corpColors.length)];
       const g = scene.add.graphics().setDepth(50);
       g.fillStyle(color, 1);
       const size = 1 + Math.floor(Math.random() * 4);
       g.fillRect(-size / 2, -size / 2, size, size);
-      g.setPosition(x, y);
+      g.setPosition(Math.round(x), Math.round(y));
       scene.tweens.add({
         targets: g,
-        x: x + Math.cos(angle) * speed,
-        y: y + Math.sin(angle) * speed,
+        x: Math.round(x + Math.cos(angle) * speed),
+        y: Math.round(y + Math.sin(angle) * speed),
         alpha: 0,
-        scaleX: 0.1,
-        scaleY: 0.1,
-        duration: 380 + Math.random() * 220,
+        scaleX: 0.25,
+        scaleY: 0.25,
+        duration: 384 + Math.floor(Math.random() * 14) * 16, // 384-608, multiples of 16
         ease: "Quad.easeOut",
+        onUpdate: () => { g.setPosition(Math.round(g.x), Math.round(g.y)); },
         onComplete: () => g.destroy(),
       });
     }

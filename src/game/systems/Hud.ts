@@ -5,7 +5,7 @@ import { PERKS, PerkId } from "./PerkSystem";
 
 const F = "monospace";
 export const HUD_TOP_H = 56;
-export const HUD_BOT_H = 68;
+export const HUD_BOT_H = 80;
 export const HUD_BOT_Y = GAME_HEIGHT - HUD_BOT_H;
 
 // ─── Bottom bar section widths ───────────────────────────────────
@@ -43,8 +43,8 @@ const PERK_COUNT = 5;
 const S4_X = SEC1_W + SEC2_W + SEC3_W;
 const MAP_COLS = 5;
 const MAP_ROWS = 1;
-const MAP_CELL_W = 44;
-const MAP_CELL_H = 44;
+const MAP_CELL_W = 28;
+const MAP_CELL_H = 28;
 const MAP_CELL_GAP = 5;
 const MAP_X0 = S4_X + 10; // relative to botContainer
 const MAP_Y0 = 12;
@@ -328,27 +328,27 @@ export class Hud {
 
     // ENERGIA label
     this.botContainer.add(
-      this.scene.add.text(statX, 7, "ENERGIA", { fontFamily: F, fontSize: "7px", color: "#ff9090" })
+      this.scene.add.text(statX, 7, "ENERGIA", { fontFamily: F, fontSize: "9px", color: "#ff9090" })
     );
     // ENERGIA bar graphics
     this.sec1EnergyG = this.scene.add.graphics();
     this.botContainer.add(this.sec1EnergyG);
     // ENERGIA number
     this.sec1EnergyNumT = this.scene.add.text(statX + BAR_W + 3, 7, "100/100", {
-      fontFamily: F, fontSize: "7px", color: "#ffd0d0",
+      fontFamily: F, fontSize: "9px", color: "#ffd0d0",
     });
     this.botContainer.add(this.sec1EnergyNumT);
 
     // SANIDADE label
     this.botContainer.add(
-      this.scene.add.text(statX, 24, "SANIDADE", { fontFamily: F, fontSize: "7px", color: "#80a0ff" })
+      this.scene.add.text(statX, 24, "SANIDADE", { fontFamily: F, fontSize: "9px", color: "#80a0ff" })
     );
     // SANIDADE bar graphics
     this.sec1SanityG = this.scene.add.graphics();
     this.botContainer.add(this.sec1SanityG);
     // SANIDADE number
     this.sec1SanityNumT = this.scene.add.text(statX + BAR_W + 3, 24, "100/100", {
-      fontFamily: F, fontSize: "7px", color: "#cfe2ff",
+      fontFamily: F, fontSize: "9px", color: "#cfe2ff",
     });
     this.botContainer.add(this.sec1SanityNumT);
 
@@ -360,7 +360,7 @@ export class Hud {
 
     // Reconhecimento
     this.sec1RecoT = this.scene.add.text(statX, 55, "RECO: 0", {
-      fontFamily: F, fontSize: "7px", color: "#c8b840",
+      fontFamily: F, fontSize: "9px", color: "#c8b840",
     });
     this.botContainer.add(this.sec1RecoT);
   }
@@ -371,7 +371,7 @@ export class Hud {
     // Header
     this.botContainer.add(
       this.scene.add.text(S2_X + SEC2_W / 2, 3, "UT / HUD", {
-        fontFamily: F, fontSize: "7px", color: "#666677",
+        fontFamily: F, fontSize: "9px", color: "#666677",
       }).setOrigin(0.5, 0)
     );
 
@@ -418,7 +418,7 @@ export class Hud {
       // Slot number badge
       this.botContainer.add(
         this.scene.add.text(sx + 3, sy + ITEM_SLOT_SIZE - 10, sd.label, {
-          fontFamily: F, fontSize: "7px", color: sd.active ? "#f2c14e" : "#555566",
+          fontFamily: F, fontSize: "9px", color: sd.active ? "#f2c14e" : "#555566",
         })
       );
     });
@@ -439,12 +439,12 @@ export class Hud {
 
     // Weapon name below
     this.weaponNameT = this.scene.add.text(S2_X + 6, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 4, "GRAMPEADOR", {
-      fontFamily: F, fontSize: "7px", color: "#ccccdd",
+      fontFamily: F, fontSize: "9px", color: "#ccccdd",
     });
     this.botContainer.add(this.weaponNameT);
 
     this.specialNameT = this.scene.add.text(S2_X + 6, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 14, "CAFÉ TURBO", {
-      fontFamily: F, fontSize: "7px", color: "#f2c14e",
+      fontFamily: F, fontSize: "9px", color: "#f2c14e",
     });
     this.botContainer.add(this.specialNameT);
 
@@ -455,12 +455,12 @@ export class Hud {
     // Parry indicator — "F" label + status text below slots
     this.parryLabelT = this.scene.add.text(
       S2_X + SEC2_W - 48, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 4,
-      "F  RECLAMAR", { fontFamily: F, fontSize: "7px", color: "#00ffdd" }
+      "F  RECLAMAR", { fontFamily: F, fontSize: "9px", color: "#00ffdd" }
     );
     this.botContainer.add(this.parryLabelT);
     this.parryStateT = this.scene.add.text(
       S2_X + SEC2_W - 48, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 14,
-      "PRONTO", { fontFamily: F, fontSize: "7px", color: "#00bb99" }
+      "PRONTO", { fontFamily: F, fontSize: "9px", color: "#00bb99" }
     );
     this.botContainer.add(this.parryStateT);
   }
@@ -471,7 +471,7 @@ export class Hud {
     // Header
     this.botContainer.add(
       this.scene.add.text(S3_X + SEC3_W / 2, 3, "PERKS ATIVOS", {
-        fontFamily: F, fontSize: "7px", color: "#666677",
+        fontFamily: F, fontSize: "9px", color: "#666677",
       }).setOrigin(0.5, 0)
     );
 
@@ -543,7 +543,7 @@ export class Hud {
     // Header
     this.botContainer.add(
       this.scene.add.text(S4_X + SEC4_W / 2, 3, "MAPA DA FASE", {
-        fontFamily: F, fontSize: "7px", color: "#666677",
+        fontFamily: F, fontSize: "9px", color: "#666677",
       }).setOrigin(0.5, 0)
     );
 
@@ -590,14 +590,25 @@ export class Hud {
           this.minimapG.lineStyle(1, 0x555566, 1);
           this.minimapG.strokeRect(rx, ry, MAP_CELL_W, MAP_CELL_H);
         } else {
-          // Unvisited — dark
+          // Unvisited — dark with "?" dot
           this.minimapG.fillStyle(0x222233, 1);
           this.minimapG.fillRect(rx, ry, MAP_CELL_W, MAP_CELL_H);
           this.minimapG.lineStyle(1, 0x333344, 1);
           this.minimapG.strokeRect(rx, ry, MAP_CELL_W, MAP_CELL_H);
-          // "?" mark
-          this.minimapG.fillStyle(0x444455, 1);
-          this.minimapG.fillRect(rx + MAP_CELL_W / 2 - 1, ry + 3, 2, MAP_CELL_H - 6);
+          this.minimapG.fillStyle(0x3a3a55, 1);
+          this.minimapG.fillRect(rx + MAP_CELL_W / 2 - 1, ry + MAP_CELL_H / 2 - 1, 2, 2);
+        }
+        // Boss room indicator (last column) — small skull dot
+        if (c === MAP_COLS - 1 && (isCurrent || isVisited)) {
+          this.minimapG.fillStyle(0xff4444, 1);
+          this.minimapG.fillRect(rx + MAP_CELL_W - 5, ry + 2, 3, 3);
+        }
+        // Exit arrow in current room
+        if (isCurrent) {
+          this.minimapG.fillStyle(0xffffff, 1);
+          this.minimapG.fillRect(rx + MAP_CELL_W - 6, ry + MAP_CELL_H / 2 - 1, 4, 2);
+          this.minimapG.fillRect(rx + MAP_CELL_W - 5, ry + MAP_CELL_H / 2 - 3, 2, 2);
+          this.minimapG.fillRect(rx + MAP_CELL_W - 5, ry + MAP_CELL_H / 2 + 1, 2, 2);
         }
       }
     }
@@ -739,12 +750,19 @@ export class Hud {
   updateBoss(hp: number) {
     const pct = Math.max(0, hp / this.bossMaxHp);
     const bw = RIGHT_W - 16;
+    const fillW = Math.max(0, pct * bw);
     this.bossBarG.clear();
-    this.bossBarG.fillStyle(0x330000, 1);
+    // Dark background for maximum contrast
+    this.bossBarG.fillStyle(0x0a0000, 1);
     this.bossBarG.fillRect(8, 31, bw, 11);
-    this.bossBarG.fillStyle(pct > 0.5 ? 0xdd3322 : pct > 0.25 ? 0xee8800 : 0xff2222, 1);
-    this.bossBarG.fillRect(8, 31, Math.max(0, pct * bw), 11);
-    this.bossBarG.lineStyle(1, 0x660000, 1);
+    // Saturated fill with phase colors
+    this.bossBarG.fillStyle(pct > 0.5 ? 0xff2200 : pct > 0.25 ? 0xff8800 : 0xff0000, 1);
+    this.bossBarG.fillRect(8, 31, fillW, 11);
+    // Highlight strip at top for depth
+    this.bossBarG.fillStyle(0xffffff, 0.2);
+    this.bossBarG.fillRect(8, 31, fillW, 2);
+    // Thin gold border
+    this.bossBarG.lineStyle(1, 0x883300, 1);
     this.bossBarG.strokeRect(8, 31, bw, 11);
     this.bossHpT.setText(`${hp} / ${this.bossMaxHp}`);
   }

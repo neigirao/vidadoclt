@@ -151,8 +151,8 @@ export class CombatFx {
   static landSquash(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite): void {
     sprite.scene.tweens.add({
       targets: sprite,
-      scaleX: 1.35,
-      scaleY: 0.72,
+      scaleX: 1.5,
+      scaleY: 0.5,
       duration: 60,
       yoyo: true,
       ease: "Bounce.easeOut",
@@ -165,8 +165,8 @@ export class CombatFx {
   static jumpStretch(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite): void {
     sprite.scene.tweens.add({
       targets: sprite,
-      scaleX: 0.82,
-      scaleY: 1.22,
+      scaleX: 0.75,
+      scaleY: 1.25,
       duration: 80,
       yoyo: true,
       ease: "Quad.easeOut",
