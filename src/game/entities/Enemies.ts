@@ -486,7 +486,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
       ring.strokeCircle(this.x, this.y, 160);
       this.scene.tweens.add({
         targets: ring, alpha: 0, scaleX: 1.4, scaleY: 1.4,
-        duration: 700, onComplete: () => { this.isBuffing = false; this.clearTint(); ring.destroy(); },
+        duration: 700, onComplete: () => { this.isBuffing = false; this.setTint(0xbbffcc); ring.destroy(); },
       });
     }
     // Animate texture (tint override during buff is fine — keeps aura signal)
@@ -937,6 +937,9 @@ export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
 
     if (t < this._hurtUntil) {
       applyTexture(this, "tex-estagiario-b-hurt0");
+    } else if (Math.abs(body.velocity.x) < 10) {
+      const frame = Math.floor((t + this._animOffset) / 300) % 4;
+      applyTexture(this, `tex-estagiario-b-idle${frame}`);
     } else {
       const frame = Math.floor((t + this._animOffset) / 180) % 5;
       applyTexture(this, `tex-estagiario-b-walk${frame}`);
@@ -1018,6 +1021,9 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
 
     if (t < this._hurtUntil) {
       applyTexture(this, "tex-analista-novo-hurt0");
+    } else if (Math.abs(body.velocity.x) < 10) {
+      const frame = Math.floor((t + this._animOffset) / 300) % 4;
+      applyTexture(this, `tex-analista-novo-idle${frame}`);
     } else {
       const frame = Math.floor((t + this._animOffset) / 190) % 5;
       applyTexture(this, `tex-analista-novo-walk${frame}`);

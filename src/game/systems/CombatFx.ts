@@ -151,9 +151,9 @@ export class CombatFx {
   static landSquash(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite): void {
     sprite.scene.tweens.add({
       targets: sprite,
-      scaleX: 1.5,
-      scaleY: 0.5,
-      duration: 60,
+      scaleX: 1.15,
+      scaleY: 0.85,
+      duration: 55,
       yoyo: true,
       ease: "Bounce.easeOut",
     });

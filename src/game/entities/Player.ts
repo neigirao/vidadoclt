@@ -89,6 +89,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private keys: PlayerKeys;
   private pad: Phaser.Input.Gamepad.Gamepad | null = null;
   private lastGroundedAt = 0;
+  private prevOnGround = false;
   private lastJumpPressedAt = -9999;
   private dashUntil = 0;
   private dashCooldownUntil = 0;
@@ -127,7 +128,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
-    this.setDisplaySize(52, 52); // slightly larger than enemies — visual mass hierarchy
+    this.setDisplaySize(48, 64); // taller than wide — matches character sprite proportions and stands out from enemies
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 44);
     body.setOffset(29, 34); // 80×80 sprite: x=(80-22)/2, y=80-44-2
@@ -265,6 +266,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.lastGroundedAt = time;
       this.jumpsUsed = 0;
     }
+    // Land squash: fire on the frame we first touch the ground
+    if (onGround && !this.prevOnGround) {
+      CombatFx.landSquash(this);
+    }
+    this.prevOnGround = onGround;
 
     // Freeze: no input, only gravity
     if (time < this.frozenUntil) {

@@ -261,6 +261,7 @@ export class Hud {
 
     this.bossHpT = this.scene.add.text(RIGHT_W / 2, 44, "", {
       fontFamily: F, fontSize: "9px", color: "#ff9999",
+      stroke: "#ff4444", strokeThickness: 2,
     }).setOrigin(0.5, 0);
     this.bossContainer.add(this.bossHpT);
   }
@@ -620,7 +621,7 @@ export class Hud {
     const dotX = MAP_X0 + col * (MAP_CELL_W + MAP_CELL_GAP) + MAP_CELL_W / 2;
     const dotY = MAP_Y0 + MAP_CELL_H / 2;
     this.minimapG.fillStyle(0xffee44, 1);
-    this.minimapG.fillRect(dotX - 2, dotY - 2, 4, 4);
+    this.minimapG.fillRect(dotX - 3, dotY - 3, 6, 6);
   }
 
   // ─── public update API ──────────────────────────────────────────

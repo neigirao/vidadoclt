@@ -94,9 +94,13 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     [100, 500, 900, 1300, 1700].forEach(x => {
       const fg = this.add.graphics().setDepth(20).setScrollFactor(1.05);
       fg.fillStyle(0x0a0c0f, 0.55);
-      // Cubicle divider silhouette
+      // Vertical post
       fg.fillRect(x - 3, FLOOR_Y - 80, 6, 80);
-      fg.fillRect(x - 24, FLOOR_Y - 82, 48, 4);
+      // Horizontal top rail (wider — creates L-shape of cubicle)
+      fg.fillRect(x - 40, FLOOR_Y - 82, 80, 4);
+      // Cap on post top (darker accent)
+      fg.fillStyle(0x0a0c0f, 0.85);
+      fg.fillRect(x - 4, FLOOR_Y - 84, 8, 4);
     });
 
     this.platforms = this.physics.add.staticGroup();
@@ -470,8 +474,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   // Clock faces baked in background texture at x=[240,540,840,1140,1440,1740], y=76
   private buildClockOverlays(): void {
     const CLOCK_POSITIONS = [240, 540, 840, 1140, 1440, 1740];
-    const CLOCK_Y = HUD_TOP_H + 76 - HUD_TOP_H; // relative to background image y offset
-    const clockG = this.add.graphics().setDepth(3);
+    const CLOCK_Y = 76; // matches drawOffice clock y=76 in background texture
+    const clockG = this.add.graphics().setDepth(3).setScrollFactor(0.2, 0);
 
     const drawHands = () => {
       clockG.clear();

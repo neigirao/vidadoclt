@@ -69,6 +69,7 @@ export class SanityFx {
 
   private buildScanlines(): void {
     if (this.scanlinesBuilt) return;
+    if (!this.useFilters) return; // scanlines only meaningful in WebGL path
     this.scanlinesBuilt = true;
     this.scanlines.fillStyle(0x000000, 0.5);
     for (let y = 0; y < GAME_HEIGHT; y += 4) {
