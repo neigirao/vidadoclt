@@ -127,6 +127,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
+    this.setDisplaySize(52, 52); // slightly larger than enemies — visual mass hierarchy
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 44);
     body.setOffset(29, 34); // 80×80 sprite: x=(80-22)/2, y=80-44-2
