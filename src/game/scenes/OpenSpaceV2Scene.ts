@@ -139,7 +139,16 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     addImage(this, 60,   FLOOR_Y - 28, "tex-cafe-machine").setDepth(8).setDisplaySize(40, 56);
     addImage(this, 490,  FLOOR_Y - 24, "tex-bebedouro").setDepth(8).setDisplaySize(32, 48);
     addImage(this, 140,  FLOOR_Y - 32, "tex-ponto").setDepth(8).setDisplaySize(32, 48);
-    addImage(this, 1800, FLOOR_Y - 22, "tex-extintor").setDepth(8).setDisplaySize(20, 44);
+    // Extintor: drawn procedurally (frame not in atlas)
+    const ext = this.add.graphics().setDepth(8);
+    ext.fillStyle(0xcc2020, 1);
+    ext.fillRect(1793, FLOOR_Y - 44, 14, 30);  // body
+    ext.fillStyle(0x882020, 1);
+    ext.fillRect(1793, FLOOR_Y - 44, 14, 4);   // band
+    ext.fillStyle(0x555555, 1);
+    ext.fillRect(1797, FLOOR_Y - 50, 6, 8);    // neck
+    ext.fillStyle(0x333333, 1);
+    ext.fillRect(1795, FLOOR_Y - 14, 10, 6);   // base
 
     // (computadores agora ficam em cima das mesas — ver buildPlatform)
 
@@ -336,11 +345,14 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
      this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs, this.drops].forEach(g =>
       this.physics.add.collider(g, this.platforms)
     );
-    // Inimigos respeitam a mesma física do player: não atravessam os corpos das mesas
+    // Enemies collide with world bounds so they turn at level edges
     [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
-     this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
-      this.physics.add.collider(g, this.furnitureBodies)
-    );
+     this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g => {
+      g.getChildren().forEach(c => {
+        const body = (c as Phaser.Physics.Arcade.Sprite).body as Phaser.Physics.Arcade.Body;
+        body.setCollideWorldBounds(true);
+      });
+    });
 
     // Contact damage
     const contactDamage = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {

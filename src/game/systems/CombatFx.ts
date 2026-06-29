@@ -140,17 +140,10 @@ export class CombatFx {
    * Uses setTint (modulate mode) — setTintFill was removed in Phaser 4.
    */
   static flashSprite(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite, durationMs = 60): void {
-    const b = sprite.getBounds();
-    const overlay = sprite.scene.add.graphics()
-      .setDepth(sprite.depth + 1)
-      .setScrollFactor(1)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    overlay.fillStyle(0xffddaa, 0.55);
-    overlay.fillRect(b.x - sprite.x, b.y - sprite.y, b.width, b.height);
-    overlay.setPosition(sprite.x, sprite.y);
-    sprite.scene.tweens.add({
-      targets: overlay, alpha: 0, duration: durationMs,
-      onComplete: () => overlay.destroy(),
+    // Brief desaturated tint — avoids ADD blend mode which causes photosensitivity issues
+    sprite.setTint(0xffe0cc);
+    sprite.scene.time.delayedCall(Math.min(durationMs, 50), () => {
+      if (sprite.active) sprite.clearTint();
     });
   }
 
