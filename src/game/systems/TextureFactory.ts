@@ -68,6 +68,8 @@ export function makeFurnitureTextures(scene: Phaser.Scene): void {
   makeArmarioSurf(scene);
   makeArmarioBody(scene);
   makeCadeira(scene);
+  makePilhaDocs(scene);
+  makeCaixaPapel(scene);
   // tex-planta-deco, tex-bebedouro-deco replaced by real sprites loaded in BootScene
   // tex-floor loaded from tile-floor.png in BootScene — do NOT regenerate here
 }

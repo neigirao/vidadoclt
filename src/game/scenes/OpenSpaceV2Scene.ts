@@ -82,10 +82,21 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
     this.spawnDustParticles();
+    this.buildClockOverlays();
 
-    // Office bay decoratives
+    // Office bay decoratives — depth 2 (behind furniture surfaces at depth 4-6)
     [80, 340, 600, 860, 1120, 1380, 1640, 1880].forEach(x => {
-      addImage(this, x, FLOOR_Y - 28, "tex-baia");
+      addImage(this, x, FLOOR_Y - 28, "tex-baia").setDepth(2);
+    });
+
+    // Foreground parallax layer — silhouettes slightly in front of player
+    // scrollFactor 1.05 = moves 5% faster than world = feels closer to camera
+    [100, 500, 900, 1300, 1700].forEach(x => {
+      const fg = this.add.graphics().setDepth(20).setScrollFactor(1.05);
+      fg.fillStyle(0x0a0c0f, 0.55);
+      // Cubicle divider silhouette
+      fg.fillRect(x - 3, FLOOR_Y - 80, 6, 80);
+      fg.fillRect(x - 24, FLOOR_Y - 82, 48, 4);
     });
 
     this.platforms = this.physics.add.staticGroup();
@@ -453,6 +464,39 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     };
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE  [v2]");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
+  }
+
+  // Animated clock hands overlaid on background clock positions
+  // Clock faces baked in background texture at x=[240,540,840,1140,1440,1740], y=76
+  private buildClockOverlays(): void {
+    const CLOCK_POSITIONS = [240, 540, 840, 1140, 1440, 1740];
+    const CLOCK_Y = HUD_TOP_H + 76 - HUD_TOP_H; // relative to background image y offset
+    const clockG = this.add.graphics().setDepth(3);
+
+    const drawHands = () => {
+      clockG.clear();
+      const now = new Date();
+      const minutes = now.getMinutes();
+      const hours = now.getHours() % 12 + minutes / 60;
+      const minAngle = (minutes / 60) * Math.PI * 2 - Math.PI / 2;
+      const hrAngle = (hours / 12) * Math.PI * 2 - Math.PI / 2;
+      CLOCK_POSITIONS.forEach(cx => {
+        const cy = CLOCK_Y;
+        clockG.fillStyle(0x14100a, 1);
+        // Minute hand (long)
+        clockG.fillRect(
+          cx + Math.round(Math.cos(minAngle) * 10) - 1,
+          cy + Math.round(Math.sin(minAngle) * 10) - 1, 2, 2,
+        );
+        clockG.lineStyle(1, 0x14100a, 1);
+        clockG.lineBetween(cx, cy, cx + Math.cos(minAngle) * 10, cy + Math.sin(minAngle) * 10);
+        // Hour hand (short)
+        clockG.lineBetween(cx, cy, cx + Math.cos(hrAngle) * 6, cy + Math.sin(hrAngle) * 6);
+      });
+    };
+
+    drawHands();
+    this.time.addEvent({ delay: 30000, loop: true, callback: drawHands });
   }
 
   private spawnDustParticles(): void {

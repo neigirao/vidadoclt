@@ -324,10 +324,29 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     if (now < this._hurtUntil) {
       const f = Math.floor((now % 330) / 110) % 3;
       key = `tex-gerente-hurt${f}`;
+    } else if (this.bossState === "attack" && this.currentAttack === "atualizacao") {
+      // Dash charge — use run-charge frames for aggressive pose
+      const body = this.body as Phaser.Physics.Arcade.Body;
+      if (Math.abs(body.velocity.x) > 150) {
+        const f = Math.floor(now / 100) % 3;
+        key = `tex-gerente-run-charge${f}`;
+      } else {
+        key = `tex-gerente-run0`;
+      }
     } else if (this.bossState === "telegraph" || this.bossState === "attack") {
-      key = `tex-gerente-attack0`;
+      // Use attack-type-specific frames for each of the three attack sets
+      const attackSet = this.currentAttack === "deadline" ? "deadline"
+        : this.currentAttack === "alinhamento" ? "escopo"
+        : this.currentAttack === "atualizacao" ? "sprint"
+        : null;
+      if (attackSet) {
+        const f = Math.floor(now / 100) % 4;
+        key = `tex-gerente-attack-${attackSet}${f}`;
+      } else {
+        key = `tex-gerente-attack0`;
+      }
     } else if (this.bossState === "enter" || this.bossState === "recover") {
-      const f = Math.floor(now / 140) % 3;
+      const f = Math.floor(now / 140) % 4;
       key = `tex-gerente-walk${f}`;
     } else {
       const f = Math.floor(now / 600) % 2;

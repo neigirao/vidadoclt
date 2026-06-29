@@ -7,6 +7,16 @@ import { markKilled } from "../systems/BestiarySystem";
 // Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
 const _animOffsets = new WeakMap<Phaser.Physics.Arcade.Sprite, number>();
 
+// Max walk/idle frame counts per enemy prefix — use all existing atlas frames
+const WALK_FRAME_COUNTS: Record<string, number> = {
+  estagiario: 6, analista: 5, facilitador: 6, scrum: 6,
+  coordenador: 4, senior: 4, rh: 4,
+};
+const IDLE_FRAME_COUNTS: Record<string, number> = {
+  estagiario: 4, analista: 4, facilitador: 4, scrum: 4,
+  coordenador: 4, senior: 4, rh: 4,
+};
+
 function setEnemyTex(
   e: Phaser.Physics.Arcade.Sprite,
   t: number,
@@ -15,11 +25,14 @@ function setEnemyTex(
 ) {
   if (!_animOffsets.has(e)) _animOffsets.set(e, Math.random() * 2000 | 0);
   const offset = _animOffsets.get(e)!;
-  // Source frames are inconsistent (not a coherent cycle). Use 1 frame for
-  // idle/attack/hurt, and slow 2-frame alternation for walk so motion reads
-  // without flicker.
   let frame = 0;
-  if (state === "walk") frame = Math.floor((t + offset) / 220) % 2;
+  if (state === "walk") {
+    const maxFrames = WALK_FRAME_COUNTS[prefix] ?? 2;
+    frame = Math.floor((t + offset) / 180) % maxFrames;
+  } else if (state === "idle") {
+    const maxFrames = IDLE_FRAME_COUNTS[prefix] ?? 4;
+    frame = Math.floor((t + offset) / 300) % maxFrames;
+  }
   const key = `tex-${prefix}-${state}${frame}`;
   applyTexture(e, key);
 }
@@ -288,6 +301,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
+    this.setDisplaySize(40, 58); // slightly taller — communicates higher threat mass
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(26, 34);
     body.setOffset(11, 30); // sprite 48×64: x=(48-26)/2, y=64-34
@@ -312,6 +326,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
           if (dist < 300 && t >= this.retrospectivaCooldown) {
             this.aiState = "retro_tele";
             this.stateUntil = t + 700;
+            this.setDisplaySize(44, 64); // visual "swell" during telegraph
             this.setTint(0xffdd00);
             body.setVelocityX(0);
             const label = this.scene.add.text(this.x, this.y - 36, "RETROSPECTIVA!", {
@@ -383,6 +398,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "recover";
           this.stateUntil = t + 1400;
           this.clearTint();
+          this.setDisplaySize(40, 58); // reset to normal size after slam
         }
         break;
       }
@@ -442,6 +458,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
+    this.setTint(0xbbffcc); // permanent support-role green tint — signals "buff/healer" at idle
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(32, 48);
     body.setOffset(8, 16); // sprite 48×64: x=(48-32)/2, y=64-48
@@ -528,6 +545,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
+    this.setDisplaySize(46, 60); // heavier/taller than base — communicates 80hp threat level
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 36);
     body.setOffset(13, 26); // sprite 48×64: x=(48-22)/2, y=64-36-2
