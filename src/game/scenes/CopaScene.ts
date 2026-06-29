@@ -183,6 +183,40 @@ export class CopaScene extends Phaser.Scene {
     this.hud.setPhaseTitle("COPA — AREA DE DESCANSO");
     this.hud.setObjective("Descanse, compre no Ponto e volte ao escritorio");
 
+    // Item 7 — emergency low-sanity heal: if player arrives with < 25 sanity,
+    // offer a free sanity restore (sanidade como decisão de gameplay)
+    if (this.player.sanity < 25) {
+      this.time.delayedCall(400, () => {
+        const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH * 0.7, 110, 0x0a1f0a, 0.93)
+          .setScrollFactor(0).setDepth(990).setAlpha(0);
+        const msg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28,
+          "BURNOUT IMINENTE\nO Faxineiro oferece um chá de camomila gratuito.\n[ ESPAÇO ] Aceitar  —  restaura +40 Sanidade",
+          { fontFamily: "monospace", fontSize: "12px", color: "#44ffaa",
+            align: "center", lineSpacing: 4 })
+          .setOrigin(0.5).setScrollFactor(0).setDepth(991).setAlpha(0);
+        this.tweens.add({ targets: [overlay, msg], alpha: 1, duration: 300 });
+        const accept = () => {
+          this.player.sanity = Math.min(100, this.player.sanity + 40);
+          const fxt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, "+40 SANIDADE", {
+            fontFamily: "monospace", fontSize: "15px", color: "#44ffaa",
+            stroke: "#000000", strokeThickness: 3 })
+            .setOrigin(0.5).setScrollFactor(0).setDepth(992);
+          this.tweens.add({ targets: fxt, y: fxt.y - 30, alpha: 0, duration: 900, onComplete: () => fxt.destroy() });
+          this.tweens.add({ targets: [overlay, msg], alpha: 0, duration: 300,
+            onComplete: () => { overlay.destroy(); msg.destroy(); } });
+          this.input.keyboard!.off("keydown-SPACE", accept);
+        };
+        this.input.keyboard!.once("keydown-SPACE", accept);
+        // auto-dismiss after 6s if ignored
+        this.time.delayedCall(6000, () => {
+          if (overlay.active) {
+            this.tweens.add({ targets: [overlay, msg], alpha: 0, duration: 400,
+              onComplete: () => { overlay.destroy(); msg.destroy(); } });
+          }
+        });
+      });
+    }
+
     // Remember which phase the player came from (set by phase scenes via cameFrom).
     // Persist into sourcePhase so it survives subsequent transitions.
     const phaseBackMap: Record<string, string> = {

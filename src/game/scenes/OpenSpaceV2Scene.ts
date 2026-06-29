@@ -63,6 +63,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private interactKey!: Phaser.Input.Keyboard.Key;
   private levelWidth = LEVEL_WIDTH;
   private reuniaoUsed = false;
+  private bossEntryTriggered = false;
+  private tutorialShown = false;
 
   constructor() {
     super("OpenSpaceV2Scene");
@@ -1285,6 +1287,49 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
           Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())) {
         this.player.takeDamage(this.boss.contactDamage, 3, this.boss.x);
       }
+    }
+
+    // Item 3 — Tutorial implícito: show control hints for first 12s on loop 0
+    if (!this.tutorialShown && getRun(this).loopCount === 0 && time - this.startTimeMs < 12000) {
+      this.tutorialShown = true;
+      const hints = [
+        "← → / A D  mover",
+        "Espaço / W  pular",
+        "Shift  dash",
+        "J  atacar   K  especial",
+        "E  interagir",
+      ];
+      hints.forEach((h, i) => {
+        const t = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 80 + i * 14, h,
+          { fontFamily: "monospace", fontSize: "11px", color: "#888888",
+            stroke: "#000000", strokeThickness: 2 })
+          .setOrigin(0.5).setScrollFactor(0).setDepth(980).setAlpha(0);
+        this.tweens.add({ targets: t, alpha: 1, duration: 400, delay: i * 150 });
+        this.tweens.add({ targets: t, alpha: 0, duration: 800, delay: 7500 + i * 80,
+          onComplete: () => t.destroy() });
+      });
+    }
+
+    // Item 8 — Boss room dramatic entry: trigger when player crosses x=1580
+    if (!this.bossEntryTriggered && !this.bossDefeated && this.player.x > 1580) {
+      this.bossEntryTriggered = true;
+      Sfx.bossEntry();
+      this.cameras.main.shake(400, 0.012);
+      this.cameras.main.flash(120, 180, 0, 0, false);
+      const titleCard = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60,
+        "ZONA DE PERIGO",
+        { fontFamily: "monospace", fontSize: "22px", color: "#ff4444",
+          stroke: "#000000", strokeThickness: 4 })
+        .setOrigin(0.5).setScrollFactor(0).setDepth(995).setAlpha(0);
+      const sub = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30,
+        "O Gerente está perto...",
+        { fontFamily: "monospace", fontSize: "13px", color: "#cc3333",
+          stroke: "#000000", strokeThickness: 3 })
+        .setOrigin(0.5).setScrollFactor(0).setDepth(995).setAlpha(0);
+      this.tweens.add({ targets: titleCard, alpha: 1, duration: 300 });
+      this.tweens.add({ targets: sub, alpha: 1, duration: 300, delay: 200 });
+      this.tweens.add({ targets: [titleCard, sub], alpha: 0, duration: 700, delay: 2200,
+        onComplete: () => { titleCard.destroy(); sub.destroy(); } });
     }
 
     // #8 Fake shadows: ellipses drawn just below each entity's feet

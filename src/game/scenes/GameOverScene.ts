@@ -22,31 +22,98 @@ export class GameOverScene extends Phaser.Scene {
 
     run.lastDeathCause = cause;
     const isBurnout = cause === "burnout";
-    this.cameras.main.setBackgroundColor(isBurnout ? "#1d0f15" : "#15171b");
+    this.cameras.main.setBackgroundColor(isBurnout ? "#0e080d" : "#0c0e11");
+    this.cameras.main.fadeIn(600, 0, 0, 0);
 
-    this.add.text(GAME_WIDTH / 2, 76,
-      isBurnout ? "BURNOUT" : "RESCISAO DA TENTATIVA",
-      { fontFamily: "monospace", fontSize: "26px", color: isBurnout ? "#8a2a55" : "#d14545" })
+    // ── Ilustração procedural ─────────────────────────────────────────────────
+    const art = this.add.graphics();
+
+    // Desk (escritório vazio — pós-demissão)
+    const deskX = GAME_WIDTH / 2 - 110;
+    const deskY = 195;
+    art.fillStyle(0x3a2010, 1);
+    art.fillRect(deskX, deskY, 220, 18);   // tampo
+    art.fillStyle(0x2a1808, 1);
+    art.fillRect(deskX + 6, deskY + 18, 14, 38);  // perna esq
+    art.fillRect(deskX + 200, deskY + 18, 14, 38); // perna dir
+    // Monitor apagado
+    art.fillStyle(0x1a1a1a, 1);
+    art.fillRect(deskX + 78, deskY - 50, 64, 44);  // tela
+    art.fillStyle(0x111111, 1);
+    art.fillRect(deskX + 78, deskY - 50, 64, 44);
+    art.fillStyle(0x0a0a0a, 1);
+    art.fillRect(deskX + 82, deskY - 46, 56, 36);  // inner tela
+    art.fillStyle(0x1a1a1a, 1);
+    art.fillRect(deskX + 104, deskY - 7, 12, 8);   // pescoço
+    // Caixinha de pertences (demitido leva as coisas)
+    art.fillStyle(0x8b5a20, 1);
+    art.fillRect(deskX + 148, deskY - 42, 40, 36);
+    art.fillStyle(0x7a4e18, 1);
+    art.strokeRect(deskX + 148, deskY - 42, 40, 36);
+    art.fillStyle(0x6a3e0e, 1);
+    art.fillRect(deskX + 152, deskY - 20, 8, 14);  // item na caixa
+    art.fillRect(deskX + 164, deskY - 26, 6, 20);
+    art.fillRect(deskX + 174, deskY - 22, 8, 16);
+    // Relógio de parede — 18:00
+    const clockX = GAME_WIDTH / 2 + 80;
+    const clockY = 100;
+    art.fillStyle(0x222222, 1);
+    art.fillCircle(clockX, clockY, 28);
+    art.lineStyle(2, 0x888888, 1);
+    art.strokeCircle(clockX, clockY, 28);
+    // Ponteiros em 18:00 (6h = ponteiro grande pra baixo, pequeno pra cima)
+    art.lineStyle(2, 0xdddddd, 1);
+    art.lineBetween(clockX, clockY, clockX, clockY + 20);  // min = 12
+    art.lineBetween(clockX, clockY, clockX, clockY - 14);  // hora = 6
+    // Marcas do relógio
+    art.lineStyle(1, 0x555555, 1);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const r1 = 22; const r2 = 26;
+      art.lineBetween(clockX + Math.cos(a) * r1, clockY + Math.sin(a) * r1,
+                      clockX + Math.cos(a) * r2, clockY + Math.sin(a) * r2);
+    }
+    // Carimbo DEMISSÃO / BURNOUT
+    const stampG = this.add.graphics();
+    stampG.lineStyle(3, isBurnout ? 0x8a2a55 : 0xd14545, 0.85);
+    stampG.strokeRect(deskX + 10, deskY - 68, 120, 32);
+    const stampInner = isBurnout ? "BURNOUT" : "RESCISAO";
+    this.add.text(deskX + 70, deskY - 52, stampInner, {
+      fontFamily: "monospace", fontSize: "14px",
+      color: isBurnout ? "#8a2a55" : "#d14545",
+    }).setOrigin(0.5).setAngle(-8);
+    // Sombra do personagem — silhueta no chão (simplificada)
+    art.fillStyle(0x000000, 0.25);
+    art.fillEllipse(GAME_WIDTH / 2 - 60, deskY + 58, 60, 10);
+
+    // ── Narrador contextual ───────────────────────────────────────────────────
+    const NARRATORS: Record<string, string[]> = {
+      burnout: [
+        "Você saiu pelo mesmo corredor.\nMas desta vez não chegou à saída.",
+        "O RH manda 'sentimos muito'.\nNa segunda-feira, já tem alguém na sua cadeira.",
+        "Burnout não é fraqueza.\nMas no sistema deles, conta como falha.",
+      ],
+      energy: [
+        "Demissão por justa causa.\nSeu crachá foi desativado às 18h02.",
+        "O gerente não era pessoal.\nEra só o sistema funcionando como projetado.",
+        "Você tentou sair cedo uma vez.\nNão vai acontecer de novo — não deste jeito.",
+      ],
+    };
+    const msgs = NARRATORS[cause];
+    const narratorMsg = msgs[run.loopCount % msgs.length];
+    this.add.text(GAME_WIDTH / 2, 274,
+      narratorMsg,
+      { fontFamily: "monospace", fontSize: "12px", color: "#555555", align: "center", lineSpacing: 4 })
       .setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 122,
-      isBurnout
-        ? "Voce nao voltou da copa.\nO RH manda 'sentimos muito'."
-        : "Demissao por justa causa.",
-      { fontFamily: "monospace", fontSize: "13px", color: "#666666", align: "center" })
-      .setOrigin(0.5);
-
-    // Stats
-    this.add.text(GAME_WIDTH / 2, 210,
+    // ── Stats ─────────────────────────────────────────────────────────────────
+    this.add.text(GAME_WIDTH / 2, 336,
       [
-        `Vale Refeicao coletado:     ${vr}`,
-        `Reconhecimento ganho:   +${earned}`,
-        `Reconhecimento total:    ${run.reconhecimento}`,
-        ``,
-        `FGTS acumulado:          ${run.fgts} pts`,
-        `Loop #${run.loopCount}`,
+        `VR coletado:          ${vr}`,
+        `Reconhecimento:   +${earned}  (total ${run.reconhecimento})`,
+        `FGTS acumulado:    ${run.fgts} pts   •   Loop #${run.loopCount}`,
       ].join("\n"),
-      { fontFamily: "monospace", fontSize: "14px", color: "#eaeaea", lineSpacing: 5 })
+      { fontFamily: "monospace", fontSize: "11px", color: "#888888", lineSpacing: 5, align: "center" })
       .setOrigin(0.5);
 
     // FGTS sacar option (only when there's enough)
@@ -156,6 +223,6 @@ export class GameOverScene extends Phaser.Scene {
     const keep = { reconhecimento: run.reconhecimento, fgts: run.fgts, loopCount: run.loopCount };
     const fresh = resetRun(this);
     Object.assign(fresh, keep);
-    this.scene.start("ClassSelectScene");
+    this.scene.start("ReconhecimentoScene");
   }
 }
