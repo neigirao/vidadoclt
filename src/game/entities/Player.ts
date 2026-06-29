@@ -68,6 +68,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   doubleJump = false;
   aggroRadius = 200;
   firstStrikeReady = false;
+  healOnKill = 0;       // energy restored per kill (banco_de_horas perk)
+  sanityFloor = 0;      // minimum sanity (plano_de_saude perk)
+  onKill?: () => void;  // called when this player kills an enemy
   hitAutoRanged = false;
   isRangedPrimary = false;
   attackIntervalMs = 220;
@@ -81,6 +84,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private speedMultUntil = 0;
   private speedMult = 0.4;
   private dashTrailTimer = 0;
+  private djRing: Phaser.GameObjects.Graphics | null = null;
+  private djRingPulse = 0;
 
   private jumpsUsed = 0;
   private specialCooldownUntil = 0;
@@ -213,7 +218,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     const reducedAmount = Math.round(amount * this.damageReductionMult);
     this.energy = Math.max(0, this.energy - reducedAmount);
-    if (sanityHit) this.sanity = Math.max(0, this.sanity - sanityHit);
+    if (sanityHit) this.sanity = Math.max(this.sanityFloor, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
     CombatFx.flashSprite(this, 55);
     this.scene.time.delayedCall(55, () => this.setTint(0xff8888));
@@ -243,7 +248,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   drainSanity(amount: number) {
-    this.sanity = Math.max(0, this.sanity - amount);
+    this.sanity = Math.max(this.sanityFloor, this.sanity - amount);
     if (this.sanity <= 0) this.onDeath?.("burnout");
   }
 
@@ -357,6 +362,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.jumpsUsed++;
       this.lastJumpPressedAt = -9999;
       Sfx.jump();
+      // Burst the ring on use
+      if (this.djRing) { this.djRing.destroy(); this.djRing = null; }
+    }
+
+    // Double jump indicator ring: visible while in air with jump still available
+    if (this.doubleJump && !onGround && this.jumpsUsed < 1) {
+      if (!this.djRing) {
+        this.djRing = this.scene.add.graphics().setDepth(this.depth - 1).setScrollFactor(1);
+      }
+      this.djRingPulse += 0.08;
+      const pulse = Math.sin(this.djRingPulse) * 2;
+      this.djRing.clear();
+      this.djRing.lineStyle(1, 0x88ddff, 0.7);
+      this.djRing.strokeCircle(this.x, this.y + this.displayHeight * 0.45, 10 + pulse);
+    } else {
+      if (this.djRing) { this.djRing.destroy(); this.djRing = null; }
     }
 
     // Parry "Reclamar" — abre janela de absorção (F / LB)

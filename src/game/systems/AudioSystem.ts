@@ -224,4 +224,45 @@ export const Sfx = {
   parryWhiff() {
     tone("square", 300, 0.04, 0.001, 0.035, 0.2, 260);
   },
+
+  /** Drone ambiente de sanidade — intensidade 0..1. Chamado quando muda de faixa. */
+  sanityDrone(intensity: number) {
+    if (intensity <= 0) return;
+    const c = ctx();
+    const m = master();
+    if (!c || !m) return;
+    // Low rumble that intensifies with stress
+    const osc = c.createOscillator();
+    const lfo = c.createOscillator();
+    const lfoGain = c.createGain();
+    const gain = c.createGain();
+    osc.type = "sawtooth";
+    osc.frequency.value = 55 + intensity * 40;
+    lfo.type = "sine";
+    lfo.frequency.value = 0.8 + intensity * 2.5;
+    lfoGain.gain.value = 8 * intensity;
+    gain.gain.setValueAtTime(0, c.currentTime);
+    gain.gain.linearRampToValueAtTime(0.12 * intensity, c.currentTime + 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 2.5);
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    osc.connect(gain);
+    gain.connect(m);
+    osc.start(c.currentTime);
+    lfo.start(c.currentTime);
+    osc.stop(c.currentTime + 2.5);
+    lfo.stop(c.currentTime + 2.5);
+  },
+
+  /** Entrada dramática do boss — câmera travando + sting musical. */
+  bossEntry() {
+    // Deep impact + rising tension
+    noise(0.3, 120, 2.0);
+    tone("sawtooth", 55, 1.2, 0.02, 1.0, 1.0, 30);
+    setTimeout(() => tone("square", 110, 0.5, 0.01, 0.45, 0.6, 55), 400);
+    setTimeout(() => {
+      tone("sine", 220, 0.3, 0.005, 0.25, 0.4, 440);
+      tone("sine", 330, 0.3, 0.01, 0.25, 0.3, 660);
+    }, 900);
+  },
 };

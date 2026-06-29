@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { sanityBand } from "./PlayerState";
 import { generateNotifSubject, noise2d } from "./CorporateAI";
+import { Sfx } from "./AudioSystem";
 
 // Static fallback pool — shown alongside procedurally-generated subjects
 const STATIC_NOTIFS = [
@@ -79,6 +80,11 @@ export class SanityFx {
 
   update(time: number, sanity: number) {
     const band = sanityBand(sanity);
+    // Sanity audio drone on band change — throttled to prevent audio spam
+    if (band !== this.currentBand) {
+      const stress = Math.max(0, Math.min(1, (100 - sanity) / 100));
+      if (stress > 0.25) Sfx.sanityDrone(stress);
+    }
     this.currentBand = band;
 
     // Continuous stress value: 0 = full sanity, 1 = burnout

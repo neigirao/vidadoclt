@@ -9,7 +9,11 @@ export type PerkId =
   | "plr"
   | "cafe_forte"
   | "piso_de_vidro"
-  | "sindrome_impostor";
+  | "sindrome_impostor"
+  | "reuniao_cancelada"
+  | "clt_flexivel"
+  | "banco_de_horas"
+  | "plano_de_saude";
 
 export type PerkDef = {
   id: PerkId;
@@ -29,6 +33,10 @@ export const PERKS: Record<PerkId, PerkDef> = {
   cafe_forte:         { id: "cafe_forte",          name: "Café Forte",            description: "Consumíveis de Energia e Sanidade curam 50% mais.",    flavor: "A torneira da copa vive entupida mas esse daí funciona.",        shopCost: 10, icon: "☕" },
   piso_de_vidro:      { id: "piso_de_vidro",       name: "Piso de Vidro",         description: "Permite um segundo pulo no ar.",                       flavor: "Voar é mais fácil que pedir aumento.",                           shopCost: 15, icon: "🪟" },
   sindrome_impostor:  { id: "sindrome_impostor",   name: "Síndrome do Impostor",  description: "Primeiro golpe de cada área causa +50% de dano.",      flavor: "Na dúvida, chega primeiro. Pergunte depois.",                    shopCost: 10, icon: "👤" },
+  reuniao_cancelada:  { id: "reuniao_cancelada",   name: "Reunião Cancelada",     description: "Dash recarrega 40% mais rápido.",                      flavor: "A melhor reunião é a que não acontece.",                         shopCost: 12, icon: "📅" },
+  clt_flexivel:       { id: "clt_flexivel",         name: "CLT Flexível",          description: "Cooldown do especial 40% menor.",                      flavor: "Flexível pra empresa. Nunca pro funcionário.",                    shopCost: 10, icon: "🕐" },
+  banco_de_horas:     { id: "banco_de_horas",       name: "Banco de Horas",        description: "Cada inimigo morto restaura 1 de Energia.",             flavor: "Acumulou tanto que até virou cura.",                             shopCost: 14, icon: "🏦" },
+  plano_de_saude:     { id: "plano_de_saude",       name: "Plano de Saúde",        description: "Sanidade nunca cai abaixo de 25.",                      flavor: "Carência de 90 dias. Mas pelo menos existe.",                    shopCost: 16, icon: "🏥" },
 };
 
 export function applyPerk(id: PerkId, player: Player, run: RunState) {
@@ -60,6 +68,18 @@ export function applyPerk(id: PerkId, player: Player, run: RunState) {
       break;
     case "sindrome_impostor":
       player.firstStrikeReady = true;
+      break;
+    case "reuniao_cancelada":
+      player.dashCooldownBonus += 380; // 950 * 0.4 = 380ms less cooldown
+      break;
+    case "clt_flexivel":
+      player.specialCooldownMult *= 0.6;
+      break;
+    case "banco_de_horas":
+      player.healOnKill += 1;
+      break;
+    case "plano_de_saude":
+      player.sanityFloor = Math.max(player.sanityFloor, 25);
       break;
   }
 }
@@ -169,6 +189,10 @@ export function reapplyAllPerks(player: Player, run: RunState) {
       case "cafe_forte":      run.cafeForte = true; break;
       case "piso_de_vidro":   player.doubleJump = true; break;
       case "sindrome_impostor": player.firstStrikeReady = true; break;
+      case "reuniao_cancelada": player.dashCooldownBonus += 380; break;
+      case "clt_flexivel":      player.specialCooldownMult *= 0.6; break;
+      case "banco_de_horas":    player.healOnKill += 1; break;
+      case "plano_de_saude":    player.sanityFloor = Math.max(player.sanityFloor, 25); break;
     }
   }
 }
