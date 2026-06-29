@@ -344,6 +344,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(JUMP_VEL);
       this.lastJumpPressedAt = -9999;
       this.lastGroundedAt = -9999;
+      CombatFx.jumpStretch(this);
     }
     // variable jump cut
     if (!jumpDown && body.velocity.y < -200) {

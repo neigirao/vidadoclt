@@ -9,6 +9,7 @@ import { SanityFx } from "../systems/SanityFx";
 import { ShopUI } from "../systems/Shop";
 import { Hud } from "../systems/Hud";
 import { Music } from "../systems/MusicSystem";
+import { CombatFx } from "../systems/CombatFx";
 
 const LEVEL_WIDTH = 1280;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -19,6 +20,7 @@ export class CopaScene extends Phaser.Scene {
   private faxineiros!: Phaser.Physics.Arcade.Group;
   private drops!: Phaser.Physics.Arcade.Group;
   private fx!: SanityFx;
+  private combatFx!: CombatFx;
   private hud!: Hud;
   private shop!: ShopUI;
   private ponto!: Phaser.GameObjects.Image;
@@ -47,15 +49,28 @@ export class CopaScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.copaBg);
 
-    // Tile backdrop
-    const bg = this.add.graphics();
-    for (let x = 0; x < LEVEL_WIDTH; x += 48) {
-      for (let y = 60; y < GAME_HEIGHT - 32; y += 48) {
-        bg.fillStyle(((x + y) / 48) % 2 < 1 ? 0x2a3434 : 0x202828, 1);
-        bg.fillRect(x, y, 48, 48);
-      }
-    }
-    bg.setScrollFactor(0.6);
+    // Copa background: tiled wall + floor stripe + window light
+    const bg = this.add.graphics().setScrollFactor(0.6).setDepth(0);
+    // Wall base
+    bg.fillStyle(0x1e2a1e, 1);
+    bg.fillRect(0, 60, LEVEL_WIDTH, GAME_HEIGHT - 92);
+    // Horizontal baseboard
+    bg.fillStyle(0x2d4a2d, 1);
+    bg.fillRect(0, GAME_HEIGHT - 72, LEVEL_WIDTH, 8);
+    // Vertical wall tiles (every 96px)
+    bg.lineStyle(1, 0x2a402a, 0.6);
+    for (let x = 0; x <= LEVEL_WIDTH; x += 96) bg.lineBetween(x, 60, x, GAME_HEIGHT - 64);
+    for (let y = 60; y < GAME_HEIGHT - 64; y += 64) bg.lineBetween(0, y, LEVEL_WIDTH, y);
+    // Window patches (warm break-room light)
+    [200, 580, 960, 1160].forEach(wx => {
+      bg.fillStyle(0x3a5c3a, 0.375);
+      bg.fillRect(wx, 70, 80, 120);
+      bg.fillStyle(0xfff0c0, 0.125);
+      bg.fillRect(wx + 8, 78, 64, 50);
+    });
+    // Ceiling strip lights
+    bg.fillStyle(0xd0f0d0, 0.25);
+    for (let x = 40; x < LEVEL_WIDTH; x += 200) bg.fillRect(x, 60, 120, 6);
 
     this.platforms = this.physics.add.staticGroup();
     const floor = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 16, LEVEL_WIDTH, 32, COLORS.copaFloor);
@@ -162,6 +177,7 @@ export class CopaScene extends Phaser.Scene {
     });
 
     // FX + HUD + Shop
+    this.combatFx = new CombatFx(this);
     this.fx = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.hud.setPhaseTitle("COPA — AREA DE DESCANSO");
@@ -239,18 +255,38 @@ export class CopaScene extends Phaser.Scene {
   }
 
   private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
-    const damage = step === 3 ? 15 : 10;
-    const knockback = (step === 3 ? 320 : 120) * this.player.facing;
-    const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
-    this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
+    const isFinisher = step >= 3;
+    const damage = isFinisher ? 15 : 10;
+    const knockback = (isFinisher ? 320 : 120) * this.player.facing;
+
+    // Arc slash visual
+    const slash = this.add.graphics().setDepth(15);
+    const cx = hb.x + hb.width / 2;
+    const cy = hb.y + hb.height / 2;
+    const r = Math.max(hb.width, hb.height) * 0.6;
+    const startAngle = this.player.facing > 0 ? -Math.PI * 0.6 : Math.PI * 0.4;
+    const endAngle   = this.player.facing > 0 ?  Math.PI * 0.6 : Math.PI * 1.6;
+    slash.lineStyle(3, 0xffffff, 0.75);
+    slash.beginPath();
+    slash.arc(cx, cy, r, startAngle, endAngle, false);
+    slash.strokePath();
+    this.tweens.add({ targets: slash, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 140, ease: "Quad.easeOut", onComplete: () => slash.destroy() });
 
     this.faxineiros.getChildren().forEach((c) => {
       const f = c as Faxineiro;
       if (!f.active) return;
       if (Phaser.Geom.Intersects.RectangleToRectangle(hb, f.getBounds())) {
+        CombatFx.flashSprite(f as unknown as Phaser.Physics.Arcade.Sprite, 55);
+        if (isFinisher) {
+          this.combatFx.hitStop(85);
+          this.combatFx.comboFinisher(this.player.x, f.x);
+        } else {
+          this.combatFx.hitLight(f.x, f.y - 10);
+        }
         if (f.hit(damage, knockback)) {
           this.dropVR(f.x, f.y, 5);
-          f.destroy();
+          this.tweens.add({ targets: f, y: f.y - 18, scaleY: 0.5, alpha: 0, duration: 200, ease: "Quad.easeOut", onComplete: () => f.destroy() });
+          f.setActive(false);
         }
       }
     });

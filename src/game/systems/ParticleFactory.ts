@@ -60,11 +60,13 @@ export class ParticleFactory {
       g.fillStyle(color, 1);
       const size = 1 + Math.floor(Math.random() * 4);
       g.fillRect(-size / 2, -size / 2, size, size);
-      g.setPosition(Math.round(x), Math.round(y));
+      const jx = Math.round(x + (Math.random() - 0.5) * 16);
+      const jy = Math.round(y + (Math.random() - 0.5) * 12);
+      g.setPosition(jx, jy);
       scene.tweens.add({
         targets: g,
-        x: Math.round(x + Math.cos(angle) * speed),
-        y: Math.round(y + Math.sin(angle) * speed),
+        x: Math.round(jx + Math.cos(angle) * speed),
+        y: Math.round(jy + Math.sin(angle) * speed),
         alpha: 0,
         scaleX: 0.25,
         scaleY: 0.25,

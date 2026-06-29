@@ -334,16 +334,17 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
         key = `tex-gerente-run0`;
       }
     } else if (this.bossState === "telegraph" || this.bossState === "attack") {
-      // Use attack-type-specific frames for each of the three attack sets
-      const attackSet = this.currentAttack === "deadline" ? "deadline"
-        : this.currentAttack === "alinhamento" ? "escopo"
-        : this.currentAttack === "atualizacao" ? "sprint"
-        : null;
-      if (attackSet) {
-        const f = Math.floor(now / 100) % 4;
-        key = `tex-gerente-attack-${attackSet}${f}`;
-      } else {
-        key = `tex-gerente-attack0`;
+      // Explicit mapping for all 6 attack types
+      const f4 = Math.floor(now / 100) % 4;
+      const f2 = Math.floor(now / 200) % 2;
+      switch (this.currentAttack) {
+        case "deadline":    key = `tex-gerente-attack-deadline${f4}`; break;
+        case "alinhamento": key = `tex-gerente-attack-escopo${f4}`;   break;
+        case "atualizacao": key = `tex-gerente-attack-sprint${f4}`;   break;
+        case "follow_up":   key = `tex-gerente-attack${f2}`;          break;
+        case "reuniao":     key = `tex-gerente-attack${f2}`;          break;
+        case "freeze":      key = `tex-gerente-idle${f2}`;            break;
+        default:            key = `tex-gerente-attack0`;
       }
     } else if (this.bossState === "enter" || this.bossState === "recover") {
       const f = Math.floor(now / 140) % 4;

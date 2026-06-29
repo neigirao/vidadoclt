@@ -16,6 +16,15 @@ const IDLE_FRAME_COUNTS: Record<string, number> = {
   estagiario: 4, analista: 4, facilitador: 4, scrum: 4,
   coordenador: 4, senior: 4, rh: 4,
 };
+// Per-prefix frame duration (ms) — tuned to each enemy's energy level
+const WALK_MS: Record<string, number> = {
+  estagiario: 160, analista: 200, facilitador: 180, scrum: 140,
+  coordenador: 220, senior: 280, rh: 200,
+};
+const IDLE_MS: Record<string, number> = {
+  estagiario: 280, analista: 320, facilitador: 300, scrum: 260,
+  coordenador: 350, senior: 500, rh: 320,
+};
 
 function setEnemyTex(
   e: Phaser.Physics.Arcade.Sprite,
@@ -28,10 +37,12 @@ function setEnemyTex(
   let frame = 0;
   if (state === "walk") {
     const maxFrames = WALK_FRAME_COUNTS[prefix] ?? 2;
-    frame = Math.floor((t + offset) / 180) % maxFrames;
+    const ms = WALK_MS[prefix] ?? 180;
+    frame = Math.floor((t + offset) / ms) % maxFrames;
   } else if (state === "idle") {
     const maxFrames = IDLE_FRAME_COUNTS[prefix] ?? 4;
-    frame = Math.floor((t + offset) / 300) % maxFrames;
+    const ms = IDLE_MS[prefix] ?? 300;
+    frame = Math.floor((t + offset) / ms) % maxFrames;
   }
   const key = `tex-${prefix}-${state}${frame}`;
   applyTexture(e, key);

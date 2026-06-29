@@ -500,7 +500,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     };
 
     drawHands();
-    this.time.addEvent({ delay: 30000, loop: true, callback: drawHands });
+    this.time.addEvent({ delay: 1000, loop: true, callback: drawHands });
   }
 
   private spawnDustParticles(): void {
@@ -872,8 +872,17 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     const knockback = (step >= comboHits ? def.comboKnockback : 80) * this.player.facing;
     const slowMs = def.hitSlow;
 
-    const slash = this.add.rectangle(hb.x + hb.width / 2, hb.y + hb.height / 2, hb.width, hb.height, 0xffffff, 0.5);
-    this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
+    const slash = this.add.graphics().setDepth(15);
+    const cx = hb.x + hb.width / 2;
+    const cy = hb.y + hb.height / 2;
+    const r = Math.max(hb.width, hb.height) * 0.6;
+    const startAngle = this.player.facing > 0 ? -Math.PI * 0.6 : Math.PI * 0.4;
+    const endAngle   = this.player.facing > 0 ?  Math.PI * 0.6 : Math.PI * 1.6;
+    slash.lineStyle(3, 0xffffff, 0.75);
+    slash.beginPath();
+    slash.arc(cx, cy, r, startAngle, endAngle, false);
+    slash.strokePath();
+    this.tweens.add({ targets: slash, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 140, ease: "Quad.easeOut", onComplete: () => slash.destroy() });
     const isFinisher = step >= comboHits;
     if (isFinisher) { Sfx.meleeHeavy(); Sfx.comboFinisher(); }
     else Sfx.meleeLight();
@@ -908,7 +917,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         if (e.hit(damage, knockback)) {
           ParticleFactory.enemyDeath(this, e.x, e.y - 10);
           this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
-          this.tweens.add({ targets: e, scaleX: 1.6, scaleY: 0.2, alpha: 0, duration: 120, onComplete: () => e.destroy() });
+          this.tweens.add({ targets: e, y: e.y - 18, scaleY: 0.5, alpha: 0, duration: 200, ease: "Quad.easeOut", onComplete: () => e.destroy() });
           e.setActive(false);
         }
       });
