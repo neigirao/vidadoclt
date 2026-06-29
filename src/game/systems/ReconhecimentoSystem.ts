@@ -28,6 +28,9 @@ export type UpgradeDef = {
   costs: number[]; // costs[i] = custo para comprar o nível i+1
   icon: string;
   color: string;
+  // Escolhas de carreira mutuamente exclusivas: investir aqui tranca os ids
+  // listados (e vice-versa), forçando uma identidade de build no meta-progresso.
+  excludes?: UpgradeId[];
 };
 
 export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
@@ -70,6 +73,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [80],
     icon: "💪",
     color: "#ff8888",
+    excludes: ["autonomia_base"], // Sobreviver OU agir
   },
   networking: {
     name: "Networking",
@@ -86,6 +90,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [150],
     icon: "⭐",
     color: "#ffdd00",
+    excludes: ["resiliencia"], // Agir (autonomia) OU sobreviver (vida extra)
   },
   carteira_assinada: {
     name: "Carteira Assinada",
@@ -134,6 +139,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [110],
     icon: "📈",
     color: "#f2c14e",
+    excludes: ["beneficios_clt"], // Ganância (mais VR) OU segurança (menos dano)
   },
   beneficios_clt: {
     name: "Benefícios CLT",
@@ -142,6 +148,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [45, 95, 180],
     icon: "🛡",
     color: "#88aaff",
+    excludes: ["participacao_lucros"], // Segurança OU ganância
   },
   processei_empresa: {
     name: "Processei a Empresa",
@@ -172,6 +179,14 @@ export function saveUpgrades(levels: UpgradeLevels) {
 
 export function getLevel(levels: UpgradeLevels, id: UpgradeId): number {
   return levels[id] ?? 0;
+}
+
+/** True se um upgrade mutuamente exclusivo já foi investido, travando este. */
+export function isLocked(levels: UpgradeLevels, id: UpgradeId): UpgradeId | null {
+  for (const [otherId, def] of Object.entries(UPGRADES) as [UpgradeId, UpgradeDef][]) {
+    if (def.excludes?.includes(id) && getLevel(levels, otherId) > 0) return otherId;
+  }
+  return null;
 }
 
 export function nextCost(levels: UpgradeLevels, id: UpgradeId): number | null {

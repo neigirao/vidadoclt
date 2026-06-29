@@ -49,6 +49,23 @@ function setEnemyTex(
 }
 
 
+// Telegraph warning bubble — flashes a "!" above an enemy as it winds up an
+// attack, so the player can read the threat and react (combate justo).
+const _telegraphActive = new WeakSet<Phaser.GameObjects.GameObject>();
+function showTelegraph(e: Phaser.Physics.Arcade.Sprite, color = "#ffcc00"): void {
+  if (_telegraphActive.has(e)) return;
+  _telegraphActive.add(e);
+  const mark = e.scene.add.text(e.x, e.y - 40, "!", {
+    fontFamily: "monospace", fontSize: "18px", fontStyle: "bold",
+    color, stroke: "#000000", strokeThickness: 3,
+  }).setOrigin(0.5).setDepth(560).setScale(0.4);
+  e.scene.tweens.add({ targets: mark, scale: 1, duration: 120, ease: "Back.easeOut" });
+  e.scene.tweens.add({
+    targets: mark, alpha: 0, duration: 240, delay: 360,
+    onComplete: () => { mark.destroy(); _telegraphActive.delete(e); },
+  });
+}
+
 // ─── InkProjectile (Caneta Bic ranged attack) ────────────────────────────────
 export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
   damage = 12;
@@ -229,6 +246,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "telegraph";
           this.stateUntil = t + 350;
           this.setTint(0xffdd00);
+          showTelegraph(this);
           body.setVelocityX(0);
         }
         break;
@@ -339,6 +357,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
             this.stateUntil = t + 700;
             this.setDisplaySize(44, 64); // visual "swell" during telegraph
             this.setTint(0xffdd00);
+            showTelegraph(this, "#cc44ff");
             body.setVelocityX(0);
             const label = this.scene.add.text(this.x, this.y - 36, "RETROSPECTIVA!", {
               fontFamily: "monospace", fontSize: "14px", fontStyle: "bold",
@@ -352,6 +371,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
             this.aiState = "charge";
             this.stateUntil = t + 500;
             this.setTint(0xffdd00);
+            showTelegraph(this, "#ff5533");
             body.setVelocityX(0);
           }
         }
@@ -580,6 +600,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "telegraph";
           this.stateUntil = t + 650;
           this.setTint(0xffdd00);
+          showTelegraph(this, "#ff5533");
           body.setVelocityX(0);
         }
         break;
@@ -708,6 +729,7 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "telegraph";
           this.stateUntil = t + 380;
           this.setTint(0xffdd00);
+          showTelegraph(this, "#ff4488");
           body.setVelocityX(0);
         }
         break;

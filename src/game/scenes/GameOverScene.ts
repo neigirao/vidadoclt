@@ -3,6 +3,8 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { getRun, resetRun, savePersisted } from "../systems/PlayerState";
 import { submitScore, phaseLabel } from "../systems/Ranking";
 import { Sfx } from "../systems/AudioSystem";
+import { PERKS, SYNERGIES, PerkId, SynergyId } from "../systems/PerkSystem";
+import { CULTURAS, CulturaId } from "../systems/CulturaSystem";
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -116,6 +118,9 @@ export class GameOverScene extends Phaser.Scene {
       { fontFamily: "monospace", fontSize: "11px", color: "#888888", lineSpacing: 5, align: "center" })
       .setOrigin(0.5);
 
+    // ── Build summary — a "história" desta run (perks + culturas + sinergias) ──
+    this.drawBuildSummary(run, 372);
+
     // FGTS sacar option (only when there's enough)
     if (run.fgts >= 10) {
       const bonus = Math.floor(run.fgts * 1.5);
@@ -214,6 +219,41 @@ export class GameOverScene extends Phaser.Scene {
     saveBtn.on("pointerout",  () => saveBtn.setColor("#44ff88"));
     saveBtn.on("pointerdown", doSave);
     inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") doSave(); });
+  }
+
+  /** Item 7 — retrospectiva da build: linha de ícones de perks, culturas e sinergias. */
+  private drawBuildSummary(run: ReturnType<typeof getRun>, y: number) {
+    const perks = (run.perks ?? []) as PerkId[];
+    const culturas = (run.culturas ?? []) as CulturaId[];
+    const synergies = (run.activeSynergies ?? []) as SynergyId[];
+    if (!perks.length && !culturas.length && !synergies.length) return;
+
+    const chips: { icon: string; color: string }[] = [
+      ...perks.map(p => ({ icon: PERKS[p]?.icon ?? "?", color: "#88bbff" })),
+      ...culturas.map(c => ({ icon: CULTURAS[c]?.icon ?? "?", color: "#ffcc66" })),
+      ...synergies.map(s => ({ icon: SYNERGIES[s]?.icon ?? "★", color: "#ff88dd" })),
+    ];
+
+    this.add.text(GAME_WIDTH / 2, y, "SUA BUILD NESTA TENTATIVA", {
+      fontFamily: "monospace", fontSize: "9px", color: "#666666",
+    }).setOrigin(0.5);
+
+    const spacing = 26;
+    const totalW = chips.length * spacing;
+    const startX = GAME_WIDTH / 2 - totalW / 2 + spacing / 2;
+    chips.forEach((chip, i) => {
+      const cx = startX + i * spacing;
+      this.add.rectangle(cx, y + 22, 22, 22, 0x1a1d23).setStrokeStyle(1, 0x333344);
+      this.add.text(cx, y + 22, chip.icon, {
+        fontFamily: "monospace", fontSize: "11px", color: chip.color,
+      }).setOrigin(0.5);
+    });
+    if (synergies.length) {
+      this.add.text(GAME_WIDTH / 2, y + 40,
+        `${synergies.length} sinergia(s) ativada(s)!`,
+        { fontFamily: "monospace", fontSize: "8px", color: "#ff88dd" })
+        .setOrigin(0.5);
+    }
   }
 
   private doRestart() {

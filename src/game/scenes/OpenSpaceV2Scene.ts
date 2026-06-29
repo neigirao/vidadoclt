@@ -66,6 +66,17 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private bossEntryTriggered = false;
   private tutorialShown = false;
 
+  // Item 1 — Produtividade (combo de kills encadeados)
+  private prodStreak = 0;
+  private prodLastKillAt = -9999;
+  private prodMeter!: Phaser.GameObjects.Graphics;
+  private prodLabel!: Phaser.GameObjects.Text;
+  private static readonly PROD_WINDOW_MS = 4000;
+
+  // Item 2 — Evento aleatório da sala
+  private eventVrMult = 1;
+  private eventNoSanityDrain = false;
+
   constructor() {
     super("OpenSpaceV2Scene");
   }
@@ -90,6 +101,31 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     [80, 340, 600, 860, 1120, 1380, 1640, 1880].forEach(x => {
       addImage(this, x, FLOOR_Y - 28, "tex-baia").setDepth(2);
     });
+
+    // Item 5 — Mid parallax layer: rows of distant cubicles drifting at 0.5
+    // (entre o fundo em 0.2 e o mundo em 1.0 → cria profundidade real de 3 camadas)
+    const mid = this.add.graphics().setDepth(1).setScrollFactor(0.5, 0);
+    for (let x = 60; x < LEVEL_WIDTH; x += 180) {
+      mid.fillStyle(0x161d27, 0.6);
+      mid.fillRect(x, FLOOR_Y - 56, 70, 56);          // divisória distante
+      mid.fillStyle(0x1d2733, 0.6);
+      mid.fillRect(x + 6, FLOOR_Y - 50, 58, 6);        // topo da divisória
+      mid.fillStyle(0x10161e, 0.5);
+      mid.fillRect(x + 30, FLOOR_Y - 44, 18, 14);      // monitor distante
+    }
+
+    // Item 4 — Dithering pass: padrão xadrez sutil escurece o fundo em degradê,
+    // unificando a paleta e suavizando as bandas de luz das janelas
+    const dither = this.add.graphics().setDepth(1).setScrollFactor(0.2, 0);
+    dither.fillStyle(0x0a0d12, 0.18);
+    for (let yy = HUD_TOP_H; yy < FLOOR_Y; yy += 4) {
+      const shade = (yy - HUD_TOP_H) / (FLOOR_Y - HUD_TOP_H); // mais escuro embaixo
+      for (let xx = 0; xx < LEVEL_WIDTH; xx += 4) {
+        if (((xx >> 2) + (yy >> 2)) % 2 === 0 && Math.random() < 0.4 + shade * 0.4) {
+          dither.fillRect(xx, yy, 2, 2);
+        }
+      }
+    }
 
     // Foreground parallax layer — silhouettes slightly in front of player
     // scrollFactor 1.05 = moves 5% faster than world = feels closer to camera
@@ -413,7 +449,10 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         const dmg = (ink.getData("damage") as number) ?? 10;
         const piercing = (ink.getData("piercing") as boolean) ?? false;
         if (enemy.hit(Math.round(dmg * this.player.damageMult), 0)) {
-          this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
+          const prodMult = this.registerKill(enemy.x, enemy.y);
+          this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult * this.eventVrMult * prodMult)));
+          if (this.player.healOnKill > 0) this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + this.player.healOnKill);
+          this.player.onKill?.();
           enemy.destroy();
         }
         if (!piercing) ink.destroy();
@@ -482,6 +521,16 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     };
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE  [v2]");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
+
+    // Item 1 — medidor de Produtividade (fixo na câmera)
+    this.prodMeter = this.add.graphics().setScrollFactor(0).setDepth(908);
+    this.prodLabel = this.add.text(GAME_WIDTH / 2, 42, "", {
+      fontFamily: "monospace", fontSize: "9px", color: "#aaffaa",
+      stroke: "#000000", strokeThickness: 2,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(908);
+
+    // Item 2 — modificador da sala (depende do seed + loop)
+    this.rollRoomEvent(run);
   }
 
   // Animated clock hands overlaid on background clock positions
@@ -930,7 +979,10 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         );
         if (e.hit(damage, knockback)) {
           ParticleFactory.enemyDeath(this, e.x, e.y - 10);
-          this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
+          const prodMult = this.registerKill(e.x, e.y);
+          this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult * this.eventVrMult * prodMult)));
+          if (this.player.healOnKill > 0) this.player.energy = Math.min(this.player.maxEnergy, this.player.energy + this.player.healOnKill);
+          this.player.onKill?.();
           this.tweens.add({ targets: e, y: e.y - 18, scaleY: 0.5, alpha: 0, duration: 200, ease: "Quad.easeOut", onComplete: () => e.destroy() });
           e.setActive(false);
         }
@@ -1185,6 +1237,79 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.time.delayedCall(10000, () => { if (coffee.active) coffee.destroy(); if (lbl.active) lbl.destroy(); });
   }
 
+  // Item 1 — registra um kill no medidor de Produtividade e devolve o multiplicador de VR.
+  private registerKill(x: number, y: number): number {
+    const now = this.time.now;
+    if (now - this.prodLastKillAt > OpenSpaceV2Scene.PROD_WINDOW_MS) this.prodStreak = 0;
+    this.prodStreak++;
+    this.prodLastKillAt = now;
+    const mult = 1 + Math.min(this.prodStreak * 0.1, 1.0); // até 2x no streak 10+
+    if (this.prodStreak >= 2) {
+      const t = this.add.text(x, y - 34, `x${this.prodStreak} PRODUTIVIDADE`, {
+        fontFamily: "monospace", fontSize: this.prodStreak >= 5 ? "13px" : "10px",
+        color: this.prodStreak >= 5 ? "#ffcc22" : "#aaffaa",
+        stroke: "#000000", strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(610);
+      this.tweens.add({ targets: t, y: t.y - 22, alpha: 0, duration: 700, onComplete: () => t.destroy() });
+    }
+    return mult;
+  }
+
+  private drawProdMeter(time: number): void {
+    const active = time - this.prodLastKillAt <= OpenSpaceV2Scene.PROD_WINDOW_MS && this.prodStreak >= 2;
+    this.prodMeter.clear();
+    if (!active) { this.prodLabel.setText(""); return; }
+    const ratio = Math.max(0, 1 - (time - this.prodLastKillAt) / OpenSpaceV2Scene.PROD_WINDOW_MS);
+    const w = 120, h = 6, x = GAME_WIDTH / 2 - w / 2, y = 52;
+    this.prodMeter.fillStyle(0x000000, 0.5);
+    this.prodMeter.fillRect(x - 1, y - 1, w + 2, h + 2);
+    const col = this.prodStreak >= 5 ? 0xffcc22 : 0x66dd88;
+    this.prodMeter.fillStyle(col, 0.9);
+    this.prodMeter.fillRect(x, y, w * ratio, h);
+    this.prodLabel.setText(`PRODUTIVIDADE x${this.prodStreak}  (+${Math.round(Math.min(this.prodStreak * 0.1, 1.0) * 100)}% VR)`)
+      .setColor(this.prodStreak >= 5 ? "#ffcc22" : "#aaffaa");
+  }
+
+  // Item 2 — sorteia um modificador da sala a partir do seed + loop e aplica seus efeitos.
+  private rollRoomEvent(run: ReturnType<typeof getRun>): void {
+    const EVENTS = [
+      { id: "reuniao",   name: "REUNIÃO OBRIGATÓRIA", desc: "Inimigos mais resistentes, mas +50% VR",
+        color: "#ff8844", apply: () => { this.eventVrMult = 1.5; this.buffEnemyHp(1.2); } },
+      { id: "homeoffice",name: "HOME OFFICE",          desc: "Sua sanidade não cai nesta sala",
+        color: "#66ddff", apply: () => { this.eventNoSanityDrain = true; } },
+      { id: "sextou",    name: "SEXTOU",               desc: "+25% velocidade e dash mais rápido",
+        color: "#ffdd44", apply: () => { this.player.walkSpeed *= 1.25; this.player.dashCooldownBonus += 250; } },
+      { id: "deadline",  name: "DEADLINE INADIÁVEL",   desc: "Inimigos mais rápidos, mas +40% VR",
+        color: "#ff5566", apply: () => { this.eventVrMult = 1.4; } },
+      { id: "normal",    name: "",                     desc: "", color: "#ffffff", apply: () => {} },
+    ];
+    const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
+    const idx = (seedNum + run.loopCount) % EVENTS.length;
+    const ev = EVENTS[idx];
+    if (!ev.name) return; // sala normal, sem banner
+    ev.apply();
+    // Banner de entrada
+    const banner = this.add.text(GAME_WIDTH / 2, 110, ev.name,
+      { fontFamily: "monospace", fontSize: "18px", color: ev.color,
+        stroke: "#000000", strokeThickness: 4 })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(970).setAlpha(0);
+    const sub = this.add.text(GAME_WIDTH / 2, 132, ev.desc,
+      { fontFamily: "monospace", fontSize: "11px", color: "#dddddd",
+        stroke: "#000000", strokeThickness: 3 })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(970).setAlpha(0);
+    this.tweens.add({ targets: [banner, sub], alpha: 1, duration: 400, hold: 2600, yoyo: true,
+      onComplete: () => { banner.destroy(); sub.destroy(); } });
+  }
+
+  private buffEnemyHp(mult: number): void {
+    [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
+     this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs].forEach(g =>
+      g.getChildren().forEach(c => {
+        const e = c as Phaser.Physics.Arcade.Sprite & { hp?: number };
+        if (typeof e.hp === "number") e.hp = Math.round(e.hp * mult);
+      }));
+  }
+
   private dropVR(x: number, y: number, count = 1): void {
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(x + (i - count / 2) * 8, y - 10, "tex-vr") as Phaser.Physics.Arcade.Sprite;
@@ -1204,7 +1329,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
   update(time: number, delta: number) {
     this.player.update(time, delta);
-    this.player.tickPassive(time);
+    if (!this.eventNoSanityDrain) this.player.tickPassive(time);
+    this.drawProdMeter(time);
 
     // Physics body sleep: disable body for enemies far off-screen to save CPU
     const camBounds = this.cameras.main.worldView;

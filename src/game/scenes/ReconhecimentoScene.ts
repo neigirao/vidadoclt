@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import {
-  UPGRADES, UpgradeId, loadUpgrades, saveUpgrades, getLevel, nextCost,
+  UPGRADES, UpgradeId, loadUpgrades, saveUpgrades, getLevel, nextCost, isLocked,
 } from "../systems/ReconhecimentoSystem";
 import { Sfx } from "../systems/AudioSystem";
 
@@ -55,6 +55,7 @@ export class ReconhecimentoScene extends Phaser.Scene {
     const startY = 62;
 
     const cardTexts: Map<UpgradeId, Phaser.GameObjects.Text[]> = new Map();
+    const cardUpdaters: Map<UpgradeId, () => void> = new Map();
 
     UPGRADE_ORDER.forEach((id, i) => {
       const col = i % COLS;
@@ -90,24 +91,33 @@ export class ReconhecimentoScene extends Phaser.Scene {
       const updateCard = () => {
         const lvl = getLevel(levels, id);
         const cost = nextCost(levels, id);
+        const lockedBy = isLocked(levels, id);
         lvlT.setText(`Nível: ${lvl} / ${def.maxLevel}`);
+        if (lockedBy) {
+          costT.setText(`TRANCADO por ${UPGRADES[lockedBy].name}`).setColor("#aa5555");
+          btnT.setVisible(false);
+          bg.setStrokeStyle(1, 0x553333).setFillStyle(0x16100f);
+          return;
+        }
         if (cost !== null) {
-          costT.setText(`Custo: ${cost} pts`);
+          costT.setText(`Custo: ${cost} pts`).setColor(TEXT_ACCENT);
           const canAfford = run.reconhecimento >= cost;
           btnT.setVisible(true).setColor(canAfford ? "#00ff88" : "#666666");
           btnT.setText(canAfford ? "[ INVESTIR ]" : "[ SEM VERBA ]");
         } else {
-          costT.setText("MÁXIMO");
+          costT.setText("MÁXIMO").setColor(TEXT_ACCENT);
           btnT.setVisible(false);
         }
         // Highlight border at max level
         bg.setStrokeStyle(1, lvl >= def.maxLevel ? Phaser.Display.Color.HexStringToColor(def.color).color : 0x333344);
       };
       updateCard();
+      cardUpdaters.set(id, updateCard);
 
       // Click to buy
       bg.setInteractive({ useHandCursor: true });
       const tryBuy = () => {
+        if (isLocked(levels, id)) { Sfx.parryWhiff(); return; }
         const cost = nextCost(levels, id);
         if (cost === null || run.reconhecimento < cost) return;
         run.reconhecimento -= cost;
@@ -116,25 +126,8 @@ export class ReconhecimentoScene extends Phaser.Scene {
         savePersisted(run.reconhecimento, run.fgts, run.loopCount);
         Sfx.perkSelect();
         refresh();
-        // Update all cards (costs may have changed)
-        UPGRADE_ORDER.forEach(uid => {
-          const txts = cardTexts.get(uid);
-          if (txts) {
-            const lvl2 = getLevel(levels, uid);
-            const cost2 = nextCost(levels, uid);
-            txts[0].setText(`Nível: ${lvl2} / ${UPGRADES[uid].maxLevel}`);
-            if (cost2 !== null) {
-              txts[1].setText(`Custo: ${cost2} pts`);
-              const canAfford2 = run.reconhecimento >= cost2;
-              txts[2].setVisible(true).setColor(canAfford2 ? "#00ff88" : "#666666");
-              txts[2].setText(canAfford2 ? "[ INVESTIR ]" : "[ SEM VERBA ]");
-            } else {
-              txts[1].setText("MÁXIMO");
-              txts[2].setVisible(false);
-            }
-          }
-        });
-        updateCard();
+        // Update all cards (costs, affordability and exclusive locks may have changed)
+        cardUpdaters.forEach(fn => fn());
       };
       bg.on("pointerdown", tryBuy);
       bg.on("pointerover", () => bg.setFillStyle(0x22263a));
