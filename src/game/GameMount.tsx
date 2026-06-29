@@ -12,6 +12,7 @@ export function GameMount() {
       if (destroyed || !ref.current) return;
       const Phaser = PhaserMod.default ?? PhaserMod;
       game = new Phaser.Game(buildGameConfig(ref.current));
+      if (import.meta.env.DEV) (window as unknown as { __game: unknown }).__game = game;
     });
 
     return () => {
