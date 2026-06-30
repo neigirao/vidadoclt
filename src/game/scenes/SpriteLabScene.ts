@@ -54,7 +54,7 @@ const SUBJECTS: Subject[] = [
   mkItem("Quadro Motiv.", "Objeto", { idle: ["tex-quadro-motivacional"] }),
   // Drops
   mkItem("VR (moeda)", "Drop", { spin: ["item-vr-coin-active0", "item-vr-coin-active1", "item-vr-coin-active2"] }),
-  mkItem("Café (drop)", "Drop", { idle: ["item-coffee-cup", "item-coffee-cup-active0", "item-coffee-cup-active1"] }),
+  mkItem("Café (drop)", "Drop", { vapor: ["item-coffee-cup-active0", "item-coffee-cup-active1", "item-coffee-cup-active2"] }),
   // Projéteis
   mkItem("Post-it", "Projétil", { active: ["item-postit-active0", "item-postit-active1", "item-postit-active2"] }),
   mkItem("Tinta (Bic)", "Projétil", { idle: ["item-inkproj", "tex-inkproj"] }),

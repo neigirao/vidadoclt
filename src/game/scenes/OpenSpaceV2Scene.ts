@@ -26,7 +26,7 @@ import { reapplyAllPerks, applyPerk, checkAndApplySynergies, PERKS, SYNERGIES, P
 import { reapplyAllCulturas } from "../systems/CulturaSystem";
 import { HEAT_LEVELS } from "./HoraExtraScene";
 import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
-import { addImage } from "../systems/SpriteLibrary";
+import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
 
@@ -1270,15 +1270,23 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   }
 
   private spawnCoffeeDrop(x: number, y: number): void {
-    const coffee = this.coffeeDrops.create(x, y - 10, "__WHITE") as Phaser.Physics.Arcade.Sprite;
-    coffee.setDisplaySize(14, 14).setTint(0x8b4513).setDepth(9);
+    // Copo de café real (sprite com tampa + cinta + vapor) em vez do bloco marrom.
+    const [tex, frame] = resolveSprite("item-coffee-cup-active0");
+    const coffee = this.coffeeDrops.create(x, y - 10, tex, frame) as Phaser.Physics.Arcade.Sprite;
+    coffee.setDisplaySize(20, 26).setDepth(9);
     const body = coffee.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(Phaser.Math.Between(-80, 80), Phaser.Math.Between(-200, -120));
     body.setBounce(0.3);
-    // Label
-    const lbl = this.add.text(x, y - 20, "☕", { fontSize: "16px" }).setOrigin(0.5).setDepth(10);
-    lbl.setData("follow", coffee);
-    this.time.delayedCall(10000, () => { if (coffee.active) coffee.destroy(); if (lbl.active) lbl.destroy(); });
+    // Anima o vapor ciclando os 3 frames enquanto o copo existe.
+    let f = 0;
+    const steam = this.time.addEvent({
+      delay: 180, loop: true, callback: () => {
+        f = (f + 1) % 3;
+        const [t2, fr2] = resolveSprite(`item-coffee-cup-active${f}`);
+        if (coffee.active) coffee.setTexture(t2, fr2);
+      },
+    });
+    this.time.delayedCall(10000, () => { if (coffee.active) coffee.destroy(); steam.remove(); });
   }
 
   // Item 1 — registra um kill no medidor de Produtividade e devolve o multiplicador de VR.
