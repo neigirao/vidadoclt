@@ -524,7 +524,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     // Item 1 — medidor de Produtividade (fixo na câmera)
     this.prodMeter = this.add.graphics().setScrollFactor(0).setDepth(908);
-    this.prodLabel = this.add.text(GAME_WIDTH / 2, 42, "", {
+    this.prodLabel = this.add.text(GAME_WIDTH / 2, 64, "", {
       fontFamily: "monospace", fontSize: "9px", color: "#aaffaa",
       stroke: "#000000", strokeThickness: 2,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(908);
@@ -1260,7 +1260,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.prodMeter.clear();
     if (!active) { this.prodLabel.setText(""); return; }
     const ratio = Math.max(0, 1 - (time - this.prodLastKillAt) / OpenSpaceV2Scene.PROD_WINDOW_MS);
-    const w = 120, h = 6, x = GAME_WIDTH / 2 - w / 2, y = 52;
+    const w = 120, h = 6, x = GAME_WIDTH / 2 - w / 2, y = 74;
     this.prodMeter.fillStyle(0x000000, 0.5);
     this.prodMeter.fillRect(x - 1, y - 1, w + 2, h + 2);
     const col = this.prodStreak >= 5 ? 0xffcc22 : 0x66dd88;
@@ -1415,25 +1415,23 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       }
     }
 
-    // Item 3 — Tutorial implícito: show control hints for first 12s on loop 0
+    // Item 3 — Tutorial implícito: show control hints for first 12s on loop 0.
+    // Barra horizontal no topo do playfield (abaixo do header da HUD), fora da
+    // área do painel inferior — a versão antiga ficava em y>=460, escondida
+    // atrás da HUD (depth 1000).
     if (!this.tutorialShown && getRun(this).loopCount === 0 && time - this.startTimeMs < 12000) {
       this.tutorialShown = true;
-      const hints = [
-        "← → / A D  mover",
-        "Espaço / W  pular",
-        "Shift  dash",
-        "J  atacar   K  especial",
-        "E  interagir",
-      ];
-      hints.forEach((h, i) => {
-        const t = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 80 + i * 14, h,
-          { fontFamily: "monospace", fontSize: "11px", color: "#888888",
-            stroke: "#000000", strokeThickness: 2 })
-          .setOrigin(0.5).setScrollFactor(0).setDepth(980).setAlpha(0);
-        this.tweens.add({ targets: t, alpha: 1, duration: 400, delay: i * 150 });
-        this.tweens.add({ targets: t, alpha: 0, duration: 800, delay: 7500 + i * 80,
-          onComplete: () => t.destroy() });
-      });
+      const hintBar = "← → mover    Espaço pular    Shift dash    J atacar    K especial    E interagir";
+      const y = HUD_TOP_H + 22;
+      const t = this.add.text(GAME_WIDTH / 2, y, hintBar,
+        { fontFamily: "monospace", fontSize: "11px", color: "#cfd6e0",
+          stroke: "#000000", strokeThickness: 3 })
+        .setOrigin(0.5).setScrollFactor(0).setDepth(980).setAlpha(0);
+      const bg = this.add.rectangle(GAME_WIDTH / 2, y, t.width + 24, 20, 0x0a0d12, 0.72)
+        .setScrollFactor(0).setDepth(979).setAlpha(0);
+      this.tweens.add({ targets: [t, bg], alpha: 1, duration: 400 });
+      this.tweens.add({ targets: [t, bg], alpha: 0, duration: 800, delay: 8000,
+        onComplete: () => { t.destroy(); bg.destroy(); } });
     }
 
     // Item 8 — Boss room dramatic entry: trigger when player crosses x=1580
