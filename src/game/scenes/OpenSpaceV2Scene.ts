@@ -77,6 +77,9 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private eventVrMult = 1;
   private eventNoSanityDrain = false;
 
+  // Marcadores de "healer" (ícone + sobre o coordenador) — seguem o inimigo
+  private healerMarkers: { e: Phaser.Physics.Arcade.Sprite; m: Phaser.GameObjects.Text }[] = [];
+
   constructor() {
     super("OpenSpaceV2Scene");
   }
@@ -392,6 +395,18 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       });
     });
 
+    // Separação entre inimigos de chão: evita que se empilhem no mesmo ponto.
+    // A colisão só resolve a sobreposição (empurra de leve para o lado); a IA
+    // re-aplica a velocidade no frame seguinte, então continuam perseguindo.
+    const groundGroups = [this.estagiarios, this.sobrecarregados, this.analistas,
+      this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs];
+    for (let i = 0; i < groundGroups.length; i++) {
+      this.physics.add.collider(groundGroups[i], groundGroups[i]);
+      for (let j = i + 1; j < groundGroups.length; j++) {
+        this.physics.add.collider(groundGroups[i], groundGroups[j]);
+      }
+    }
+
     // Contact damage
     const contactDamage = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
       this.physics.add.overlap(this.player, group, (_p, eObj) => {
@@ -671,21 +686,48 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.furnitureBodies.add(body);
   }
 
+  // Marca um inimigo como healer com um "+" verde flutuante (leitura de ameaça).
+  private tagHealer(e: Phaser.Physics.Arcade.Sprite): void {
+    const m = this.add.text(e.x, e.y - e.displayHeight - 4, "✚", {
+      fontFamily: "monospace", fontSize: "13px", color: "#55ff99",
+      stroke: "#06301c", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(560);
+    this.healerMarkers.push({ e, m });
+  }
+
+  private updateHealerMarkers(time: number): void {
+    const bob = Math.sin(time / 250) * 2;
+    for (let i = this.healerMarkers.length - 1; i >= 0; i--) {
+      const { e, m } = this.healerMarkers[i];
+      if (!e.active) { m.destroy(); this.healerMarkers.splice(i, 1); continue; }
+      m.setPosition(e.x, e.y - e.displayHeight - 4 + bob);
+    }
+  }
+
   private spawnEnemies(): void {
-    [380, 560, 700].forEach(x => {
+    // ── Dificuldade escalonada: fácil (esquerda) → difícil (direita) ──────────
+    // O jogador entra em x≈80 e avança para a direita rumo ao boss (x≈1820).
+    // Zona 1 (300-560): só estagiários (melee básico) para ensinar o combate.
+    // Zona 2 (660-990): sobrecarregados + analistas junior.
+    // Zona 3 (1100-1210): RH (perseguidores).
+    // Zona 4 (1320-1620): inimigos à distância (onboarding + facilitador).
+    // Zona 5 (1480-1740): elite — scrum, coordenador (healer) e sênior (tanky).
+
+    // Zona 1 — Estagiários Desesperados
+    [320, 440, 560].forEach(x => {
       const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
       this.estagiarios.add(e);
     });
 
-    // Estagiários Sobrecarregados — intercalados com os desesperados
-    [450, 640].forEach(x => {
+    // Zona 2 — Estagiários Sobrecarregados
+    [660, 770].forEach(x => {
       const e = new EstagiarioSobrecarregado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
       e.target = this.player;
       this.sobrecarregados.add(e);
     });
 
-    // Analistas em Onboarding — ranged nervosos perto dos facilitadores
-    [760, 1080].forEach(x => {
+    // Zona 4 — Analistas em Onboarding (ranged)
+    [1320, 1430].forEach(x => {
       const a = new AnalistaOnboarding(this, x, FLOOR_Y - 60);
       a.target = this.player;
       a.onShoot = (fx, fy, tx, ty) => {
@@ -702,7 +744,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.onboardings.add(a);
     });
 
-    [820, 1020].forEach(x => {
+    // Zona 4 — Facilitadores de Workshop (ranged)
+    [1520, 1620].forEach(x => {
       const f = new FacilitadorDeWorkshop(this, x, FLOOR_Y - 60);
       f.target = this.player;
       f.onShoot = (fx, fy, tx, ty) => {
@@ -719,7 +762,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.facilitadores.add(f);
     });
 
-    const scrum = new ScrumMasterCaotico(this, 950, FLOOR_Y - 60);
+    // Zona 5 — Scrum Master Caótico (elite, perto do boss)
+    const scrum = new ScrumMasterCaotico(this, 1480, FLOOR_Y - 60);
     scrum.target = this.player;
     scrum.onShout = (fromX) => {
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, fromX, this.player.y) < 260) {
@@ -729,29 +773,29 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     };
     this.scrums.add(scrum);
 
-    [1150, 1250, 1400].forEach(x => {
+    // Zona 2 — Analistas Junior (melee)
+    [880, 990].forEach(x => {
       const a = new AnalistaJunior(this, x, FLOOR_Y - 60);
       a.target = this.player;
       this.analistas.add(a);
     });
 
-    [1500, 1700].forEach(x => {
-      const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
-      this.estagiarios.add(e);
-    });
-
-    [600, 900, 1300].forEach(x => {
+    // Zona 3 — RH (perseguidores)
+    [1100, 1210].forEach(x => {
       const rh = new EnemyRH(this, x, FLOOR_Y - 60);
       rh.target = this.player;
       this.rhs.add(rh);
     });
 
-    const coord = new CoordenadorDeSinergia(this, 1620, FLOOR_Y - 60);
+    // Zona 5 — Coordenador de Sinergia (HEALER, prioridade) guardando o boss
+    const coord = new CoordenadorDeSinergia(this, 1660, FLOOR_Y - 60);
     coord.target = this.player;
     coord.onCoffeeDrop = (cx, cy) => this.spawnCoffeeDrop(cx, cy);
     this.coordenadores.add(coord);
+    this.tagHealer(coord);
 
-    const sr = new AnalistaSeniorExausto(this, 1700, FLOOR_Y - 60);
+    // Zona 5 — Analista Sênior Exausto (tanky)
+    const sr = new AnalistaSeniorExausto(this, 1740, FLOOR_Y - 60);
     sr.target = this.player;
     this.seniors.add(sr);
 
@@ -1331,6 +1375,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.player.update(time, delta);
     if (!this.eventNoSanityDrain) this.player.tickPassive(time);
     this.drawProdMeter(time);
+    this.updateHealerMarkers(time);
 
     // Physics body sleep: disable body for enemies far off-screen to save CPU
     const camBounds = this.cameras.main.worldView;

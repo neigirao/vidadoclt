@@ -86,6 +86,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private dashTrailTimer = 0;
   private djRing: Phaser.GameObjects.Graphics | null = null;
   private djRingPulse = 0;
+  private marker!: Phaser.GameObjects.Graphics;
 
   private jumpsUsed = 0;
   private specialCooldownUntil = 0;
@@ -164,6 +165,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.pad = pad;
     });
     this.pad = scene.input.gamepad?.pad1 ?? null;
+
+    // Marcador do jogador: chevron ciano flutuante acima da cabeça, para
+    // distinguir o player dos inimigos (vários usam arte parecida de office worker).
+    this.marker = scene.add.graphics().setDepth(this.depth + 5);
+  }
+
+  /** Desenha o chevron indicador acima da cabeça do player. */
+  private drawMarker(time: number) {
+    if (!this.marker) return;
+    const bob = Math.sin(time / 220) * 2;
+    const cy = this.y - this.displayHeight * 0.5 - 12 + bob;
+    this.marker.clear();
+    this.marker.fillStyle(0x000000, 0.35);
+    this.marker.fillTriangle(this.x - 6, cy - 1, this.x + 6, cy - 1, this.x, cy + 7);
+    this.marker.fillStyle(0x35e0ff, 0.95);
+    this.marker.fillTriangle(this.x - 5, cy, this.x + 5, cy, this.x, cy + 6);
   }
 
   private holdA = false;
@@ -481,6 +498,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.gamepadInteractJustPressed = padInteractDown && !this.prevPadInteractDown;
     this.prevPadInteractDown = padInteractDown;
 
+    this.drawMarker(time);
     this.updateTexture(time);
   }
 
