@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
+import { fxGlow } from "./Enemies";
 
 const HIT_INVULN_MS = 400;
 
@@ -133,7 +134,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     if (this.phase === 1 && this.hp <= 350) {
       this.phase = 2;
       this.speed = 100;
-      this.setTint(0xff8800);
+      fxGlow(this, 0xff8800, 220);
       this.scene.time.delayedCall(400, () => { if (this.active) this.clearTint(); });
       this._nextChargeAt = t + 500;
       this._nextParachuteAt = t + 2000;
@@ -141,7 +142,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     if (this.phase === 2 && this.hp <= 150) {
       this.phase = 3;
       this.speed = 130;
-      this.setTint(0xff0000);
+      fxGlow(this, 0xff0000, 220);
       this.scene.time.delayedCall(600, () => { if (this.active) this.clearTint(); });
       this._nextDemissaoAt = t + 1000;
       this._nextSpreadAt = t + 1500;
@@ -228,7 +229,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     this.onHpChange?.(this.hp, this.maxHp);
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this._hurtUntil = now + 150;
     this.scene.time.delayedCall(150, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;

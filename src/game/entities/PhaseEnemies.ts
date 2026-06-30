@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { markKilled } from "../systems/BestiarySystem";
+import { fxGlow, showTelegraph } from "./Enemies";
 
 const HIT_INVULN_MS = 400;
 
@@ -57,7 +58,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -113,7 +114,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -163,8 +164,9 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     if (this.target) {
       const dist = Math.abs(this.target.x - this.x);
       if (dist < 150) {
-        // charge toward player — telegraph with yellow tint
-        this.setTint(0xffdd00);
+        // charge toward player — telegraph
+        fxGlow(this, 0xffdd00, 460);
+        showTelegraph(this, "#ff5533");
         const dir = this.target.x >= this.x ? 1 : -1;
         this._dir = dir;
         this.setFlipX(dir === -1);
@@ -187,7 +189,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -249,7 +251,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -314,7 +316,8 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
       }
       case "stop":
         body.setVelocityX(0);
-        this.setTint(0xffdd00); // telegraph yellow
+        fxGlow(this, 0xffdd00, 460); // telegraph
+        showTelegraph(this);
         if (t >= this._stateUntil) {
           this._aiState = "fire";
           this._stateUntil = t + 200;
@@ -342,7 +345,7 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -399,7 +402,7 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -467,7 +470,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -556,7 +559,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -621,7 +624,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -689,7 +692,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -785,7 +788,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -850,7 +853,7 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -907,7 +910,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.3); // very heavy
@@ -968,7 +971,7 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
@@ -1044,7 +1047,7 @@ export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("reuniao_corporativa");
@@ -1113,7 +1116,7 @@ export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("impressora_vermelha");
@@ -1184,7 +1187,7 @@ export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("impressora_fantasma");
@@ -1259,7 +1262,7 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) {
@@ -1339,7 +1342,7 @@ export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("evangelista_avancado");
@@ -1419,7 +1422,7 @@ export class EvangelistaMegaCorp extends Phaser.Physics.Arcade.Sprite {
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
-    this.setTint(0xff8888);
+    fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("evangelista_megacorp");

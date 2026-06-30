@@ -53,10 +53,30 @@ function setEnemyTex(
 }
 
 
+// Edge-flash (glow) de feedback — NÃO tinge o sprite inteiro (evita o "bloco
+// colorido"/"inimigo amarelo"). Usa preFX.addGlow (WebGL); se indisponível,
+// cai para um flash de tint curtíssimo (<=110ms, não é um "bloco" sustentado).
+const _glowFx = new WeakMap<Phaser.GameObjects.GameObject, unknown>();
+export function fxGlow(e: Phaser.GameObjects.Sprite, color = 0xffdd00, ms = 280): void {
+  const a = e as unknown as { preFX?: { addGlow: (...args: unknown[]) => unknown; remove: (fx: unknown) => void } };
+  const fx = a.preFX;
+  if (fx && typeof fx.addGlow === "function") {
+    const prev = _glowFx.get(e); if (prev) { try { fx.remove(prev); } catch { /* noop */ } }
+    const g = fx.addGlow(color, 4, 0, false, 0.1, 14);
+    _glowFx.set(e, g);
+    e.scene.time.delayedCall(ms, () => {
+      try { if (_glowFx.get(e) === g) { fx.remove(g); _glowFx.delete(e); } } catch { /* noop */ }
+    });
+  } else if (e.active) {
+    e.setTint(color);
+    e.scene.time.delayedCall(Math.min(ms, 110), () => { if (e.active) e.clearTint(); });
+  }
+}
+
 // Telegraph warning bubble — flashes a "!" above an enemy as it winds up an
 // attack, so the player can read the threat and react (combate justo).
 const _telegraphActive = new WeakSet<Phaser.GameObjects.GameObject>();
-function showTelegraph(e: Phaser.Physics.Arcade.Sprite, color = "#ffcc00"): void {
+export function showTelegraph(e: Phaser.Physics.Arcade.Sprite, color = "#ffcc00"): void {
   if (_telegraphActive.has(e)) return;
   _telegraphActive.add(e);
   const mark = e.scene.add.text(e.x, e.y - 40, "!", {
@@ -249,7 +269,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
         if (dist > 70 && dist < 280) {
           this.aiState = "telegraph";
           this.stateUntil = t + 350;
-          this.setTint(0xffdd00);
+          fxGlow(this, 0xffdd00, 460);
           showTelegraph(this);
           body.setVelocityX(0);
         }
@@ -360,7 +380,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
             this.aiState = "retro_tele";
             this.stateUntil = t + 700;
             this.setDisplaySize(44, 64); // visual "swell" during telegraph
-            this.setTint(0xffdd00);
+            fxGlow(this, 0xffdd00, 460);
             showTelegraph(this, "#cc44ff");
             body.setVelocityX(0);
             const label = this.scene.add.text(this.x, this.y - 36, "RETROSPECTIVA!", {
@@ -374,7 +394,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
           } else if (dist < 320) {
             this.aiState = "charge";
             this.stateUntil = t + 500;
-            this.setTint(0xffdd00);
+            fxGlow(this, 0xffdd00, 460);
             showTelegraph(this, "#ff5533");
             body.setVelocityX(0);
           }
@@ -386,7 +406,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
         if (t >= this.stateUntil) {
           this.aiState = "shout";
           this.clearTint();
-          this.setTint(0xff3300);
+          fxGlow(this, 0xff3300, 220);
           if (this.onShout) this.onShout(this.x, this.y);
           // spawn floating "DAILY!" text
           const label = this.scene.add.text(this.x, this.y - 30, "DAILY!", {
@@ -420,7 +440,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
         if (t >= this.stateUntil) {
           this.aiState = "retro_slam";
           this.clearTint();
-          this.setTint(0xff66ff);
+          fxGlow(this, 0xff66ff, 220);
           if (this.onRetrospectiva) this.onRetrospectiva(this.x, this.y);
           this.retrospectivaCooldown = t + 7000;
           this.stateUntil = t + 200;
@@ -516,7 +536,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     if (t >= this.nextBuffAt) {
       this.nextBuffAt = t + 3200;
       this.isBuffing = true;
-      this.setTint(0x44ff88);
+      fxGlow(this, 0x44ff88, 480);
       this.onBuff?.(this.x, this.y, 160);
       const ring = this.scene.add.graphics().setDepth(400);
       ring.lineStyle(2, 0x44ff88, 0.8);
@@ -605,7 +625,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
         if (this.target && Math.abs(this.target.x - this.x) < 58) {
           this.aiState = "telegraph";
           this.stateUntil = t + 650;
-          this.setTint(0xffdd00);
+          fxGlow(this, 0xffdd00, 460);
           showTelegraph(this, "#ff5533");
           body.setVelocityX(0);
         }
@@ -616,7 +636,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
         if (t >= this.stateUntil) {
           this.aiState = "slam";
           this.clearTint();
-          this.setTint(0xff1111);
+          fxGlow(this, 0xff1111, 220);
           this.swingHitbox = new Phaser.Geom.Rectangle(
             this.dir === 1 ? this.x + 4 : this.x - 46,
             this.y - 18, 46, 38,
@@ -734,7 +754,7 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
         if (this.target && Math.abs(this.target.x - this.x) < 48) {
           this.aiState = "telegraph";
           this.stateUntil = t + 380;
-          this.setTint(0xffdd00);
+          fxGlow(this, 0xffdd00, 460);
           showTelegraph(this, "#ff4488");
           body.setVelocityX(0);
         }
@@ -746,7 +766,7 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "swing";
           this.stateUntil = t + 150;
           this.clearTint();
-          this.setTint(0xff3377);
+          fxGlow(this, 0xff3377, 220);
           this.swingHitbox = new Phaser.Geom.Rectangle(
             this.dir === 1 ? this.x + 6 : this.x - 38,
             this.y - 10,
@@ -853,7 +873,8 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
         if (this.target && Math.abs(this.target.x - this.x) < 44) {
           this.aiState = "telegraph";
           this.stateUntil = t + 400;
-          this.setTint(0xffdd00);
+          fxGlow(this, 0xffdd00, 460);
+          showTelegraph(this, "#ff4488");
           body.setVelocityX(0);
         }
         break;
@@ -864,7 +885,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "swing";
           this.stateUntil = t + 140;
           this.clearTint();
-          this.setTint(0xff5555);
+          fxGlow(this, 0xff5555, 220);
           this.swingHitbox = new Phaser.Geom.Rectangle(
             this.dir === 1 ? this.x + 8 : this.x - 36,
             this.y - 8,

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { generateCorporateSpeak } from "../systems/CorporateAI";
+import { fxGlow } from "./Enemies";
 
 // ─── Email projectile (Follow-Up attack) ────────────────────────────────────
 export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
@@ -262,7 +263,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       if (this.target) this.dir = this.target.x < this.x ? -1 : 1;
       this.setFlipX(this.dir === -1);
       body.setVelocityX(this.dir * 430);
-      this.setTint(0xff4400);
+      fxGlow(this, 0xff4400, 220);
       this.swingActive = true;
       this.swingHitbox = new Phaser.Geom.Rectangle(
         this.dir === 1 ? this.x + 8 : this.x - 52,
@@ -296,7 +297,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.08);
     body.setVelocityY(-30);
-    this.setTint(0xff4444);
+    fxGlow(this, 0xff4444, 220);
     this._hurtUntil = now + 330;
     this.scene.time.delayedCall(180, () => { if (this.active) this.clearTint(); });
     this.onHpChange?.(this.hp, this.maxHp);
