@@ -3,6 +3,7 @@ import { PreloadScene } from "./scenes/PreloadScene";
 import { BootScene } from "./scenes/BootScene";
 import { MenuScene } from "./scenes/MenuScene";
 import { ClassSelectScene } from "./scenes/ClassSelectScene";
+import { SpriteLabScene } from "./scenes/SpriteLabScene";
 import { OpenSpaceV2Scene } from "./scenes/OpenSpaceV2Scene";
 import { CopaScene } from "./scenes/CopaScene";
 import { GameOverScene } from "./scenes/GameOverScene";
@@ -74,7 +75,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       Phase2Scene, Phase3Scene, Phase4Scene, Phase5Scene,
       CeoScene, VitoriaScene,
       GameOverScene, RankingScene, PauseScene, CulturaSelectScene, BestiaryScene,
-      ReconhecimentoScene, HoraExtraScene,
+      ReconhecimentoScene, HoraExtraScene, SpriteLabScene,
     ],
   };
 }

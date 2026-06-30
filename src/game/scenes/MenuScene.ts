@@ -19,6 +19,7 @@ const MENU_ITEMS = [
   { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
   { label: "BESTIARIO", icon: "👾" },
+  { label: "LAB SPRITES", icon: "🔬" },
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
   { label: "CONFIGURAÇÕES", icon: "⚙" },
@@ -339,6 +340,11 @@ export class MenuScene extends Phaser.Scene {
       this.cameras.main.fadeOut(200, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("BestiaryScene");
+      });
+    } else if (item.label === "LAB SPRITES") {
+      this.cameras.main.fadeOut(200, 0, 0, 0);
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        this.scene.start("SpriteLabScene");
       });
     } else if (item.label === "ARSENAL") {
       this.showOverlay("arsenal");
