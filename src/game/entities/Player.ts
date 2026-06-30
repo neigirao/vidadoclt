@@ -132,7 +132,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, ...resolveSprite("tex-player-idle0"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
-    this.setDepth(10);
+    this.setDepth(14);
     this.setDisplaySize(48, 64); // taller than wide — matches character sprite proportions and stands out from enemies
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 44);

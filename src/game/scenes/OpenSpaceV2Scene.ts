@@ -635,7 +635,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.add.rectangle(cx, FLOOR_Y + 3, w + 10, 7, 0x000000, 0.3).setDepth(5);
 
     // Pernas + painel da mesa
-    const legs = this.add.graphics().setDepth(6);
+    const legs = this.add.graphics().setDepth(11);
     const legW = 8;
     legs.fillStyle(WOOD_DARK, 1);
     legs.fillRect(x + 4, bodyTop, legW, bodyH);
@@ -648,7 +648,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     legs.strokeRect(x + 4, bodyTop, w - 8, bodyH);
 
     // Tampo da mesa (com leve saliência)
-    const top = this.add.graphics().setDepth(7);
+    const top = this.add.graphics().setDepth(12);
     top.fillStyle(WOOD_TOP, 1);
     top.fillRect(x - 3, surfY - 7, w + 6, 10);
     top.fillStyle(WOOD_EDGE, 1);
@@ -657,8 +657,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     top.strokeRect(x - 3, surfY - 7, w + 6, 14);
 
     // Computador em cima da mesa (sprite limpo do monitor) + teclado
-    addImage(this, cx, surfY - 16, "tex-monitor").setDepth(9).setDisplaySize(34, 26);
-    this.add.rectangle(cx, surfY - 3, 22, 3, 0x222428).setDepth(9); // teclado
+    addImage(this, cx, surfY - 16, "tex-monitor").setDepth(13).setDisplaySize(34, 26);
+    this.add.rectangle(cx, surfY - 3, 22, 3, 0x222428).setDepth(13); // teclado
 
     // Física: superfície (player + inimigos pousam)
     const surf = this.add.rectangle(cx, surfY, w, 14, 0, 0);

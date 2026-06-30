@@ -8,8 +8,12 @@ import { markKilled } from "../systems/BestiarySystem";
 const _animOffsets = new WeakMap<Phaser.Physics.Arcade.Sprite, number>();
 
 // Max walk/idle frame counts per enemy prefix — use all existing atlas frames
+// Conta só os frames de walk com tamanho de canvas consistente (48x64). Os
+// frames 64x64 extraidos a mais (estagiario 4-5, analista 4, facilitador 2-5)
+// tinham o personagem em escala errada/cortado e faziam o sprite "encolher"
+// no meio do ciclo de caminhada. Limitado aos frames bons.
 const WALK_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 6, analista: 5, facilitador: 6, scrum: 6,
+  estagiario: 4, analista: 4, facilitador: 2, scrum: 6,
   coordenador: 4, senior: 4, rh: 4,
 };
 const IDLE_FRAME_COUNTS: Record<string, number> = {
