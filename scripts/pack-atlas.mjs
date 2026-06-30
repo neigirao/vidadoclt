@@ -85,6 +85,39 @@ async function main() {
   const atlasSize = readFileSync(OUT_PNG).length;
   console.log(`Packed ${packable.length} sprites → atlas.png (${ATLAS_W}×${ATLAS_H})`);
   console.log(`Total original: ${(totalOrig/1024).toFixed(1)}KB  Atlas: ${(atlasSize/1024).toFixed(1)}KB`);
+
+  // ── Validação de qualidade (root-cause #1: assets mal-extraídos) ────────────
+  // Roda a cada empacotamento e AVISA sobre frames suspeitos, para que extrações
+  // ruins (frames vazios / tamanho inconsistente numa animação) sejam pegas aqui
+  // e não cheguem ao jogo como "bloco" / sprite encolhendo.
+  const empties = [];
+  const groups = {};
+  for (const s of packable) {
+    try {
+      const { data, info } = await sharp(s.buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      let op = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 30) op++;
+      if (op < 25) empties.push(s.name);
+      if (/^(enemy|player|boss|npc)-/.test(s.name)) {
+        const gkey = s.name.replace(/[0-9]+$/, '');
+        (groups[gkey] = groups[gkey] || []).push(`${info.width}x${info.height}`);
+      }
+    } catch { /* ignore */ }
+  }
+  const sizeIssues = Object.entries(groups)
+    .filter(([, sizes]) => sizes.length >= 3 && new Set(sizes).size > 1)
+    .map(([g, sizes]) => `${g}: ${JSON.stringify([...new Set(sizes)])}`);
+  if (empties.length || sizeIssues.length) {
+    console.log('\n⚠️  VALIDAÇÃO DE ASSETS — revise estes frames:');
+    if (empties.length) console.log('   vazios/quase-vazios:', empties.join(', '));
+    if (sizeIssues.length) {
+      console.log('   tamanho inconsistente numa animação (pode causar "encolhimento"):');
+      sizeIssues.forEach(s => console.log('     - ' + s));
+    }
+    console.log('   (aviso apenas; frames não-usados podem ser ignorados)');
+  } else {
+    console.log('✓ Validação de assets: nenhum frame suspeito.');
+  }
 }
 
 main().catch(console.error);
