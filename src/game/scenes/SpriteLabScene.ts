@@ -2,35 +2,67 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { resolveSprite, isAtlasKey, ATLAS_KEY } from "../systems/SpriteLibrary";
 
-// ── Subjects: cada um com prefixo lógico (estilo tex-<prefix>-<state><n>) e os
-// estados de animação com [frameInicial, quantidade]. Espelha exatamente o que
-// o jogo renderiza, para validarmos animação por animação.
-type StateDef = Record<string, [number, number]>;
-type Subject = { name: string; prefix: string; states: StateDef };
+// ── Lab de Sprites: valida TODOS os assets da Fase 1 (personagens, inimigos,
+// bosses, objetos, drops, projéteis) com botões clicáveis que tocam a animação
+// em loop, preview com bounding box / linha dos pés, e diagnóstico + logs.
+
+type Subject = {
+  name: string;
+  cat: string;
+  states: Record<string, string[]>; // estado -> lista de chaves lógicas (tex-* ou frame do atlas)
+};
+
+// Constrói estados de personagem a partir de [frameInicial, quantidade].
+function mkChar(name: string, cat: string, prefix: string, defs: Record<string, [number, number]>): Subject {
+  const states: Record<string, string[]> = {};
+  for (const [st, [start, count]] of Object.entries(defs)) {
+    states[st] = Array.from({ length: count }, (_, i) => `tex-${prefix}-${st}${start + i}`);
+  }
+  return { name, cat, states };
+}
+function mkItem(name: string, cat: string, states: Record<string, string[]>): Subject {
+  return { name, cat, states };
+}
 
 const SUBJECTS: Subject[] = [
-  { name: "PLAYER", prefix: "player", states: {
+  mkChar("PLAYER", "Personagem", "player", {
     idle: [1, 4], walk: [0, 8], run: [0, 8], jump: [0, 6], fall: [0, 3], attack: [0, 3], hurt: [0, 1], dash: [0, 1],
-  } },
-  { name: "Estagiário", prefix: "estagiario", states: { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] } },
-  { name: "Estagiário B", prefix: "estagiario-b", states: { idle: [0, 4], walk: [0, 5], hurt: [0, 1] } },
-  { name: "Analista", prefix: "analista", states: { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] } },
-  { name: "Analista Novo", prefix: "analista-novo", states: { idle: [0, 4], walk: [0, 5], hurt: [0, 1] } },
-  { name: "RH", prefix: "rh", states: { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] } },
-  { name: "Facilitador", prefix: "facilitador", states: { idle: [0, 4], walk: [0, 2], attack: [0, 1], hurt: [0, 1] } },
-  { name: "Scrum", prefix: "scrum", states: { idle: [0, 4], walk: [0, 6], attack: [0, 1], hurt: [0, 1] } },
-  { name: "Coordenador", prefix: "coordenador", states: { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] } },
-  { name: "Sênior", prefix: "senior", states: { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] } },
-  { name: "Gerente (boss)", prefix: "gerente", states: {
+  }),
+  mkChar("Estagiário", "Inimigo", "estagiario", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Estagiário B", "Inimigo", "estagiario-b", { idle: [0, 4], walk: [0, 5], hurt: [0, 1] }),
+  mkChar("Analista", "Inimigo", "analista", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Analista Novo", "Inimigo", "analista-novo", { idle: [0, 4], walk: [0, 5], hurt: [0, 1] }),
+  mkChar("RH", "Inimigo", "rh", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Facilitador", "Inimigo", "facilitador", { idle: [0, 4], walk: [0, 2], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Scrum", "Inimigo", "scrum", { idle: [0, 4], walk: [0, 6], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Coordenador", "Inimigo", "coordenador", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Sênior", "Inimigo", "senior", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Gerente (boss)", "Boss", "gerente", {
     idle: [0, 2], walk: [0, 4], run: [0, 4], hurt: [0, 3], death: [0, 3], attack: [0, 2],
-    "attack-deadline": [0, 4], "attack-escopo": [0, 4], "attack-sprint": [0, 3], "run-charge": [0, 3],
-  } },
-  { name: "CEO (boss)", prefix: "boss-ceo", states: {
+    "atk-deadline": [0, 4], "atk-escopo": [0, 4], "atk-sprint": [0, 3], "run-charge": [0, 3],
+  }),
+  mkChar("CEO (boss)", "Boss", "boss-ceo", {
     idle: [0, 2], walk: [0, 2], run: [0, 6], attack: [0, 4], special: [0, 4], hurt: [0, 1], death: [0, 2],
-  } },
+  }),
+  // Objetos
+  mkItem("Baía", "Objeto", { idle: ["tex-baia"] }),
+  mkItem("Bebedouro", "Objeto", { idle: ["tex-bebedouro"] }),
+  mkItem("Máq. Café", "Objeto", { idle: ["tex-cafe-machine"] }),
+  mkItem("Porta", "Objeto", { idle: ["tex-door"] }),
+  mkItem("Monitor", "Objeto", { idle: ["tex-monitor"] }),
+  mkItem("Ponto", "Objeto", { idle: ["tex-ponto"] }),
+  mkItem("Quadro Motiv.", "Objeto", { idle: ["tex-quadro-motivacional"] }),
+  // Drops
+  mkItem("VR (moeda)", "Drop", { spin: ["item-vr-coin-active0", "item-vr-coin-active1", "item-vr-coin-active2"] }),
+  mkItem("Café (drop)", "Drop", { idle: ["item-coffee-cup", "item-coffee-cup-active0", "item-coffee-cup-active1"] }),
+  // Projéteis
+  mkItem("Post-it", "Projétil", { active: ["item-postit-active0", "item-postit-active1", "item-postit-active2"] }),
+  mkItem("Tinta (Bic)", "Projétil", { idle: ["item-inkproj", "tex-inkproj"] }),
+  mkItem("Convite", "Projétil", { idle: ["item-convite-accepted0", "item-convite-accepted1", "item-convite-accepted2"] }),
+  mkItem("E-mail", "Projétil", { idle: ["item-email-idle0", "item-email-idle1"] }),
 ];
 
-type FrameInfo = { key: string; ok: boolean; w: number; h: number };
+type FrameInfo = { key: string; ok: boolean; tex: string; frame?: string; w: number; h: number };
 
 export class SpriteLabScene extends Phaser.Scene {
   private subjIdx = 0;
@@ -45,101 +77,122 @@ export class SpriteLabScene extends Phaser.Scene {
   private feetLine!: Phaser.GameObjects.Graphics;
   private info!: Phaser.GameObjects.Text;
   private stripG!: Phaser.GameObjects.Container;
+  private stateBtns!: Phaser.GameObjects.Container;
+  private subjBtns: { idx: number; bg: Phaser.GameObjects.Rectangle }[] = [];
   private frames: FrameInfo[] = [];
 
   private readonly SCALE = 4;
-  private readonly CX = 300;
-  private readonly CY = 300;
+  private readonly CX = 350;
+  private readonly FEET_Y = 430;
 
   constructor() { super("SpriteLabScene"); }
 
   create() {
     this.cameras.main.setBackgroundColor("#15171c");
 
-    // Checkerboard atrás do preview
+    this.add.text(GAME_WIDTH / 2, 8, "LAB DE SPRITES — FASE 1", {
+      fontFamily: "monospace", fontSize: "15px", color: "#f2c14e", stroke: "#000", strokeThickness: 2,
+    }).setOrigin(0.5, 0);
+    this.add.text(GAME_WIDTH / 2, 28, "clique nos botões (personagem à esquerda, ação embaixo) — a ação roda em loop   ·   [ESC] sair", {
+      fontFamily: "monospace", fontSize: "9px", color: "#8a93a0",
+    }).setOrigin(0.5, 0);
+
+    // Checkerboard do preview
     const chk = this.add.graphics().setDepth(0);
-    for (let y = 120; y < 480; y += 16) for (let x = 60; x < 540; x += 16) {
+    for (let y = 110; y < 460; y += 16) for (let x = 195; x < 545; x += 16) {
       chk.fillStyle(((x / 16 + y / 16) & 1) ? 0x2a2d35 : 0x20232a, 1);
       chk.fillRect(x, y, 16, 16);
     }
 
-    this.add.text(GAME_WIDTH / 2, 10, "LAB DE SPRITES / ANIMAÇÕES", {
-      fontFamily: "monospace", fontSize: "16px", color: "#f2c14e", stroke: "#000", strokeThickness: 2,
-    }).setOrigin(0.5, 0);
-    this.add.text(GAME_WIDTH / 2, 32,
-      "← →  troca personagem    ↑ ↓  troca animação    [ESPAÇO] play/pause    [ , . ] passo frame    [ESC] sair", {
-      fontFamily: "monospace", fontSize: "10px", color: "#8a93a0",
-    }).setOrigin(0.5, 0);
-
     this.feetLine = this.add.graphics().setDepth(1);
     this.bbox = this.add.graphics().setDepth(3);
-    this.preview = this.add.image(this.CX, this.CY, ATLAS_KEY).setDepth(2);
+    this.preview = this.add.image(this.CX, this.FEET_Y, ATLAS_KEY).setOrigin(0.5, 1).setDepth(2);
 
     // Painel de diagnóstico
-    this.add.rectangle(750, 300, 380, 360, 0x0d0f13, 0.9).setStrokeStyle(1, 0x333a44);
-    this.info = this.add.text(572, 130, "", {
-      fontFamily: "monospace", fontSize: "11px", color: "#cfd6e0", lineSpacing: 4, wordWrap: { width: 360 },
+    this.add.rectangle(745, 230, 390, 230, 0x0d0f13, 0.92).setStrokeStyle(1, 0x333a44);
+    this.info = this.add.text(560, 122, "", {
+      fontFamily: "monospace", fontSize: "11px", color: "#cfd6e0", lineSpacing: 4, wordWrap: { width: 372 },
     });
 
-    // Tira de frames embaixo
     this.stripG = this.add.container(0, 0).setDepth(4);
+    this.stateBtns = this.add.container(0, 0).setDepth(5);
 
-    const kb = this.input.keyboard!;
-    kb.on("keydown-LEFT",  () => this.changeSubject(-1));
-    kb.on("keydown-RIGHT", () => this.changeSubject(1));
-    kb.on("keydown-A",     () => this.changeSubject(-1));
-    kb.on("keydown-D",     () => this.changeSubject(1));
-    kb.on("keydown-UP",    () => this.changeState(-1));
-    kb.on("keydown-DOWN",  () => this.changeState(1));
-    kb.on("keydown-W",     () => this.changeState(-1));
-    kb.on("keydown-S",     () => this.changeState(1));
-    kb.on("keydown-SPACE", () => { this.playing = !this.playing; });
-    kb.on("keydown-COMMA", () => { this.playing = false; this.stepFrame(-1); });
-    kb.on("keydown-PERIOD",() => { this.playing = false; this.stepFrame(1); });
-    kb.on("keydown-ESC",   () => this.scene.start("MenuScene"));
+    this.buildSubjectButtons();
+
+    this.input.keyboard!.on("keydown-ESC", () => this.scene.start("MenuScene"));
+    this.input.keyboard!.on("keydown-SPACE", () => { this.playing = !this.playing; });
 
     this.loadState();
   }
 
-  private changeSubject(d: number) {
-    this.subjIdx = (this.subjIdx + d + SUBJECTS.length) % SUBJECTS.length;
+  // ── Botões de personagem (coluna esquerda, agrupados por categoria) ─────────
+  private buildSubjectButtons() {
+    let y = 70; let lastCat = "";
+    SUBJECTS.forEach((s, i) => {
+      if (s.cat !== lastCat) {
+        this.add.text(10, y, s.cat.toUpperCase(), { fontFamily: "monospace", fontSize: "8px", color: "#5f6a78" });
+        y += 12; lastCat = s.cat;
+      }
+      const bg = this.add.rectangle(12, y, 168, 14, 0x1a1d23).setOrigin(0, 0).setStrokeStyle(1, 0x2a2f3a)
+        .setInteractive({ useHandCursor: true });
+      const t = this.add.text(16, y + 2, s.name, { fontFamily: "monospace", fontSize: "10px", color: "#cfd6e0" });
+      bg.on("pointerover", () => { if (this.subjIdx !== i) bg.setFillStyle(0x252a36); });
+      bg.on("pointerout", () => { if (this.subjIdx !== i) bg.setFillStyle(0x1a1d23); });
+      bg.on("pointerdown", () => { this.subjIdx = i; const st = Object.keys(s.states); this.stateName = st[0]; this.loadState(); });
+      void t;
+      this.subjBtns.push({ idx: i, bg });
+      y += 16;
+    });
+  }
+
+  private refreshSubjectButtons() {
+    this.subjBtns.forEach(({ idx, bg }) => {
+      bg.setFillStyle(idx === this.subjIdx ? 0x3a4250 : 0x1a1d23)
+        .setStrokeStyle(1, idx === this.subjIdx ? 0xf2c14e : 0x2a2f3a);
+    });
+  }
+
+  // ── Botões de ação (embaixo), clique = loop daquela animação ────────────────
+  private buildStateButtons() {
+    this.stateBtns.removeAll(true);
     const states = Object.keys(SUBJECTS[this.subjIdx].states);
-    if (!states.includes(this.stateName)) this.stateName = states[0];
-    this.loadState();
+    let x = 200; const y = 478;
+    states.forEach(st => {
+      const w = 18 + st.length * 7;
+      const active = st === this.stateName;
+      const bg = this.add.rectangle(x, y, w, 22, active ? 0x2a6b3a : 0x222834).setOrigin(0, 0)
+        .setStrokeStyle(1, active ? 0x55ff99 : 0x39404e).setInteractive({ useHandCursor: true });
+      const t = this.add.text(x + w / 2, y + 11, st, {
+        fontFamily: "monospace", fontSize: "10px", color: active ? "#ffffff" : "#aab3c0",
+      }).setOrigin(0.5);
+      bg.on("pointerover", () => { if (st !== this.stateName) bg.setFillStyle(0x2c3340); });
+      bg.on("pointerout", () => { if (st !== this.stateName) bg.setFillStyle(0x222834); });
+      bg.on("pointerdown", () => { this.stateName = st; this.playing = true; this.loadState(); });
+      this.stateBtns.add(bg); this.stateBtns.add(t);
+      x += w + 6;
+      if (x > GAME_WIDTH - 120) { x = 200; }
+    });
   }
 
-  private changeState(d: number) {
-    const states = Object.keys(SUBJECTS[this.subjIdx].states);
-    let i = states.indexOf(this.stateName);
-    i = (i + d + states.length) % states.length;
-    this.stateName = states[i];
-    this.loadState();
+  private getInfo(key: string): FrameInfo {
+    const [tex, frame] = resolveSprite(key);
+    let ok = false, w = 0, h = 0;
+    if (isAtlasKey(key) && frame) {
+      ok = true; const f = this.textures.get(ATLAS_KEY).get(frame); w = f.cutWidth; h = f.cutHeight;
+    } else if (this.textures.exists(tex)) {
+      ok = true; const src = this.textures.get(tex).getSourceImage() as { width: number; height: number };
+      w = src.width; h = src.height;
+    }
+    return { key, ok, tex, frame, w, h };
   }
 
-  private stepFrame(d: number) {
-    if (!this.frames.length) return;
-    this.frameIdx = (this.frameIdx + d + this.frames.length) % this.frames.length;
-    this.applyFrame();
-  }
-
-  // Resolve todos os frames do estado atual e detecta problemas.
   private loadState() {
     const subj = SUBJECTS[this.subjIdx];
-    const [start, count] = subj.states[this.stateName];
-    this.frames = [];
-    for (let i = 0; i < count; i++) {
-      const n = start + i;
-      const key = `tex-${subj.prefix}-${this.stateName}${n}`;
-      const ok = isAtlasKey(key);
-      let w = 0, h = 0;
-      if (ok) {
-        const [, frame] = resolveSprite(key);
-        const f = this.textures.get(ATLAS_KEY).get(frame!);
-        w = f.cutWidth; h = f.cutHeight;
-      }
-      this.frames.push({ key, ok, w, h });
-    }
+    const keys = subj.states[this.stateName] ?? [];
+    this.frames = keys.map(k => this.getInfo(k));
     this.frameIdx = 0;
+    this.refreshSubjectButtons();
+    this.buildStateButtons();
     this.buildStrip();
     this.applyFrame();
     this.logDiagnostics();
@@ -147,53 +200,42 @@ export class SpriteLabScene extends Phaser.Scene {
 
   private applyFrame() {
     const f = this.frames[this.frameIdx];
-    if (!f) return;
     this.bbox.clear(); this.feetLine.clear();
-    if (f.ok) {
-      const [, frame] = resolveSprite(f.key);
-      this.preview.setTexture(ATLAS_KEY, frame!).setVisible(true);
-      this.preview.setScale(this.SCALE);
-      // base nos pés: ancora a parte de baixo do frame numa linha fixa
+    if (f && f.ok) {
+      if (f.frame) this.preview.setTexture(f.tex, f.frame); else this.preview.setTexture(f.tex);
+      this.preview.setVisible(true).setScale(this.SCALE).setPosition(this.CX, this.FEET_Y);
       const dw = f.w * this.SCALE, dh = f.h * this.SCALE;
-      const feetY = this.CY + 120;
-      this.preview.setOrigin(0.5, 1).setPosition(this.CX, feetY);
-      // bounding box
-      this.bbox.lineStyle(1, 0x44ff88, 0.8).strokeRect(this.CX - dw / 2, feetY - dh, dw, dh);
-      // feet line
-      this.feetLine.lineStyle(1, 0xff8844, 0.6).lineBetween(80, feetY, 520, feetY);
+      this.bbox.lineStyle(1, 0x44ff88, 0.85).strokeRect(this.CX - dw / 2, this.FEET_Y - dh, dw, dh);
+      this.feetLine.lineStyle(1, 0xff8844, 0.55).lineBetween(195, this.FEET_Y, 545, this.FEET_Y);
     } else {
       this.preview.setVisible(false);
-      this.feetLine.lineStyle(2, 0xff3333, 1).strokeRect(this.CX - 40, this.CY - 40, 80, 80);
+      this.feetLine.lineStyle(2, 0xff3333, 1).strokeRect(this.CX - 40, this.FEET_Y - 80, 80, 80);
     }
     this.highlightStrip();
   }
 
   private buildStrip() {
     this.stripG.removeAll(true);
-    const y = 500, cell = 46, total = this.frames.length;
-    const startX = GAME_WIDTH / 2 - (total * cell) / 2 + cell / 2;
+    const y = 525, cell = 44, total = this.frames.length;
+    const startX = this.CX - (total * cell) / 2 + cell / 2;
     this.frames.forEach((f, i) => {
       const x = startX + i * cell;
-      const border = this.add.rectangle(x, y, cell - 4, cell - 4, 0x1a1d23)
-        .setStrokeStyle(2, f.ok ? 0x44ff88 : 0xff3333);
+      const border = this.add.rectangle(x, y, cell - 4, cell - 4, 0x1a1d23).setStrokeStyle(2, f.ok ? 0x44ff88 : 0xff3333);
       this.stripG.add(border);
       if (f.ok) {
-        const [, frame] = resolveSprite(f.key);
-        const img = this.add.image(x, y, ATLAS_KEY, frame!);
-        const s = Math.min((cell - 8) / f.w, (cell - 8) / f.h);
-        img.setScale(s);
+        const img = f.frame ? this.add.image(x, y, f.tex, f.frame) : this.add.image(x, y, f.tex);
+        img.setScale(Math.min((cell - 8) / f.w, (cell - 8) / f.h));
         this.stripG.add(img);
       } else {
         this.stripG.add(this.add.text(x, y, "✗", { fontFamily: "monospace", fontSize: "16px", color: "#ff5555" }).setOrigin(0.5));
       }
-      this.stripG.add(this.add.text(x, y + 22, String(i), { fontFamily: "monospace", fontSize: "8px", color: "#8a93a0" }).setOrigin(0.5));
+      this.stripG.add(this.add.text(x, y + 20, String(i), { fontFamily: "monospace", fontSize: "8px", color: "#8a93a0" }).setOrigin(0.5));
     });
   }
 
   private highlightStrip() {
-    // realça o frame atual na tira
-    const y = 500, cell = 46, total = this.frames.length;
-    const startX = GAME_WIDTH / 2 - (total * cell) / 2 + cell / 2;
+    const cell = 44, total = this.frames.length;
+    const startX = this.CX - (total * cell) / 2 + cell / 2;
     (this.stripG.list as Phaser.GameObjects.GameObject[]).forEach(o => {
       if (o instanceof Phaser.GameObjects.Rectangle) {
         const idx = Math.round((o.x - startX) / cell);
@@ -207,23 +249,20 @@ export class SpriteLabScene extends Phaser.Scene {
     const subj = SUBJECTS[this.subjIdx];
     const missing = this.frames.filter(f => !f.ok).map(f => f.key);
     const sizes = [...new Set(this.frames.filter(f => f.ok).map(f => `${f.w}x${f.h}`))];
+    const cur = this.frames[this.frameIdx];
     const lines = [
-      `PERSONAGEM:  ${subj.name}   (${this.subjIdx + 1}/${SUBJECTS.length})`,
-      `prefixo:     tex-${subj.prefix}-*`,
-      ``,
-      `ANIMAÇÃO:    ${this.stateName}   (${this.frames.length} frames)`,
-      `tamanhos:    ${sizes.join(", ") || "—"}` + (sizes.length > 1 ? "  ⚠ INCONSISTENTE" : "  ✓"),
-      `faltando:    ${missing.length ? "⚠ " + missing.length : "✓ 0"}`,
+      `${subj.cat.toUpperCase()}:  ${subj.name}`,
+      `ANIMAÇÃO:  ${this.stateName}   (${this.frames.length} frames)`,
+      `tamanhos:  ${sizes.join(", ") || "—"}` + (sizes.length > 1 ? "  ⚠ INCONSISTENTE" : "  ✓"),
+      `faltando:  ${missing.length ? "⚠ " + missing.length : "✓ 0"}`,
       ...missing.map(m => `   ✗ ${m}`),
       ``,
-      `estados:     ${Object.keys(subj.states).join(" · ")}`,
+      `frame atual: ${cur ? (cur.frame ?? cur.tex) : "—"}  (${cur ? cur.w + "x" + cur.h : "—"})`,
     ];
     this.info.setText(lines.join("\n"));
-    // log no console também (para você abrir o devtools e ver o histórico)
     const status = missing.length || sizes.length > 1 ? "⚠ PROBLEMA" : "OK";
     // eslint-disable-next-line no-console
-    console.log(`[SpriteLab] ${subj.name} / ${this.stateName}: ${this.frames.length}f, sizes=${sizes.join("|")}, missing=${missing.length} → ${status}`,
-      missing.length ? missing : "");
+    console.log(`[SpriteLab] ${subj.name}/${this.stateName}: ${this.frames.length}f sizes=${sizes.join("|")} missing=${missing.length} → ${status}`, missing.length ? missing : "");
   }
 
   update(time: number) {
