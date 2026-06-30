@@ -38,6 +38,14 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       roundPixels: true,
       antialias: false,
     },
+    // Trava o loop em 60fps independente da taxa de atualização do monitor.
+    // Sem isto, em telas de 120/144Hz o jogo rodava acelerado até o navegador
+    // re-sincronizar (ex: ao trocar de aba) — daí "começa rápido e normaliza".
+    // forceSetTimeOut usa setTimeout(~16.6ms) em vez de requestAnimationFrame.
+    fps: {
+      target: 60,
+      forceSetTimeOut: true,
+    },
     input: {
       gamepad: true,
       keyboard: true,
@@ -53,6 +61,8 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       default: "arcade",
       arcade: {
         gravity: { x: 0, y: 1200 },
+        fps: 60,
+        fixedStep: true,
         debug: _debugMode,
         debugBodyColor: 0x00ff00,
         debugVelocityColor: 0xffff00,
