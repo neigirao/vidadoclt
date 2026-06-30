@@ -60,14 +60,14 @@ export class Phase3Scene extends BasePhaseScene {
     this.impressorasV  = this.physics.add.group({ runChildUpdate: false });
     this.seniors       = this.physics.add.group({ runChildUpdate: false });
 
-    [250, 600, 950, 1300].forEach((x) => {
+    [240, 420, 600, 780].forEach((x) => {
       const e = new EvangelistaCorporativo(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 12, 0xff6600, 190);
       this.evangelistas.add(e);
     });
 
-    [400, 800, 1200].forEach((x) => {
+    [550, 950, 1350].forEach((x) => {
       const e = new ColetorDeDados(this, x, FLOOR_Y - 160);
       e.target = this.player;
       e.onStealVR = () => {
@@ -83,7 +83,7 @@ export class Phase3Scene extends BasePhaseScene {
       this.coletores.add(e);
     });
 
-    [500, 1100].forEach((x) => {
+    [940, 1140].forEach((x) => {
       const planilha = new PlanilhaViva(this, x, FLOOR_Y - 60);
       planilha.target = this.player;
       planilha.onFire = (px, py) => {
@@ -115,7 +115,7 @@ export class Phase3Scene extends BasePhaseScene {
       this.planilhas.add(planilha);
     });
 
-    [350, 1050].forEach((x) => {
+    [1340, 1520].forEach((x) => {
       const iv = new ImpressoraVermelha(this, x, FLOOR_Y - 60);
       iv.target = this.player;
       iv.onFire = (fx, fy, dir) => this.spawnEnemyProjectile(fx, fy, fx + dir * 200, fy, 12, 0xcc2200, 220);

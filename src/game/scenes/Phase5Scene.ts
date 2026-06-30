@@ -66,7 +66,7 @@ export class Phase5Scene extends BasePhaseScene {
 
     this.enemyCount = 0;
 
-    [250, 750, 1300].forEach((x) => {
+    [250, 420, 590].forEach((x) => {
       const e = new CarimbadorAutomatico(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onStamp = (sx, sy) => {
@@ -84,14 +84,14 @@ export class Phase5Scene extends BasePhaseScene {
       this.enemyCount++;
     });
 
-    [600, 1500].forEach((x) => {
+    [760, 960].forEach((x) => {
       const e = new ArquivoAmbulante(this, x, FLOOR_Y - 60);
       e.target = this.player;
       this.arquivos.add(e);
       this.enemyCount++;
     });
 
-    [400, 1000, 1700].forEach((x) => {
+    [620, 1100, 1380].forEach((x) => {
       const e = new BateriaSocial(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onDeath = () => {
@@ -110,7 +110,7 @@ export class Phase5Scene extends BasePhaseScene {
       this.enemyCount++;
     });
 
-    [500, 1300].forEach((x) => {
+    [1200, 1450].forEach((x) => {
       const imn = new ImpressoraNecromorfa(this, x, FLOOR_Y - 60);
       imn.target = this.player;
       imn.onFire = (fx, fy, dir) => this.spawnEnemyProjectile(fx, fy, fx + dir * 200, fy, 18, 0x440022, 240);
@@ -124,7 +124,7 @@ export class Phase5Scene extends BasePhaseScene {
       this.enemyCount++;
     });
 
-    [800, 1600].forEach((x) => {
+    [1520, 1660].forEach((x) => {
       const ev = new EvangelistaMegaCorp(this, x, FLOOR_Y - 60);
       ev.target = this.player;
       ev.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 12, 0xff6600, 200);

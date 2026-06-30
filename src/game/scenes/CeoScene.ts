@@ -125,6 +125,7 @@ export class CeoScene extends Phaser.Scene {
     this.drops           = this.physics.add.group();
 
     this.physics.add.collider(this.minions, this.platforms);
+    this.physics.add.collider(this.minions, this.minions); // separação entre minions
     this.physics.add.collider(this.drops, this.platforms);
 
     // Boss

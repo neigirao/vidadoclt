@@ -250,6 +250,16 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     }
     this.physics.add.collider(this.drops, this.platforms);
 
+    // 10b. Separação entre inimigos de chão (não-aéreos): evita empilhamento no
+    // mesmo ponto. Só resolve a sobreposição; a IA re-aplica a velocidade.
+    const groundGroups = this.enemyGroups.filter(d => !d.aerial).map(d => d.group);
+    for (let i = 0; i < groundGroups.length; i++) {
+      this.physics.add.collider(groundGroups[i], groundGroups[i]);
+      for (let j = i + 1; j < groundGroups.length; j++) {
+        this.physics.add.collider(groundGroups[i], groundGroups[j]);
+      }
+    }
+
     // 11. Contact damage overlaps (filter !aerial)
     for (const def of this.enemyGroups) {
       if (!def.aerial) {

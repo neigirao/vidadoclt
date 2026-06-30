@@ -64,7 +64,7 @@ export class Phase4Scene extends BasePhaseScene {
     this.impressorasF = this.physics.add.group({ runChildUpdate: false });
     this.evangelistasA = this.physics.add.group({ runChildUpdate: false });
 
-    [280, 700, 1200].forEach((x) => {
+    [260, 420, 580].forEach((x) => {
       const e = new CaboDeRede(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onCable = () => {
@@ -76,7 +76,7 @@ export class Phase4Scene extends BasePhaseScene {
       this.cabos.add(e);
     });
 
-    [450, 900, 1450].forEach((x) => {
+    [720, 880, 1040].forEach((x) => {
       const e = new TiSuporte(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onSpawnError = (ex, ey) => {
@@ -93,7 +93,7 @@ export class Phase4Scene extends BasePhaseScene {
       this.tiSuportes.add(e);
     });
 
-    [340, 1000, 1600].forEach((x) => {
+    [500, 1000, 1450].forEach((x) => {
       const drone = new DroneDeVigilancia(this, x, FLOOR_Y - 180);
       drone.target = this.player;
       drone.onBomb = (bx, by) => {
@@ -107,7 +107,7 @@ export class Phase4Scene extends BasePhaseScene {
       this.drones.add(drone);
     });
 
-    [600, 1350].forEach((x) => {
+    [1280, 1430].forEach((x) => {
       const seg = new SegurancaCorporativa(this, x, FLOOR_Y - 60);
       seg.target = this.player;
       seg.onTase = () => {
@@ -119,14 +119,14 @@ export class Phase4Scene extends BasePhaseScene {
       this.segurancas.add(seg);
     });
 
-    [400, 1200].forEach((x) => {
+    [900, 1140].forEach((x) => {
       const imf = new ImpressoraFantasma(this, x, FLOOR_Y - 60);
       imf.target = this.player;
       imf.onFire = (fx, fy, dir) => this.spawnEnemyProjectile(fx, fy, fx + dir * 200, fy, 14, 0x8822cc, 230);
       this.impressorasF.add(imf);
     });
 
-    [750, 1450].forEach((x) => {
+    [1520, 1640].forEach((x) => {
       const ev = new EvangelistaAvancado(this, x, FLOOR_Y - 60);
       ev.target = this.player;
       ev.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 10, 0xff6600, 190);

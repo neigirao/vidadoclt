@@ -62,14 +62,14 @@ export class Phase2Scene extends BasePhaseScene {
     this.reunioes       = this.physics.add.group({ runChildUpdate: false });
     this.coordenadores  = this.physics.add.group({ runChildUpdate: false });
 
-    [300, 550, 800, 1100, 1400].forEach((x) => {
+    [260, 400, 540, 680, 820].forEach((x) => {
       const e = new TelemarketerZumbi(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 10);
       this.telemarketers.add(e);
     });
 
-    [600, 1200].forEach((x) => {
+    [1050, 1250].forEach((x) => {
       const e = new ImpressoraAssombrada(this, x, FLOOR_Y - 60);
       e.onFire = (fx, fy, dir) => {
         const angle = dir === 0 ? 0 : (dir < 0 ? -0.3 : 0.3);
@@ -80,17 +80,17 @@ export class Phase2Scene extends BasePhaseScene {
       this.impressoras.add(e);
     });
 
-    const guardiao = new GuardiaoDoCafe(this, 900, FLOOR_Y - 60);
+    const guardiao = new GuardiaoDoCafe(this, 1550, FLOOR_Y - 60);
     guardiao.target = this.player;
     this.guardioes.add(guardiao);
 
-    [400, 1500].forEach((x) => {
+    [620, 1380].forEach((x) => {
       const e = new NuvemBoardSentinela(this, x, FLOOR_Y - 200);
       e.onFire = (fx, fy) => this.spawnEnemyProjectile(fx, fy, fx, fy + 300, 12, 0xff4444, 200);
       this.nuvens.add(e);
     });
 
-    [500, 1100, 1500].forEach((x) => {
+    [940, 1130, 1340].forEach((x) => {
       const r = new ReuniaoCorportiva(this, x, FLOOR_Y - 60);
       r.target = this.player;
       r.onAura = () => {
