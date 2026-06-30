@@ -493,7 +493,9 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
-    this.setTint(0xbbffcc); // permanent support-role green tint — signals "buff/healer" at idle
+    // Sem tint permanente: tingir o sprite inteiro de verde apagava o detalhe e,
+    // numa tela/foto com branco quente, parecia um "boneco amarelo sem sprite".
+    // O papel de buff/healer é sinalizado pelo anel verde durante o buff (preUpdate).
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(32, 48);
     body.setOffset(8, 16); // sprite 48×64: x=(48-32)/2, y=64-48
@@ -521,7 +523,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
       ring.strokeCircle(this.x, this.y, 160);
       this.scene.tweens.add({
         targets: ring, alpha: 0, scaleX: 1.4, scaleY: 1.4,
-        duration: 700, onComplete: () => { this.isBuffing = false; this.setTint(0xbbffcc); ring.destroy(); },
+        duration: 700, onComplete: () => { this.isBuffing = false; this.clearTint(); ring.destroy(); },
       });
     }
     // Animate texture (tint override during buff is fine — keeps aura signal)
