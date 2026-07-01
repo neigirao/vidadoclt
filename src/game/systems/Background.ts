@@ -10,7 +10,8 @@ const PHASE_PROP_KEYS: Record<number, string[]> = {
   2: ["prop-fase2-00", "prop-fase2-03", "prop-fase2-04", "tile-fase2-02", "tile-fase2-05"],
   3: ["prop-fase3-00", "prop-fase3-02", "tile-fase3-04"],
   4: ["prop-fase4-00", "prop-fase4-02", "prop-fase4-03", "tile-fase4-04", "tile-fase4-07"],
-  5: ["prop-fase5-00", "prop-fase5-02", "tile-fase5-01", "tile-fase5-03", "tile-fase5-06"],
+  // tile-fase5-01 removido: frame vazio na extração (renderizava prop invisível).
+  5: ["prop-fase5-00", "prop-fase5-02", "tile-fase5-03", "tile-fase5-06"],
 };
 
 /**
