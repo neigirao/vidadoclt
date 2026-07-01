@@ -175,7 +175,10 @@ export class SanityFx {
     // Increased range: starts earlier (0.5 stress) and goes deeper (→ 0.88)
     if (stress > 0.5) {
       const t = (stress - 0.5) / 0.5;               // 0 → 1 over upper half
-      this.barrel.amount = 1.0 - t * 0.12;          // 1.0 → 0.88
+      // Warp reduzido (antes 0.88): 12% de pincushion desalinhava a mira do
+      // combate na borda da tela. 7% mantém a "visão estressada" sem quebrar o
+      // acerto (a hitbox mais generosa cobre o resto).
+      this.barrel.amount = 1.0 - t * 0.07;          // 1.0 → 0.93
     } else {
       this.barrel.amount = 1.0;
     }

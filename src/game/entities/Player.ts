@@ -435,11 +435,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (this.isRangedPrimary) {
         this.onRangedAttack?.(this.x, this.y, this.facing);
       } else {
+        // Hitbox com margem de perdão: começa levemente atrás do centro (pega
+        // inimigo colado), estende o alcance +14 e é mais alta (44) para não
+        // "passar por cima" — reduz o clássico "bati e não acertou".
+        const reach = this.attackRange + 18;
         const hb = new Phaser.Geom.Rectangle(
-          this.facing === 1 ? this.x + 6 : this.x - 6 - this.attackRange,
-          this.y - 12,
-          this.attackRange,
-          28,
+          this.facing === 1 ? this.x - 4 : this.x + 4 - reach,
+          this.y - 22,
+          reach,
+          44,
         );
         this.onAttack?.(hb, this.comboStep);
         if (this.hitAutoRanged) this.onRangedAttack?.(this.x, this.y, this.facing);
