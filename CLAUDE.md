@@ -126,6 +126,8 @@ Versão limpa da Fase 1 (a antiga V1 foi descontinuada). Pontos-chave:
 
 - **Móveis com corpo sólido**: plataformas usam `this.add.graphics().fillStyle(0x5c3318)` em vez de texturas esticadas (a V1 esticava texturas de estante coloridas → efeito "arco-íris").
 - **Superfícies do atlas direto**: `this.add.image(x, y, "sprites", "tile-platform")`.
+- **4 variantes de layout por seed** (`seedNum % 4`): default, elevado, denso e **escada** (escalonado, exige pulos encadeados). Cada carga valida no `LevelValidator`.
+- **Recompensa de exploração vertical**: `spawnVerticalReward()` põe um cache de 💰 (5 VR) na plataforma mais alta do layout — premia subir. Alcançabilidade garantida pelo validador.
 - **`furnitureBodies` é um StaticGroup separado** de `platforms`. **Player E inimigos de chão colidem** com os móveis (antes só o player, e inimigos atravessavam). Para não travar os perseguidores contra a mesa, um callback de colisão (`hopOverFurniture`) dá um pulinho quando o inimigo trava de lado no chão — sobe mesa baixa rumo ao alvo; patrulheiros também viram pela lógica de `body.blocked`. Throttle de 500ms por inimigo (`getData("nextHop")`).
 
 ## Sistema de sprites (atlas)

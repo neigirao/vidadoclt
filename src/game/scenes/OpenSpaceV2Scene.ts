@@ -88,7 +88,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   create() {
     const run = getRun(this);
     const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
-    const seedVariant = seedNum % 3; // 0, 1, or 2 for 3 layout variants
+    const seedVariant = seedNum % 4; // 0–3: 4 variantes de layout
     this.startTimeMs = this.time.now;
     this.bossDefeated = false;
     Music.start("office");
@@ -166,7 +166,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.buildPlatform(1040, FLOOR_Y - 30, 6);
       this.buildPlatform(1380, FLOOR_Y - 72, 5);
       this.buildPlatform(1640, FLOOR_Y - 30, 4);
-    } else {
+    } else if (seedVariant === 2) {
       // Dense layout — more platforms, smaller gaps
       this.buildPlatform(150,  FLOOR_Y - 30, 4);
       this.buildPlatform(380,  FLOOR_Y - 60, 4);
@@ -175,6 +175,16 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.buildPlatform(1140, FLOOR_Y - 30, 5);
       this.buildPlatform(1400, FLOOR_Y - 60, 4);
       this.buildPlatform(1660, FLOOR_Y - 30, 3);
+    } else {
+      // Staircase layout — escadas escalonadas que sobem/descem, exigindo
+      // pulos encadeados (mostra a alcançabilidade em cadeia + premia subir).
+      this.buildPlatform(240,  FLOOR_Y - 32, 4);
+      this.buildPlatform(430,  FLOOR_Y - 72, 4);
+      this.buildPlatform(720,  FLOOR_Y - 40, 5);
+      this.buildPlatform(980,  FLOOR_Y - 72, 4);
+      this.buildPlatform(1200, FLOOR_Y - 40, 4);
+      this.buildPlatform(1440, FLOOR_Y - 72, 5);
+      this.buildPlatform(1660, FLOOR_Y - 36, 4);
     }
 
     // Floor-level decoratives
@@ -359,6 +369,9 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.coffeeDrops  = this.physics.add.group();
     this.inkProjectiles = this.physics.add.group();
     this.drops        = this.physics.add.group();
+
+    // Recompensa de exploração vertical: cache de VR na plataforma mais alta.
+    this.spawnVerticalReward();
 
     // Pre-populate projectile pools
     for (let i = 0; i < 8; i++) {
@@ -1309,6 +1322,25 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     }).setOrigin(0.5));
     k1.on("down", () => pickPerk(0));
     k2.on("down", () => pickPerk(1));
+  }
+
+  // Coloca um cache de VR em cima da plataforma mais alta do layout — premia
+  // quem explora verticalmente. A alcançabilidade é garantida pelo LevelValidator.
+  private spawnVerticalReward(): void {
+    let bestTop = Infinity;
+    let best: Phaser.Physics.Arcade.StaticBody | undefined;
+    this.platforms.getChildren().forEach(p => {
+      const b = (p as Phaser.GameObjects.GameObject & { body?: Phaser.Physics.Arcade.StaticBody }).body;
+      if (!b) return;
+      if (b.y < FLOOR_Y - 45 && b.y < bestTop) { bestTop = b.y; best = b; }
+    });
+    if (!best) return;
+    const cx = best.x + best.width / 2;
+    for (let i = 0; i < 5; i++) {
+      const d = this.drops.create(cx + (i - 2) * 12, best.y - 16, "tex-vr") as Phaser.Physics.Arcade.Sprite;
+      d.setDepth(9);
+    }
+    this.add.text(cx, best.y - 34, "💰", { fontSize: "14px" }).setOrigin(0.5).setDepth(9);
   }
 
   private spawnCoffeeDrop(x: number, y: number): void {
