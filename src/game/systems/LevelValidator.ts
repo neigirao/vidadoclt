@@ -1,0 +1,188 @@
+import Phaser from "phaser";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Validador de fase — roda contra uma cena JÁ montada e verifica invariantes que
+// garantem que a fase é jogável e justa num roguelite (onde o layout varia por
+// seed). A ideia é falhar CEDO (no console, em DEV) se uma variante gerar algo
+// injogável: plataforma inalcançável, mesa alta demais bloqueando o corredor,
+// inimigo em cima do spawn, boss/saída faltando, ou algo fora dos limites.
+//
+// Uso (em DEV, no fim de create()):
+//   logLevelReport("OpenSpaceV2", validateLevel({ ... }));
+//
+// É agnóstico de fase: recebe as referências da cena via `LevelSpec`, então
+// serve para validar Fases 2–5 depois com o mesmo código.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type StaticGroup = Phaser.Physics.Arcade.StaticGroup;
+type EnemyGroup = Phaser.Physics.Arcade.Group;
+
+export interface LevelSpec {
+  label: string;
+  seedVariant: number;
+  floorY: number;          // Y da superfície do chão
+  ceilingY: number;        // Y do topo jogável (abaixo do HUD)
+  levelWidth: number;
+  playerSpawn: { x: number; y: number };
+  jumpVel: number;         // JUMP_VEL (negativo)
+  gravity: number;         // GRAVITY
+  safeSpawnRadius?: number; // raio livre de inimigos ao redor do spawn (default 160)
+  platforms: StaticGroup;  // superfícies onde se anda
+  furniture: StaticGroup;  // corpos sólidos (mesas) que bloqueiam o corredor
+  enemies: EnemyGroup[];
+  boss?: Phaser.GameObjects.Components.Transform & { active: boolean };
+  exit?: { x: number; y: number };
+}
+
+export interface LevelCheck {
+  name: string;
+  ok: boolean;
+  detail: string;
+  severity: "error" | "warn";
+}
+
+export interface LevelReport {
+  pass: boolean;         // false se houver algum erro (warns não reprovam)
+  checks: LevelCheck[];
+}
+
+interface Box { left: number; right: number; top: number; bottom: number; }
+
+function bodyBox(obj: Phaser.GameObjects.GameObject): Box | null {
+  const body = (obj as { body?: Phaser.Physics.Arcade.StaticBody }).body;
+  if (!body) return null;
+  return { left: body.x, right: body.x + body.width, top: body.y, bottom: body.y + body.height };
+}
+
+function overlaps(a: Box, b: Box): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+export function validateLevel(spec: LevelSpec): LevelReport {
+  const checks: LevelCheck[] = [];
+  const add = (ok: boolean, name: string, detail: string, severity: "error" | "warn" = "error") =>
+    checks.push({ ok, name, detail, severity });
+
+  // Altura/distância máximas de pulo (cinemática): h = v²/2g.
+  const maxJumpH = (spec.jumpVel * spec.jumpVel) / (2 * spec.gravity);
+  const reachMargin = 12; // px de folga — não exigir o pulo no talo
+  const safeR = spec.safeSpawnRadius ?? 160;
+
+  const platforms = spec.platforms.getChildren();
+  const furniture = spec.furniture.getChildren();
+
+  // 1. Chão contínuo: existe uma plataforma cobrindo toda a largura no nível do chão.
+  const floorSpan = platforms.some(p => {
+    const b = bodyBox(p); return b && b.left <= 4 && b.right >= spec.levelWidth - 4 && b.top >= spec.floorY - 4;
+  });
+  add(floorSpan, "chão-contínuo", floorSpan ? "chão cobre 0→levelWidth" : "sem plataforma de chão cobrindo toda a largura — jogador pode cair no vazio");
+
+  // 2. Toda superfície de plataforma é alcançável por pulo a partir do chão.
+  let unreachable = 0;
+  const surfaces = platforms.filter(p => { const b = bodyBox(p); return b && b.top < spec.floorY - 4; }); // exclui o chão
+  for (const p of surfaces) {
+    const b = bodyBox(p)!;
+    const heightAboveFloor = spec.floorY - b.top;
+    if (heightAboveFloor > maxJumpH - reachMargin) unreachable++;
+  }
+  add(unreachable === 0, "plataformas-alcançáveis",
+    unreachable === 0 ? `${surfaces.length} plataformas, todas ≤ ${(maxJumpH - reachMargin).toFixed(0)}px do chão`
+      : `${unreachable} plataforma(s) acima da altura de pulo (${maxJumpH.toFixed(0)}px) — inalcançáveis`);
+
+  // 3. Mesas (corpos sólidos que descem até o chão) precisam ser "puláveis": o
+  // topo delas ≤ altura de pulo, senão bloqueiam o corredor sem saída.
+  let blocking = 0;
+  for (const f of furniture) {
+    const b = bodyBox(f); if (!b) continue;
+    const reachesFloor = b.bottom >= spec.floorY - 4;
+    const topAboveFloor = spec.floorY - b.top;
+    if (reachesFloor && topAboveFloor > maxJumpH - reachMargin) blocking++;
+  }
+  add(blocking === 0, "mesas-puláveis",
+    blocking === 0 ? `${furniture.length} móveis, nenhum bloqueia o corredor`
+      : `${blocking} móvel(is) alto(s) demais para pular por cima — corredor pode ficar intransponível`);
+
+  // 4. Móveis não se sobrepõem (sobreposição de corpos sólidos = armadilha/clipping).
+  let overlapPairs = 0;
+  const fboxes = furniture.map(bodyBox).filter((b): b is Box => !!b);
+  for (let i = 0; i < fboxes.length; i++)
+    for (let j = i + 1; j < fboxes.length; j++)
+      if (overlaps(fboxes[i], fboxes[j])) overlapPairs++;
+  add(overlapPairs === 0, "móveis-sem-sobreposição",
+    overlapPairs === 0 ? "nenhum par de móveis sobreposto" : `${overlapPairs} par(es) de móveis sobrepostos`);
+
+  // 5. Spawn seguro: nenhum inimigo dentro do raio livre ao redor do jogador.
+  const near: string[] = [];
+  for (const g of spec.enemies) {
+    for (const e of g.getChildren()) {
+      const s = e as unknown as { x: number; y: number; active: boolean };
+      if (!s.active) continue;
+      const d = Phaser.Math.Distance.Between(s.x, s.y, spec.playerSpawn.x, spec.playerSpawn.y);
+      if (d < safeR) near.push(d.toFixed(0));
+    }
+  }
+  add(near.length === 0, "spawn-seguro",
+    near.length === 0 ? `nenhum inimigo a < ${safeR}px do spawn` : `${near.length} inimigo(s) dentro do raio seguro (${near.join(",")}px)`);
+
+  // 6. Nada fora dos limites verticais (abaixo do chão ou acima do teto jogável).
+  const oob: string[] = [];
+  for (const g of spec.enemies) {
+    for (const e of g.getChildren()) {
+      const s = e as unknown as { x: number; y: number; active: boolean };
+      if (!s.active) continue;
+      if (s.y > spec.floorY + 20 || s.y < spec.ceilingY - 4) oob.push(`(${s.x.toFixed(0)},${s.y.toFixed(0)})`);
+    }
+  }
+  add(oob.length === 0, "inimigos-nos-limites",
+    oob.length === 0 ? "todos os inimigos dentro dos limites verticais" : `${oob.length} inimigo(s) fora: ${oob.slice(0, 4).join(" ")}`);
+
+  // 7. Boss presente, no nível do chão e à esquerda da saída.
+  if (spec.boss) {
+    const b = spec.boss as unknown as { x: number; y: number; active: boolean };
+    const grounded = b.y <= spec.floorY + 20 && b.y >= spec.ceilingY;
+    add(grounded, "boss-posicionado", grounded ? `boss em (${b.x.toFixed(0)},${b.y.toFixed(0)})` : `boss fora do nível jogável (y=${b.y.toFixed(0)})`);
+  } else {
+    add(false, "boss-presente", "cena sem boss");
+  }
+
+  // 8. Saída (porta da Copa) presente na ponta direita.
+  if (spec.exit) {
+    const farEnough = spec.exit.x > spec.levelWidth * 0.8;
+    add(farEnough, "saída-presente", farEnough ? `saída em x=${spec.exit.x.toFixed(0)}` : `saída muito à esquerda (x=${spec.exit.x.toFixed(0)})`, "warn");
+  } else {
+    add(false, "saída-presente", "cena sem saída definida", "warn");
+  }
+
+  // 9. Ritmo roguelike: inimigos espalhados em ≥3 zonas horizontais (progressão
+  //    esquerda→direita), não amontoados num ponto só.
+  const zoneCount = 5;
+  const zones = new Array(zoneCount).fill(0);
+  let totalEnemies = 0;
+  for (const g of spec.enemies) {
+    for (const e of g.getChildren()) {
+      const s = e as unknown as { x: number; active: boolean };
+      if (!s.active) continue;
+      totalEnemies++;
+      const z = Math.min(zoneCount - 1, Math.floor((s.x / spec.levelWidth) * zoneCount));
+      zones[z]++;
+    }
+  }
+  const zonesUsed = zones.filter(z => z > 0).length;
+  add(totalEnemies > 0 && zonesUsed >= 3, "distribuição-inimigos",
+    `${totalEnemies} inimigos em ${zonesUsed}/${zoneCount} zonas [${zones.join(",")}]`,
+    "warn");
+
+  const pass = checks.every(c => c.ok || c.severity === "warn");
+  return { pass, checks };
+}
+
+export function logLevelReport(label: string, report: LevelReport): void {
+  const head = report.pass ? "✅ PASS" : "❌ FAIL";
+  // eslint-disable-next-line no-console
+  console.log(`[LevelValidator] ${label}: ${head}`);
+  for (const c of report.checks) {
+    const icon = c.ok ? "  ✓" : (c.severity === "warn" ? "  ⚠" : "  ✗");
+    // eslint-disable-next-line no-console
+    console.log(`${icon} ${c.name}: ${c.detail}`);
+  }
+}

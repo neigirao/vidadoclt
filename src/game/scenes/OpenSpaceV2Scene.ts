@@ -29,6 +29,7 @@ import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
+import { validateLevel, logLevelReport } from "../systems/LevelValidator";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -564,6 +565,20 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
 
     // Item 2 — modificador da sala (depende do seed + loop)
     this.rollRoomEvent(run);
+
+    // Validação de fase (só DEV): garante que a variante montada é jogável/justa.
+    if (import.meta.env.DEV) {
+      logLevelReport(`OpenSpaceV2 (seed variant ${seedVariant})`, validateLevel({
+        label: "OpenSpaceV2", seedVariant,
+        floorY: FLOOR_Y, ceilingY: HUD_TOP_H, levelWidth: LEVEL_WIDTH,
+        playerSpawn: { x: spawnX, y: FLOOR_Y - 60 },
+        jumpVel: -520, gravity: 1200, // JUMP_VEL / GRAVITY (Player.ts / config.ts)
+        platforms: this.platforms, furniture: this.furnitureBodies,
+        enemies: [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
+          this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs],
+        boss: this.boss, exit: { x: this.doorCopa.x, y: this.doorCopa.y },
+      }));
+    }
   }
 
   // Animated clock hands overlaid on background clock positions

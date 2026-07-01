@@ -82,6 +82,10 @@ const SUBJECTS: Subject[] = [
   mkItem("Tinta (Bic)", "Projétil", { idle: ["item-inkproj", "tex-inkproj"] }),
   mkItem("Convite", "Projétil", { idle: ["item-convite-accepted0", "item-convite-accepted1", "item-convite-accepted2"] }),
   mkItem("E-mail", "Projétil", { idle: ["item-email-idle0", "item-email-idle1"] }),
+  // ── Cenário (Fase 1): tiles de chão/plataforma + fundo gerado ──
+  mkItem("Chão (tile)", "Cenário", { idle: ["tile-floor"] }),
+  mkItem("Plataforma", "Cenário", { idle: ["tile-platform"] }),
+  mkItem("Fundo Open Space", "Cenário", { idle: ["pxbg-openspace"] }),
 ];
 
 type FrameInfo = { key: string; ok: boolean; tex: string; frame?: string; w: number; h: number };
@@ -228,8 +232,11 @@ export class SpriteLabScene extends Phaser.Scene {
     this.bbox.clear(); this.feetLine.clear();
     if (f && f.ok) {
       if (f.frame) this.preview.setTexture(f.tex, f.frame); else this.preview.setTexture(f.tex);
-      this.preview.setVisible(true).setScale(this.SCALE).setPosition(this.CX, this.FEET_Y);
-      const dw = f.w * this.SCALE, dh = f.h * this.SCALE;
+      // Escala 4x para sprites pequenos; encolhe para caber assets grandes
+      // (backgrounds/tiles largos) na janela de preview (~340x300).
+      const scale = Math.min(this.SCALE, 340 / f.w, 300 / f.h);
+      this.preview.setVisible(true).setScale(scale).setPosition(this.CX, this.FEET_Y);
+      const dw = f.w * scale, dh = f.h * scale;
       this.bbox.lineStyle(1, 0x44ff88, 0.85).strokeRect(this.CX - dw / 2, this.FEET_Y - dh, dw, dh);
       this.feetLine.lineStyle(1, 0xff8844, 0.55).lineBetween(195, this.FEET_Y, 545, this.FEET_Y);
     } else {
