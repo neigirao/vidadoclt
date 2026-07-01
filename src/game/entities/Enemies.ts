@@ -29,6 +29,16 @@ const IDLE_MS: Record<string, number> = {
   estagiario: 280, analista: 320, facilitador: 300, scrum: 260,
   coordenador: 350, senior: 500, rh: 320,
 };
+// Ataque animado: whitelist de quantos frames CADA inimigo pode ciclar. Só
+// entram os frames de arte VALIDADA (48x64) — os outliers 32x48 / lixo de
+// extração (ex: facilitador-attack2, analista-attack2, scrum-attack1/2) ficam
+// de fora. Prefixo ausente → 1 (mantém o frame 0 estático, sem regressão).
+const ATTACK_FRAME_COUNTS: Record<string, number> = {
+  senior: 3, rh: 2, facilitador: 2, analista: 2,
+};
+const ATTACK_MS: Record<string, number> = {
+  senior: 120, rh: 110, facilitador: 100, analista: 110,
+};
 
 function setEnemyTex(
   e: Phaser.Physics.Arcade.Sprite,
@@ -47,6 +57,13 @@ function setEnemyTex(
     const maxFrames = IDLE_FRAME_COUNTS[prefix] ?? 4;
     const ms = IDLE_MS[prefix] ?? 300;
     frame = Math.floor((t + offset) / ms) % maxFrames;
+  } else if (state === "attack") {
+    // Só cicla se o inimigo tem frames de ataque validados; senão fica no 0.
+    const maxFrames = ATTACK_FRAME_COUNTS[prefix] ?? 1;
+    if (maxFrames > 1) {
+      const ms = ATTACK_MS[prefix] ?? 110;
+      frame = Math.floor((t + offset) / ms) % maxFrames;
+    }
   }
   const key = `tex-${prefix}-${state}${frame}`;
   applyTexture(e, key);
