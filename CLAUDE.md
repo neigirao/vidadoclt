@@ -33,10 +33,10 @@ src/
     GameMount.tsx          # Componente React que instancia/destrói Phaser.Game
     scenes/
       BootScene.ts         # Carrega atlas + backgrounds, gera texturas restantes
-      MenuScene.ts         # Menu principal (JOGAR / JOGAR V2 / ...)
+      MenuScene.ts         # Menu principal (JOGAR / LAB SPRITES / ...)
       ClassSelectScene.ts  # Seleção de classe (Estagiário/Analista/Terceirizado)
-      OpenSpaceScene.ts    # Fase 1 — Open Space (versão original)
-      OpenSpaceV2Scene.ts  # Fase 1 — versão limpa (rendering sólido, ver abaixo)
+      SpriteLabScene.ts    # Lab de sprites: valida todos os assets (ver abaixo)
+      OpenSpaceV2Scene.ts  # Fase 1 — Open Space (rendering sólido, ver abaixo)
       CopaScene.ts         # Área segura: cura sanidade + loja (Faxineiro)
       Phase2Scene.ts       # Fases 2–5
       Phase3Scene.ts
@@ -61,7 +61,8 @@ src/
       WeaponSystem.ts      # CLASSES + WEAPONS (3 classes, 15 armas)
       PerkSystem.ts        # Perks
       Shop.ts              # Loja da Copa
-      SanityFx.ts          # Efeitos visuais por faixa de sanidade
+      SanityFx.ts          # Efeitos visuais por faixa de sanidade (vignette/barrel/chroma)
+      CombatFx.ts          # Juice de combate (hitStop, shake, flash, finisher)
   routes/
     __root.tsx             # Layout raiz (QueryClient, error boundary)
     index.tsx              # Rota "/" — monta GameMount full-screen
@@ -86,6 +87,9 @@ JUMP_BUFFER_MS  = 100   // janela de input do pulo
 COMBO_WINDOW_MS = 250   // janela entre hits do combo
 HIT_INVULN_MS   = 600   // i-frames após tomar dano
 // dano/knockback por arma vêm de WEAPONS[weaponId].hitDamages / comboKnockback
+// Hitbox de melee (Player.ts): começa levemente atrás do centro (pega inimigo
+// colado), alcance = attackRange + 18, altura 44. Margem de perdão contra o
+// "bati e não acertou". O hit é hitscan de 1 frame (RectangleToRectangle).
 ```
 
 ## Controles
@@ -102,30 +106,27 @@ HIT_INVULN_MS   = 600   // i-frames após tomar dano
 ## Fluxo de cenas
 
 ```
-BootScene → MenuScene → ClassSelectScene → OpenSpaceScene  ─┐
-                                        └→ OpenSpaceV2Scene ─┤
-                                                            ↓
+BootScene → MenuScene → ClassSelectScene → OpenSpaceV2Scene ─┐
+                     └→ SpriteLabScene (lab)                 ↓
    CopaScene ↔ Phase2 → Phase3 → Phase4 → Phase5 → CeoScene → VitoriaScene
                                                             ↓
                                                      GameOverScene
 ```
 
 - **BootScene** carrega o atlas (`/assets/atlas.png` + `.json`) e backgrounds, depois vai pra MenuScene.
-- **MenuScene** → "JOGAR" (cena V1) ou "JOGAR V2" (define `run.v2Mode = true`) → ClassSelectScene.
-- **ClassSelectScene** → `this.scene.start(run.v2Mode ? "OpenSpaceV2Scene" : "OpenSpaceScene")`.
+- **MenuScene** → "JOGAR" → ClassSelectScene → OpenSpaceV2Scene. "LAB SPRITES" abre a SpriteLabScene.
+- **ClassSelectScene** → aplica upgrades de Reconhecimento no `run` e `this.scene.start("OpenSpaceV2Scene")`.
 - Após derrotar o boss da fase, a porta da **Copa** desbloqueia (tecla E).
 - Morte do jogador → `scene.start("GameOverScene", { vr, cause })`.
+- **A V1 (`OpenSpaceScene`) foi aposentada**: não está no array `scene` do `config.ts`. Só existe a V2.
 
 ## OpenSpaceV2Scene (rendering limpo)
 
-Versão re-escrita da Fase 1 criada para evitar bugs de rendering da V1. Diferenças principais:
+Versão limpa da Fase 1 (a antiga V1 foi descontinuada). Pontos-chave:
 
 - **Móveis com corpo sólido**: plataformas usam `this.add.graphics().fillStyle(0x5c3318)` em vez de texturas esticadas (a V1 esticava texturas de estante coloridas → efeito "arco-íris").
 - **Superfícies do atlas direto**: `this.add.image(x, y, "sprites", "tile-platform")`.
-- **`furnitureBodies` é um StaticGroup separado** de `platforms`: só o **player** colide com os corpos dos móveis; inimigos de chão atravessam livremente (evita "parede invisível" que travava patrulha).
-- Mesmo elenco de inimigos/boss da V1.
-
-Acesso: menu "JOGAR V2".
+- **`furnitureBodies` é um StaticGroup separado** de `platforms`. **Player E inimigos de chão colidem** com os móveis (antes só o player, e inimigos atravessavam). Para não travar os perseguidores contra a mesa, um callback de colisão (`hopOverFurniture`) dá um pulinho quando o inimigo trava de lado no chão — sobe mesa baixa rumo ao alvo; patrulheiros também viram pela lógica de `body.blocked`. Throttle de 500ms por inimigo (`getData("nextHop")`).
 
 ## Sistema de sprites (atlas)
 
@@ -140,12 +141,23 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 ### Fonte dos sprites e re-empacotamento
 - Os PNGs individuais ficam em `public/assets/sprites/`. São a **fonte** do atlas.
 - Após editar qualquer PNG em `sprites/`, **re-empacote**: `node scripts/pack-atlas.mjs` (regenera `atlas.png` + `atlas.json`). Editar só o PNG individual **não** reflete no jogo, que carrega o atlas.
-- Scripts de extração de spritesheets em `scripts/` (extract-*, pack-atlas).
+- O `pack-atlas.mjs` roda uma **validação** ao final: avisa sobre frames vazios/quase-vazios e famílias de animação com tamanho inconsistente.
+
+### Gerador procedural de sprites (`scripts/gen-sprites.mjs`)
+**Aprendizado-raiz:** vários assets vieram de extrações de IA mal recortadas (blocos chapados, respingos, frames trocados/vazios). A alternativa robusta é **desenhar sprites simples direto em código**, via um "canvas painter" de pixel-art (helpers `px`/`rect`/`hline`, composição alpha-over). É versionado (diff revisável no PR), reproduzível (packing determinístico → mesmo byte) e sem dependência externa.
+
+- Uso: `node scripts/gen-sprites.mjs [filtro] && node scripts/pack-atlas.mjs`.
+- Já gera: Post-it (projétil), drop de Café e o copo estático da Copa. Adicionar novo asset = escrever uma função `canvas(w,h)…save("item-x.png")` e registrar em `SPRITES`.
+- Regra de bolso: use o gerador quando o asset em uso estiver quebrado **e** for simples. Para arte complexa (ex: CEO), prefira copiar um frame bom vizinho.
+
+### SpriteLabScene — validação visual (menu "LAB SPRITES")
+Área de teste que mostra **todos os assets renderizados** (personagens, inimigos das Fases 1–4, bosses, objetos, drops, projéteis) com botões clicáveis: clique no sujeito (2 colunas à esquerda) e na ação (embaixo) → a animação roda em loop. Mostra bounding box, linha dos pés, strip de frames e um painel de diagnóstico; loga `[SpriteLab] nome/ação: Nf sizes=… missing=… → OK/PROBLEMA`. É a forma rápida de flagrar frame trocado/cortado/faltando.
 
 ### Band-aids de sprite ativos
 Nenhum band-aid ativo no momento.
-- ✅ **CoordenadorDeSinergia**: arte nova extraída (`enemy-coordenador-*`), prefixo `coordenador` funcionando.
-- ✅ **AnalistaSeniorExausto**: spawn ativo em `OpenSpaceV2Scene`, arte nova em `enemy-senior-*`.
+- ✅ **Post-it / Café (drop) / copo da Copa**: refeitos via `gen-sprites.mjs` (eram bloco amarelo / respingos).
+- ✅ **CEO em corrida** (`boss-ceo-run1/2`): frames-lixo substituídos por vizinhos válidos.
+- ✅ Inimigos das Fases 2–4 auditados: bases limpas. Inconsistências de tamanho remanescentes são frames idle/walk **não usados** (esses inimigos renderizam base estática).
 
 ## Estado atual
 
@@ -155,7 +167,7 @@ Nenhum band-aid ativo no momento.
 - 15 armas (WeaponSystem) + perks (PerkSystem)
 - Inimigos da Fase 1 (Enemies.ts) e fases 2–5 (PhaseEnemies.ts)
 - Bosses: Gerente Microgestor (Boss.ts), CEO (CeoBoss.ts)
-- Fases: Open Space (V1 e V2), Fases 2–5, CEO, Copa, Vitória
+- Fases: Open Space (V2), Fases 2–5, CEO, Copa, Vitória
 - Sprites reais via atlas; Sanidade com efeitos visuais por faixa (SanityFx)
 - Persistência de Reconhecimento/FGTS/Loops em `localStorage` (PlayerState)
 - Copa: cura de sanidade + loja (Faxineiro), checkpoint
@@ -172,7 +184,8 @@ Nenhum band-aid ativo no momento.
 3. Implementar `preUpdate(t, dt)` (IA) e `hit(damage, knockback): boolean` (retorna `true` se morreu)
 4. Animar via `setEnemyTex(this, t, "<prefixo>", state)` — exige frames `<prefixo>-{idle,walk,attack,hurt}N` no atlas
 5. Garantir que os frames existem no atlas (adicionar em `sprites/` + `pack-atlas.mjs`)
-6. Na cena: criar grupo, collider com `platforms` (não com `furnitureBodies`), registrar em `resolveAttack()`
+6. Na cena: criar grupo, collider com `platforms` **e** com `furnitureBodies` (usando o callback de pulinho, p/ respeitar mesas sem travar), registrar em `resolveAttack()`
+7. **Todo ataque ativo (projétil/lunge) deve telegrafar**: `showTelegraph(this, cor)` + trava/glow antes de disparar (padrão do `FacilitadorDeWorkshop` / `AnalistaOnboarding`). Ataque só por contato (contactDamage) não precisa.
 
 ### Adicionar nova cena
 1. Criar `src/game/scenes/NomeDaCena.ts` estendendo `Phaser.Scene`
@@ -182,7 +195,12 @@ Nenhum band-aid ativo no momento.
 ### Sprites / texturas
 - Personagens/objetos: usar `resolveSprite`/`addImage`/`addSprite` (SpriteLibrary) com chave `tex-*`.
 - Texturas geradas em runtime: `TextureFactory.ts`.
-- Após mexer em PNG de `sprites/`, rodar `node scripts/pack-atlas.mjs`.
+- Assets simples quebrados: refazer em `scripts/gen-sprites.mjs` (pixel-art em código).
+- Após mexer em PNG de `sprites/`, rodar `node scripts/pack-atlas.mjs`. Valide no **LAB SPRITES**.
+
+### Juice de combate (CombatFx.ts)
+- `hitStop`, `shake`, `flash`, `comboFinisher`, `finisherImpact`. **Não** rotacionar a câmera: num side-scroller preso aos limites do mundo, girar na borda joga o alvo/boss para fora do frame (era a causa do "boss some ao tomar hit"). Zoom-pop centrado é seguro.
+- Distorção por sanidade fica em `SanityFx.ts` (vignette + barrel + chromatic). O barrel do burnout foi limitado (pincushion ≤7%) para não desalinhar a mira do combate.
 
 ### HUD
 O HUD (`Hud.ts`) usa `setScrollFactor(0)` para fixar à câmera. Instanciar `new Hud(this, levelWidth)` na cena e chamar `hud.update({...})` no `update`.
@@ -214,6 +232,7 @@ bun dev                      # servidor de desenvolvimento
 bun run build                # build de produção (vite build)
 bun lint                     # ESLint
 bun format                   # Prettier
+node scripts/gen-sprites.mjs # (re)gera sprites procedurais (post-it, café, copo)
 node scripts/pack-atlas.mjs  # re-empacota o atlas a partir de public/assets/sprites/
 ```
 
@@ -222,7 +241,7 @@ node scripts/pack-atlas.mjs  # re-empacota o atlas a partir de public/assets/spr
 - **Phaser isolado do React**: `GameMount.tsx` é o único ponto de contato. O jogo não usa hooks, estado React ou context — tudo via Phaser + registry (`run`).
 - **Estado da run no registry**: `getRun(scene)` lê/cria `RunState` no `scene.registry`; persiste Reconhecimento/FGTS/Loops em `localStorage`.
 - **Atlas empacotado**: sprites reais vêm de `atlas.png`. Editar PNG individual exige `pack-atlas.mjs`.
-- **furnitureBodies separado de platforms** (V2): móveis bloqueiam só o player; inimigos de chão patrulham livremente.
+- **furnitureBodies separado de platforms** (V2): móveis bloqueiam player **e** inimigos de chão; inimigos dão um pulinho ao travar (respeitam a mesa sem clipar/prender).
 - **Arcade physics**: suficiente. Não mudar para Matter.js sem necessidade concreta.
 - **pixelArt: true** no config Phaser: desativa antialiasing. Não remover.
 - **Hitboxes manuais no resolveAttack**: o ataque usa `Phaser.Geom.Intersects.RectangleToRectangle` com hitbox calculada pelo Player, não `physics.add.overlap`. Mantém controle preciso do timing do combo.
