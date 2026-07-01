@@ -176,6 +176,112 @@ export function validateLevel(spec: LevelSpec): LevelReport {
   return { pass, checks };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Overlay visual de debug — desenha o diagnóstico do validador em cima da fase
+// montada (tecla V no OpenSpaceV2Scene em DEV). Geometria em coordenadas de
+// mundo (scrollFactor 1); painel de texto fixo na câmera (scrollFactor 0).
+// Cores: verde = ok/alcançável, vermelho = problema, ciano = player/spawn,
+// amarelo = arco de pulo, laranja = zonas.
+// ─────────────────────────────────────────────────────────────────────────────
+export function drawLevelOverlay(
+  scene: Phaser.Scene,
+  spec: LevelSpec,
+  report: LevelReport,
+): Phaser.GameObjects.Container {
+  const c = scene.add.container(0, 0).setDepth(995);
+  const g = scene.add.graphics().setScrollFactor(1, 1);
+  c.add(g);
+  const label = (x: number, y: number, t: string, color: string, sf = 1) => {
+    const txt = scene.add.text(x, y, t, {
+      fontFamily: "monospace", fontSize: "9px", color, stroke: "#000", strokeThickness: 3,
+    }).setScrollFactor(sf, sf).setDepth(996);
+    c.add(txt); return txt;
+  };
+
+  const maxJumpH = (spec.jumpVel * spec.jumpVel) / (2 * spec.gravity);
+  const margin = 12;
+
+  // Linha do chão + "teto" de pulo (altura máxima alcançável).
+  g.lineStyle(1, 0x3388ff, 0.5).lineBetween(0, spec.floorY, spec.levelWidth, spec.floorY);
+  g.lineStyle(1, 0xffee44, 0.35);
+  for (let x = 0; x < spec.levelWidth; x += 16) g.lineBetween(x, spec.floorY - maxJumpH, x + 8, spec.floorY - maxJumpH);
+  label(8, spec.floorY - maxJumpH - 12, `teto de pulo (${maxJumpH.toFixed(0)}px)`, "#ffee44");
+
+  // Zonas de dificuldade (5 faixas verticais) + contagem de inimigos.
+  const zones = 5, zw = spec.levelWidth / zones;
+  const zoneCounts = new Array(zones).fill(0);
+  for (const grp of spec.enemies) for (const e of grp.getChildren()) {
+    const s = e as unknown as { x: number; active: boolean };
+    if (s.active) zoneCounts[Math.min(zones - 1, Math.floor(s.x / zw))]++;
+  }
+  g.lineStyle(1, 0xff8844, 0.25);
+  for (let z = 1; z < zones; z++) g.lineBetween(z * zw, spec.ceilingY, z * zw, spec.floorY);
+  for (let z = 0; z < zones; z++) label(z * zw + 6, spec.ceilingY + 4, `Z${z + 1}: ${zoneCounts[z]}`, "#ffaa66");
+
+  // Plataformas: verde = alcançável, vermelho = alta demais.
+  for (const p of spec.platforms.getChildren()) {
+    const b = bodyBox(p); if (!b) continue;
+    if (b.top >= spec.floorY - 4) continue; // pula o chão
+    const reachable = (spec.floorY - b.top) <= maxJumpH - margin;
+    g.lineStyle(2, reachable ? 0x44ff88 : 0xff3333, 0.9).strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
+    label(b.left, b.top - 11, `${(spec.floorY - b.top).toFixed(0)}px`, reachable ? "#88ffaa" : "#ff6666");
+  }
+
+  // Móveis (mesas): verde = pulável, vermelho = bloqueia o corredor.
+  for (const f of spec.furniture.getChildren()) {
+    const b = bodyBox(f); if (!b) continue;
+    const blocks = b.bottom >= spec.floorY - 4 && (spec.floorY - b.top) > maxJumpH - margin;
+    g.lineStyle(1, blocks ? 0xff3333 : 0x44cc88, 0.7).strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
+  }
+
+  // Spawn do player: raio seguro + arco de pulo (parábola até a distância máx).
+  const safeR = spec.safeSpawnRadius ?? 160;
+  const sp = spec.playerSpawn;
+  g.lineStyle(2, 0x33ddff, 0.9).strokeCircle(sp.x, sp.y, 8);
+  g.lineStyle(1, 0x33ddff, 0.4).strokeCircle(sp.x, sp.y, safeR);
+  label(sp.x - 18, sp.y - safeR - 12, "SPAWN (raio seguro)", "#66e6ff");
+  // arco: v0y=jumpVel, vx=200 (WALK_SPEED); t total até voltar ao chão.
+  const vx = 200, tTot = (-2 * spec.jumpVel) / spec.gravity;
+  g.lineStyle(2, 0xffee44, 0.7); g.beginPath();
+  for (let i = 0; i <= 24; i++) {
+    const t = (i / 24) * tTot;
+    const px = sp.x + vx * t;
+    const py = sp.y + spec.jumpVel * t + 0.5 * spec.gravity * t * t;
+    if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.strokePath();
+
+  // Boss + saída.
+  if (spec.boss) {
+    const b = spec.boss as unknown as { x: number; y: number };
+    g.lineStyle(2, 0xff55aa, 0.9).strokeCircle(b.x, b.y, 12);
+    label(b.x - 14, b.y - 40, "BOSS", "#ff88cc");
+  }
+  if (spec.exit) {
+    g.lineStyle(2, 0x66ff66, 0.9).strokeRect(spec.exit.x - 14, spec.exit.y - 24, 28, 48);
+    label(spec.exit.x - 14, spec.exit.y - 38, "SAÍDA", "#88ff88");
+  }
+
+  // Inimigos: ponto por inimigo ativo.
+  g.fillStyle(0xffffff, 0.8);
+  for (const grp of spec.enemies) for (const e of grp.getChildren()) {
+    const s = e as unknown as { x: number; y: number; active: boolean };
+    if (s.active) g.fillCircle(s.x, s.y, 3);
+  }
+
+  // Painel fixo: resumo PASS/FAIL + checks (scrollFactor 0).
+  const pb = scene.add.rectangle(6, 40, 300, 8 + report.checks.length * 12 + 16, 0x0a0d12, 0.85)
+    .setOrigin(0, 0).setScrollFactor(0).setDepth(996).setStrokeStyle(1, 0x334);
+  c.add(pb);
+  label(12, 44, `LEVEL VALIDATOR — ${report.pass ? "✅ PASS" : "❌ FAIL"}  (V oculta)`, report.pass ? "#66ff99" : "#ff6666", 0);
+  report.checks.forEach((ck, i) => {
+    const ic = ck.ok ? "✓" : (ck.severity === "warn" ? "⚠" : "✗");
+    label(12, 58 + i * 12, `${ic} ${ck.name}`, ck.ok ? "#9fd6b0" : (ck.severity === "warn" ? "#ffcc66" : "#ff7777"), 0);
+  });
+
+  return c;
+}
+
 export function logLevelReport(label: string, report: LevelReport): void {
   const head = report.pass ? "✅ PASS" : "❌ FAIL";
   // eslint-disable-next-line no-console

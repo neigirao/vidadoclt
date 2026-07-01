@@ -29,7 +29,7 @@ import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
-import { validateLevel, logLevelReport } from "../systems/LevelValidator";
+import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -567,8 +567,9 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.rollRoomEvent(run);
 
     // Validação de fase (só DEV): garante que a variante montada é jogável/justa.
+    // Loga no console e permite alternar um overlay visual com a tecla V.
     if (import.meta.env.DEV) {
-      logLevelReport(`OpenSpaceV2 (seed variant ${seedVariant})`, validateLevel({
+      const spec = {
         label: "OpenSpaceV2", seedVariant,
         floorY: FLOOR_Y, ceilingY: HUD_TOP_H, levelWidth: LEVEL_WIDTH,
         playerSpawn: { x: spawnX, y: FLOOR_Y - 60 },
@@ -577,7 +578,14 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         enemies: [this.estagiarios, this.sobrecarregados, this.analistas, this.onboardings,
           this.facilitadores, this.scrums, this.coordenadores, this.seniors, this.rhs],
         boss: this.boss, exit: { x: this.doorCopa.x, y: this.doorCopa.y },
-      }));
+      };
+      const report = validateLevel(spec);
+      logLevelReport(`OpenSpaceV2 (seed variant ${seedVariant})`, report);
+      let overlay: Phaser.GameObjects.Container | undefined;
+      this.input.keyboard?.on("keydown-V", () => {
+        if (overlay) { overlay.destroy(); overlay = undefined; }
+        else overlay = drawLevelOverlay(this, spec, report);
+      });
     }
   }
 
