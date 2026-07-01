@@ -176,7 +176,7 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
 
 export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   hp = 12;
-  contactDamage = 15;
+  contactDamage = 6; // rebalance: trash leve; a ameaça é o lunge telegrafado (15)
   speed = 200;
   dir: 1 | -1;
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
@@ -391,7 +391,7 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
 // ─── Scrum Master Caótico ────────────────────────────────────────────────────
 export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   hp = 25;
-  contactDamage = 8;
+  contactDamage = 9;
   speed = 130;
   dir: 1 | -1 = -1;
   private aiState: "walk" | "charge" | "shout" | "recover" | "retro_tele" | "retro_slam" = "walk";
@@ -548,7 +548,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
 // ─── Coordenador de Sinergia ─────────────────────────────────────────────────
 export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   hp = 40;
-  contactDamage = 5;
+  contactDamage = 10; // rebalance: elite guarda-boss pesa mais que o trash inicial
   speed = 60;
   dir: 1 | -1 = -1;
   private _frozen = 0;
@@ -637,7 +637,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
 // ─── Analista Sênior Exausto ─────────────────────────────────────────────────
 export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   hp = 80;
-  contactDamage = 5;
+  contactDamage = 12; // rebalance: tank elite, ameaça real perto do boss
   speed = 45;
 
   dir: 1 | -1 = -1;
@@ -769,7 +769,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
 // ─── EnemyRH (Analista de RH) ─────────────────────────────────────────────────
 export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
   hp = 55;
-  contactDamage = 8;
+  contactDamage = 10;
   speed = 85;
   dir: 1 | -1 = -1;
   private aiState: "walk" | "telegraph" | "swing" | "recover" = "walk";
@@ -1010,7 +1010,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
 // animação de 5 frames de walk.
 export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
   hp = 22;
-  contactDamage = 12;
+  contactDamage = 8;
   speed = 180;
   dir: 1 | -1 = -1;
   private _frozen = 0;
