@@ -26,6 +26,8 @@ export interface LevelSpec {
   playerSpawn: { x: number; y: number };
   jumpVel: number;         // JUMP_VEL (negativo)
   gravity: number;         // GRAVITY
+  walkSpeed?: number;      // WALK_SPEED (default 200) — alcance horizontal do pulo
+  dashBonus?: number;      // px extras de alcance por dash aéreo (default 90)
   safeSpawnRadius?: number; // raio livre de inimigos ao redor do spawn (default 160)
   platforms: StaticGroup;  // superfícies onde se anda
   furniture: StaticGroup;  // corpos sólidos (mesas) que bloqueiam o corredor
@@ -47,6 +49,73 @@ export interface LevelReport {
 }
 
 interface Box { left: number; right: number; top: number; bottom: number; }
+
+// ── Alcançabilidade encadeada (grafo de pulos plataforma→plataforma) ──────────
+// Nó = uma superfície andável (o chão + cada plataforma). Aresta A→B existe se
+// dá pra pular de A para B respeitando a cinemática: a altura de subida cabe no
+// apex do pulo E o vão horizontal cabe no alcance disponível (tempo no ar × vel.
+// horizontal + bônus de dash). BFS a partir do chão marca o que é alcançável.
+export interface ReachNode { idx: number; surfaceY: number; left: number; right: number; isFloor: boolean; }
+export interface ReachResult {
+  nodes: ReachNode[];
+  reachable: boolean[];          // por nó (índice alinhado com nodes)
+  edges: Array<[number, number]>; // arestas percorríveis entre nós alcançáveis (p/ overlay)
+}
+
+// Vão horizontal entre dois intervalos [aL,aR] e [bL,bR] (0 se sobrepõem em x).
+function gapX(aL: number, aR: number, bL: number, bR: number): number {
+  if (aR >= bL && bR >= aL) return 0;
+  return aR < bL ? bL - aR : aL - bR;
+}
+
+// Dá pra pular da superfície A para a B? Modelo cinemático:
+//   rise = yA - yB  (>0 se B mais alta). Precisa rise ≤ apex.
+//   tempo até estar na altura de B (raiz maior = descendo): t = (v0 + √(v0²-2g·rise))/g
+//   alcance horizontal = walkSpeed · t  (+ dashBonus opcional)
+function canJump(
+  aY: number, aL: number, aR: number,
+  bY: number, bL: number, bR: number,
+  jumpVel: number, gravity: number, walk: number, dashBonus: number, margin: number,
+): boolean {
+  const v0 = -jumpVel;                    // jumpVel é negativo → v0 > 0
+  const apex = (v0 * v0) / (2 * gravity);
+  const rise = aY - bY;                   // subir para B
+  if (rise > apex - margin) return false; // não alcança a altura
+  const disc = v0 * v0 - 2 * gravity * rise;
+  if (disc < 0) return false;
+  const tLand = (v0 + Math.sqrt(disc)) / gravity;
+  const reach = walk * tLand + dashBonus + margin;
+  return gapX(aL, aR, bL, bR) <= reach;
+}
+
+export function computeReachability(spec: LevelSpec): ReachResult {
+  const boxes = spec.platforms.getChildren()
+    .map(bodyBox).filter((b): b is Box => !!b);
+  const nodes: ReachNode[] = boxes.map((b, i) => ({
+    idx: i, surfaceY: b.top, left: b.left, right: b.right,
+    isFloor: b.left <= 4 && b.right >= spec.levelWidth - 4 && b.top >= spec.floorY - 4,
+  }));
+  const walk = spec.walkSpeed ?? 200;
+  const dashBonus = spec.dashBonus ?? 90; // DASH_SPEED(600) × DASH_MS(0.15)
+  const margin = 12;
+
+  const edges: Array<[number, number]> = [];
+  const reachable = nodes.map(n => n.isFloor); // chão é o ponto de partida
+  const queue = nodes.filter(n => n.isFloor).map(n => n.idx);
+  while (queue.length) {
+    const ai = queue.shift()!;
+    const a = nodes[ai];
+    for (const b of nodes) {
+      if (b.idx === ai) continue;
+      if (canJump(a.surfaceY, a.left, a.right, b.surfaceY, b.left, b.right,
+        spec.jumpVel, spec.gravity, walk, dashBonus, margin)) {
+        if (!reachable[b.idx]) { reachable[b.idx] = true; queue.push(b.idx); }
+        edges.push([ai, b.idx]);
+      }
+    }
+  }
+  return { nodes, reachable, edges };
+}
 
 function bodyBox(obj: Phaser.GameObjects.GameObject): Box | null {
   const body = (obj as { body?: Phaser.Physics.Arcade.StaticBody }).body;
@@ -77,17 +146,16 @@ export function validateLevel(spec: LevelSpec): LevelReport {
   });
   add(floorSpan, "chão-contínuo", floorSpan ? "chão cobre 0→levelWidth" : "sem plataforma de chão cobrindo toda a largura — jogador pode cair no vazio");
 
-  // 2. Toda superfície de plataforma é alcançável por pulo a partir do chão.
-  let unreachable = 0;
-  const surfaces = platforms.filter(p => { const b = bodyBox(p); return b && b.top < spec.floorY - 4; }); // exclui o chão
-  for (const p of surfaces) {
-    const b = bodyBox(p)!;
-    const heightAboveFloor = spec.floorY - b.top;
-    if (heightAboveFloor > maxJumpH - reachMargin) unreachable++;
-  }
-  add(unreachable === 0, "plataformas-alcançáveis",
-    unreachable === 0 ? `${surfaces.length} plataformas, todas ≤ ${(maxJumpH - reachMargin).toFixed(0)}px do chão`
-      : `${unreachable} plataforma(s) acima da altura de pulo (${maxJumpH.toFixed(0)}px) — inalcançáveis`);
+  // 2. Alcançabilidade encadeada: BFS de pulos a partir do chão. Uma plataforma
+  //    vale se dá pra chegar nela pulando do chão OU de outra já alcançável
+  //    (suporta layouts verticais em escada, não só pulo direto do piso).
+  const reach = computeReachability(spec);
+  const elevated = reach.nodes.filter(n => !n.isFloor);
+  const isolated = elevated.filter(n => !reach.reachable[n.idx]);
+  add(isolated.length === 0, "plataformas-alcançáveis",
+    isolated.length === 0
+      ? `${elevated.length} plataformas, todas alcançáveis (pulo encadeado, apex ${maxJumpH.toFixed(0)}px)`
+      : `${isolated.length}/${elevated.length} plataforma(s) ilhada(s) — sem cadeia de pulos até elas`);
 
   // 3. Mesas (corpos sólidos que descem até o chão) precisam ser "puláveis": o
   // topo delas ≤ altura de pulo, senão bloqueiam o corredor sem saída.
@@ -218,14 +286,25 @@ export function drawLevelOverlay(
   for (let z = 1; z < zones; z++) g.lineBetween(z * zw, spec.ceilingY, z * zw, spec.floorY);
   for (let z = 0; z < zones; z++) label(z * zw + 6, spec.ceilingY + 4, `Z${z + 1}: ${zoneCounts[z]}`, "#ffaa66");
 
-  // Plataformas: verde = alcançável, vermelho = alta demais.
-  for (const p of spec.platforms.getChildren()) {
-    const b = bodyBox(p); if (!b) continue;
-    if (b.top >= spec.floorY - 4) continue; // pula o chão
-    const reachable = (spec.floorY - b.top) <= maxJumpH - margin;
-    g.lineStyle(2, reachable ? 0x44ff88 : 0xff3333, 0.9).strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
-    label(b.left, b.top - 11, `${(spec.floorY - b.top).toFixed(0)}px`, reachable ? "#88ffaa" : "#ff6666");
+  // Arestas de pulo (grafo de alcançabilidade encadeada): linhas cinza entre
+  // superfícies conectadas por um pulo possível — mostra os caminhos verticais.
+  const reach = computeReachability(spec);
+  const center = (n: ReachNode) => ({ x: (n.left + n.right) / 2, y: n.surfaceY });
+  g.lineStyle(1, 0x8899bb, 0.35);
+  for (const [ai, bi] of reach.edges) {
+    if (reach.nodes[ai].isFloor && reach.nodes[bi].isFloor) continue;
+    const a = center(reach.nodes[ai]), bctr = center(reach.nodes[bi]);
+    g.lineBetween(a.x, a.y, bctr.x, bctr.y);
   }
+
+  // Plataformas: verde = alcançável (por cadeia de pulos), vermelho = ilhada.
+  reach.nodes.forEach(n => {
+    if (n.isFloor) return;
+    const b = { left: n.left, right: n.right, top: n.surfaceY };
+    const ok = reach.reachable[n.idx];
+    g.lineStyle(2, ok ? 0x44ff88 : 0xff3333, 0.9).strokeRect(b.left, b.top, b.right - b.left, 14);
+    label(b.left, b.top - 11, `${(spec.floorY - b.top).toFixed(0)}px${ok ? "" : " ⚠ILHADA"}`, ok ? "#88ffaa" : "#ff6666");
+  });
 
   // Móveis (mesas): verde = pulável, vermelho = bloqueia o corredor.
   for (const f of spec.furniture.getChildren()) {
