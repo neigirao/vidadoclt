@@ -13,6 +13,7 @@ const DASH_MS = 150;
 const DASH_COOLDOWN_MS = 950;
 const COMBO_WINDOW_MS = 450;
 const HIT_INVULN_MS = 350;
+const MELEE_ACTIVE_MS = 120;    // janela ativa da hitbox do golpe corpo-a-corpo
 const PARRY_WINDOW_MS = 200;    // janela ativa do parry
 const PARRY_COOLDOWN_MS = 1000; // cooldown após parry bem-sucedido
 const PARRY_SANITY_RESTORE = 12; // sanidade restaurada num parry bem-sucedido
@@ -125,9 +126,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    *  Scenes that use keyboard E for interact can check this alongside JustDown. */
   gamepadInteractJustPressed = false;
 
-  onAttack?: (hitbox: Phaser.Geom.Rectangle, step: number) => void;
+  onAttack?: (hitbox: Phaser.Geom.Rectangle, step: number, swingId?: number, firstFrame?: boolean) => void;
   onDeath?: (cause: "burnout" | "energy") => void;
   onHit?: () => void;
+
+  // Janela ativa do golpe de melee: a hitbox fica "viva" por alguns ms, então
+  // inimigos que entram no alcance logo depois do input ainda são acertados
+  // (mata o "bati e não acertou" de hitscan de 1 frame). O swingId + dedup na
+  // cena garantem 1 hit por inimigo por golpe.
+  private _swingActive = false;
+  private _swingEndAt = 0;
+  private _swingId = 0;
+  private _swingStep = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-player-idle0"));
@@ -172,6 +182,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   /** Desenha o chevron indicador acima da cabeça do player. */
+  // Hitbox do golpe corpo-a-corpo — recalculada a cada frame para seguir o
+  // player durante a janela ativa. Margem de perdão: começa levemente atrás do
+  // centro (pega inimigo colado), alcance +18 e altura 44 (não "passa por cima").
+  private buildMeleeHitbox(): Phaser.Geom.Rectangle {
+    const reach = this.attackRange + 18;
+    return new Phaser.Geom.Rectangle(
+      this.facing === 1 ? this.x - 4 : this.x + 4 - reach,
+      this.y - 22,
+      reach,
+      44,
+    );
+  }
+
   private drawMarker(time: number) {
     if (!this.marker) return;
     const bob = Math.sin(time / 220) * 2;
@@ -424,6 +447,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.scene.time.delayedCall(DASH_MS, () => this.setAlpha(1));
     }
 
+    // Tick da janela ativa do golpe: re-aplica a hitbox (que segue o player)
+    // a cada frame até expirar. A dedup por swingId (na cena) evita hit duplo.
+    if (this._swingActive) {
+      if (time >= this._swingEndAt) {
+        this._swingActive = false;
+      } else {
+        this.onAttack?.(this.buildMeleeHitbox(), this._swingStep, this._swingId, false);
+      }
+    }
+
     // Attack combo
     if (attackPressed && time >= this.nextAttackReadyAt) {
       if (time - this.lastAttackAt > COMBO_WINDOW_MS + 200) {
@@ -435,17 +468,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (this.isRangedPrimary) {
         this.onRangedAttack?.(this.x, this.y, this.facing);
       } else {
-        // Hitbox com margem de perdão: começa levemente atrás do centro (pega
-        // inimigo colado), estende o alcance +14 e é mais alta (44) para não
-        // "passar por cima" — reduz o clássico "bati e não acertou".
-        const reach = this.attackRange + 18;
-        const hb = new Phaser.Geom.Rectangle(
-          this.facing === 1 ? this.x - 4 : this.x + 4 - reach,
-          this.y - 22,
-          reach,
-          44,
-        );
-        this.onAttack?.(hb, this.comboStep);
+        // Abre a janela ativa do golpe e dispara o 1º frame já.
+        this._swingId++;
+        this._swingStep = this.comboStep;
+        this._swingActive = true;
+        this._swingEndAt = time + MELEE_ACTIVE_MS;
+        this.onAttack?.(this.buildMeleeHitbox(), this.comboStep, this._swingId, true);
         if (this.hitAutoRanged) this.onRangedAttack?.(this.x, this.y, this.facing);
       }
     }

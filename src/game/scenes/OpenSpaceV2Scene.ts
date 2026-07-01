@@ -54,6 +54,10 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private coffeeDrops!: Phaser.Physics.Arcade.Group;
   private boss?: GerenteMicrogestor;
   private bossDefeated = false;
+  // Ids de golpe: golpes avulsos (K) usam ids negativos decrescentes; a dedup e
+  // o juice da janela ativa comparam por id para agir 1x por golpe.
+  private _oneShotSwingId = 0;
+  private _juiceSwingDone = 0;
   private startTimeMs = 0;
   private fx!: SanityFx;
   private combatFx!: CombatFx;
@@ -277,7 +281,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
 
-    this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
+    this.player.onAttack = (hb, step, swingId, firstFrame) => this.resolveAttack(hb, step, swingId, firstFrame);
 
     this.player.onRangedAttack = (fx, fy, facing) => {
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
@@ -1019,13 +1023,17 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.tweens.add({ targets: popup, alpha: 0, duration: 800, delay: 2500, onComplete: () => popup.destroy() });
   }
 
-  private resolveAttack(hb: Phaser.Geom.Rectangle, step: number): void {
+  private resolveAttack(hb: Phaser.Geom.Rectangle, step: number, swingId?: number, firstFrame = true): void {
+    // Um golpe = um swingId. Frames seguintes da janela ativa reusam o mesmo id;
+    // a dedup por inimigo (getData("hitSwing")) garante 1 hit por golpe. Golpes
+    // avulsos (especial K) chegam sem swingId → recebem um id único descartável.
+    const sid = swingId ?? (this._oneShotSwingId -= 1);
     const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
     const comboHits = def.hitDamages[2] === 0 ? 2 : 3;
     const dmgIndex = Math.min(step - 1, def.hitDamages.length - 1);
     const baseDmg = def.hitDamages[dmgIndex] || def.hitDamages[0];
     let strikeMult = 1.0;
-    if (this.player.firstStrikeReady) {
+    if (firstFrame && this.player.firstStrikeReady) {
       this.player.firstStrikeReady = false;
       strikeMult = 1.5;
       this.cameras.main.flash(180, 255, 215, 0, false);
@@ -1033,26 +1041,35 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     const damage = Math.round(baseDmg * this.player.damageMult * strikeMult);
     const knockback = (step >= comboHits ? def.comboKnockback : 80) * this.player.facing;
     const slowMs = def.hitSlow;
-
-    const slash = this.add.graphics().setDepth(15);
-    const cx = hb.x + hb.width / 2;
-    const cy = hb.y + hb.height / 2;
-    const r = Math.max(hb.width, hb.height) * 0.6;
-    const startAngle = this.player.facing > 0 ? -Math.PI * 0.6 : Math.PI * 0.4;
-    const endAngle   = this.player.facing > 0 ?  Math.PI * 0.6 : Math.PI * 1.6;
-    slash.lineStyle(3, 0xffffff, 0.75);
-    slash.beginPath();
-    slash.arc(cx, cy, r, startAngle, endAngle, false);
-    slash.strokePath();
-    this.tweens.add({ targets: slash, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 140, ease: "Quad.easeOut", onComplete: () => slash.destroy() });
     const isFinisher = step >= comboHits;
-    if (isFinisher) { Sfx.meleeHeavy(); Sfx.comboFinisher(); }
-    else Sfx.meleeLight();
+
+    // Efeito visual do arco + SFX: só no 1º frame do golpe (não a cada frame).
+    if (firstFrame) {
+      const slash = this.add.graphics().setDepth(15);
+      const cx = hb.x + hb.width / 2;
+      const cy = hb.y + hb.height / 2;
+      const r = Math.max(hb.width, hb.height) * 0.6;
+      const startAngle = this.player.facing > 0 ? -Math.PI * 0.6 : Math.PI * 0.4;
+      const endAngle   = this.player.facing > 0 ?  Math.PI * 0.6 : Math.PI * 1.6;
+      slash.lineStyle(3, 0xffffff, 0.75);
+      slash.beginPath();
+      slash.arc(cx, cy, r, startAngle, endAngle, false);
+      slash.strokePath();
+      this.tweens.add({ targets: slash, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 140, ease: "Quad.easeOut", onComplete: () => slash.destroy() });
+      if (isFinisher) { Sfx.meleeHeavy(); Sfx.comboFinisher(); }
+      else Sfx.meleeLight();
+    }
 
     let hitAnything = false;
 
     const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
       Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
+    // Já acertado neste golpe? (dedup da janela ativa)
+    const freshHit = (s: Phaser.GameObjects.GameObject) => {
+      if (s.getData("hitSwing") === sid) return false;
+      s.setData("hitSwing", sid);
+      return true;
+    };
 
     const hitGroup = (
       group: Phaser.Physics.Arcade.Group,
@@ -1061,7 +1078,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     ) => {
       group.getChildren().forEach(c => {
         const e = cast(c);
-        if (!e.active || !tryHit(e)) return;
+        if (!e.active || !tryHit(e) || !freshHit(e)) return;
         hitAnything = true;
         if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
         this.spawnHitSparks(e.x, e.y - 10, isFinisher);
@@ -1098,7 +1115,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     hitGroup(this.seniors,         6, c => c as AnalistaSeniorExausto);
     hitGroup(this.rhs,             3, c => c as EnemyRH);
 
-    if (this.boss?.active && tryHit(this.boss)) {
+    if (this.boss?.active && tryHit(this.boss) && freshHit(this.boss)) {
       hitAnything = true;
       this.spawnHitSparks(this.boss.x, this.boss.y - 10, isFinisher);
       CombatFx.flashSprite(this.boss as unknown as Phaser.Physics.Arcade.Sprite, 55);
@@ -1117,7 +1134,10 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       if (died) return;
     }
 
-    if (hitAnything) {
+    // Juice (hitStop/finisher/shake) só uma vez por golpe — mesmo que a janela
+    // ativa acerte inimigos em frames diferentes.
+    if (hitAnything && this._juiceSwingDone !== sid) {
+      this._juiceSwingDone = sid;
       const hitPauseMs = Math.min(120, 30 + damage * 3);
       this.combatFx.hitStop(hitPauseMs);
       if (isFinisher) {

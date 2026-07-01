@@ -89,7 +89,10 @@ HIT_INVULN_MS   = 600   // i-frames após tomar dano
 // dano/knockback por arma vêm de WEAPONS[weaponId].hitDamages / comboKnockback
 // Hitbox de melee (Player.ts): começa levemente atrás do centro (pega inimigo
 // colado), alcance = attackRange + 18, altura 44. Margem de perdão contra o
-// "bati e não acertou". O hit é hitscan de 1 frame (RectangleToRectangle).
+// "bati e não acertou". A hitbox fica ATIVA por MELEE_ACTIVE_MS (120ms): o
+// Player re-dispara onAttack a cada frame da janela (hitbox segue o player), e
+// a cena dedup por swingId (getData("hitSwing")) → 1 hit por inimigo por golpe.
+// Assim inimigos que entram no alcance logo após o input ainda são acertados.
 ```
 
 ## Controles
