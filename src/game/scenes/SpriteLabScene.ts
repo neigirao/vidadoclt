@@ -23,6 +23,10 @@ function mkChar(name: string, cat: string, prefix: string, defs: Record<string, 
 function mkItem(name: string, cat: string, states: Record<string, string[]>): Subject {
   return { name, cat, states };
 }
+// Frames de caminhada de um inimigo de fase (enemy-<prefix>-walkN, direto do atlas).
+function walk(prefix: string, count: number): string[] {
+  return Array.from({ length: count }, (_, i) => `enemy-${prefix}-walk${i}`);
+}
 
 const SUBJECTS: Subject[] = [
   mkChar("PLAYER", "Personagem", "player", {
@@ -44,6 +48,24 @@ const SUBJECTS: Subject[] = [
   mkChar("CEO (boss)", "Boss", "boss-ceo", {
     idle: [0, 2], walk: [0, 2], run: [0, 6], attack: [0, 4], special: [0, 4], hurt: [0, 1], death: [0, 2],
   }),
+  // ── Fase 2 ── (render estático da base; walk quando animado no jogo)
+  mkItem("Telemarketer", "Fase 2", { base: ["tex-telemarketer"], walk: walk("telemarketer", 4) }),
+  mkItem("Reunião", "Fase 2", { base: ["tex-reuniao"], walk: walk("reuniao", 4) }),
+  mkItem("Impressora", "Fase 2", { base: ["tex-impressora"] }),
+  mkItem("Guardião Café", "Fase 2", { base: ["tex-guardiao-cafe"] }),
+  mkItem("Mural", "Fase 2", { base: ["tex-noticeboard"] }),
+  // ── Fase 3 ──
+  mkItem("Impressora Verm.", "Fase 3", { base: ["enemy-impressora-b-idle0"], walk: walk("impressora-b", 6) }),
+  mkItem("Evangelista", "Fase 3", { base: ["tex-evangelista"] }),
+  mkItem("Coletor de Dados", "Fase 3", { base: ["tex-coletor"] }),
+  mkItem("Planilha Viva", "Fase 3", { base: ["tex-planilha"] }),
+  // ── Fase 4 ──
+  mkItem("Impressora Fant.", "Fase 4", { base: ["enemy-impressora-c-idle0"], walk: walk("impressora-c", 6) }),
+  mkItem("Evangelista Boss", "Fase 4", { base: ["enemy-evangelista-boss-idle0"], walk: walk("evangelista-boss", 3) }),
+  mkItem("Cabo de Rede", "Fase 4", { base: ["tex-cabo"] }),
+  mkItem("TI Suporte", "Fase 4", { base: ["tex-ti-suporte"] }),
+  mkItem("Drone", "Fase 4", { base: ["tex-drone"] }),
+  mkItem("Segurança", "Fase 4", { base: ["tex-seguranca"] }),
   // Objetos
   mkItem("Baía", "Objeto", { idle: ["tex-baia"] }),
   mkItem("Bebedouro", "Objeto", { idle: ["tex-bebedouro"] }),
@@ -125,23 +147,26 @@ export class SpriteLabScene extends Phaser.Scene {
     this.loadState();
   }
 
-  // ── Botões de personagem (coluna esquerda, agrupados por categoria) ─────────
+  // ── Botões de personagem (2 colunas à esquerda, agrupados por categoria) ─────
   private buildSubjectButtons() {
-    let y = 70; let lastCat = "";
+    const COL_W = 90, ROW_H = 13, TOP = 46, MAX_Y = 528;
+    const cols = [6, 98];
+    let col = 0, y = TOP, lastCat = "";
     SUBJECTS.forEach((s, i) => {
       if (s.cat !== lastCat) {
-        this.add.text(10, y, s.cat.toUpperCase(), { fontFamily: "monospace", fontSize: "8px", color: "#5f6a78" });
-        y += 12; lastCat = s.cat;
+        if (y + 12 + ROW_H > MAX_Y && col === 0) { col = 1; y = TOP; } // quebra p/ 2ª coluna
+        this.add.text(cols[col], y, s.cat.toUpperCase(), { fontFamily: "monospace", fontSize: "7px", color: "#5f6a78" });
+        y += 10; lastCat = s.cat;
       }
-      const bg = this.add.rectangle(12, y, 168, 14, 0x1a1d23).setOrigin(0, 0).setStrokeStyle(1, 0x2a2f3a)
+      if (y + ROW_H > MAX_Y && col === 0) { col = 1; y = TOP; }
+      const bg = this.add.rectangle(cols[col], y, COL_W - 4, ROW_H - 1, 0x1a1d23).setOrigin(0, 0).setStrokeStyle(1, 0x2a2f3a)
         .setInteractive({ useHandCursor: true });
-      const t = this.add.text(16, y + 2, s.name, { fontFamily: "monospace", fontSize: "10px", color: "#cfd6e0" });
+      this.add.text(cols[col] + 3, y + 2, s.name, { fontFamily: "monospace", fontSize: "8px", color: "#cfd6e0" });
       bg.on("pointerover", () => { if (this.subjIdx !== i) bg.setFillStyle(0x252a36); });
       bg.on("pointerout", () => { if (this.subjIdx !== i) bg.setFillStyle(0x1a1d23); });
-      bg.on("pointerdown", () => { this.subjIdx = i; const st = Object.keys(s.states); this.stateName = st[0]; this.loadState(); });
-      void t;
+      bg.on("pointerdown", () => { this.subjIdx = i; this.stateName = Object.keys(s.states)[0]; this.loadState(); });
       this.subjBtns.push({ idx: i, bg });
-      y += 16;
+      y += ROW_H;
     });
   }
 
