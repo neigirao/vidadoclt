@@ -407,6 +407,24 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       }
     }
 
+    // Inimigos respeitam a mobília (opção "colidem e sobem"): antes atravessavam
+    // as mesas. Agora colidem e, quando travam de lado no chão, dão um pulinho —
+    // sobem/pulam mesas baixas e "tentam escalar" as altas (patrulheiros também
+    // viram pela lógica de body.blocked). Throttle p/ não pular todo frame.
+    const hopOverFurniture: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (eObj) => {
+      const e = eObj as Phaser.Physics.Arcade.Sprite;
+      const body = e.body as Phaser.Physics.Arcade.Body;
+      if (!body || !body.blocked.down) return;
+      if (!(body.blocked.left || body.blocked.right)) return;
+      const now = this.time.now;
+      if (now < (e.getData("nextHop") as number ?? 0)) return;
+      body.setVelocityY(-320);
+      e.setData("nextHop", now + 500);
+    };
+    [...groundGroups, this.onboardings].forEach(g =>
+      this.physics.add.collider(g, this.furnitureBodies, hopOverFurniture),
+    );
+
     // Contact damage
     const contactDamage = (group: Phaser.Physics.Arcade.Group, dmg: (e: Phaser.Physics.Arcade.Sprite) => number) => {
       this.physics.add.overlap(this.player, group, (_p, eObj) => {
