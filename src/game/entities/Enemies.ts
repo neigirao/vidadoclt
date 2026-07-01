@@ -83,10 +83,14 @@ export function showTelegraph(e: Phaser.Physics.Arcade.Sprite, color = "#ffcc00"
     fontFamily: "monospace", fontSize: "18px", fontStyle: "bold",
     color, stroke: "#000000", strokeThickness: 3,
   }).setOrigin(0.5).setDepth(560).setScale(0.4);
+  // Acompanha o inimigo enquanto o aviso está na tela (antes ficava parado no
+  // ponto inicial e "descolava" de quem se move durante o windup).
+  const follow = () => { if (mark.active && e.active) mark.setPosition(e.x, e.y - 40); };
+  e.scene.events.on("update", follow);
   e.scene.tweens.add({ targets: mark, scale: 1, duration: 120, ease: "Back.easeOut" });
   e.scene.tweens.add({
     targets: mark, alpha: 0, duration: 240, delay: 360,
-    onComplete: () => { mark.destroy(); _telegraphActive.delete(e); },
+    onComplete: () => { e.scene.events.off("update", follow); mark.destroy(); _telegraphActive.delete(e); },
   });
 }
 
@@ -1031,6 +1035,7 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
   private _frozen = 0;
   private _hurtUntil = 0;
   private _nextFireAt = 0;
+  private _windupUntil = 0;
   private _animOffset: number;
 
   target?: Phaser.GameObjects.GameObject & { x: number; y: number };
@@ -1065,12 +1070,24 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
       } else if (dist > 220) {
         this.dir = dx >= 0 ? 1 : -1;
       }
-      body.setVelocityX(this.dir * this.speed);
-      this.setFlipX(this.dir === -1);
-
-      if (t >= this._nextFireAt && dist < 300) {
+      // Windup telegrafado antes de atirar: "!" + glow, trava no lugar e só
+      // dispara ao fim (padrão do Facilitador). Antes atirava instantâneo.
+      if (t >= this._nextFireAt && dist < 300 && this._windupUntil === 0) {
         this._nextFireAt = t + 1200;
-        this.onShoot?.(this.x, this.y - 10, this.target.x, (this.target as any).y ?? this.y);
+        this._windupUntil = t + 320;
+        fxGlow(this, 0x66ccff, 400);
+        showTelegraph(this, "#66ccff");
+      }
+      if (this._windupUntil > 0) {
+        body.setVelocityX(0);
+        this.setFlipX(this.dir === -1);
+        if (t >= this._windupUntil) {
+          this._windupUntil = 0;
+          this.onShoot?.(this.x, this.y - 10, this.target.x, (this.target as { y?: number }).y ?? this.y);
+        }
+      } else {
+        body.setVelocityX(this.dir * this.speed);
+        this.setFlipX(this.dir === -1);
       }
     } else {
       if (body.blocked.left) this.dir = 1;
