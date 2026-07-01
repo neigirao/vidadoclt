@@ -757,6 +757,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     // Zona 1 — Estagiários Desesperados
     [320, 440, 560].forEach(x => {
       const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
+      e.target = this.player;
       this.estagiarios.add(e);
     });
 

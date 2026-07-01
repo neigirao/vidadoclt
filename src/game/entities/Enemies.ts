@@ -179,8 +179,13 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
   contactDamage = 15;
   speed = 200;
   dir: 1 | -1;
+  target?: Phaser.GameObjects.GameObject & { x: number; y: number };
   private _frozen = 0;
   private _hurtUntil = 0;
+  // Estado da investida telegrafada (bote em direção ao alvo).
+  private _atkState: "none" | "telegraph" | "lunge" | "recover" = "none";
+  private _atkUntil = 0;
+  private _nextAtkAt = 0;
   // Unique noise offset so each instance wanders independently
   private _noiseOffset: number;
 
@@ -204,6 +209,36 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
     if (t < this._frozen) {
       setEnemyTex(this, t, "estagiario", "hurt");
       return;
+    }
+
+    // Investida telegrafada: quando o alvo chega perto, avisa ("!" + glow),
+    // trava por um instante e dá um bote rápido. Contato durante o bote fere
+    // (contactDamage). Dá caráter de "estagiário desesperado" em vez de só andar.
+    if (this.target) {
+      const dx = this.target.x - this.x;
+      const dist = Math.abs(dx);
+      if (this._atkState === "none" && t >= this._nextAtkAt && dist > 30 && dist < 150) {
+        this._atkState = "telegraph"; this._atkUntil = t + 300;
+        this.dir = dx >= 0 ? 1 : -1; this.setFlipX(this.dir === -1);
+        fxGlow(this, 0xff5533, 420); showTelegraph(this, "#ff5533");
+      }
+      if (this._atkState !== "none") {
+        if (this._atkState === "telegraph") {
+          body.setVelocityX(0);
+          if (t >= this._atkUntil) { this._atkState = "lunge"; this._atkUntil = t + 220; body.setVelocityX(this.dir * 420); }
+        } else if (this._atkState === "lunge") {
+          setEnemyTex(this, t, "estagiario", "attack");
+          if (t >= this._atkUntil || body.blocked.left || body.blocked.right) {
+            this._atkState = "recover"; this._atkUntil = t + 260; body.setVelocityX(0);
+          }
+        } else { // recover
+          body.setVelocityX(0);
+          if (t >= this._atkUntil) { this._atkState = "none"; this._nextAtkAt = t + 1400; }
+        }
+        if (t < this._hurtUntil) setEnemyTex(this, t, "estagiario", "hurt");
+        else if (this._atkState !== "lunge") setEnemyTex(this, t, "estagiario", "idle");
+        return; // durante a investida, não roda o wander
+      }
     }
 
     // Organic wandering via Simplex noise:
