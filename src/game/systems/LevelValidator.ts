@@ -72,10 +72,13 @@ function gapX(aL: number, aR: number, bL: number, bR: number): number {
 //   rise = yA - yB  (>0 se B mais alta). Precisa rise ≤ apex.
 //   tempo até estar na altura de B (raiz maior = descendo): t = (v0 + √(v0²-2g·rise))/g
 //   alcance horizontal = walkSpeed · t  (+ dashBonus opcional)
+// Além do alcance, o arco do pulo não pode atravessar um móvel sólido (mesa
+// alta) que fique entre A e B — senão o pulo estaria bloqueado na prática.
 function canJump(
   aY: number, aL: number, aR: number,
   bY: number, bL: number, bR: number,
   jumpVel: number, gravity: number, walk: number, dashBonus: number, margin: number,
+  furniture: Box[],
 ): boolean {
   const v0 = -jumpVel;                    // jumpVel é negativo → v0 > 0
   const apex = (v0 * v0) / (2 * gravity);
@@ -84,8 +87,26 @@ function canJump(
   const disc = v0 * v0 - 2 * gravity * rise;
   if (disc < 0) return false;
   const tLand = (v0 + Math.sqrt(disc)) / gravity;
+  const gap = gapX(aL, aR, bL, bR);
   const reach = walk * tLand + dashBonus + margin;
-  return gapX(aL, aR, bL, bR) <= reach;
+  if (gap > reach) return false;
+
+  // Obstrução: amostra o arco (borda de A mais próxima de B → borda de B) e
+  // rejeita se algum ponto cai dentro de um corpo sólido (excluindo o próprio
+  // topo, com folga de 4px). vx constante que pousa em B no tempo tLand.
+  const goingRight = (bL + bR) / 2 >= (aL + aR) / 2;
+  const startX = goingRight ? aR : aL;
+  const endX = goingRight ? bL : bR;
+  const vx = (endX - startX) / (tLand || 1);
+  for (let i = 1; i < 16; i++) {
+    const t = (i / 16) * tLand;
+    const x = startX + vx * t;
+    const y = aY + jumpVel * t + 0.5 * gravity * t * t;
+    for (const f of furniture) {
+      if (x > f.left && x < f.right && y > f.top + 4 && y < f.bottom) return false;
+    }
+  }
+  return true;
 }
 
 export function computeReachability(spec: LevelSpec): ReachResult {
@@ -98,6 +119,7 @@ export function computeReachability(spec: LevelSpec): ReachResult {
   const walk = spec.walkSpeed ?? 200;
   const dashBonus = spec.dashBonus ?? 90; // DASH_SPEED(600) × DASH_MS(0.15)
   const margin = 12;
+  const furnBoxes = spec.furniture.getChildren().map(bodyBox).filter((b): b is Box => !!b);
 
   const edges: Array<[number, number]> = [];
   const reachable = nodes.map(n => n.isFloor); // chão é o ponto de partida
@@ -108,7 +130,7 @@ export function computeReachability(spec: LevelSpec): ReachResult {
     for (const b of nodes) {
       if (b.idx === ai) continue;
       if (canJump(a.surfaceY, a.left, a.right, b.surfaceY, b.left, b.right,
-        spec.jumpVel, spec.gravity, walk, dashBonus, margin)) {
+        spec.jumpVel, spec.gravity, walk, dashBonus, margin, furnBoxes)) {
         if (!reachable[b.idx]) { reachable[b.idx] = true; queue.push(b.idx); }
         edges.push([ai, b.idx]);
       }
