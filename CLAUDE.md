@@ -147,7 +147,7 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 **Aprendizado-raiz:** vários assets vieram de extrações de IA mal recortadas (blocos chapados, respingos, frames trocados/vazios). A alternativa robusta é **desenhar sprites simples direto em código**, via um "canvas painter" de pixel-art (helpers `px`/`rect`/`hline`, composição alpha-over). É versionado (diff revisável no PR), reproduzível (packing determinístico → mesmo byte) e sem dependência externa.
 
 - Uso: `node scripts/gen-sprites.mjs [filtro] && node scripts/pack-atlas.mjs`.
-- Já gera: Post-it (projétil), drop de Café e o copo estático da Copa. Adicionar novo asset = escrever uma função `canvas(w,h)…save("item-x.png")` e registrar em `SPRITES`.
+- Já gera: Post-it (projétil), drop de Café, copo estático da Copa e os tiles de cenário (`tile-floor` = carpete de escritório usado no rodapé de todas as fases; `tile-platform` = tampo de madeira). Tiles usam RNG determinístico (mulberry32) para textura reproduzível e ladrilham na horizontal. Adicionar novo asset = escrever uma função `canvas(w,h)…save("item-x.png")` e registrar em `SPRITES`.
 - Regra de bolso: use o gerador quando o asset em uso estiver quebrado **e** for simples. Para arte complexa (ex: CEO), prefira copiar um frame bom vizinho.
 
 ### SpriteLabScene — validação visual (menu "LAB SPRITES")

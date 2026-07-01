@@ -119,11 +119,61 @@ function coffeeStatic() {
   return c.save('item-coffee-cup.png');
 }
 
+// RNG determinístico (mulberry32) — mantém a textura reproduzível byte-a-byte.
+function rng(seed) {
+  return () => {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+
+// ── Chão de escritório (carpete comercial), 32x16, ladrilha na horizontal ─────
+// tex-floor é usado como tileSprite no rodapé das fases. Uma emenda vertical
+// escura em x=0 vira "junta de painel" a cada 32px; topo tem a linha da
+// superfície (onde os pés pisam) + textura de carpete pontilhada.
+const F_BASE = [56, 62, 72], F_DARK = [42, 47, 56], F_LIGHT = [74, 82, 95], F_EDGE = [100, 108, 124];
+function floorTile() {
+  const W = 32, H = 16, c = canvas(W, H);
+  const r = rng(1337);
+  for (let y = 0; y < H; y++) {
+    const grad = mix(F_BASE, F_DARK, y / H * 0.6); // escurece para baixo
+    c.hline(0, y, W, grad);
+  }
+  c.hline(0, 0, W, F_EDGE);                 // linha da superfície (pés)
+  c.hline(0, 1, W, mix(F_LIGHT, F_BASE, 0.4)); // bisel sutil
+  for (let y = 2; y < H; y++) { c.px(0, y, F_DARK); c.px(1, y, mix(F_DARK, F_BASE, 0.5)); } // junta de painel
+  c.hline(0, 8, W, mix(F_DARK, F_BASE, 0.35)); // emenda horizontal (ladrilho)
+  for (let i = 0; i < 70; i++) {            // textura pontilhada de carpete
+    const x = (r() * W) | 0, y = 2 + ((r() * (H - 2)) | 0);
+    c.px(x, y, r() < 0.5 ? mix(F_BASE, F_LIGHT, 0.6) : mix(F_BASE, F_DARK, 0.6));
+  }
+  return c.save('tile-floor.png');
+}
+
+// ── Tampo de mesa (madeira), 32x16 — usado no Lab (mesas in-game são graphics) ─
+const W_BASE = [96, 62, 34], W_DARK = [66, 41, 21], W_LIGHT = [126, 84, 48], W_EDGE = [150, 104, 62];
+function platformTile() {
+  const W = 32, H = 16, c = canvas(W, H);
+  const r = rng(4242);
+  for (let y = 0; y < H; y++) c.hline(0, y, W, mix(W_BASE, W_DARK, y / H * 0.5));
+  c.hline(0, 0, W, W_EDGE);                 // quina iluminada do tampo
+  c.hline(0, 1, W, W_LIGHT);
+  for (let g = 0; g < 3; g++) {             // veios de madeira horizontais
+    const y = 4 + g * 4;
+    for (let x = 0; x < W; x++) if (r() < 0.7) c.px(x, y, mix(W_BASE, W_DARK, 0.55));
+  }
+  return c.save('tile-platform.png');
+}
+
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
   ['postit', () => postit(0)], ['postit', () => postit(1)], ['postit', () => postit(2)],
   ['coffee', () => coffeeDrop(0)], ['coffee', () => coffeeDrop(1)], ['coffee', () => coffeeDrop(2)],
   ['coffee', coffeeStatic],
+  ['tile', floorTile], ['tile', platformTile],
 ];
 
 async function main() {
