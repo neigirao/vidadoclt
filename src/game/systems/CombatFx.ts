@@ -35,18 +35,15 @@ export class CombatFx {
    * Call on combo step 3 when an enemy was hit.
    */
   comboFinisher(playerX: number, enemyX: number): void {
+    void playerX; void enemyX;
     const cam = this.scene.cameras.main;
-    const tiltDeg = playerX > enemyX ? 1.5 : -1.5;
+    // NÃO rotacionar a câmera: num side-scroller preso aos limites do mundo, girar
+    // a câmera na borda (onde o boss fica, x≈1820 de 1920) inclina a cena inteira
+    // e joga o alvo/boss para fora do frame — lia como "o boss sumiu ao tomar hit".
+    // Mantém só o zoom-pop centrado (seguro em qualquer posição).
     this.scene.tweens.add({
       targets: cam,
-      rotation: Phaser.Math.DegToRad(tiltDeg),
-      duration: 55,
-      yoyo: true,
-      ease: "Quad.easeInOut",
-    });
-    this.scene.tweens.add({
-      targets: cam,
-      zoom: cam.zoom * 1.06,
+      zoom: cam.zoom * 1.05,
       duration: 40,
       yoyo: true,
       ease: "Quad.easeInOut",
