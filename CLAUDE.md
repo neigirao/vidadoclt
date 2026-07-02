@@ -28,46 +28,67 @@ Phaser roda 100% no cliente. Nenhuma server function é usada pelo jogo — TanS
 ```
 src/
   game/
-    config.ts              # GAME_WIDTH, GAME_HEIGHT, COLORS, buildGameConfig()
-    constants.ts           # GAME_WIDTH, GAME_HEIGHT, COLORS
-    GameMount.tsx          # Componente React que instancia/destrói Phaser.Game
+    config.ts                # buildGameConfig() + registro do array `scene`
+    constants.ts             # GAME_WIDTH, GAME_HEIGHT, COLORS
+    GameMount.tsx            # Componente React que instancia/destrói Phaser.Game
     scenes/
-      BootScene.ts         # Carrega atlas + backgrounds, gera texturas restantes
-      MenuScene.ts         # Menu principal (JOGAR / LAB SPRITES / ...)
-      ClassSelectScene.ts  # Seleção de classe (Estagiário/Analista/Terceirizado)
-      SpriteLabScene.ts    # Lab de sprites: valida todos os assets (ver abaixo)
-      OpenSpaceV2Scene.ts  # Fase 1 — Open Space (rendering sólido, ver abaixo)
-      CopaScene.ts         # Área segura: cura sanidade + loja (Faxineiro)
-      Phase2Scene.ts       # Fases 2–5
+      PreloadScene.ts        # Splash estilo AMI BIOS enquanto o atlas carrega
+      BootScene.ts           # Carrega atlas + backgrounds, gera texturas restantes
+      MenuScene.ts           # Menu principal (JOGAR / RECONHECIMENTO / RANKING / BESTIÁRIO / HORA EXTRA / LAB)
+      ClassSelectScene.ts    # Seleção de classe (Estagiário/Analista/Terceirizado)
+      CulturaSelectScene.ts  # Modificador de run (Cultura Corporativa)
+      ReconhecimentoScene.ts # Loja de upgrades permanentes (meta-progressão)
+      HoraExtraScene.ts      # Heat System — dificuldade opt-in por bônus de VR/Reco
+      RankingScene.ts        # Leaderboard online (Supabase/Lovable Cloud)
+      BestiaryScene.ts       # Bestiário — inimigos derrotados persistidos em LS
+      SpriteLabScene.ts      # Lab de sprites: valida todos os assets (ver abaixo)
+      OpenSpaceV2Scene.ts    # Fase 1 — Open Space (rendering sólido, ver abaixo)
+      BasePhaseScene.ts      # Classe base compartilhada pelas Fases 2–5
+      Phase2Scene.ts         # Fases 2–5
       Phase3Scene.ts
       Phase4Scene.ts
       Phase5Scene.ts
-      CeoScene.ts          # Chefe final (CEO)
-      VitoriaScene.ts      # Tela de vitória
-      GameOverScene.ts     # "Rescisão da tentativa"
+      CopaScene.ts           # Área segura entre fases: cura sanidade + loja (Faxineiro)
+      CeoScene.ts            # Chefe final (CEO)
+      VitoriaScene.ts        # Tela de vitória
+      GameOverScene.ts       # "Rescisão da tentativa"
+      PauseScene.ts          # Overlay de pause (invocado com scene.launch)
     entities/
-      Player.ts            # Controller do jogador
-      Enemies.ts           # Inimigos da Fase 1 + projéteis (PostIt, InkProjectile)
-      PhaseEnemies.ts      # Inimigos das fases 2–5
-      Boss.ts              # GerenteMicrogestor + EmailProjectil
-      CeoBoss.ts           # CeoBoss
-      Faxineiro.ts         # NPC da Copa
+      Player.ts              # Controller do jogador
+      Enemies.ts             # Inimigos da Fase 1 + projéteis (PostIt, InkProjectile)
+      PhaseEnemies.ts        # Inimigos das fases 2–5
+      Boss.ts                # GerenteMicrogestor + EmailProjectil
+      CeoBoss.ts             # CeoBoss
+      Faxineiro.ts           # NPC da Copa
     systems/
-      SpriteLibrary.ts     # resolveSprite() — roteia chaves tex-* p/ frames do atlas
-      TextureFactory.ts    # makeRect/makeX — texturas geradas em runtime
-      Background.ts        # addPhaseBackground()
-      Hud.ts               # HUD (Energia, Sanidade, VR, boss bar, minimapa)
-      PlayerState.ts       # RunState (registry "run"), persistência localStorage
-      WeaponSystem.ts      # CLASSES + WEAPONS (3 classes, 15 armas)
-      PerkSystem.ts        # Perks
-      Shop.ts              # Loja da Copa
-      SanityFx.ts          # Efeitos visuais por faixa de sanidade (vignette/barrel/chroma)
-      CombatFx.ts          # Juice de combate (hitStop, shake, flash, finisher)
+      SpriteLibrary.ts       # resolveSprite() + getAnimFrames/bindEnemySprite/warnMissing
+      TextureFactory.ts      # makeRect/makeX — texturas geradas em runtime
+      Background.ts          # addPhaseBackground()/addPhaseDecor()
+      ParticleFactory.ts     # Emitters compartilhados (sparks, dust, hitfx)
+      Hud.ts                 # HUD (Energia, Sanidade, VR, boss bar, minimapa)
+      PlayerState.ts         # RunState (registry "run"), persistência localStorage
+      RNG.ts                 # Seed determinística (seedrandom) + prefixos temáticos
+      WeaponSystem.ts        # CLASSES + WEAPONS (3 classes, 15 armas)
+      PerkSystem.ts          # Perks aleatórios pós-boss
+      CulturaSystem.ts       # 12 Culturas Corporativas (modificadores de run)
+      ReconhecimentoSystem.ts# Upgrades permanentes comprados com Reconhecimento
+      Shop.ts                # Loja da Copa
+      SanityFx.ts            # Efeitos visuais por faixa de sanidade
+      CombatFx.ts            # Juice de combate (hitStop, shake, flash, finisher)
+      MeleeCombat.ts         # resolveMeleeAttack() canônico (host pattern)
+      CorporateAI.ts         # Helpers de IA (windup, telegraph, dashes)
+      AudioSystem.ts         # SFX procedural via Web Audio (sem arquivos)
+      MusicSystem.ts         # Trilha ambiente procedural (office/boss/burnout)
+      EnemyCatalog.ts        # Metadados de 29 inimigos (fase/HP/dano/drops/desc.)
+      BestiarySystem.ts      # Persistência de kills + contagens (localStorage)
+      Ranking.ts             # Submissão/leitura do leaderboard via Supabase
+      LevelValidator.ts      # Validação de invariantes de fase + overlay DEV
+  integrations/supabase/     # Cliente + tipos auto-gerados (Lovable Cloud)
   routes/
-    __root.tsx             # Layout raiz (QueryClient, error boundary)
-    index.tsx              # Rota "/" — monta GameMount full-screen
-  components/ui/           # shadcn/ui — não usado pelo jogo ainda
-  lib/utils.ts             # clsx + tailwind-merge
+    __root.tsx               # Layout raiz (QueryClient, error boundary)
+    index.tsx                # Rota "/" — monta GameMount full-screen
+  components/ui/             # shadcn/ui — não usado pelo jogo
+  lib/utils.ts               # clsx + tailwind-merge
 ```
 
 ## Constantes de gameplay (constants.ts e Player.ts)
@@ -109,17 +130,23 @@ HIT_INVULN_MS = 600; // i-frames após tomar dano
 ## Fluxo de cenas
 
 ```
-BootScene → MenuScene → ClassSelectScene → OpenSpaceV2Scene ─┐
-                     └→ SpriteLabScene (lab)                 ↓
+PreloadScene → BootScene → MenuScene ─┬─ JOGAR ──→ ClassSelectScene → CulturaSelectScene → OpenSpaceV2Scene ─┐
+                                      ├─ RECONHECIMENTO ──→ ReconhecimentoScene (loja permanente)            ↓
+                                      ├─ RANKING ──→ RankingScene (Supabase)                                  │
+                                      ├─ BESTIÁRIO ──→ BestiaryScene                                          │
+                                      ├─ HORA EXTRA ──→ HoraExtraScene (heat system)                          │
+                                      └─ LAB SPRITES ──→ SpriteLabScene                                       │
+                                                                                                              ↓
    CopaScene ↔ Phase2 → Phase3 → Phase4 → Phase5 → CeoScene → VitoriaScene
-                                                            ↓
-                                                     GameOverScene
+                                                             ↓
+                                                      GameOverScene
 ```
 
-- **BootScene** carrega o atlas (`/assets/atlas.png` + `.json`) e backgrounds, depois vai pra MenuScene.
-- **MenuScene** → "JOGAR" → ClassSelectScene → OpenSpaceV2Scene. "LAB SPRITES" abre a SpriteLabScene.
-- **ClassSelectScene** → aplica upgrades de Reconhecimento no `run` e `this.scene.start("OpenSpaceV2Scene")`.
+- **PreloadScene** mostra splash AMI BIOS enquanto o atlas carrega; encadeia BootScene → MenuScene.
+- **MenuScene** roteia para todas as sub-telas listadas acima.
+- **ClassSelectScene → CulturaSelectScene** aplicam upgrades/modificadores no `run` e iniciam `OpenSpaceV2Scene`.
 - Após derrotar o boss da fase, a porta da **Copa** desbloqueia (tecla E).
+- **PauseScene** entra via `scene.launch` (overlay) — não substitui a cena ativa.
 - Morte do jogador → `scene.start("GameOverScene", { vr, cause })`.
 - **A V1 (`OpenSpaceScene`) foi aposentada**: não está no array `scene` do `config.ts`. Só existe a V2.
 
@@ -195,18 +222,25 @@ Nenhum band-aid ativo no momento.
 
 - Player completo: andar, pular (coyote + buffer), dash (i-frames), combo, ataque especial (K), interação (E)
 - 3 classes (Estagiário, Analista, Terceirizado) com stats próprios
-- 15 armas (WeaponSystem) + perks (PerkSystem)
-- Inimigos da Fase 1 (Enemies.ts) e fases 2–5 (PhaseEnemies.ts)
+- 15 armas (WeaponSystem) + perks aleatórios pós-boss (PerkSystem)
+- **12 Culturas Corporativas** (CulturaSystem) — modificadores de run selecionados antes da Fase 1
+- Inimigos da Fase 1 (Enemies.ts) e Fases 2–5 (PhaseEnemies.ts); catálogo de metadados em `EnemyCatalog.ts` (29 IDs)
 - Bosses: Gerente Microgestor (Boss.ts), CEO (CeoBoss.ts)
-- Fases: Open Space (V2), Fases 2–5, CEO, Copa, Vitória
+- Fases: Open Space (V2), Fases 2–5 via `BasePhaseScene`, CEO, Copa, Vitória
 - Sprites reais via atlas; Sanidade com efeitos visuais por faixa (SanityFx)
+- **Áudio 100% procedural** (Web Audio): SFX em `AudioSystem.ts`, trilha ambiente em `MusicSystem.ts` (temas office/boss/burnout)
+- **Meta-progressão**: Reconhecimento persistente, loja de upgrades permanentes (`ReconhecimentoScene` + `ReconhecimentoSystem`)
+- **Heat System / Hora Extra**: dificuldade opt-in que multiplica HP inimigo em troca de VR/Reconhecimento
+- **Ranking online**: submissão e leitura de scores via Supabase/Lovable Cloud (`Ranking.ts`)
+- **Bestiário persistente**: `BestiarySystem` grava kills + contagens em `localStorage`; `BestiaryScene` mostra silhueta `???` para não-vistos
+- **RNG determinística** por seed temática (`RNG.ts` — prefixos CLT/FGTS/META/...)
 - Persistência de Reconhecimento/FGTS/Loops em `localStorage` (PlayerState)
 - Copa: cura de sanidade + loja (Faxineiro), checkpoint
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 
 ### Pendente / em aberto
 
-- (nenhum item crítico — áudio procedural implementado via Web Audio API em `AudioSystem.ts`)
+- **Etapa 4 do roadmap de catálogo**: `BossCatalog` para os 7 bosses cuja arte existe em `_sources/` mas ainda não estão no jogo (arquiteto, cacador-metas, coordenador, diretor, guardiao-ordem, product-owner, rh-predador, vice-presidente). Ver `.lovable/plan.md`.
 
 ## Padrões e convenções
 
