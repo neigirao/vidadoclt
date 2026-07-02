@@ -168,12 +168,147 @@ function platformTile() {
   return c.save('tile-platform.png');
 }
 
+// ── Moeda VR (drop de moeda), base 52x52 + 3 frames de giro ───────────────────
+// O jogo tinta com 0xffd700 (dropVR), então desenhar CLARO (tint multiplica).
+const COIN = [255, 244, 200], COIN_D = [216, 196, 140], COIN_L = [255, 255, 240], COIN_TXT = [150, 122, 60];
+function vrCoinFrame(frame, name) {
+  const W = 52, H = 52, c = canvas(W, H);
+  const cx = 26, cy = 26, R = 19;
+  // largura do disco por frame de giro: cheio → médio → de perfil
+  const widths = [1, 0.55, 0.18];
+  const k = widths[Math.min(frame, 2)];
+  for (let y = -R; y <= R; y++) {
+    const half = Math.sqrt(Math.max(0, R * R - y * y)) * k;
+    if (half < 0.6) continue;
+    const shade = y < -R * 0.4 ? COIN_L : (y > R * 0.5 ? COIN_D : COIN);
+    c.rect(cx - half, cy + y, half * 2, 1, shade);
+    c.px(cx - half, cy + y, COIN_D); c.px(cx + half - 1, cy + y, COIN_D);
+  }
+  if (frame === 0) { // "R$" gravado só no frame cheio
+    // R
+    c.rect(cx - 8, cy - 6, 2, 12, COIN_TXT); c.rect(cx - 6, cy - 6, 4, 2, COIN_TXT);
+    c.rect(cx - 3, cy - 4, 2, 3, COIN_TXT); c.rect(cx - 6, cy - 1, 3, 2, COIN_TXT);
+    c.rect(cx - 4, cy + 1, 2, 5, COIN_TXT);
+    // $
+    c.rect(cx + 2, cy - 6, 6, 2, COIN_TXT); c.rect(cx + 1, cy - 4, 2, 3, COIN_TXT);
+    c.rect(cx + 2, cy - 1, 6, 2, COIN_TXT); c.rect(cx + 7, cy + 1, 2, 3, COIN_TXT);
+    c.rect(cx + 2, cy + 4, 6, 2, COIN_TXT); c.rect(cx + 4, cy - 8, 2, 16, COIN_TXT);
+  }
+  return c.save(name);
+}
+
+// ── E-mail (projétil do Gerente), 44x36, 2 frames ─────────────────────────────
+const ENV = [240, 240, 248], ENV_D = [196, 198, 214], ENV_L = [255, 255, 255], SEAL = [204, 60, 60];
+function emailFrame(frame) {
+  const W = 44, H = 36, c = canvas(W, H);
+  const x0 = 6, y0 = 9 + (frame === 1 ? 1 : 0), w = 32, h = 20;
+  for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? ENV_L : (r > h - 3 ? ENV_D : ENV));
+  // contorno + aba em V
+  c.hline(x0, y0, w, ENV_D); c.hline(x0, y0 + h - 1, w, ENV_D);
+  for (let r = 0; r < h; r++) { c.px(x0, y0 + r, ENV_D); c.px(x0 + w - 1, y0 + r, ENV_D); }
+  for (let i = 0; i <= w / 2; i++) {
+    const yy = y0 + Math.round(i * (h * 0.55) / (w / 2));
+    c.px(x0 + i, yy, ENV_D); c.px(x0 + w - 1 - i, yy, ENV_D);
+  }
+  c.rect(x0 + w / 2 - 2, y0 + h * 0.5 - 1, 4, 4, SEAL); // selo "urgente"
+  // linhas de velocidade (voando)
+  const sl = frame === 0 ? [4, 12] : [7, 15];
+  for (const yy of sl) c.hline(x0 - 5, y0 + yy * h / 20, 4, [255, 255, 255, 110]);
+  return c.save(`item-email-idle${frame}.png`);
+}
+
+// ── Convite de reunião (armadilha), 48x36, 3 frames (pulso do "!") ────────────
+const CARD = [245, 240, 228], CARD_D = [206, 198, 178], BAR = [90, 110, 200], ALERT = [220, 60, 50];
+function conviteFrame(frame) {
+  const W = 48, H = 36, c = canvas(W, H);
+  const x0 = 8, y0 = 6, w = 32, h = 24;
+  for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? [255, 255, 252] : (r > h - 3 ? CARD_D : CARD));
+  for (let r = 0; r < h; r++) { c.px(x0, y0 + r, CARD_D); c.px(x0 + w - 1, y0 + r, CARD_D); }
+  c.rect(x0, y0, w, 4, BAR);                    // faixa de "calendário"
+  c.hline(x0 + 3, y0 + 8, w - 14, CARD_D);      // linhas de texto
+  c.hline(x0 + 3, y0 + 12, w - 10, CARD_D);
+  c.hline(x0 + 3, y0 + 16, w - 16, CARD_D);
+  // "!" pulsante no canto (0=pequeno, 1=médio, 2=grande)
+  const s = 1 + frame * 0.5;
+  const bx = x0 + w - 7, by = y0 + h - 12;
+  c.rect(bx, by, 2 * s > 3 ? 3 : 2, Math.round(6 * s) - 2, ALERT);
+  c.rect(bx, by + Math.round(6 * s), 2, 2, ALERT);
+  return c.save(`item-convite-accepted${frame}.png`);
+}
+
+// ── Fase 5: objetos-monstro (48x64, pés na base, corpo ~centro p/ física) ─────
+const METAL = [120, 126, 138], METAL_D = [82, 87, 97], METAL_L = [166, 172, 184];
+const INKPAD = [180, 40, 50], WOODB = [104, 72, 44];
+
+// Carimbador Automático: máquina de carimbo com braço e almofada de tinta.
+function carimbador() {
+  const W = 48, H = 64, c = canvas(W, H);
+  c.rect(10, 56, 28, 6, METAL_D);               // base
+  c.rect(12, 54, 24, 2, METAL);
+  c.rect(30, 20, 6, 36, METAL);                  // coluna
+  c.rect(30, 20, 2, 36, METAL_L);
+  c.rect(14, 18, 24, 6, METAL);                  // braço horizontal
+  c.hline(14, 18, 24, METAL_L);
+  c.rect(14, 24, 8, 10, METAL_D);                // cabeça do carimbo
+  c.rect(13, 34, 10, 4, WOODB);                  // borracha do carimbo
+  c.rect(12, 50, 14, 4, INKPAD);                 // almofada de tinta
+  c.rect(12, 49, 14, 1, [220, 80, 90]);
+  c.rect(38, 30, 4, 4, ALERT);                   // luz de status
+  for (let i = 0; i < 3; i++) c.rect(16 + i * 6, 60, 3, 2, [40, 42, 48]); // parafusos
+  return c.save('enemy-carimbador.png');
+}
+
+// Arquivo Ambulante: arquivo de aço com gaveta aberta e pezinhos.
+function arquivo() {
+  const W = 48, H = 64, c = canvas(W, H);
+  const x0 = 12, w = 24, y0 = 10, h = 46;
+  for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? METAL_L : METAL);
+  for (let r = 0; r < h; r++) { c.px(x0, y0 + r, METAL_D); c.px(x0 + w - 1, y0 + r, METAL_D); }
+  for (let g = 0; g < 3; g++) {                  // 3 gavetas
+    const gy = y0 + 4 + g * 14;
+    c.hline(x0 + 1, gy + 11, w - 2, METAL_D);
+    c.rect(x0 + w / 2 - 4, gy + 5, 8, 3, METAL_D); // puxador
+  }
+  c.rect(x0 - 6, y0 + 4, 8, 6, METAL_L);         // gaveta do topo aberta
+  c.rect(x0 - 6, y0 + 4, 8, 1, [255, 255, 255]);
+  c.rect(x0 - 4, y0 + 1, 5, 3, [235, 232, 220]); // papel saindo
+  c.rect(x0 + 3, y0 + 56 - y0, 6, 6, METAL_D);   // pezinhos
+  c.rect(x0 + w - 9, 56, 6, 6, METAL_D);
+  c.rect(x0 + 3, 56, 6, 6, METAL_D);
+  return c.save('enemy-arquivo.png');
+}
+
+// Bateria Social: pilha grande com barras de carga (baixa) e olhinhos.
+function bateria() {
+  const W = 48, H = 64, c = canvas(W, H);
+  const x0 = 14, w = 20, y0 = 14, h = 44;
+  c.rect(x0 + 6, y0 - 4, 8, 4, METAL_D);         // terminal
+  for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? METAL_L : (r > h - 3 ? METAL_D : METAL));
+  for (let r = 0; r < h; r++) { c.px(x0, y0 + r, METAL_D); c.px(x0 + w - 1, y0 + r, METAL_D); }
+  // janela de carga: 4 células, só 1 acesa (bateria social no fim)
+  for (let i = 0; i < 4; i++) {
+    const cy2 = y0 + 8 + i * 9;
+    c.rect(x0 + 4, cy2, 12, 6, i === 3 ? ALERT : [50, 54, 62]);
+    c.hline(x0 + 4, cy2, 12, METAL_D);
+  }
+  c.rect(x0 + 4, y0 + 2, 3, 3, [255, 255, 255]); // olhinhos cansados
+  c.rect(x0 + 13, y0 + 2, 3, 3, [255, 255, 255]);
+  return c.save('enemy-bateria.png');
+}
+
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
   ['postit', () => postit(0)], ['postit', () => postit(1)], ['postit', () => postit(2)],
   ['coffee', () => coffeeDrop(0)], ['coffee', () => coffeeDrop(1)], ['coffee', () => coffeeDrop(2)],
   ['coffee', coffeeStatic],
   ['tile', floorTile], ['tile', platformTile],
+  ['vr', () => vrCoinFrame(0, 'item-vr-coin.png')],
+  ['vr', () => vrCoinFrame(0, 'item-vr-coin-active0.png')],
+  ['vr', () => vrCoinFrame(1, 'item-vr-coin-active1.png')],
+  ['vr', () => vrCoinFrame(2, 'item-vr-coin-active2.png')],
+  ['email', () => emailFrame(0)], ['email', () => emailFrame(1)],
+  ['convite', () => conviteFrame(0)], ['convite', () => conviteFrame(1)], ['convite', () => conviteFrame(2)],
+  ['fase5', carimbador], ['fase5', arquivo], ['fase5', bateria],
 ];
 
 async function main() {

@@ -149,6 +149,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setSize(22, 44);
     body.setOffset(29, 34); // 80×80 sprite: x=(80-22)/2, y=80-44-2
     body.setCollideWorldBounds(true);
+    // O corpo (22px) é bem mais estreito que a arte (~48px visíveis): encostado
+    // no limite do mundo, o sprite vazava ~14px pra fora da tela e aparecia
+    // "cortado" numa linha vertical. Bounds custom recuados mantêm a arte
+    // inteira dentro do canvas.
+    this.scene.events.once("update", () => {
+      const wb = this.scene.physics.world.bounds;
+      body.setBoundsRectangle(new Phaser.Geom.Rectangle(wb.x + 14, wb.y, wb.width - 28, wb.height));
+    });
     body.setMaxVelocity(800, 1400);
 
     const kb = scene.input.keyboard!;
