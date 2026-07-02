@@ -513,9 +513,9 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   arquivo_ambulante: {
     id: "arquivo_ambulante",
     label: "Arquivo Ambulante",
-    hp: 800,
+    hp: 500,
     speed: 30,
-    contactDamage: 35,
+    contactDamage: 14,
     vrReward: 15,
     phase: 5,
     archetype: "tank",

@@ -5,8 +5,10 @@ import { fxGlow } from "./Enemies";
 const HIT_INVULN_MS = 400;
 
 export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
-  hp = 500;
-  maxHp = 500;
+  // Rebalance (playtest): chefe final precisa coroar a rampa de HP dos bosses
+  // de fase (Gerente 500 → 380/450/520 → CEO). Antes empatava com o Gerente.
+  hp = 700;
+  maxHp = 700;
   contactDamage = 18;
   speed = 60;
   phase: 1 | 2 | 3 = 1;

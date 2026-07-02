@@ -144,7 +144,8 @@ export class Phase4Scene extends BasePhaseScene {
     // Boss — stored in this.boss, NOT in scrums group (prevents double-damage)
     const boss = new ScrumMasterCaotico(this, 1800, FLOOR_Y - 60);
     boss.target = this.player;
-    boss.hp = 120;
+    // Rebalance (playtest): 120 HP < Impressora Fantasma comum (560).
+    boss.hp = 520;
     boss.isBoss = true;
     boss.onShout = (bx, by) => {
       if (!this.player.isInvulnerable(this.time.now) &&

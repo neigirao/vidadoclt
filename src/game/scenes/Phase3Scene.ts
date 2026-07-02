@@ -125,9 +125,10 @@ export class Phase3Scene extends BasePhaseScene {
     // Boss — stored in this.boss, NOT in seniors group (prevents double-damage)
     const boss = new AnalistaSeniorExausto(this, 1750, FLOOR_Y - 60);
     boss.target = this.player;
-    boss.hp = 100;
+    // Rebalance (playtest): 100 HP < Impressora Vermelha comum (480).
+    boss.hp = 450;
     // @ts-ignore
-    boss.maxHp = 100;
+    boss.maxHp = 450;
     this.boss = boss as any;
 
     this.enemyGroups.push(

@@ -105,7 +105,9 @@ export class Phase2Scene extends BasePhaseScene {
     // Boss — stored in this.boss, NOT in coordenadores group (prevents double-damage)
     const boss = new CoordenadorDeSinergia(this, 1800, FLOOR_Y - 60);
     boss.target = this.player;
-    boss.hp = 80;
+    // Rebalance (playtest): 80 HP deixava o boss 5x mais fraco que o lixo da
+    // fase (Impressora 400). Boss deve ser a maior luta da própria fase.
+    boss.hp = 380;
     this.boss = boss as any;
 
     this.enemyGroups.push(

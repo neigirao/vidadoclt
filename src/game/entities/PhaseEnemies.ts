@@ -926,9 +926,11 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
 
 // ─── ArquivoAmbulante ─────────────────────────────────────────────────────────
 export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
-  hp = 800;
+  // Rebalance (playtest): 800 HP era esponja (69 golpes base) e contato 35
+  // tirava 1/3 da energia num toque — o pior do jogo, acima do CEO (18).
+  hp = 500;
   speed = 30;
-  contactDamage = 35;
+  contactDamage = 14;
   vrReward = 15;
 
   target?: Phaser.GameObjects.Sprite;
