@@ -10,16 +10,16 @@ Roguelite 2D side-scrolling em pixel art, temática corporativa brasileira. O jo
 
 ## Stack
 
-| Camada | Tecnologia | Versão |
-|--------|-----------|--------|
-| Engine de jogo | Phaser | 4.1.0 |
-| UI framework | React | 19.2.0 |
-| Meta-framework | TanStack Start | 1.167.50 |
-| Roteamento | TanStack Router | 1.168.25 |
-| Linguagem | TypeScript | 5.8.3 |
-| Build | Vite | 7.3.1 |
-| Runtime / PM | Bun | 1.x |
-| CSS | Tailwind CSS | 4.2.1 |
+| Camada         | Tecnologia      | Versão   |
+| -------------- | --------------- | -------- |
+| Engine de jogo | Phaser          | 4.1.0    |
+| UI framework   | React           | 19.2.0   |
+| Meta-framework | TanStack Start  | 1.167.50 |
+| Roteamento     | TanStack Router | 1.168.25 |
+| Linguagem      | TypeScript      | 5.8.3    |
+| Build          | Vite            | 7.3.1    |
+| Runtime / PM   | Bun             | 1.x      |
+| CSS            | Tailwind CSS    | 4.2.1    |
 
 Phaser roda 100% no cliente. Nenhuma server function é usada pelo jogo — TanStack Start serve apenas o shell React.
 
@@ -74,18 +74,18 @@ src/
 
 ```ts
 // Física
-GRAVITY         = 1200
-WALK_SPEED      = 200   // px/s (modulado por classDef.speedMult)
-JUMP_VEL        = -520  // velocidade inicial do pulo
-DASH_SPEED      = 600   // px/s durante dash
-DASH_MS         = 150   // duração do dash em ms
-DASH_COOLDOWN   = 1500  // ms
-COYOTE_MS       = 100   // grace window após sair de plataforma
-JUMP_BUFFER_MS  = 100   // janela de input do pulo
+GRAVITY = 1200;
+WALK_SPEED = 200; // px/s (modulado por classDef.speedMult)
+JUMP_VEL = -520; // velocidade inicial do pulo
+DASH_SPEED = 600; // px/s durante dash
+DASH_MS = 150; // duração do dash em ms
+DASH_COOLDOWN = 1500; // ms
+COYOTE_MS = 100; // grace window após sair de plataforma
+JUMP_BUFFER_MS = 100; // janela de input do pulo
 
 // Combate
-COMBO_WINDOW_MS = 250   // janela entre hits do combo
-HIT_INVULN_MS   = 600   // i-frames após tomar dano
+COMBO_WINDOW_MS = 250; // janela entre hits do combo
+HIT_INVULN_MS = 600; // i-frames após tomar dano
 // dano/knockback por arma vêm de WEAPONS[weaponId].hitDamages / comboKnockback
 // Hitbox de melee (Player.ts): começa levemente atrás do centro (pega inimigo
 // colado), alcance = attackRange + 18, altura 44. Margem de perdão contra o
@@ -97,14 +97,14 @@ HIT_INVULN_MS   = 600   // i-frames após tomar dano
 
 ## Controles
 
-| Ação | Tecla |
-|------|-------|
-| Andar | ← → ou A D |
-| Pular | Espaço ou W |
-| Dash | Shift |
-| Atacar | J |
-| Ataque especial | K |
-| Interagir (portas/loja) | E |
+| Ação                    | Tecla       |
+| ----------------------- | ----------- |
+| Andar                   | ← → ou A D  |
+| Pular                   | Espaço ou W |
+| Dash                    | Shift       |
+| Atacar                  | J           |
+| Ataque especial         | K           |
+| Interagir (portas/loja) | E           |
 
 ## Fluxo de cenas
 
@@ -138,17 +138,21 @@ Versão limpa da Fase 1 (a antiga V1 foi descontinuada). Pontos-chave:
 Os sprites de personagem/inimigo/chefe/objeto vêm de um **atlas empacotado** (`public/assets/atlas.png` + `atlas.json`), carregado em `BootScene` como textura `"sprites"`. Alguns assets soltos (tex-floor, tex-vr, tex-inkproj, backgrounds) são carregados via `load.image`.
 
 ### resolveSprite (SpriteLibrary.ts)
+
 Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
+
 - `tex-estagiario-idle0` → frame `enemy-estagiario-idle0` do atlas
 - prefixos testados: `<nome>`, `<nome>-idle`, `enemy-<nome>`, `obj-<nome>`, `obj-<nome>-idle`, `item-<nome>`, `npc-<nome>`, `tile-<nome>`
 - `EXPLICIT_ALIASES` cobre exceções (ex: `postit` → `item-postit-active0`)
 
 ### Fonte dos sprites e re-empacotamento
+
 - Os PNGs individuais ficam em `public/assets/sprites/`. São a **fonte** do atlas.
 - Após editar qualquer PNG em `sprites/`, **re-empacote**: `node scripts/pack-atlas.mjs` (regenera `atlas.png` + `atlas.json`). Editar só o PNG individual **não** reflete no jogo, que carrega o atlas.
 - O `pack-atlas.mjs` roda uma **validação** ao final: avisa sobre frames vazios/quase-vazios e famílias de animação com tamanho inconsistente.
 
 ### Gerador procedural de sprites (`scripts/gen-sprites.mjs`)
+
 **Aprendizado-raiz:** vários assets vieram de extrações de IA mal recortadas (blocos chapados, respingos, frames trocados/vazios). A alternativa robusta é **desenhar sprites simples direto em código**, via um "canvas painter" de pixel-art (helpers `px`/`rect`/`hline`, composição alpha-over). É versionado (diff revisável no PR), reproduzível (packing determinístico → mesmo byte) e sem dependência externa.
 
 - Uso: `node scripts/gen-sprites.mjs [filtro] && node scripts/pack-atlas.mjs`.
@@ -156,9 +160,11 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 - Regra de bolso: use o gerador quando o asset em uso estiver quebrado **e** for simples. Para arte complexa (ex: CEO), prefira copiar um frame bom vizinho.
 
 ### SpriteLabScene — validação visual (menu "LAB SPRITES")
+
 Área de teste que mostra **todos os assets renderizados** (personagens, inimigos das Fases 1–4, bosses, objetos, drops, projéteis, **cenário: tiles + fundo**) com botões clicáveis: clique no sujeito (2 colunas à esquerda) e na ação (embaixo) → a animação roda em loop. Mostra bounding box, linha dos pés, strip de frames e um painel de diagnóstico; loga `[SpriteLab] nome/ação: Nf sizes=… missing=… → OK/PROBLEMA`. É a forma rápida de flagrar frame trocado/cortado/faltando. Preview auto-escala (assets grandes como o fundo 1920px encolhem para caber).
 
 ### Validador de fase (`systems/LevelValidator.ts`)
+
 `validateLevel(spec)` roda contra uma cena **já montada** e verifica invariantes que garantem que a fase é jogável/justa num roguelite (layout varia por seed). Roda só em DEV no fim de `create()` da `OpenSpaceV2Scene` e loga `[LevelValidator] … PASS/FAIL`. Checa: chão contínuo, plataformas alcançáveis por **grafo de pulos encadeados** (`computeReachability` faz BFS do chão; aresta A→B usa a cinemática — apex `v²/2g` + alcance horizontal `walk·tAr + dash`), mesas puláveis (não bloqueiam o corredor), móveis sem sobreposição, spawn seguro (sem inimigo perto do player), inimigos nos limites, boss posicionado, saída presente, e distribuição de inimigos por zonas (ritmo de dificuldade). É agnóstico de fase — dá pra validar Fases 2–5 passando as refs no `LevelSpec`.
 
 `drawLevelOverlay(scene, spec, report)` desenha o diagnóstico **em cima da fase** (tecla **V** em DEV): raio seguro de spawn, arco de pulo, teto de pulo, plataformas/mesas coloridas (verde=ok, vermelho=problema), zonas de dificuldade com contagem, boss/saída, pontos de inimigos, e um painel fixo com PASS/FAIL + checks.
@@ -166,14 +172,18 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 **Ligado em todas as fases**: OpenSpaceV2 e `BasePhaseScene` (Fases 2–5) rodam o validador em DEV. `expectBoss: false` para fases sem boss por design (Fase 5 → CEO é a cena seguinte). As Fases 2–5 têm **3 variantes de layout por seed** (0 original, 1 espelhado, 2 alturas alternadas) aplicadas genericamente sobre `getPlatformLayout()` — todas validadas.
 
 ### Padrão de inimigo de fase (2–5)
+
 - **Animação**: `animPhase(this, t, "<prefixo>", nFrames)` no fim do `preUpdate` — cicla `enemy-<prefixo>-walkN` em movimento, volta à base parado. Whitelist: só prefixos cujo walk tem o MESMO tamanho da base (evangelista fora: 64×64 vs 32×48).
 - **Telegrafia**: atirador usa `fxGlow` + `showTelegraph` + `delayedCall(320)` antes do disparo (padrão leve; o windup travado do Facilitador/Onboarding é o padrão pesado da Fase 1).
 
 ### Eventos de sala (Fase 1) e segredo
+
 `rollRoomEvent` tem 6 eventos + sala normal; os **mecânicos** são APAGÃO (escuridão com lanterna no player — textura 2× da tela com furo radial, pois GeometryMask é Canvas-only no Phaser 4) e FISCALIZAÇÃO (Sênior extra). Segredo: bater no extintor (x≈1793) derruba +3 VR, 1× por run (`checkExtintorSecret`).
 
 ### Band-aids de sprite ativos
+
 Nenhum band-aid ativo no momento.
+
 - ✅ **Post-it / Café (drop) / copo da Copa**: refeitos via `gen-sprites.mjs` (eram bloco amarelo / respingos).
 - ✅ **CEO em corrida** (`boss-ceo-run1/2`): frames-lixo substituídos por vizinhos válidos.
 - ✅ Inimigos das Fases 2–4 auditados: bases limpas. Inconsistências de tamanho remanescentes são frames idle/walk **não usados** (esses inimigos renderizam base estática).
@@ -182,6 +192,7 @@ Nenhum band-aid ativo no momento.
 ## Estado atual
 
 ### Implementado
+
 - Player completo: andar, pular (coyote + buffer), dash (i-frames), combo, ataque especial (K), interação (E)
 - 3 classes (Estagiário, Analista, Terceirizado) com stats próprios
 - 15 armas (WeaponSystem) + perks (PerkSystem)
@@ -194,11 +205,13 @@ Nenhum band-aid ativo no momento.
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 
 ### Pendente / em aberto
+
 - (nenhum item crítico — áudio procedural implementado via Web Audio API em `AudioSystem.ts`)
 
 ## Padrões e convenções
 
 ### Adicionar novo inimigo
+
 1. Criar classe em `Enemies.ts` (Fase 1) ou `PhaseEnemies.ts` (Fases 2–5) estendendo `Phaser.Physics.Arcade.Sprite`
 2. No construtor, usar `resolveSprite("tex-<nome>-idle0")` para a textura inicial
 3. Implementar `preUpdate(t, dt)` (IA) e `hit(damage, knockback): boolean` (retorna `true` se morreu)
@@ -208,24 +221,29 @@ Nenhum band-aid ativo no momento.
 7. **Todo ataque ativo (projétil/lunge) deve telegrafar**: `showTelegraph(this, cor)` + trava/glow antes de disparar (padrão do `FacilitadorDeWorkshop` / `AnalistaOnboarding`). Ataque só por contato (contactDamage) não precisa.
 
 ### Adicionar nova cena
+
 1. Criar `src/game/scenes/NomeDaCena.ts` estendendo `Phaser.Scene`
 2. Importar e registrar no array `scene` em `config.ts` → `buildGameConfig()`
 3. Navegar via `this.scene.start("NomeDaCena", dados)`
 
 ### Sprites / texturas
+
 - Personagens/objetos: usar `resolveSprite`/`addImage`/`addSprite` (SpriteLibrary) com chave `tex-*`.
 - Texturas geradas em runtime: `TextureFactory.ts`.
 - Assets simples quebrados: refazer em `scripts/gen-sprites.mjs` (pixel-art em código).
 - Após mexer em PNG de `sprites/`, rodar `node scripts/pack-atlas.mjs`. Valide no **LAB SPRITES**.
 
 ### Juice de combate (CombatFx.ts)
+
 - `hitStop`, `shake`, `flash`, `comboFinisher`, `finisherImpact`. **Não** rotacionar a câmera: num side-scroller preso aos limites do mundo, girar na borda joga o alvo/boss para fora do frame (era a causa do "boss some ao tomar hit"). Zoom-pop centrado é seguro.
 - Distorção por sanidade fica em `SanityFx.ts` (vignette + barrel + chromatic). O barrel do burnout foi limitado (pincushion ≤7%) para não desalinhar a mira do combate.
 
 ### HUD
+
 O HUD (`Hud.ts`) usa `setScrollFactor(0)` para fixar à câmera. Instanciar `new Hud(this, levelWidth)` na cena e chamar `hud.update({...})` no `update`.
 
 ### Nomenclatura
+
 - Arquivos de cena: `NomeDaFaseScene.ts`
 - Arquivos de entidade: nome da entidade em PascalCase
 - Chaves de sprite: `tex-nome-kebab-case`
@@ -234,16 +252,16 @@ O HUD (`Hud.ts`) usa `setScrollFactor(0)` para fixar à câmera. Instanciar `new
 
 ## Terminologia do jogo → código
 
-| GDD | Código |
-|-----|--------|
-| Energia | `player.energy` |
-| Sanidade | `player.sanity` |
-| Vale Refeição | `player.vr` |
-| Reconhecimento | `run.reconhecimento` (persistido) |
-| Rescisão | tela de Game Over |
-| Ponto Eletrônico | checkpoint (Copa) |
-| Autonomia | `run.autonomia` (perk pós-boss) |
-| Burnout | sanidade = 0, faixa "burnout" (`sanityBand`) |
+| GDD              | Código                                       |
+| ---------------- | -------------------------------------------- |
+| Energia          | `player.energy`                              |
+| Sanidade         | `player.sanity`                              |
+| Vale Refeição    | `player.vr`                                  |
+| Reconhecimento   | `run.reconhecimento` (persistido)            |
+| Rescisão         | tela de Game Over                            |
+| Ponto Eletrônico | checkpoint (Copa)                            |
+| Autonomia        | `run.autonomia` (perk pós-boss)              |
+| Burnout          | sanidade = 0, faixa "burnout" (`sanityBand`) |
 
 ## Comandos
 

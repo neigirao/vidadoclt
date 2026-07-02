@@ -18,7 +18,9 @@ export class ParticleFactory {
         scaleY: 0.25,
         duration: 176, // multiple of 16ms
         ease: "Quad.easeOut",
-        onUpdate: () => { g.setPosition(Math.round(g.x), Math.round(g.y)); },
+        onUpdate: () => {
+          g.setPosition(Math.round(g.x), Math.round(g.y));
+        },
         onComplete: () => g.destroy(),
       });
     }
@@ -43,7 +45,9 @@ export class ParticleFactory {
         alpha: 0,
         duration: 320,
         ease: "Quad.easeOut",
-        onUpdate: () => { g.setPosition(Math.round(g.x), Math.round(g.y)); },
+        onUpdate: () => {
+          g.setPosition(Math.round(g.x), Math.round(g.y));
+        },
         onComplete: () => g.destroy(),
       });
     }
@@ -72,7 +76,9 @@ export class ParticleFactory {
         scaleY: 0.25,
         duration: 384 + Math.floor(Math.random() * 14) * 16, // 384-608, multiples of 16
         ease: "Quad.easeOut",
-        onUpdate: () => { g.setPosition(Math.round(g.x), Math.round(g.y)); },
+        onUpdate: () => {
+          g.setPosition(Math.round(g.x), Math.round(g.y));
+        },
         onComplete: () => g.destroy(),
       });
     }

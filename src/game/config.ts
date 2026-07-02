@@ -23,9 +23,9 @@ import { GAME_WIDTH, GAME_HEIGHT } from "./constants";
 
 export { GAME_WIDTH, GAME_HEIGHT, COLORS } from "./constants";
 
-const _debugMode = new URLSearchParams(
-  typeof location !== "undefined" ? location.search : ""
-).has("debug");
+const _debugMode = new URLSearchParams(typeof location !== "undefined" ? location.search : "").has(
+  "debug",
+);
 
 export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConfig {
   return {
@@ -70,12 +70,26 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       },
     },
     scene: [
-      PreloadScene, BootScene, MenuScene, ClassSelectScene,
-      OpenSpaceV2Scene, CopaScene,
-      Phase2Scene, Phase3Scene, Phase4Scene, Phase5Scene,
-      CeoScene, VitoriaScene,
-      GameOverScene, RankingScene, PauseScene, CulturaSelectScene, BestiaryScene,
-      ReconhecimentoScene, HoraExtraScene, SpriteLabScene,
+      PreloadScene,
+      BootScene,
+      MenuScene,
+      ClassSelectScene,
+      OpenSpaceV2Scene,
+      CopaScene,
+      Phase2Scene,
+      Phase3Scene,
+      Phase4Scene,
+      Phase5Scene,
+      CeoScene,
+      VitoriaScene,
+      GameOverScene,
+      RankingScene,
+      PauseScene,
+      CulturaSelectScene,
+      BestiaryScene,
+      ReconhecimentoScene,
+      HoraExtraScene,
+      SpriteLabScene,
     ],
   };
 }

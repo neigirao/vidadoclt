@@ -78,17 +78,37 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Lovable App" },
-      { name: "description", content: "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop." },
+      {
+        name: "description",
+        content:
+          "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop.",
+      },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop." },
+      {
+        property: "og:description",
+        content:
+          "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90b1856e-3469-4458-ba07-921ea87f9cdb/id-preview-c7a0393d--afdf85e2-8b77-42c0-978c-3ae6c7151bae.lovable.app-1781099012958.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90b1856e-3469-4458-ba07-921ea87f9cdb/id-preview-c7a0393d--afdf85e2-8b77-42c0-978c-3ae6c7151bae.lovable.app-1781099012958.png" },
+      {
+        name: "twitter:description",
+        content:
+          "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90b1856e-3469-4458-ba07-921ea87f9cdb/id-preview-c7a0393d--afdf85e2-8b77-42c0-978c-3ae6c7151bae.lovable.app-1781099012958.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90b1856e-3469-4458-ba07-921ea87f9cdb/id-preview-c7a0393d--afdf85e2-8b77-42c0-978c-3ae6c7151bae.lovable.app-1781099012958.png",
+      },
     ],
     links: [
       {

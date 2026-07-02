@@ -26,10 +26,18 @@ export class Phase4Scene extends BasePhaseScene {
     this.load.image("bg-tecnologia", "/assets/bg-tecnologia.png");
   }
 
-  protected getBgKey() { return "bg-tecnologia"; }
-  protected getPhaseNumber(): 4 { return 4; }
-  protected getPhaseTitle() { return "FASE 4 — TI / SERVIDORES"; }
-  protected getInitialObjective() { return "Derrote o Scrum Master e avance"; }
+  protected getBgKey() {
+    return "bg-tecnologia";
+  }
+  protected getPhaseNumber(): 4 {
+    return 4;
+  }
+  protected getPhaseTitle() {
+    return "FASE 4 — TI / SERVIDORES";
+  }
+  protected getInitialObjective() {
+    return "Derrote o Scrum Master e avance";
+  }
 
   protected getPlatformLayout(): Array<[number, number, number]> {
     return [
@@ -54,13 +62,15 @@ export class Phase4Scene extends BasePhaseScene {
     };
   }
 
-  protected getBossName() { return "Scrum Master Caótico"; }
+  protected getBossName() {
+    return "Scrum Master Caótico";
+  }
 
   protected setupEnemiesAndGroups() {
-    this.cabos        = this.physics.add.group({ runChildUpdate: false });
-    this.tiSuportes   = this.physics.add.group({ runChildUpdate: false });
-    this.drones       = this.physics.add.group({ runChildUpdate: false });
-    this.segurancas   = this.physics.add.group({ runChildUpdate: false });
+    this.cabos = this.physics.add.group({ runChildUpdate: false });
+    this.tiSuportes = this.physics.add.group({ runChildUpdate: false });
+    this.drones = this.physics.add.group({ runChildUpdate: false });
+    this.segurancas = this.physics.add.group({ runChildUpdate: false });
     this.impressorasF = this.physics.add.group({ runChildUpdate: false });
     this.evangelistasA = this.physics.add.group({ runChildUpdate: false });
 
@@ -80,13 +90,27 @@ export class Phase4Scene extends BasePhaseScene {
       const e = new TiSuporte(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onSpawnError = (ex, ey) => {
-        const err = this.add.text(ex, ey - 20, "ERRO 404", {
-          fontFamily: "monospace", fontSize: "11px", color: "#ff4444",
-          stroke: "#000000", strokeThickness: 2,
-        }).setOrigin(0.5).setDepth(400);
-        this.tweens.add({ targets: err, y: err.y - 30, alpha: 0, duration: 800, onComplete: () => err.destroy() });
-        if (!this.player.isInvulnerable(this.time.now) &&
-          Phaser.Math.Distance.Between(this.player.x, this.player.y, ex, ey) < 60) {
+        const err = this.add
+          .text(ex, ey - 20, "ERRO 404", {
+            fontFamily: "monospace",
+            fontSize: "11px",
+            color: "#ff4444",
+            stroke: "#000000",
+            strokeThickness: 2,
+          })
+          .setOrigin(0.5)
+          .setDepth(400);
+        this.tweens.add({
+          targets: err,
+          y: err.y - 30,
+          alpha: 0,
+          duration: 800,
+          onComplete: () => err.destroy(),
+        });
+        if (
+          !this.player.isInvulnerable(this.time.now) &&
+          Phaser.Math.Distance.Between(this.player.x, this.player.y, ex, ey) < 60
+        ) {
           this.player.takeDamage(10, 4);
         }
       };
@@ -97,12 +121,18 @@ export class Phase4Scene extends BasePhaseScene {
       const drone = new DroneDeVigilancia(this, x, FLOOR_Y - 180);
       drone.target = this.player;
       drone.onBomb = (bx, by) => {
-        const bomb = this.enemyProjectiles.create(bx, by, "tex-inkproj") as Phaser.Physics.Arcade.Sprite;
+        const bomb = this.enemyProjectiles.create(
+          bx,
+          by,
+          "tex-inkproj",
+        ) as Phaser.Physics.Arcade.Sprite;
         const bbody = bomb.body as Phaser.Physics.Arcade.Body;
         bbody.setVelocity(0, 200);
         bomb.setData("damage", 14);
         bomb.setTint(0xffaa00);
-        this.time.delayedCall(2000, () => { if (bomb.active) bomb.destroy(); });
+        this.time.delayedCall(2000, () => {
+          if (bomb.active) bomb.destroy();
+        });
       };
       this.drones.add(drone);
     });
@@ -122,7 +152,8 @@ export class Phase4Scene extends BasePhaseScene {
     [900, 1140].forEach((x) => {
       const imf = new ImpressoraFantasma(this, x, FLOOR_Y - 60);
       imf.target = this.player;
-      imf.onFire = (fx, fy, dir) => this.spawnEnemyProjectile(fx, fy, fx + dir * 200, fy, 14, 0x8822cc, 230);
+      imf.onFire = (fx, fy, dir) =>
+        this.spawnEnemyProjectile(fx, fy, fx + dir * 200, fy, 14, 0x8822cc, 230);
       this.impressorasF.add(imf);
     });
 
@@ -131,11 +162,17 @@ export class Phase4Scene extends BasePhaseScene {
       ev.target = this.player;
       ev.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 10, 0xff6600, 190);
       ev.onHeal = () => {
-        [this.cabos, this.tiSuportes, this.segurancas, this.impressorasF, this.evangelistasA].forEach(g =>
-          g.getChildren().forEach(c => {
+        [
+          this.cabos,
+          this.tiSuportes,
+          this.segurancas,
+          this.impressorasF,
+          this.evangelistasA,
+        ].forEach((g) =>
+          g.getChildren().forEach((c) => {
             const en = c as any;
             if (en.active && en.hp !== undefined) en.hp = Math.min(en.hp + 30, en.hp + 30);
-          })
+          }),
         );
       };
       this.evangelistasA.add(ev);
@@ -148,8 +185,10 @@ export class Phase4Scene extends BasePhaseScene {
     boss.hp = 520;
     boss.isBoss = true;
     boss.onShout = (bx, by) => {
-      if (!this.player.isInvulnerable(this.time.now) &&
-        Phaser.Math.Distance.Between(this.player.x, this.player.y, bx, by) < 160) {
+      if (
+        !this.player.isInvulnerable(this.time.now) &&
+        Phaser.Math.Distance.Between(this.player.x, this.player.y, bx, by) < 160
+      ) {
         this.player.takeDamage(12, 10, bx);
         this.player.applyFreeze(600);
       }
@@ -158,10 +197,18 @@ export class Phase4Scene extends BasePhaseScene {
       const aoeW = 300;
       this.cameras.main.shake(220, 0.014);
       const shockwave = this.add.rectangle(bx, FLOOR_Y + 4, aoeW, 18, 0xaa44ff, 0.75);
-      this.tweens.add({ targets: shockwave, scaleX: 1.4, alpha: 0, duration: 550, onComplete: () => shockwave.destroy() });
-      if (!this.player.isInvulnerable(this.time.now) &&
+      this.tweens.add({
+        targets: shockwave,
+        scaleX: 1.4,
+        alpha: 0,
+        duration: 550,
+        onComplete: () => shockwave.destroy(),
+      });
+      if (
+        !this.player.isInvulnerable(this.time.now) &&
         Math.abs(this.player.x - bx) < aoeW / 2 &&
-        this.player.y > by - 80) {
+        this.player.y > by - 80
+      ) {
         this.player.takeDamage(20, 9);
         this.player.applyFreeze(900);
       }
@@ -169,11 +216,11 @@ export class Phase4Scene extends BasePhaseScene {
     this.boss = boss as any;
 
     this.enemyGroups.push(
-      { group: this.cabos,         vrDrop: 2 },
-      { group: this.tiSuportes,    vrDrop: 3 },
-      { group: this.drones,        vrDrop: 3, aerial: true },
-      { group: this.segurancas,    vrDrop: 4 },
-      { group: this.impressorasF,  vrDrop: 12 },
+      { group: this.cabos, vrDrop: 2 },
+      { group: this.tiSuportes, vrDrop: 3 },
+      { group: this.drones, vrDrop: 3, aerial: true },
+      { group: this.segurancas, vrDrop: 4 },
+      { group: this.impressorasF, vrDrop: 12 },
       { group: this.evangelistasA, vrDrop: 6 },
     );
   }
@@ -181,7 +228,9 @@ export class Phase4Scene extends BasePhaseScene {
   protected onEnemyKilledByMelee(e: any) {
     this.tweens.add({
       targets: e,
-      scaleX: 1.6, scaleY: 0.2, alpha: 0,
+      scaleX: 1.6,
+      scaleY: 0.2,
+      alpha: 0,
       duration: 120,
       onComplete: () => e.destroy(),
     });
@@ -191,7 +240,9 @@ export class Phase4Scene extends BasePhaseScene {
   protected onEnemyKilledByProjectile(e: any) {
     this.tweens.add({
       targets: e,
-      scaleX: 1.6, scaleY: 0.2, alpha: 0,
+      scaleX: 1.6,
+      scaleY: 0.2,
+      alpha: 0,
       duration: 120,
       onComplete: () => e.destroy(),
     });

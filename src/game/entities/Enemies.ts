@@ -13,31 +13,57 @@ const _animOffsets = new WeakMap<Phaser.Physics.Arcade.Sprite, number>();
 // tinham o personagem em escala errada/cortado e faziam o sprite "encolher"
 // no meio do ciclo de caminhada. Limitado aos frames bons.
 const WALK_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 4, analista: 4, facilitador: 2, scrum: 6,
-  coordenador: 4, senior: 4, rh: 4,
+  estagiario: 4,
+  analista: 4,
+  facilitador: 2,
+  scrum: 6,
+  coordenador: 4,
+  senior: 4,
+  rh: 4,
 };
 const IDLE_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 4, analista: 4, facilitador: 4, scrum: 4,
-  coordenador: 4, senior: 4, rh: 4,
+  estagiario: 4,
+  analista: 4,
+  facilitador: 4,
+  scrum: 4,
+  coordenador: 4,
+  senior: 4,
+  rh: 4,
 };
 // Per-prefix frame duration (ms) — tuned to each enemy's energy level
 const WALK_MS: Record<string, number> = {
-  estagiario: 160, analista: 200, facilitador: 180, scrum: 140,
-  coordenador: 220, senior: 280, rh: 200,
+  estagiario: 160,
+  analista: 200,
+  facilitador: 180,
+  scrum: 140,
+  coordenador: 220,
+  senior: 280,
+  rh: 200,
 };
 const IDLE_MS: Record<string, number> = {
-  estagiario: 280, analista: 320, facilitador: 300, scrum: 260,
-  coordenador: 350, senior: 500, rh: 320,
+  estagiario: 280,
+  analista: 320,
+  facilitador: 300,
+  scrum: 260,
+  coordenador: 350,
+  senior: 500,
+  rh: 320,
 };
 // Ataque animado: whitelist de quantos frames CADA inimigo pode ciclar. Só
 // entram os frames de arte VALIDADA (48x64) — os outliers 32x48 / lixo de
 // extração (ex: facilitador-attack2, analista-attack2, scrum-attack1/2) ficam
 // de fora. Prefixo ausente → 1 (mantém o frame 0 estático, sem regressão).
 const ATTACK_FRAME_COUNTS: Record<string, number> = {
-  senior: 3, rh: 2, facilitador: 2, analista: 2,
+  senior: 3,
+  rh: 2,
+  facilitador: 2,
+  analista: 2,
 };
 const ATTACK_MS: Record<string, number> = {
-  senior: 120, rh: 110, facilitador: 100, analista: 110,
+  senior: 120,
+  rh: 110,
+  facilitador: 100,
+  analista: 110,
 };
 
 function setEnemyTex(
@@ -46,7 +72,7 @@ function setEnemyTex(
   prefix: string,
   state: "idle" | "walk" | "attack" | "hurt",
 ) {
-  if (!_animOffsets.has(e)) _animOffsets.set(e, Math.random() * 2000 | 0);
+  if (!_animOffsets.has(e)) _animOffsets.set(e, (Math.random() * 2000) | 0);
   const offset = _animOffsets.get(e)!;
   let frame = 0;
   if (state === "walk") {
@@ -69,24 +95,41 @@ function setEnemyTex(
   applyTexture(e, key);
 }
 
-
 // Edge-flash (glow) de feedback — NÃO tinge o sprite inteiro (evita o "bloco
 // colorido"/"inimigo amarelo"). Usa preFX.addGlow (WebGL); se indisponível,
 // cai para um flash de tint curtíssimo (<=110ms, não é um "bloco" sustentado).
 const _glowFx = new WeakMap<Phaser.GameObjects.GameObject, unknown>();
 export function fxGlow(e: Phaser.GameObjects.Sprite, color = 0xffdd00, ms = 280): void {
-  const a = e as unknown as { preFX?: { addGlow: (...args: unknown[]) => unknown; remove: (fx: unknown) => void } };
+  const a = e as unknown as {
+    preFX?: { addGlow: (...args: unknown[]) => unknown; remove: (fx: unknown) => void };
+  };
   const fx = a.preFX;
   if (fx && typeof fx.addGlow === "function") {
-    const prev = _glowFx.get(e); if (prev) { try { fx.remove(prev); } catch { /* noop */ } }
+    const prev = _glowFx.get(e);
+    if (prev) {
+      try {
+        fx.remove(prev);
+      } catch {
+        /* noop */
+      }
+    }
     const g = fx.addGlow(color, 4, 0, false, 0.1, 14);
     _glowFx.set(e, g);
     e.scene.time.delayedCall(ms, () => {
-      try { if (_glowFx.get(e) === g) { fx.remove(g); _glowFx.delete(e); } } catch { /* noop */ }
+      try {
+        if (_glowFx.get(e) === g) {
+          fx.remove(g);
+          _glowFx.delete(e);
+        }
+      } catch {
+        /* noop */
+      }
     });
   } else if (e.active) {
     e.setTint(color);
-    e.scene.time.delayedCall(Math.min(ms, 110), () => { if (e.active) e.clearTint(); });
+    e.scene.time.delayedCall(Math.min(ms, 110), () => {
+      if (e.active) e.clearTint();
+    });
   }
 }
 
@@ -99,18 +142,35 @@ export function showTelegraph(e: Phaser.Physics.Arcade.Sprite, color = "#ffcc00"
   // Captura a cena AGORA: se o inimigo morrer durante o telegraph, destroy()
   // zera e.scene e o onComplete estouraria ao acessar e.scene.events.
   const scene = e.scene;
-  const mark = scene.add.text(e.x, e.y - 40, "!", {
-    fontFamily: "monospace", fontSize: "18px", fontStyle: "bold",
-    color, stroke: "#000000", strokeThickness: 3,
-  }).setOrigin(0.5).setDepth(560).setScale(0.4);
+  const mark = scene.add
+    .text(e.x, e.y - 40, "!", {
+      fontFamily: "monospace",
+      fontSize: "18px",
+      fontStyle: "bold",
+      color,
+      stroke: "#000000",
+      strokeThickness: 3,
+    })
+    .setOrigin(0.5)
+    .setDepth(560)
+    .setScale(0.4);
   // Acompanha o inimigo enquanto o aviso está na tela (antes ficava parado no
   // ponto inicial e "descolava" de quem se move durante o windup).
-  const follow = () => { if (mark.active && e.active) mark.setPosition(e.x, e.y - 40); };
+  const follow = () => {
+    if (mark.active && e.active) mark.setPosition(e.x, e.y - 40);
+  };
   scene.events.on("update", follow);
   scene.tweens.add({ targets: mark, scale: 1, duration: 120, ease: "Back.easeOut" });
   scene.tweens.add({
-    targets: mark, alpha: 0, duration: 240, delay: 360,
-    onComplete: () => { scene.events.off("update", follow); mark.destroy(); _telegraphActive.delete(e); },
+    targets: mark,
+    alpha: 0,
+    duration: 240,
+    delay: 360,
+    onComplete: () => {
+      scene.events.off("update", follow);
+      mark.destroy();
+      _telegraphActive.delete(e);
+    },
   });
 }
 
@@ -125,7 +185,9 @@ export class InkProjectile extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     body.setSize(10, 5);
-    scene.time.delayedCall(1800, () => { if (this.active) this.destroy(); });
+    scene.time.delayedCall(1800, () => {
+      if (this.active) this.destroy();
+    });
   }
 
   fire(facing: 1 | -1) {
@@ -139,9 +201,12 @@ export class ConviteReuniao extends Phaser.GameObjects.Sprite {
     super(scene, x, y, ...resolveSprite("tex-convite"));
     scene.add.existing(this);
     scene.tweens.add({
-      targets: this, y: y + 14,
+      targets: this,
+      y: y + 14,
       duration: Phaser.Math.Between(850, 1150),
-      yoyo: true, repeat: -1, ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
     });
   }
 }
@@ -221,22 +286,35 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
       const dx = this.target.x - this.x;
       const dist = Math.abs(dx);
       if (this._atkState === "none" && t >= this._nextAtkAt && dist > 30 && dist < 150) {
-        this._atkState = "telegraph"; this._atkUntil = t + 300;
-        this.dir = dx >= 0 ? 1 : -1; this.setFlipX(this.dir === -1);
-        fxGlow(this, 0xff5533, 420); showTelegraph(this, "#ff5533");
+        this._atkState = "telegraph";
+        this._atkUntil = t + 300;
+        this.dir = dx >= 0 ? 1 : -1;
+        this.setFlipX(this.dir === -1);
+        fxGlow(this, 0xff5533, 420);
+        showTelegraph(this, "#ff5533");
       }
       if (this._atkState !== "none") {
         if (this._atkState === "telegraph") {
           body.setVelocityX(0);
-          if (t >= this._atkUntil) { this._atkState = "lunge"; this._atkUntil = t + 220; body.setVelocityX(this.dir * 420); }
+          if (t >= this._atkUntil) {
+            this._atkState = "lunge";
+            this._atkUntil = t + 220;
+            body.setVelocityX(this.dir * 420);
+          }
         } else if (this._atkState === "lunge") {
           setEnemyTex(this, t, "estagiario", "attack");
           if (t >= this._atkUntil || body.blocked.left || body.blocked.right) {
-            this._atkState = "recover"; this._atkUntil = t + 260; body.setVelocityX(0);
+            this._atkState = "recover";
+            this._atkUntil = t + 260;
+            body.setVelocityX(0);
           }
-        } else { // recover
+        } else {
+          // recover
           body.setVelocityX(0);
-          if (t >= this._atkUntil) { this._atkState = "none"; this._nextAtkAt = t + 1400; }
+          if (t >= this._atkUntil) {
+            this._atkState = "none";
+            this._nextAtkAt = t + 1400;
+          }
         }
         if (t < this._hurtUntil) setEnemyTex(this, t, "estagiario", "hurt");
         else if (this._atkState !== "lunge") setEnemyTex(this, t, "estagiario", "idle");
@@ -283,7 +361,9 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }
 
 // ─── Facilitador de Workshop ─────────────────────────────────────────────────
@@ -314,7 +394,9 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 300) this.dir = dx >= 0 ? 1 : -1;
@@ -388,7 +470,9 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }
 
 // ─── Scrum Master Caótico ────────────────────────────────────────────────────
@@ -423,7 +507,9 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 340) this.dir = dx >= 0 ? 1 : -1;
@@ -442,12 +528,22 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
             fxGlow(this, 0xffdd00, 460);
             showTelegraph(this, "#cc44ff");
             body.setVelocityX(0);
-            const label = this.scene.add.text(this.x, this.y - 36, "RETROSPECTIVA!", {
-              fontFamily: "monospace", fontSize: "14px", fontStyle: "bold",
-              color: "#cc44ff", stroke: "#000000", strokeThickness: 3,
-            }).setOrigin(0.5).setDepth(500);
+            const label = this.scene.add
+              .text(this.x, this.y - 36, "RETROSPECTIVA!", {
+                fontFamily: "monospace",
+                fontSize: "14px",
+                fontStyle: "bold",
+                color: "#cc44ff",
+                stroke: "#000000",
+                strokeThickness: 3,
+              })
+              .setOrigin(0.5)
+              .setDepth(500);
             this.scene.tweens.add({
-              targets: label, y: label.y - 30, alpha: 0, duration: 900,
+              targets: label,
+              y: label.y - 30,
+              alpha: 0,
+              duration: 900,
               onComplete: () => label.destroy(),
             });
           } else if (dist < 320) {
@@ -468,12 +564,22 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
           fxGlow(this, 0xff3300, 220);
           if (this.onShout) this.onShout(this.x, this.y);
           // spawn floating "DAILY!" text
-          const label = this.scene.add.text(this.x, this.y - 30, "DAILY!", {
-            fontFamily: "monospace", fontSize: "16px", fontStyle: "bold",
-            color: "#ff4400", stroke: "#000000", strokeThickness: 3,
-          }).setOrigin(0.5).setDepth(500);
+          const label = this.scene.add
+            .text(this.x, this.y - 30, "DAILY!", {
+              fontFamily: "monospace",
+              fontSize: "16px",
+              fontStyle: "bold",
+              color: "#ff4400",
+              stroke: "#000000",
+              strokeThickness: 3,
+            })
+            .setOrigin(0.5)
+            .setDepth(500);
           this.scene.tweens.add({
-            targets: label, y: label.y - 40, alpha: 0, duration: 800,
+            targets: label,
+            y: label.y - 40,
+            alpha: 0,
+            duration: 800,
             onComplete: () => label.destroy(),
           });
           this.stateUntil = t + 120;
@@ -520,7 +626,12 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
     // Animate texture
     if (t < this._hurtUntil) {
       setEnemyTex(this, t, "scrum", "hurt");
-    } else if (this.aiState === "charge" || this.aiState === "shout" || this.aiState === "retro_tele" || this.aiState === "retro_slam") {
+    } else if (
+      this.aiState === "charge" ||
+      this.aiState === "shout" ||
+      this.aiState === "retro_tele" ||
+      this.aiState === "retro_slam"
+    ) {
       setEnemyTex(this, t, "scrum", "attack");
     } else if (this.aiState === "walk") {
       setEnemyTex(this, t, "scrum", "walk");
@@ -545,7 +656,9 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }
 
 // ─── Coordenador de Sinergia ─────────────────────────────────────────────────
@@ -584,7 +697,9 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 420) this.dir = dx >= 0 ? 1 : -1;
@@ -601,8 +716,16 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
       ring.lineStyle(2, 0x44ff88, 0.8);
       ring.strokeCircle(this.x, this.y, 160);
       this.scene.tweens.add({
-        targets: ring, alpha: 0, scaleX: 1.4, scaleY: 1.4,
-        duration: 700, onComplete: () => { this.isBuffing = false; this.clearTint(); ring.destroy(); },
+        targets: ring,
+        alpha: 0,
+        scaleX: 1.4,
+        scaleY: 1.4,
+        duration: 700,
+        onComplete: () => {
+          this.isBuffing = false;
+          this.clearTint();
+          ring.destroy();
+        },
       });
     }
     // Animate texture (tint override during buff is fine — keeps aura signal)
@@ -634,7 +757,9 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }
 
 // ─── Analista Sênior Exausto ─────────────────────────────────────────────────
@@ -671,7 +796,9 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     if (this.target) {
       const dx = this.target.x - this.x;
       if (Math.abs(dx) < 380) this.dir = dx >= 0 ? 1 : -1;
@@ -698,17 +825,29 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
           fxGlow(this, 0xff1111, 220);
           this.swingHitbox = new Phaser.Geom.Rectangle(
             this.dir === 1 ? this.x + 4 : this.x - 46,
-            this.y - 18, 46, 38,
+            this.y - 18,
+            46,
+            38,
           );
           this.swingActive = true;
           this.stateUntil = t + 200;
           // slam impact text
-          const txt = this.scene.add.text(this.x + this.dir * 30, this.y - 20, "SLAM!", {
-            fontFamily: "monospace", fontSize: "14px", fontStyle: "bold",
-            color: "#ff2222", stroke: "#000000", strokeThickness: 3,
-          }).setOrigin(0.5).setDepth(500);
+          const txt = this.scene.add
+            .text(this.x + this.dir * 30, this.y - 20, "SLAM!", {
+              fontFamily: "monospace",
+              fontSize: "14px",
+              fontStyle: "bold",
+              color: "#ff2222",
+              stroke: "#000000",
+              strokeThickness: 3,
+            })
+            .setOrigin(0.5)
+            .setDepth(500);
           this.scene.tweens.add({
-            targets: txt, y: txt.y - 30, alpha: 0, duration: 600,
+            targets: txt,
+            y: txt.y - 30,
+            alpha: 0,
+            duration: 600,
             onComplete: () => txt.destroy(),
           });
         }
@@ -766,7 +905,9 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }
 
 // ─── EnemyRH (Analista de RH) ─────────────────────────────────────────────────
@@ -799,7 +940,9 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
 
     if (this.target) {
       const dx = this.target.x - this.x;
@@ -883,7 +1026,9 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }
 
 export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
@@ -916,7 +1061,9 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
 
     if (this.target) {
       const dx = this.target.x - this.x;
@@ -1005,7 +1152,9 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }
 
 // ─── EstagiarioSobrecarregado ─────────────────────────────────────────────────
@@ -1033,7 +1182,7 @@ export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(true);
     this.dir = dir;
     this.setFlipX(dir === -1);
-    this._animOffset = Math.random() * 2000 | 0;
+    this._animOffset = (Math.random() * 2000) | 0;
   }
 
   preUpdate(t: number, dt: number) {
@@ -1077,7 +1226,9 @@ export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }
 
 // ─── AnalistaOnboarding ───────────────────────────────────────────────────────
@@ -1105,7 +1256,7 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
     body.setSize(24, 36);
     body.setOffset(12, 28);
     body.setCollideWorldBounds(true);
-    this._animOffset = Math.random() * 2000 | 0;
+    this._animOffset = (Math.random() * 2000) | 0;
     this._nextFireAt = scene.time.now + 2000 + Math.random() * 1000;
   }
 
@@ -1138,7 +1289,12 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
         this.setFlipX(this.dir === -1);
         if (t >= this._windupUntil) {
           this._windupUntil = 0;
-          this.onShoot?.(this.x, this.y - 10, this.target.x, (this.target as { y?: number }).y ?? this.y);
+          this.onShoot?.(
+            this.x,
+            this.y - 10,
+            this.target.x,
+            (this.target as { y?: number }).y ?? this.y,
+          );
         }
       } else {
         body.setVelocityX(this.dir * this.speed);
@@ -1174,5 +1330,7 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
 }

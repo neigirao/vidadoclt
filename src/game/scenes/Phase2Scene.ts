@@ -24,10 +24,18 @@ export class Phase2Scene extends BasePhaseScene {
     this.load.image("bg-atendimento", "/assets/bg-atendimento.png");
   }
 
-  protected getBgKey() { return "bg-atendimento"; }
-  protected getPhaseNumber(): 2 { return 2; }
-  protected getPhaseTitle() { return "FASE 2 — REUNIAO INFINITA"; }
-  protected getInitialObjective() { return "Derrote o Coordenador e avance"; }
+  protected getBgKey() {
+    return "bg-atendimento";
+  }
+  protected getPhaseNumber(): 2 {
+    return 2;
+  }
+  protected getPhaseTitle() {
+    return "FASE 2 — REUNIAO INFINITA";
+  }
+  protected getInitialObjective() {
+    return "Derrote o Coordenador e avance";
+  }
 
   protected getPlatformLayout(): Array<[number, number, number]> {
     return [
@@ -52,15 +60,17 @@ export class Phase2Scene extends BasePhaseScene {
     };
   }
 
-  protected getBossName() { return "Coordenador de Sinergia"; }
+  protected getBossName() {
+    return "Coordenador de Sinergia";
+  }
 
   protected setupEnemiesAndGroups() {
-    this.telemarketers  = this.physics.add.group({ runChildUpdate: false });
-    this.impressoras    = this.physics.add.group({ runChildUpdate: false });
-    this.guardioes      = this.physics.add.group({ runChildUpdate: false });
-    this.nuvens         = this.physics.add.group({ runChildUpdate: false });
-    this.reunioes       = this.physics.add.group({ runChildUpdate: false });
-    this.coordenadores  = this.physics.add.group({ runChildUpdate: false });
+    this.telemarketers = this.physics.add.group({ runChildUpdate: false });
+    this.impressoras = this.physics.add.group({ runChildUpdate: false });
+    this.guardioes = this.physics.add.group({ runChildUpdate: false });
+    this.nuvens = this.physics.add.group({ runChildUpdate: false });
+    this.reunioes = this.physics.add.group({ runChildUpdate: false });
+    this.coordenadores = this.physics.add.group({ runChildUpdate: false });
 
     [260, 400, 540, 680, 820].forEach((x) => {
       const e = new TelemarketerZumbi(this, x, FLOOR_Y - 60);
@@ -72,7 +82,7 @@ export class Phase2Scene extends BasePhaseScene {
     [1050, 1250].forEach((x) => {
       const e = new ImpressoraAssombrada(this, x, FLOOR_Y - 60);
       e.onFire = (fx, fy, dir) => {
-        const angle = dir === 0 ? 0 : (dir < 0 ? -0.3 : 0.3);
+        const angle = dir === 0 ? 0 : dir < 0 ? -0.3 : 0.3;
         const tx = fx + Math.cos(angle) * 200;
         const ty = fy + Math.sin(angle) * 200;
         this.spawnEnemyProjectile(fx, fy, tx, ty, 8);
@@ -112,10 +122,10 @@ export class Phase2Scene extends BasePhaseScene {
 
     this.enemyGroups.push(
       { group: this.telemarketers, vrDrop: 2 },
-      { group: this.impressoras,   vrDrop: 8 },
-      { group: this.guardioes,     vrDrop: 4 },
-      { group: this.nuvens,        vrDrop: 3, aerial: true },
-      { group: this.reunioes,      vrDrop: 5 },
+      { group: this.impressoras, vrDrop: 8 },
+      { group: this.guardioes, vrDrop: 4 },
+      { group: this.nuvens, vrDrop: 3, aerial: true },
+      { group: this.reunioes, vrDrop: 5 },
       { group: this.coordenadores, vrDrop: 4 },
     );
   }

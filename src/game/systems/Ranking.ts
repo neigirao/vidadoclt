@@ -47,7 +47,9 @@ export async function getTopScores(limit = 15): Promise<ScoreEntry[]> {
   try {
     const { data, error } = await supabase
       .from("scores")
-      .select("id, apelido, reconhecimento, loop_count, reached_phase, seed, character_class, created_at")
+      .select(
+        "id, apelido, reconhecimento, loop_count, reached_phase, seed, character_class, created_at",
+      )
       .order("reconhecimento", { ascending: false })
       .limit(limit);
     if (error) throw error;

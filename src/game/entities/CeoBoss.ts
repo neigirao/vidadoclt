@@ -87,14 +87,30 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     let prefix: string;
     let count: number;
     let interval: number;
-    if (this._animState === "attack") { prefix = "boss-ceo-attack"; count = 4; interval = 80; }
-    else if (this._animState === "special") { prefix = "boss-ceo-special"; count = 4; interval = 90; }
-    else {
+    if (this._animState === "attack") {
+      prefix = "boss-ceo-attack";
+      count = 4;
+      interval = 80;
+    } else if (this._animState === "special") {
+      prefix = "boss-ceo-special";
+      count = 4;
+      interval = 90;
+    } else {
       const body = this.body as Phaser.Physics.Arcade.Body;
       const moving = body && Math.abs(body.velocity.x) > 10;
-      if (!moving && !this._charging) { prefix = "boss-ceo-idle"; count = 2; interval = 500; }
-      else if (this._charging) { prefix = "boss-ceo-run"; count = 6; interval = 60; }
-      else { prefix = "boss-ceo-walk"; count = 2; interval = 180; }
+      if (!moving && !this._charging) {
+        prefix = "boss-ceo-idle";
+        count = 2;
+        interval = 500;
+      } else if (this._charging) {
+        prefix = "boss-ceo-run";
+        count = 6;
+        interval = 60;
+      } else {
+        prefix = "boss-ceo-walk";
+        count = 2;
+        interval = 180;
+      }
     }
 
     if (t >= this._animNextAt) {
@@ -137,7 +153,9 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
       this.phase = 2;
       this.speed = 100;
       fxGlow(this, 0xff8800, 220);
-      this.scene.time.delayedCall(400, () => { if (this.active) this.clearTint(); });
+      this.scene.time.delayedCall(400, () => {
+        if (this.active) this.clearTint();
+      });
       this._nextChargeAt = t + 500;
       this._nextParachuteAt = t + 2000;
     }
@@ -145,12 +163,18 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
       this.phase = 3;
       this.speed = 130;
       fxGlow(this, 0xff0000, 220);
-      this.scene.time.delayedCall(600, () => { if (this.active) this.clearTint(); });
+      this.scene.time.delayedCall(600, () => {
+        if (this.active) this.clearTint();
+      });
       this._nextDemissaoAt = t + 1000;
       this._nextSpreadAt = t + 1500;
     }
 
-    if (t < this._frozen) { body.setVelocityX(0); this._applyAnimFrame(t); return; }
+    if (t < this._frozen) {
+      body.setVelocityX(0);
+      this._applyAnimFrame(t);
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -180,7 +204,10 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
         const hb = new Phaser.Geom.Rectangle(hbX, this.y - 20, 60, 40);
         this.swingHitbox = hb;
         this.swingActive = true;
-        this.scene.time.delayedCall(200, () => { this.swingActive = false; this.swingHitbox = null; });
+        this.scene.time.delayedCall(200, () => {
+          this.swingActive = false;
+          this.swingHitbox = null;
+        });
         this.onMelee?.(hb);
       }
       if (t >= this._nextSummonAt) {
@@ -233,18 +260,26 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     this.onHpChange?.(this.hp, this.maxHp);
     fxGlow(this, 0xff8888, 130);
     this._hurtUntil = now + 150;
-    this.scene.time.delayedCall(150, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(150, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.2); // resistant to knockback
     if (this.hp <= 0) {
       this._dying = true;
       body.setVelocity(0, 0);
-      this.scene.time.delayedCall(800, () => { this.onDeath?.(); });
+      this.scene.time.delayedCall(800, () => {
+        this.onDeath?.();
+      });
       return true;
     }
     return false;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }

@@ -9,7 +9,11 @@ let _ctx: AudioContext | null = null;
 function ctx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!_ctx) {
-    try { _ctx = new AudioContext(); } catch { return null; }
+    try {
+      _ctx = new AudioContext();
+    } catch {
+      return null;
+    }
   }
   if (_ctx.state === "suspended") _ctx.resume().catch(() => {});
   return _ctx;
@@ -165,7 +169,10 @@ export const Sfx = {
     noise(0.5, 200, 1.8);
     [0, 0.1, 0.2, 0.35].forEach((delay, i) => {
       const freqs = [200, 160, 280, 400];
-      setTimeout(() => tone("sawtooth", freqs[i], 0.3, 0.005, 0.25, 0.7 - i * 0.1, 60), delay * 1000);
+      setTimeout(
+        () => tone("sawtooth", freqs[i], 0.3, 0.005, 0.25, 0.7 - i * 0.1, 60),
+        delay * 1000,
+      );
     });
   },
 

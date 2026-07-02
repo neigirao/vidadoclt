@@ -56,7 +56,7 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 - [ ] **Área 4** — Ala da Gestão
   - Inimigos: Coordenador de Sinergia (buffa outros), Analista Sênior Exausto (lento, resistente, forte)
 - [ ] **Chefe: Gerente Microgestor**
-  - Frase de entrada: *"Antes de você sair precisamos alinhar algumas coisas."*
+  - Frase de entrada: _"Antes de você sair precisamos alinhar algumas coisas."_
   - Ataques:
     - Follow-Up: projétil teleguiado (e-mail)
     - Alinhamento: puxa jogador ao centro da arena
@@ -76,31 +76,37 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 **Entregável:** meta-progressão, múltiplas classes, armas e modificadores de run.
 
 ### Classes (3)
+
 - [ ] **Estagiário**: 80 Energia, 120 Sanidade, Caneta Bic Tática, +20% velocidade
 - [ ] **Analista Pleno**: 100/100, Grampeador Tático, +10% VR coletado
 - [ ] **Terceirizado**: 130 Energia, 70 Sanidade, Régua Metálica, +15% dano / lojas +20%
 - [ ] Tela de seleção de classe antes de cada run
 
 ### Armas (12, divididas em 3 raridades)
+
 **Comuns:**
+
 - [ ] Grampeador Tático: melee, 3º hit "grampeia" no chão 1s
 - [ ] Caneta Bic Tática: ranged rápido e fraco, recarga "mordendo a tampa"
 - [ ] Régua Metálica: melee alcance longo, knockback forte
 - [ ] Mouse Sem Fio: bumerangue arremessável, 10% chance de "perder sinal"
 
 **Raras:**
+
 - [ ] Impressora Multifuncional: cadência alta, 15% chance de atolar papel (1,5s travada)
 - [ ] Caneca de Café Escaldante: arremesso AoE + recupera 5 Sanidade ao acertar
 - [ ] Telefone Corporativo: invoca "ligação em espera" que persegue inimigo por 4s
 - [ ] Projetor Laser: feixe contínuo consome Sanidade enquanto dispara
 
 **Épicas:**
+
 - [ ] PowerPoint Devastador: hipnotiza inimigos no alcance por 3s (dormem na apresentação)
 - [ ] Planilha da Morte: AoE, inimigos ficam congelados "analisando dados" por 2s
 - [ ] VPN Corporativa: invisibilidade 4s, mas tudo (inclusive jogador) fica lento
 - [ ] Cadeira Gamer Executiva: investida giratória, dano cresce com combo
 
 ### Perks (8)
+
 - [ ] Autonomia: −50% efeitos de lentidão (drop do Gerente Microgestor)
 - [ ] Terapia no Convênio: +1 Sanidade a cada 5s
 - [ ] Banco de Horas: acumula horas → desacelera o tempo 3s
@@ -111,6 +117,7 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 - [ ] Pelo Menos é CLT: sobrevive 1× com 1 Energia (1×/run)
 
 ### Cultura Corporativa (5 modificadores de run)
+
 - [ ] Startup: +20% velocidade, épicas mais cedo mas 10% quebram
 - [ ] Banco: chefes ganham Compliance Check (bloqueia dash 3s), +1 inimigo/sala, mais VR
 - [ ] Consultoria: mini-chefes extras, lojas mais raras
@@ -118,6 +125,7 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 - [ ] Big Tech: inimigo exclusivo Algoritmo de Performance (drone que buffa vizinhos)
 
 ### Ramificação
+
 - [ ] Bifurcação após Fase 1: escolha entre Fase 2A (Comercial) ou Fase 2B (Atendimento)
 - [ ] Bifurcação após Fase 2: Fase 3A (Produto) ou Fase 3B (Tecnologia)
 
@@ -128,22 +136,27 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 **Entregável:** dois caminhos completos com chefes.
 
 ### Fase 2A — Comercial
+
 - [ ] Cenário: metas, gongos de venda, dashboards
 - [ ] Chefe: Caçador de Metas — a cada 20s bate meta e ganha buff; gongo destruível remove buff
 
 ### Fase 2B — Atendimento
+
 - [ ] Cenário: headsets, filas, painéis de chamados
 - [ ] Chefe: Coordenador de Escala — invoca filas de "clientes insatisfeitos"; "Sua ligação é muito importante" prende em espera
 
 ### Fase 3A — Produto
+
 - [ ] Cenário: post-its, roadmaps, Kanban
 - [ ] Chefe: Product Owner Obcecado — reordena a arena movendo plataformas; copia último movimento do jogador
 
 ### Fase 3B — Tecnologia
+
 - [ ] Cenário: servidores, cabos, logs
 - [ ] Chefe: Arquiteto Supremo — constrói torres de defesa (microsserviços) que devem ser derrubadas antes de expô-lo
 
 ### Salas opcionais (em todas as fases)
+
 - [ ] Copa (área segura já implementada em Sprint 2)
 - [ ] Sala de Reunião: horda por recompensa maior
 - [ ] TI: armas/upgrades (mini-puzzle "abrir chamado")
@@ -158,17 +171,20 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 **Entregável:** jogo completo do início ao fim.
 
 ### Fase 4 — RH & Compliance
+
 - [ ] Cenário: crachás, formulários, câmeras
 - [ ] Luta dupla: RH Predador + Guardiã da Ordem
   - RH Predador: "convoca para conversinha" (hitkill telegrafado)
   - Guardiã: cria zonas de conformidade que limitam onde pisar
 
 ### Fase 5 — Diretoria
+
 - [ ] Cenário: carpete, vidro, troféus
 - [ ] Mini-boss: Diretor de Resultados
 - [ ] Transição para área do CEO
 
 ### Chefe Final — CEO (Chief Everything Officer)
+
 - [ ] Visual monstruoso; rosto nunca aparece por completo
 - [ ] Ataques:
   - Transformação Digital: cenário vira "versão beta" com bugs (plataformas piscam)
@@ -199,6 +215,7 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 ## Sprint 8 — Áudio e Acessibilidade
 
 ### Áudio
+
 - [ ] Trilha: elevator music corrompida que degrada com a Sanidade
 - [ ] Variação temática por departamento (Comercial = motivacional agressiva; TI = synth glitch)
 - [ ] SFX de inimigos com sons reais de notificação (Teams, Outlook, Slack) como telegraphs
@@ -206,6 +223,7 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 - [ ] Estado de Burnout: áudio abafa + zumbido + despertador ao reiniciar
 
 ### Acessibilidade
+
 - [ ] Opção "Reduzir efeitos de Sanidade" (remove distorção e flashes — fotossensibilidade)
 - [ ] Opção de desativar input lag do estado de Sanidade baixa
 - [ ] Remapeamento de teclas
@@ -226,13 +244,13 @@ Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a
 
 ## Resumo de progresso
 
-| Sprint | Status | Entregável |
-|--------|--------|-----------|
-| Sprint 1 | ✅ Concluído | Protótipo jogável (Área 1) |
-| Sprint 2 | ⬜ Pendente | Sistema de Sanidade + loop de run |
-| Sprint 3 | ⬜ Pendente | Fase 1 completa com chefe |
-| Sprint 4 | ⬜ Pendente | Meta-progressão rogue-lite |
-| Sprint 5 | ⬜ Pendente | Fases 2 e 3 |
-| Sprint 6 | ⬜ Pendente | Fases 4 e 5 + CEO + vitória |
-| Sprint 7 | ⬜ Pendente | NPCs, narrativa, eventos |
-| Sprint 8 | ⬜ Pendente | Áudio e acessibilidade |
+| Sprint   | Status       | Entregável                        |
+| -------- | ------------ | --------------------------------- |
+| Sprint 1 | ✅ Concluído | Protótipo jogável (Área 1)        |
+| Sprint 2 | ⬜ Pendente  | Sistema de Sanidade + loop de run |
+| Sprint 3 | ⬜ Pendente  | Fase 1 completa com chefe         |
+| Sprint 4 | ⬜ Pendente  | Meta-progressão rogue-lite        |
+| Sprint 5 | ⬜ Pendente  | Fases 2 e 3                       |
+| Sprint 6 | ⬜ Pendente  | Fases 4 e 5 + CEO + vitória       |
+| Sprint 7 | ⬜ Pendente  | NPCs, narrativa, eventos          |
+| Sprint 8 | ⬜ Pendente  | Áudio e acessibilidade            |

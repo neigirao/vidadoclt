@@ -110,7 +110,10 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
       case "enter":
         body.setVelocityX(0);
-        if (t >= this.stateUntil) { this.bossState = "idle"; this.stateUntil = t + 200; }
+        if (t >= this.stateUntil) {
+          this.bossState = "idle";
+          this.stateUntil = t + 200;
+        }
         break;
 
       case "idle": {
@@ -153,13 +156,21 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   private showIntroText() {
     const speak = generateCorporateSpeak();
     const txt = this.scene.add
-      .text(this.x, this.y - 80,
-        `"Antes de voce sair\nprecisamos ${speak}."`,
-        { fontFamily: "monospace", fontSize: "12px", color: "#f2c14e",
-          stroke: "#000000", strokeThickness: 3, align: "center" })
-      .setOrigin(0.5).setDepth(600);
+      .text(this.x, this.y - 80, `"Antes de voce sair\nprecisamos ${speak}."`, {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#f2c14e",
+        stroke: "#000000",
+        strokeThickness: 3,
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setDepth(600);
     this.scene.tweens.add({
-      targets: txt, alpha: 0, duration: 700, delay: 2400,
+      targets: txt,
+      alpha: 0,
+      duration: 700,
+      delay: 2400,
       onComplete: () => txt.destroy(),
     });
   }
@@ -179,12 +190,20 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     this.currentAttack = this.nextAttack();
 
     const durations: Record<BossAttack, number> = {
-      follow_up: 500, alinhamento: 680, atualizacao: 380,
-      reuniao: 780, freeze: 880, deadline: 480,
+      follow_up: 500,
+      alinhamento: 680,
+      atualizacao: 380,
+      reuniao: 780,
+      freeze: 880,
+      deadline: 480,
     };
     const colors: Record<BossAttack, number> = {
-      follow_up: 0xffaa00, alinhamento: 0x4488ff, atualizacao: 0xff3300,
-      reuniao: 0xaa00aa, freeze: 0xf0f0ff, deadline: 0xff0000,
+      follow_up: 0xffaa00,
+      alinhamento: 0x4488ff,
+      atualizacao: 0xff3300,
+      reuniao: 0xaa00aa,
+      freeze: 0xf0f0ff,
+      deadline: 0xff0000,
     };
     const names: Record<BossAttack, string> = {
       follow_up: "Follow-Up!",
@@ -202,12 +221,21 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
     const lbl = this.scene.add
       .text(this.x, this.y - 62, names[this.currentAttack], {
-        fontFamily: "monospace", fontSize: "12px", fontStyle: "bold",
-        color: "#ffffff", stroke: "#000000", strokeThickness: 3,
+        fontFamily: "monospace",
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 3,
       })
-      .setOrigin(0.5).setDepth(600);
+      .setOrigin(0.5)
+      .setDepth(600);
     this.scene.tweens.add({
-      targets: lbl, alpha: 0, y: lbl.y - 24, duration: 480, delay: 280,
+      targets: lbl,
+      alpha: 0,
+      y: lbl.y - 24,
+      duration: 480,
+      delay: 280,
       onComplete: () => lbl.destroy(),
     });
   }
@@ -267,7 +295,9 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       this.swingActive = true;
       this.swingHitbox = new Phaser.Geom.Rectangle(
         this.dir === 1 ? this.x + 8 : this.x - 52,
-        this.y - 22, 52, 52,
+        this.y - 22,
+        52,
+        52,
       );
       this.scene.time.delayedCall(180, () => {
         if (!this.active) return;
@@ -299,7 +329,9 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     body.setVelocityY(-30);
     fxGlow(this, 0xff4444, 220);
     this._hurtUntil = now + 330;
-    this.scene.time.delayedCall(180, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(180, () => {
+      if (this.active) this.clearTint();
+    });
     this.onHpChange?.(this.hp, this.maxHp);
     if (this.hp <= 0) {
       this._dying = true;
@@ -307,7 +339,9 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       body2.setVelocity(0, 0);
       const fn = this.onDied;
       this.onDied = undefined;
-      this.scene.time.delayedCall(700, () => { fn?.(); });
+      this.scene.time.delayedCall(700, () => {
+        fn?.();
+      });
       return true;
     }
     return false;
@@ -339,13 +373,26 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       const f4 = Math.floor(now / 100) % 4;
       const f2 = Math.floor(now / 200) % 2;
       switch (this.currentAttack) {
-        case "deadline":    key = `tex-gerente-attack-deadline${f4}`; break;
-        case "alinhamento": key = `tex-gerente-attack-escopo${f4}`;   break;
-        case "atualizacao": key = `tex-gerente-attack-sprint${f4}`;   break;
-        case "follow_up":   key = `tex-gerente-attack${f2}`;          break;
-        case "reuniao":     key = `tex-gerente-attack${f2}`;          break;
-        case "freeze":      key = `tex-gerente-idle${f2}`;            break;
-        default:            key = `tex-gerente-attack0`;
+        case "deadline":
+          key = `tex-gerente-attack-deadline${f4}`;
+          break;
+        case "alinhamento":
+          key = `tex-gerente-attack-escopo${f4}`;
+          break;
+        case "atualizacao":
+          key = `tex-gerente-attack-sprint${f4}`;
+          break;
+        case "follow_up":
+          key = `tex-gerente-attack${f2}`;
+          break;
+        case "reuniao":
+          key = `tex-gerente-attack${f2}`;
+          break;
+        case "freeze":
+          key = `tex-gerente-idle${f2}`;
+          break;
+        default:
+          key = `tex-gerente-attack0`;
       }
     } else if (this.bossState === "enter" || this.bossState === "recover") {
       const f = Math.floor(now / 140) % 4;
@@ -357,4 +404,3 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     applyTexture(this, key);
   }
 }
-

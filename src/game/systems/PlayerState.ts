@@ -5,7 +5,7 @@ import { generateSeed } from "./RNG";
 import type { CulturaId } from "./CulturaSystem";
 
 const LS_RECNH = "vidadoclt_recnh";
-const LS_FGTS  = "vidadoclt_fgts";
+const LS_FGTS = "vidadoclt_fgts";
 const LS_LOOPS = "vidadoclt_loops";
 
 export type RunState = {
@@ -54,12 +54,17 @@ export type RunState = {
 };
 
 function lsGet(key: string): number {
-  try { return parseInt(localStorage.getItem(key) ?? "0", 10) || 0; }
-  catch { return 0; }
+  try {
+    return parseInt(localStorage.getItem(key) ?? "0", 10) || 0;
+  } catch {
+    return 0;
+  }
 }
 
 function lsSet(key: string, n: number) {
-  try { localStorage.setItem(key, String(n)); } catch {}
+  try {
+    localStorage.setItem(key, String(n));
+  } catch {}
 }
 
 export function savePersisted(reconhecimento: number, fgts: number, loopCount: number) {
@@ -72,7 +77,9 @@ export function getRun(scene: Phaser.Scene): RunState {
   const r = scene.registry.get("run") as RunState | undefined;
   if (!r) {
     const fresh: RunState = {
-      energy: 100, sanity: 100, vr: 0,
+      energy: 100,
+      sanity: 100,
+      vr: 0,
       reconhecimento: lsGet(LS_RECNH),
       fgts: lsGet(LS_FGTS),
       loopCount: lsGet(LS_LOOPS),
@@ -94,7 +101,9 @@ export function getRun(scene: Phaser.Scene): RunState {
 export function resetRun(scene: Phaser.Scene): RunState {
   const old = getRun(scene);
   const fresh: RunState = {
-    energy: 100, sanity: 100, vr: 0,
+    energy: 100,
+    sanity: 100,
+    vr: 0,
     reconhecimento: old.reconhecimento,
     fgts: old.fgts,
     loopCount: old.loopCount,

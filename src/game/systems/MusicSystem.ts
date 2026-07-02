@@ -19,7 +19,11 @@ let _volume = 0.28;
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!_ctx) {
-    try { _ctx = new AudioContext(); } catch { return null; }
+    try {
+      _ctx = new AudioContext();
+    } catch {
+      return null;
+    }
   }
   if (_ctx.state === "suspended") _ctx.resume().catch(() => {});
   return _ctx;
@@ -39,10 +43,15 @@ function getMaster(): GainNode | null {
 // ── Primitive helpers ──────────────────────────────────────────────────────
 
 function scheduleOsc(
-  c: AudioContext, dest: AudioNode,
-  type: OscillatorType, freq: number,
-  startAt: number, duration: number,
-  gainPeak = 0.15, attackMs = 10, releaseMs = 80,
+  c: AudioContext,
+  dest: AudioNode,
+  type: OscillatorType,
+  freq: number,
+  startAt: number,
+  duration: number,
+  gainPeak = 0.15,
+  attackMs = 10,
+  releaseMs = 80,
 ) {
   const osc = c.createOscillator();
   const env = c.createGain();
@@ -59,9 +68,12 @@ function scheduleOsc(
 }
 
 function scheduleNoise(
-  c: AudioContext, dest: AudioNode,
-  startAt: number, duration: number,
-  gainPeak = 0.04, lpFreq = 3000,
+  c: AudioContext,
+  dest: AudioNode,
+  startAt: number,
+  duration: number,
+  gainPeak = 0.04,
+  lpFreq = 3000,
 ) {
   const bufLen = Math.ceil(c.sampleRate * (duration + 0.05));
   const buf = c.createBuffer(1, bufLen, c.sampleRate);
@@ -160,15 +172,24 @@ function startOffice(c: AudioContext, master: AudioNode): () => void {
 
     // Schedule next bar 1 bar ahead
     const delay = (nextBeat - c.currentTime - BAR * 0.5) * 1000;
-    setTimeout(() => { if (alive) scheduleBar(); }, Math.max(0, delay));
+    setTimeout(
+      () => {
+        if (alive) scheduleBar();
+      },
+      Math.max(0, delay),
+    );
   }
 
   scheduleBar();
 
   return () => {
     alive = false;
-    try { drone1.stop(); } catch {}
-    try { drone2.stop(); } catch {}
+    try {
+      drone1.stop();
+    } catch {}
+    try {
+      drone2.stop();
+    } catch {}
   };
 }
 
@@ -202,17 +223,24 @@ function startBoss(c: AudioContext, master: AudioNode): () => void {
     }
     // hi-hat every 8th note
     for (let b = 0; b < 8; b++) {
-      scheduleNoise(c, dest, barStart + b * BEAT / 2, 0.04, 0.04, 8000);
+      scheduleNoise(c, dest, barStart + (b * BEAT) / 2, 0.04, 0.04, 8000);
     }
     step++;
 
     nextBeat += BAR;
     const delay = (nextBeat - c.currentTime - BAR * 0.5) * 1000;
-    setTimeout(() => { if (alive) scheduleBar(); }, Math.max(0, delay));
+    setTimeout(
+      () => {
+        if (alive) scheduleBar();
+      },
+      Math.max(0, delay),
+    );
   }
 
   scheduleBar();
-  return () => { alive = false; };
+  return () => {
+    alive = false;
+  };
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -237,7 +265,10 @@ export const Music = {
   },
 
   stop() {
-    if (_stopFn) { _stopFn(); _stopFn = null; }
+    if (_stopFn) {
+      _stopFn();
+      _stopFn = null;
+    }
     _currentTheme = null;
   },
 

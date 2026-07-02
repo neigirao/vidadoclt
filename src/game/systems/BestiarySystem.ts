@@ -1,6 +1,6 @@
 import { EnemyId } from "./EnemyCatalog";
 
-const LS_KEY        = "vidadoclt_bestiary";
+const LS_KEY = "vidadoclt_bestiary";
 const LS_COUNTS_KEY = "vidadoclt_bestiary_counts";
 
 // --- Boolean kill set (has seen / killed once) ---
@@ -11,11 +11,15 @@ function load(): Set<EnemyId> {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return new Set();
     return new Set(JSON.parse(raw) as EnemyId[]);
-  } catch { return new Set(); }
+  } catch {
+    return new Set();
+  }
 }
 
 function persist(set: Set<EnemyId>) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify([...set])); } catch {}
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify([...set]));
+  } catch {}
 }
 
 function cache(): Set<EnemyId> {
@@ -31,11 +35,15 @@ function loadCounts(): Record<string, number> {
     const raw = localStorage.getItem(LS_COUNTS_KEY);
     if (!raw) return {};
     return JSON.parse(raw) as Record<string, number>;
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }
 
 function persistCounts(counts: Record<string, number>) {
-  try { localStorage.setItem(LS_COUNTS_KEY, JSON.stringify(counts)); } catch {}
+  try {
+    localStorage.setItem(LS_COUNTS_KEY, JSON.stringify(counts));
+  } catch {}
 }
 
 function counts(): Record<string, number> {

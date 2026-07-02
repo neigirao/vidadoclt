@@ -48,9 +48,9 @@ export class SanityFx {
     if (this.useFilters) {
       const cam = scene.cameras.main;
       // Start invisible; updateFilters() drives all values each frame
-      this.vignette     = cam.filters.internal.addVignette(0.5, 0.5, 0.85, 0, 0x000000);
-      this.colorMatrix  = cam.filters.internal.addColorMatrix();
-      this.barrel       = cam.filters.internal.addBarrel(1.0);
+      this.vignette = cam.filters.internal.addVignette(0.5, 0.5, 0.85, 0, 0x000000);
+      this.colorMatrix = cam.filters.internal.addColorMatrix();
+      this.barrel = cam.filters.internal.addBarrel(1.0);
     }
 
     // Pixel-static noise kept as Graphics (30–80 dots, cheaper than a GPU texture alloc)
@@ -62,10 +62,16 @@ export class SanityFx {
 
     // Chromatic aberration: two full-screen tinted rects, alpha 0 at rest
     // Offset increased to 8px for stronger visual impact per artist audit
-    this.chromaRed  = scene.add.rectangle(GAME_WIDTH / 2 - 8, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0)
-      .setScrollFactor(0).setDepth(902).setBlendMode(Phaser.BlendModes.ADD);
-    this.chromaCyan = scene.add.rectangle(GAME_WIDTH / 2 + 8, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x00ffff, 0)
-      .setScrollFactor(0).setDepth(902).setBlendMode(Phaser.BlendModes.ADD);
+    this.chromaRed = scene.add
+      .rectangle(GAME_WIDTH / 2 - 8, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0)
+      .setScrollFactor(0)
+      .setDepth(902)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.chromaCyan = scene.add
+      .rectangle(GAME_WIDTH / 2 + 8, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x00ffff, 0)
+      .setScrollFactor(0)
+      .setDepth(902)
+      .setBlendMode(Phaser.BlendModes.ADD);
   }
 
   private buildScanlines(): void {
@@ -105,10 +111,9 @@ export class SanityFx {
     if (band === "anxious" || band === "burnout") {
       if (time >= this.nextShakeAt) {
         const intensity = band === "burnout" ? 0.005 : 0.0022;
-        const duration  = band === "burnout" ? 180 : 120;
-        const interval  = band === "burnout"
-          ? Phaser.Math.Between(350, 600)
-          : Phaser.Math.Between(700, 1200);
+        const duration = band === "burnout" ? 180 : 120;
+        const interval =
+          band === "burnout" ? Phaser.Math.Between(350, 600) : Phaser.Math.Between(700, 1200);
         this.nextShakeAt = time + interval;
         this.scene.cameras.main.shake(duration, intensity);
       }
@@ -122,7 +127,8 @@ export class SanityFx {
           this.noise.fillRect(
             Phaser.Math.Between(0, GAME_WIDTH),
             Phaser.Math.Between(0, GAME_HEIGHT),
-            2, 2,
+            2,
+            2,
           );
         }
       }
@@ -132,9 +138,8 @@ export class SanityFx {
 
     // Fake notification popups at stressed / anxious
     if ((band === "stressed" || band === "anxious") && time >= this.nextNotifAt) {
-      const interval = band === "anxious"
-        ? Phaser.Math.Between(2000, 4000)
-        : Phaser.Math.Between(5000, 9000);
+      const interval =
+        band === "anxious" ? Phaser.Math.Between(2000, 4000) : Phaser.Math.Between(5000, 9000);
       this.nextNotifAt = time + interval;
       this.spawnNotif();
     }
@@ -147,12 +152,12 @@ export class SanityFx {
     const t = this.scene.time.now * 0.001;
     const pulse = noise2d(t * 0.4, stress * 2.0) * 0.03 * stress; // ±3% at full burnout
 
-    this.vignette.radius   = 0.85 - stress * 0.45 + pulse;
+    this.vignette.radius = 0.85 - stress * 0.45 + pulse;
     this.vignette.strength = stress * 0.85 + pulse * 0.5;
 
     // Color transitions from black → dark red starting at ~75% stress
     if (stress > 0.75) {
-      const t = (stress - 0.75) / 0.25;              // 0 → 1 over last quarter
+      const t = (stress - 0.75) / 0.25; // 0 → 1 over last quarter
       const r = Math.round(t * 0x6b);
       const g = Math.round(t * 0x08);
       const b = Math.round(t * 0x08);
@@ -164,7 +169,7 @@ export class SanityFx {
     // ── ColorMatrix (desaturation) ────────────────────────────────────────────
     // Begins at 50% stress, reaches full desaturation at burnout
     if (stress > 0.5) {
-      const desat = (stress - 0.5) / 0.5;            // 0 → 1 over upper half
+      const desat = (stress - 0.5) / 0.5; // 0 → 1 over upper half
       // saturate(-x): x=0 identity, x=1 fully grey
       this.colorMatrix.colorMatrix.reset().saturate(-(desat * 0.85));
     } else {
@@ -174,11 +179,11 @@ export class SanityFx {
     // ── Barrel distortion (pincushion at anxious+) ──────────────────────────
     // Increased range: starts earlier (0.5 stress) and goes deeper (→ 0.88)
     if (stress > 0.5) {
-      const t = (stress - 0.5) / 0.5;               // 0 → 1 over upper half
+      const t = (stress - 0.5) / 0.5; // 0 → 1 over upper half
       // Warp reduzido (antes 0.88): 12% de pincushion desalinhava a mira do
       // combate na borda da tela. 7% mantém a "visão estressada" sem quebrar o
       // acerto (a hitbox mais generosa cobre o resto).
-      this.barrel.amount = 1.0 - t * 0.07;          // 1.0 → 0.93
+      this.barrel.amount = 1.0 - t * 0.07; // 1.0 → 0.93
     } else {
       this.barrel.amount = 1.0;
     }
@@ -186,7 +191,7 @@ export class SanityFx {
     // ── Color temperature shift (warm→cold as stress rises) ──────────────────
     // Boost chromatic aberration alpha proportional to stress
     if (stress > 0.3) {
-      const chromaAmt = (stress - 0.3) / 0.7 * 0.07;
+      const chromaAmt = ((stress - 0.3) / 0.7) * 0.07;
       this.chromaRed.setAlpha(chromaAmt);
       this.chromaCyan.setAlpha(chromaAmt * 0.75);
     } else {
@@ -197,13 +202,14 @@ export class SanityFx {
 
   triggerChromaticHit(): void {
     this.chromaRed.setAlpha(0.14);
-    this.chromaCyan.setAlpha(0.10);
+    this.chromaCyan.setAlpha(0.1);
     this.scene.tweens.add({ targets: [this.chromaRed, this.chromaCyan], alpha: 0, duration: 200 });
   }
 
   private spawnNotif() {
     const msg = pickNotif();
-    const pw = 284, ph = 30;
+    const pw = 284,
+      ph = 30;
     const px = GAME_WIDTH - pw - 8;
     const py = 74;
 
@@ -215,16 +221,24 @@ export class SanityFx {
     panel.fillStyle(0x33aa33, 1);
     panel.fillRect(px, py, 3, ph);
 
-    const txt = this.scene.add.text(px + 10, py + 9, msg, {
-      fontFamily: "monospace", fontSize: "10px", color: "#88ee88",
-    }).setScrollFactor(0).setDepth(951);
+    const txt = this.scene.add
+      .text(px + 10, py + 9, msg, {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#88ee88",
+      })
+      .setScrollFactor(0)
+      .setDepth(951);
 
     this.scene.tweens.add({
       targets: [panel, txt],
       alpha: 0,
       duration: 500,
       delay: 2600,
-      onComplete: () => { panel.destroy(); txt.destroy(); },
+      onComplete: () => {
+        panel.destroy();
+        txt.destroy();
+      },
     });
   }
 

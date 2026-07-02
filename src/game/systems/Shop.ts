@@ -37,23 +37,23 @@ export const CONSUMABLES: Record<ConsumableId, ConsumableDef> = {
 };
 
 const RARITY_COLORS: Record<string, string> = {
-  comum:    "#aaaaaa",
-  raro:     "#4488ff",
-  epico:    "#aa44ff",
+  comum: "#aaaaaa",
+  raro: "#4488ff",
+  epico: "#aa44ff",
   lendario: "#ffaa00",
 };
 
 const WEAPON_FLAVOR: Partial<Record<WeaponId, string>> = {
-  regua:              "Ideal pra medir quanto da sua paciência ainda sobrou.",
-  furador:            "Já furou 400 folhas de relatório inútil hoje.",
-  mouse:              "Sem fio. Sem limite. Sem processo trabalhista.",
-  teclado:            "R$ 800 na Amazon. Custo emocional: inestimável.",
-  caneca:             "Diz 'Melhor Funcionário 2019'. O único prêmio que você ganhou.",
-  impressora:         "O papel emperrou. O inimigo também vai emperrar.",
-  notebook:           "Leva 15 min pra ligar e ainda te persegue.",
-  projetor:           "A reunião durou 3h. O projetor dói mais.",
-  extintor:           "Certificado pra extinguir incêndios, expectativas e carreiras.",
-  grampeador_eletrico:"Modificado pelo TI terceirizado. Provavelmente ilegal.",
+  regua: "Ideal pra medir quanto da sua paciência ainda sobrou.",
+  furador: "Já furou 400 folhas de relatório inútil hoje.",
+  mouse: "Sem fio. Sem limite. Sem processo trabalhista.",
+  teclado: "R$ 800 na Amazon. Custo emocional: inestimável.",
+  caneca: "Diz 'Melhor Funcionário 2019'. O único prêmio que você ganhou.",
+  impressora: "O papel emperrou. O inimigo também vai emperrar.",
+  notebook: "Leva 15 min pra ligar e ainda te persegue.",
+  projetor: "A reunião durou 3h. O projetor dói mais.",
+  extintor: "Certificado pra extinguir incêndios, expectativas e carreiras.",
+  grampeador_eletrico: "Modificado pelo TI terceirizado. Provavelmente ilegal.",
 };
 
 function rollShopWeapon(currentWeaponId: string): WeaponId {
@@ -62,10 +62,10 @@ function rollShopWeapon(currentWeaponId: string): WeaponId {
     if (def.shopCost === 0) continue; // not sold (starter / lendário)
     if (id === currentWeaponId) continue;
     let weight = 0;
-    if (def.rarity === "raro")   weight = 60;
-    if (def.rarity === "epico")  weight = 30;
+    if (def.rarity === "raro") weight = 60;
+    if (def.rarity === "epico") weight = 30;
     if (def.rarity === "lendario") weight = 10;
-    if (def.rarity === "comum")  weight = 0; // comum not in shop
+    if (def.rarity === "comum") weight = 0; // comum not in shop
     if (weight > 0) pool.push({ id, weight });
   }
   if (pool.length === 0) return "regua"; // fallback
@@ -80,7 +80,7 @@ function rollShopWeapon(currentWeaponId: string): WeaponId {
 
 function rollShopPerk(ownedPerks: PerkId[]): PerkId | null {
   const all = Object.keys(PERKS) as PerkId[];
-  const available = all.filter(p => !ownedPerks.includes(p));
+  const available = all.filter((p) => !ownedPerks.includes(p));
   if (available.length === 0) return null;
   return available[Math.floor(Math.random() * available.length)];
 }
@@ -212,15 +212,28 @@ export class ShopUI {
     });
 
     // Render
-    const c = this.scene.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2).setScrollFactor(0).setDepth(2000);
+    const c = this.scene.add
+      .container(GAME_WIDTH / 2, GAME_HEIGHT / 2)
+      .setScrollFactor(0)
+      .setDepth(2000);
     const rowH = 64;
     const panelH = 80 + this.items.length * rowH;
-    const panel = this.scene.add.rectangle(0, 0, 530, panelH, 0x0a0c10, 0.95).setStrokeStyle(2, 0xf2c14e);
+    const panel = this.scene.add
+      .rectangle(0, 0, 530, panelH, 0x0a0c10, 0.95)
+      .setStrokeStyle(2, 0xf2c14e);
     const title = this.scene.add
-      .text(0, -panelH / 2 + 16, "PONTO ELETRÔNICO", { fontFamily: "monospace", fontSize: "18px", color: "#f2c14e" })
+      .text(0, -panelH / 2 + 16, "PONTO ELETRÔNICO", {
+        fontFamily: "monospace",
+        fontSize: "18px",
+        color: "#f2c14e",
+      })
       .setOrigin(0.5);
     const vrText = this.scene.add
-      .text(0, -panelH / 2 + 36, `VR disponível: ${run.vr}`, { fontFamily: "monospace", fontSize: "12px", color: "#eaeaea" })
+      .text(0, -panelH / 2 + 36, `VR disponível: ${run.vr}`, {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#eaeaea",
+      })
       .setOrigin(0.5);
     c.add([panel, title, vrText]);
 
@@ -231,26 +244,39 @@ export class ShopUI {
       const costStr = item.cost > 0 ? `  —  ${item.cost} VR` : "  —  grátis";
       const row = this.scene.add
         .text(0, y, `[${i + 1}]  ${item.label}${costStr}`, {
-          fontFamily: "monospace", fontSize: "13px", color,
-        }).setOrigin(0.5);
+          fontFamily: "monospace",
+          fontSize: "13px",
+          color,
+        })
+        .setOrigin(0.5);
       const desc = this.scene.add
         .text(0, y + 16, item.description, {
-          fontFamily: "monospace", fontSize: "10px", color: "#888888",
-        }).setOrigin(0.5);
+          fontFamily: "monospace",
+          fontSize: "10px",
+          color: "#888888",
+        })
+        .setOrigin(0.5);
       c.add([row, desc]);
       if (item.flavor) {
         const flav = this.scene.add
           .text(0, y + 30, `"${item.flavor}"`, {
-            fontFamily: "monospace", fontSize: "9px", color: "#998866", fontStyle: "italic",
-          }).setOrigin(0.5);
+            fontFamily: "monospace",
+            fontSize: "9px",
+            color: "#998866",
+            fontStyle: "italic",
+          })
+          .setOrigin(0.5);
         c.add(flav);
       }
     });
 
     const hint = this.scene.add
       .text(0, panelH / 2 - 20, `1-${this.items.length} para comprar  •  ESC para fechar`, {
-        fontFamily: "monospace", fontSize: "10px", color: "#aaaaaa",
-      }).setOrigin(0.5);
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#aaaaaa",
+      })
+      .setOrigin(0.5);
     c.add(hint);
 
     this.msg = this.scene.add

@@ -109,10 +109,26 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
     let interval: number;
 
     switch (this.aiState) {
-      case "walk":      prefix = "faxineiro-walk";    count = 4; interval = 140; break;
-      case "telegraph": prefix = "faxineiro-special";  count = 3; interval = 180; break;
-      case "swing":     prefix = "faxineiro-attack";   count = 3; interval = 60;  break;
-      default:          prefix = "faxineiro-idle";     count = 3; interval = 220; break;
+      case "walk":
+        prefix = "faxineiro-walk";
+        count = 4;
+        interval = 140;
+        break;
+      case "telegraph":
+        prefix = "faxineiro-special";
+        count = 3;
+        interval = 180;
+        break;
+      case "swing":
+        prefix = "faxineiro-attack";
+        count = 3;
+        interval = 60;
+        break;
+      default:
+        prefix = "faxineiro-idle";
+        count = 3;
+        interval = 220;
+        break;
     }
 
     if (t >= this._animNextAt) {
@@ -142,7 +158,9 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
       this._dying = true;
       this._hurtUntil = this.scene.time.now; // death anim starts from now
       body.setVelocity(0, 0);
-      this.scene.time.delayedCall(380, () => { if (this.active) this.destroy(); });
+      this.scene.time.delayedCall(380, () => {
+        if (this.active) this.destroy();
+      });
       return true;
     }
     return false;

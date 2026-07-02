@@ -200,10 +200,7 @@ export function getAnimFrames(
  * @param sprite - O sprite a ser configurado (deve estar criado previamente).
  * @param texKey - Chave lógica `tex-*` do sprite inicial (e.g. `tex-estagiario-idle0`).
  */
-export function bindEnemySprite(
-  sprite: Phaser.Physics.Arcade.Sprite,
-  texKey: string,
-): void {
+export function bindEnemySprite(sprite: Phaser.Physics.Arcade.Sprite, texKey: string): void {
   const [tex, frame] = resolveSprite(texKey);
   sprite.setTexture(tex, frame);
   sprite.setOrigin(0.5, 1);
@@ -238,8 +235,7 @@ export function warnMissing(scene: Phaser.Scene, prefix: string): string[] {
     }
 
     if (!found) {
-      const candidateLabel =
-        frame !== undefined ? `${tex}[${frame}]` : logicalKey;
+      const candidateLabel = frame !== undefined ? `${tex}[${frame}]` : logicalKey;
       console.warn(
         `[SpriteLibrary] warnMissing: frame not found for "${logicalKey}" ` +
           `(resolved candidate: "${candidateLabel}")`,

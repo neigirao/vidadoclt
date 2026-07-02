@@ -20,17 +20,17 @@ type EnemyGroup = Phaser.Physics.Arcade.Group;
 export interface LevelSpec {
   label: string;
   seedVariant: number;
-  floorY: number;          // Y da superfície do chão
-  ceilingY: number;        // Y do topo jogável (abaixo do HUD)
+  floorY: number; // Y da superfície do chão
+  ceilingY: number; // Y do topo jogável (abaixo do HUD)
   levelWidth: number;
   playerSpawn: { x: number; y: number };
-  jumpVel: number;         // JUMP_VEL (negativo)
-  gravity: number;         // GRAVITY
-  walkSpeed?: number;      // WALK_SPEED (default 200) — alcance horizontal do pulo
-  dashBonus?: number;      // px extras de alcance por dash aéreo (default 90)
+  jumpVel: number; // JUMP_VEL (negativo)
+  gravity: number; // GRAVITY
+  walkSpeed?: number; // WALK_SPEED (default 200) — alcance horizontal do pulo
+  dashBonus?: number; // px extras de alcance por dash aéreo (default 90)
   safeSpawnRadius?: number; // raio livre de inimigos ao redor do spawn (default 160)
-  platforms: StaticGroup;  // superfícies onde se anda
-  furniture: StaticGroup;  // corpos sólidos (mesas) que bloqueiam o corredor
+  platforms: StaticGroup; // superfícies onde se anda
+  furniture: StaticGroup; // corpos sólidos (mesas) que bloqueiam o corredor
   enemies: EnemyGroup[];
   boss?: Phaser.GameObjects.Components.Transform & { active: boolean };
   expectBoss?: boolean; // false p/ fases sem boss por design (ex.: Fase 5 → CEO)
@@ -45,21 +45,32 @@ export interface LevelCheck {
 }
 
 export interface LevelReport {
-  pass: boolean;         // false se houver algum erro (warns não reprovam)
+  pass: boolean; // false se houver algum erro (warns não reprovam)
   checks: LevelCheck[];
 }
 
-interface Box { left: number; right: number; top: number; bottom: number; }
+interface Box {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
 
 // ── Alcançabilidade encadeada (grafo de pulos plataforma→plataforma) ──────────
 // Nó = uma superfície andável (o chão + cada plataforma). Aresta A→B existe se
 // dá pra pular de A para B respeitando a cinemática: a altura de subida cabe no
 // apex do pulo E o vão horizontal cabe no alcance disponível (tempo no ar × vel.
 // horizontal + bônus de dash). BFS a partir do chão marca o que é alcançável.
-export interface ReachNode { idx: number; surfaceY: number; left: number; right: number; isFloor: boolean; }
+export interface ReachNode {
+  idx: number;
+  surfaceY: number;
+  left: number;
+  right: number;
+  isFloor: boolean;
+}
 export interface ReachResult {
   nodes: ReachNode[];
-  reachable: boolean[];          // por nó (índice alinhado com nodes)
+  reachable: boolean[]; // por nó (índice alinhado com nodes)
   edges: Array<[number, number]>; // arestas percorríveis entre nós alcançáveis (p/ overlay)
 }
 
@@ -76,14 +87,22 @@ function gapX(aL: number, aR: number, bL: number, bR: number): number {
 // Além do alcance, o arco do pulo não pode atravessar um móvel sólido (mesa
 // alta) que fique entre A e B — senão o pulo estaria bloqueado na prática.
 function canJump(
-  aY: number, aL: number, aR: number,
-  bY: number, bL: number, bR: number,
-  jumpVel: number, gravity: number, walk: number, dashBonus: number, margin: number,
+  aY: number,
+  aL: number,
+  aR: number,
+  bY: number,
+  bL: number,
+  bR: number,
+  jumpVel: number,
+  gravity: number,
+  walk: number,
+  dashBonus: number,
+  margin: number,
   furniture: Box[],
 ): boolean {
-  const v0 = -jumpVel;                    // jumpVel é negativo → v0 > 0
+  const v0 = -jumpVel; // jumpVel é negativo → v0 > 0
   const apex = (v0 * v0) / (2 * gravity);
-  const rise = aY - bY;                   // subir para B
+  const rise = aY - bY; // subir para B
   if (rise > apex - margin) return false; // não alcança a altura
   const disc = v0 * v0 - 2 * gravity * rise;
   if (disc < 0) return false;
@@ -111,28 +130,53 @@ function canJump(
 }
 
 export function computeReachability(spec: LevelSpec): ReachResult {
-  const boxes = spec.platforms.getChildren()
-    .map(bodyBox).filter((b): b is Box => !!b);
+  const boxes = spec.platforms
+    .getChildren()
+    .map(bodyBox)
+    .filter((b): b is Box => !!b);
   const nodes: ReachNode[] = boxes.map((b, i) => ({
-    idx: i, surfaceY: b.top, left: b.left, right: b.right,
+    idx: i,
+    surfaceY: b.top,
+    left: b.left,
+    right: b.right,
     isFloor: b.left <= 4 && b.right >= spec.levelWidth - 4 && b.top >= spec.floorY - 4,
   }));
   const walk = spec.walkSpeed ?? 200;
   const dashBonus = spec.dashBonus ?? 90; // DASH_SPEED(600) × DASH_MS(0.15)
   const margin = 12;
-  const furnBoxes = spec.furniture.getChildren().map(bodyBox).filter((b): b is Box => !!b);
+  const furnBoxes = spec.furniture
+    .getChildren()
+    .map(bodyBox)
+    .filter((b): b is Box => !!b);
 
   const edges: Array<[number, number]> = [];
-  const reachable = nodes.map(n => n.isFloor); // chão é o ponto de partida
-  const queue = nodes.filter(n => n.isFloor).map(n => n.idx);
+  const reachable = nodes.map((n) => n.isFloor); // chão é o ponto de partida
+  const queue = nodes.filter((n) => n.isFloor).map((n) => n.idx);
   while (queue.length) {
     const ai = queue.shift()!;
     const a = nodes[ai];
     for (const b of nodes) {
       if (b.idx === ai) continue;
-      if (canJump(a.surfaceY, a.left, a.right, b.surfaceY, b.left, b.right,
-        spec.jumpVel, spec.gravity, walk, dashBonus, margin, furnBoxes)) {
-        if (!reachable[b.idx]) { reachable[b.idx] = true; queue.push(b.idx); }
+      if (
+        canJump(
+          a.surfaceY,
+          a.left,
+          a.right,
+          b.surfaceY,
+          b.left,
+          b.right,
+          spec.jumpVel,
+          spec.gravity,
+          walk,
+          dashBonus,
+          margin,
+          furnBoxes,
+        )
+      ) {
+        if (!reachable[b.idx]) {
+          reachable[b.idx] = true;
+          queue.push(b.idx);
+        }
         edges.push([ai, b.idx]);
       }
     }
@@ -164,43 +208,62 @@ export function validateLevel(spec: LevelSpec): LevelReport {
   const furniture = spec.furniture.getChildren();
 
   // 1. Chão contínuo: existe uma plataforma cobrindo toda a largura no nível do chão.
-  const floorSpan = platforms.some(p => {
-    const b = bodyBox(p); return b && b.left <= 4 && b.right >= spec.levelWidth - 4 && b.top >= spec.floorY - 4;
+  const floorSpan = platforms.some((p) => {
+    const b = bodyBox(p);
+    return b && b.left <= 4 && b.right >= spec.levelWidth - 4 && b.top >= spec.floorY - 4;
   });
-  add(floorSpan, "chão-contínuo", floorSpan ? "chão cobre 0→levelWidth" : "sem plataforma de chão cobrindo toda a largura — jogador pode cair no vazio");
+  add(
+    floorSpan,
+    "chão-contínuo",
+    floorSpan
+      ? "chão cobre 0→levelWidth"
+      : "sem plataforma de chão cobrindo toda a largura — jogador pode cair no vazio",
+  );
 
   // 2. Alcançabilidade encadeada: BFS de pulos a partir do chão. Uma plataforma
   //    vale se dá pra chegar nela pulando do chão OU de outra já alcançável
   //    (suporta layouts verticais em escada, não só pulo direto do piso).
   const reach = computeReachability(spec);
-  const elevated = reach.nodes.filter(n => !n.isFloor);
-  const isolated = elevated.filter(n => !reach.reachable[n.idx]);
-  add(isolated.length === 0, "plataformas-alcançáveis",
+  const elevated = reach.nodes.filter((n) => !n.isFloor);
+  const isolated = elevated.filter((n) => !reach.reachable[n.idx]);
+  add(
+    isolated.length === 0,
+    "plataformas-alcançáveis",
     isolated.length === 0
       ? `${elevated.length} plataformas, todas alcançáveis (pulo encadeado, apex ${maxJumpH.toFixed(0)}px)`
-      : `${isolated.length}/${elevated.length} plataforma(s) ilhada(s) — sem cadeia de pulos até elas`);
+      : `${isolated.length}/${elevated.length} plataforma(s) ilhada(s) — sem cadeia de pulos até elas`,
+  );
 
   // 3. Mesas (corpos sólidos que descem até o chão) precisam ser "puláveis": o
   // topo delas ≤ altura de pulo, senão bloqueiam o corredor sem saída.
   let blocking = 0;
   for (const f of furniture) {
-    const b = bodyBox(f); if (!b) continue;
+    const b = bodyBox(f);
+    if (!b) continue;
     const reachesFloor = b.bottom >= spec.floorY - 4;
     const topAboveFloor = spec.floorY - b.top;
     if (reachesFloor && topAboveFloor > maxJumpH - reachMargin) blocking++;
   }
-  add(blocking === 0, "mesas-puláveis",
-    blocking === 0 ? `${furniture.length} móveis, nenhum bloqueia o corredor`
-      : `${blocking} móvel(is) alto(s) demais para pular por cima — corredor pode ficar intransponível`);
+  add(
+    blocking === 0,
+    "mesas-puláveis",
+    blocking === 0
+      ? `${furniture.length} móveis, nenhum bloqueia o corredor`
+      : `${blocking} móvel(is) alto(s) demais para pular por cima — corredor pode ficar intransponível`,
+  );
 
   // 4. Móveis não se sobrepõem (sobreposição de corpos sólidos = armadilha/clipping).
   let overlapPairs = 0;
   const fboxes = furniture.map(bodyBox).filter((b): b is Box => !!b);
   for (let i = 0; i < fboxes.length; i++)
-    for (let j = i + 1; j < fboxes.length; j++)
-      if (overlaps(fboxes[i], fboxes[j])) overlapPairs++;
-  add(overlapPairs === 0, "móveis-sem-sobreposição",
-    overlapPairs === 0 ? "nenhum par de móveis sobreposto" : `${overlapPairs} par(es) de móveis sobrepostos`);
+    for (let j = i + 1; j < fboxes.length; j++) if (overlaps(fboxes[i], fboxes[j])) overlapPairs++;
+  add(
+    overlapPairs === 0,
+    "móveis-sem-sobreposição",
+    overlapPairs === 0
+      ? "nenhum par de móveis sobreposto"
+      : `${overlapPairs} par(es) de móveis sobrepostos`,
+  );
 
   // 5. Spawn seguro: nenhum inimigo dentro do raio livre ao redor do jogador.
   const near: string[] = [];
@@ -212,8 +275,13 @@ export function validateLevel(spec: LevelSpec): LevelReport {
       if (d < safeR) near.push(d.toFixed(0));
     }
   }
-  add(near.length === 0, "spawn-seguro",
-    near.length === 0 ? `nenhum inimigo a < ${safeR}px do spawn` : `${near.length} inimigo(s) dentro do raio seguro (${near.join(",")}px)`);
+  add(
+    near.length === 0,
+    "spawn-seguro",
+    near.length === 0
+      ? `nenhum inimigo a < ${safeR}px do spawn`
+      : `${near.length} inimigo(s) dentro do raio seguro (${near.join(",")}px)`,
+  );
 
   // 6. Nada fora dos limites verticais (abaixo do chão ou acima do teto jogável).
   const oob: string[] = [];
@@ -221,17 +289,29 @@ export function validateLevel(spec: LevelSpec): LevelReport {
     for (const e of g.getChildren()) {
       const s = e as unknown as { x: number; y: number; active: boolean };
       if (!s.active) continue;
-      if (s.y > spec.floorY + 20 || s.y < spec.ceilingY - 4) oob.push(`(${s.x.toFixed(0)},${s.y.toFixed(0)})`);
+      if (s.y > spec.floorY + 20 || s.y < spec.ceilingY - 4)
+        oob.push(`(${s.x.toFixed(0)},${s.y.toFixed(0)})`);
     }
   }
-  add(oob.length === 0, "inimigos-nos-limites",
-    oob.length === 0 ? "todos os inimigos dentro dos limites verticais" : `${oob.length} inimigo(s) fora: ${oob.slice(0, 4).join(" ")}`);
+  add(
+    oob.length === 0,
+    "inimigos-nos-limites",
+    oob.length === 0
+      ? "todos os inimigos dentro dos limites verticais"
+      : `${oob.length} inimigo(s) fora: ${oob.slice(0, 4).join(" ")}`,
+  );
 
   // 7. Boss presente, no nível do chão e à esquerda da saída.
   if (spec.boss) {
     const b = spec.boss as unknown as { x: number; y: number; active: boolean };
     const grounded = b.y <= spec.floorY + 20 && b.y >= spec.ceilingY;
-    add(grounded, "boss-posicionado", grounded ? `boss em (${b.x.toFixed(0)},${b.y.toFixed(0)})` : `boss fora do nível jogável (y=${b.y.toFixed(0)})`);
+    add(
+      grounded,
+      "boss-posicionado",
+      grounded
+        ? `boss em (${b.x.toFixed(0)},${b.y.toFixed(0)})`
+        : `boss fora do nível jogável (y=${b.y.toFixed(0)})`,
+    );
   } else if (spec.expectBoss === false) {
     add(true, "boss-presente", "fase sem boss (por design)");
   } else {
@@ -241,7 +321,14 @@ export function validateLevel(spec: LevelSpec): LevelReport {
   // 8. Saída (porta da Copa) presente na ponta direita.
   if (spec.exit) {
     const farEnough = spec.exit.x > spec.levelWidth * 0.8;
-    add(farEnough, "saída-presente", farEnough ? `saída em x=${spec.exit.x.toFixed(0)}` : `saída muito à esquerda (x=${spec.exit.x.toFixed(0)})`, "warn");
+    add(
+      farEnough,
+      "saída-presente",
+      farEnough
+        ? `saída em x=${spec.exit.x.toFixed(0)}`
+        : `saída muito à esquerda (x=${spec.exit.x.toFixed(0)})`,
+      "warn",
+    );
   } else {
     add(false, "saída-presente", "cena sem saída definida", "warn");
   }
@@ -260,12 +347,15 @@ export function validateLevel(spec: LevelSpec): LevelReport {
       zones[z]++;
     }
   }
-  const zonesUsed = zones.filter(z => z > 0).length;
-  add(totalEnemies > 0 && zonesUsed >= 3, "distribuição-inimigos",
+  const zonesUsed = zones.filter((z) => z > 0).length;
+  add(
+    totalEnemies > 0 && zonesUsed >= 3,
+    "distribuição-inimigos",
     `${totalEnemies} inimigos em ${zonesUsed}/${zoneCount} zonas [${zones.join(",")}]`,
-    "warn");
+    "warn",
+  );
 
-  const pass = checks.every(c => c.ok || c.severity === "warn");
+  const pass = checks.every((c) => c.ok || c.severity === "warn");
   return { pass, checks };
 }
 
@@ -285,10 +375,18 @@ export function drawLevelOverlay(
   const g = scene.add.graphics().setScrollFactor(1, 1);
   c.add(g);
   const label = (x: number, y: number, t: string, color: string, sf = 1) => {
-    const txt = scene.add.text(x, y, t, {
-      fontFamily: "monospace", fontSize: "9px", color, stroke: "#000", strokeThickness: 3,
-    }).setScrollFactor(sf, sf).setDepth(996);
-    c.add(txt); return txt;
+    const txt = scene.add
+      .text(x, y, t, {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color,
+        stroke: "#000",
+        strokeThickness: 3,
+      })
+      .setScrollFactor(sf, sf)
+      .setDepth(996);
+    c.add(txt);
+    return txt;
   };
 
   const maxJumpH = (spec.jumpVel * spec.jumpVel) / (2 * spec.gravity);
@@ -297,19 +395,23 @@ export function drawLevelOverlay(
   // Linha do chão + "teto" de pulo (altura máxima alcançável).
   g.lineStyle(1, 0x3388ff, 0.5).lineBetween(0, spec.floorY, spec.levelWidth, spec.floorY);
   g.lineStyle(1, 0xffee44, 0.35);
-  for (let x = 0; x < spec.levelWidth; x += 16) g.lineBetween(x, spec.floorY - maxJumpH, x + 8, spec.floorY - maxJumpH);
+  for (let x = 0; x < spec.levelWidth; x += 16)
+    g.lineBetween(x, spec.floorY - maxJumpH, x + 8, spec.floorY - maxJumpH);
   label(8, spec.floorY - maxJumpH - 12, `teto de pulo (${maxJumpH.toFixed(0)}px)`, "#ffee44");
 
   // Zonas de dificuldade (5 faixas verticais) + contagem de inimigos.
-  const zones = 5, zw = spec.levelWidth / zones;
+  const zones = 5,
+    zw = spec.levelWidth / zones;
   const zoneCounts = new Array(zones).fill(0);
-  for (const grp of spec.enemies) for (const e of grp.getChildren()) {
-    const s = e as unknown as { x: number; active: boolean };
-    if (s.active) zoneCounts[Math.min(zones - 1, Math.floor(s.x / zw))]++;
-  }
+  for (const grp of spec.enemies)
+    for (const e of grp.getChildren()) {
+      const s = e as unknown as { x: number; active: boolean };
+      if (s.active) zoneCounts[Math.min(zones - 1, Math.floor(s.x / zw))]++;
+    }
   g.lineStyle(1, 0xff8844, 0.25);
   for (let z = 1; z < zones; z++) g.lineBetween(z * zw, spec.ceilingY, z * zw, spec.floorY);
-  for (let z = 0; z < zones; z++) label(z * zw + 6, spec.ceilingY + 4, `Z${z + 1}: ${zoneCounts[z]}`, "#ffaa66");
+  for (let z = 0; z < zones; z++)
+    label(z * zw + 6, spec.ceilingY + 4, `Z${z + 1}: ${zoneCounts[z]}`, "#ffaa66");
 
   // Arestas de pulo (grafo de alcançabilidade encadeada): linhas cinza entre
   // superfícies conectadas por um pulo possível — mostra os caminhos verticais.
@@ -318,24 +420,36 @@ export function drawLevelOverlay(
   g.lineStyle(1, 0x8899bb, 0.35);
   for (const [ai, bi] of reach.edges) {
     if (reach.nodes[ai].isFloor && reach.nodes[bi].isFloor) continue;
-    const a = center(reach.nodes[ai]), bctr = center(reach.nodes[bi]);
+    const a = center(reach.nodes[ai]),
+      bctr = center(reach.nodes[bi]);
     g.lineBetween(a.x, a.y, bctr.x, bctr.y);
   }
 
   // Plataformas: verde = alcançável (por cadeia de pulos), vermelho = ilhada.
-  reach.nodes.forEach(n => {
+  reach.nodes.forEach((n) => {
     if (n.isFloor) return;
     const b = { left: n.left, right: n.right, top: n.surfaceY };
     const ok = reach.reachable[n.idx];
     g.lineStyle(2, ok ? 0x44ff88 : 0xff3333, 0.9).strokeRect(b.left, b.top, b.right - b.left, 14);
-    label(b.left, b.top - 11, `${(spec.floorY - b.top).toFixed(0)}px${ok ? "" : " ⚠ILHADA"}`, ok ? "#88ffaa" : "#ff6666");
+    label(
+      b.left,
+      b.top - 11,
+      `${(spec.floorY - b.top).toFixed(0)}px${ok ? "" : " ⚠ILHADA"}`,
+      ok ? "#88ffaa" : "#ff6666",
+    );
   });
 
   // Móveis (mesas): verde = pulável, vermelho = bloqueia o corredor.
   for (const f of spec.furniture.getChildren()) {
-    const b = bodyBox(f); if (!b) continue;
-    const blocks = b.bottom >= spec.floorY - 4 && (spec.floorY - b.top) > maxJumpH - margin;
-    g.lineStyle(1, blocks ? 0xff3333 : 0x44cc88, 0.7).strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
+    const b = bodyBox(f);
+    if (!b) continue;
+    const blocks = b.bottom >= spec.floorY - 4 && spec.floorY - b.top > maxJumpH - margin;
+    g.lineStyle(1, blocks ? 0xff3333 : 0x44cc88, 0.7).strokeRect(
+      b.left,
+      b.top,
+      b.right - b.left,
+      b.bottom - b.top,
+    );
   }
 
   // Spawn do player: raio seguro + arco de pulo (parábola até a distância máx).
@@ -345,13 +459,16 @@ export function drawLevelOverlay(
   g.lineStyle(1, 0x33ddff, 0.4).strokeCircle(sp.x, sp.y, safeR);
   label(sp.x - 18, sp.y - safeR - 12, "SPAWN (raio seguro)", "#66e6ff");
   // arco: v0y=jumpVel, vx=200 (WALK_SPEED); t total até voltar ao chão.
-  const vx = 200, tTot = (-2 * spec.jumpVel) / spec.gravity;
-  g.lineStyle(2, 0xffee44, 0.7); g.beginPath();
+  const vx = 200,
+    tTot = (-2 * spec.jumpVel) / spec.gravity;
+  g.lineStyle(2, 0xffee44, 0.7);
+  g.beginPath();
   for (let i = 0; i <= 24; i++) {
     const t = (i / 24) * tTot;
     const px = sp.x + vx * t;
     const py = sp.y + spec.jumpVel * t + 0.5 * spec.gravity * t * t;
-    if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    if (i === 0) g.moveTo(px, py);
+    else g.lineTo(px, py);
   }
   g.strokePath();
 
@@ -368,19 +485,36 @@ export function drawLevelOverlay(
 
   // Inimigos: ponto por inimigo ativo.
   g.fillStyle(0xffffff, 0.8);
-  for (const grp of spec.enemies) for (const e of grp.getChildren()) {
-    const s = e as unknown as { x: number; y: number; active: boolean };
-    if (s.active) g.fillCircle(s.x, s.y, 3);
-  }
+  for (const grp of spec.enemies)
+    for (const e of grp.getChildren()) {
+      const s = e as unknown as { x: number; y: number; active: boolean };
+      if (s.active) g.fillCircle(s.x, s.y, 3);
+    }
 
   // Painel fixo: resumo PASS/FAIL + checks (scrollFactor 0).
-  const pb = scene.add.rectangle(6, 40, 300, 8 + report.checks.length * 12 + 16, 0x0a0d12, 0.85)
-    .setOrigin(0, 0).setScrollFactor(0).setDepth(996).setStrokeStyle(1, 0x334);
+  const pb = scene.add
+    .rectangle(6, 40, 300, 8 + report.checks.length * 12 + 16, 0x0a0d12, 0.85)
+    .setOrigin(0, 0)
+    .setScrollFactor(0)
+    .setDepth(996)
+    .setStrokeStyle(1, 0x334);
   c.add(pb);
-  label(12, 44, `LEVEL VALIDATOR — ${report.pass ? "✅ PASS" : "❌ FAIL"}  (V oculta)`, report.pass ? "#66ff99" : "#ff6666", 0);
+  label(
+    12,
+    44,
+    `LEVEL VALIDATOR — ${report.pass ? "✅ PASS" : "❌ FAIL"}  (V oculta)`,
+    report.pass ? "#66ff99" : "#ff6666",
+    0,
+  );
   report.checks.forEach((ck, i) => {
-    const ic = ck.ok ? "✓" : (ck.severity === "warn" ? "⚠" : "✗");
-    label(12, 58 + i * 12, `${ic} ${ck.name}`, ck.ok ? "#9fd6b0" : (ck.severity === "warn" ? "#ffcc66" : "#ff7777"), 0);
+    const ic = ck.ok ? "✓" : ck.severity === "warn" ? "⚠" : "✗";
+    label(
+      12,
+      58 + i * 12,
+      `${ic} ${ck.name}`,
+      ck.ok ? "#9fd6b0" : ck.severity === "warn" ? "#ffcc66" : "#ff7777",
+      0,
+    );
   });
 
   return c;
@@ -388,11 +522,11 @@ export function drawLevelOverlay(
 
 export function logLevelReport(label: string, report: LevelReport): void {
   const head = report.pass ? "✅ PASS" : "❌ FAIL";
-  // eslint-disable-next-line no-console
+
   console.log(`[LevelValidator] ${label}: ${head}`);
   for (const c of report.checks) {
-    const icon = c.ok ? "  ✓" : (c.severity === "warn" ? "  ⚠" : "  ✗");
-    // eslint-disable-next-line no-console
+    const icon = c.ok ? "  ✓" : c.severity === "warn" ? "  ⚠" : "  ✗";
+
     console.log(`${icon} ${c.name}: ${c.detail}`);
   }
 }

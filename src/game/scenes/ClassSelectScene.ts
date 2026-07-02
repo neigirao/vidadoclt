@@ -6,11 +6,11 @@ import { applyRunSeed } from "../systems/RNG";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { loadUpgrades, applyUpgradesToRun } from "../systems/ReconhecimentoSystem";
 
-const BG_PANEL   = 0x12151a;
-const BG_CARD    = 0x1a1d23;
-const ACCENT     = 0xf2a800;
+const BG_PANEL = 0x12151a;
+const BG_CARD = 0x1a1d23;
+const ACCENT = 0xf2a800;
 const TEXT_LIGHT = "#eaeaea";
-const TEXT_DIM   = "#888888";
+const TEXT_DIM = "#888888";
 const TEXT_ACCENT = "#f2a800";
 
 const CLASS_IDS: ClassId[] = ["estagiario", "analista", "terceirizado"];
@@ -40,8 +40,11 @@ export class ClassSelectScene extends Phaser.Scene {
     // Background — match MenuScene palette
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, BG_PANEL);
     if (this.textures.exists("bg-menu")) {
-      this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
-        .setDisplaySize(GAME_WIDTH, GAME_HEIGHT).setAlpha(0.18).setDepth(-1);
+      this.add
+        .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
+        .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
+        .setAlpha(0.18)
+        .setDepth(-1);
     }
 
     // Scanlines overlay
@@ -56,14 +59,24 @@ export class ClassSelectScene extends Phaser.Scene {
     hdrG.lineStyle(1, ACCENT, 0.6);
     hdrG.lineBetween(0, 46, GAME_WIDTH, 46);
 
-    this.add.text(GAME_WIDTH / 2, 14, "ESCOLHA SUA FUNÇÃO", {
-      fontFamily: "monospace", fontSize: "18px", fontStyle: "bold",
-      color: TEXT_ACCENT, stroke: "#000000", strokeThickness: 3,
-    }).setOrigin(0.5);
+    this.add
+      .text(GAME_WIDTH / 2, 14, "ESCOLHA SUA FUNÇÃO", {
+        fontFamily: "monospace",
+        fontSize: "18px",
+        fontStyle: "bold",
+        color: TEXT_ACCENT,
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 36, "←  →  navegar     ENTER / clique  confirmar", {
-      fontFamily: "monospace", fontSize: "8px", color: TEXT_DIM,
-    }).setOrigin(0.5);
+    this.add
+      .text(GAME_WIDTH / 2, 36, "←  →  navegar     ENTER / clique  confirmar", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: TEXT_DIM,
+      })
+      .setOrigin(0.5);
 
     this.cardY = Math.floor(GAME_HEIGHT / 2) + 28;
     const totalW = CLASS_IDS.length * CARD_W + (CLASS_IDS.length - 1) * 30;
@@ -74,20 +87,32 @@ export class ClassSelectScene extends Phaser.Scene {
       const container = this.buildCard(cid, cx, this.cardY);
       this.cards.push(container);
 
-      const hit = this.add.rectangle(cx, this.cardY, CARD_W, CARD_H, 0, 0)
+      const hit = this.add
+        .rectangle(cx, this.cardY, CARD_W, CARD_H, 0, 0)
         .setInteractive({ useHandCursor: true });
-      hit.on("pointerdown", () => { this.selectedIndex = i; this.refreshCards(); this.confirm(); });
-      hit.on("pointerover", () => { this.selectedIndex = i; this.refreshCards(); });
+      hit.on("pointerdown", () => {
+        this.selectedIndex = i;
+        this.refreshCards();
+        this.confirm();
+      });
+      hit.on("pointerover", () => {
+        this.selectedIndex = i;
+        this.refreshCards();
+      });
     });
 
     this.refreshCards();
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 12, "[ ENTER ] ou clique no card para começar", {
-      fontFamily: "monospace", fontSize: "8px", color: "#333333",
-    }).setOrigin(0.5);
+    this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 12, "[ ENTER ] ou clique no card para começar", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#333333",
+      })
+      .setOrigin(0.5);
 
     const kb = this.input.keyboard!;
-    this.leftKey  = kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+    this.leftKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     this.rightKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.A).on("down", () => {
       this.selectedIndex = Math.max(0, this.selectedIndex - 1);
@@ -121,17 +146,25 @@ export class ClassSelectScene extends Phaser.Scene {
 
     // [2] Class label
     container.add(
-      this.add.text(0, -hh + 16, def.label.toUpperCase(), {
-        fontFamily: "monospace", fontSize: "13px", fontStyle: "bold",
-        color: "#ffffff", stroke: "#000000", strokeThickness: 2,
-      }).setOrigin(0.5),
+      this.add
+        .text(0, -hh + 16, def.label.toUpperCase(), {
+          fontFamily: "monospace",
+          fontSize: "13px",
+          fontStyle: "bold",
+          color: "#ffffff",
+          stroke: "#000000",
+          strokeThickness: 2,
+        })
+        .setOrigin(0.5),
     );
 
     // [3] Player sprite preview using real atlas sprite
     const classIdx = CLASS_IDS.indexOf(classId);
     const idleFrame = `tex-player-idle${classIdx + 1}`;
-    const charSpr = this.add.image(0, -hh + 90, ...resolveSprite(idleFrame))
-      .setDisplaySize(72, 72).setTint(def.color);
+    const charSpr = this.add
+      .image(0, -hh + 90, ...resolveSprite(idleFrame))
+      .setDisplaySize(72, 72)
+      .setTint(def.color);
     container.add(charSpr);
 
     // [4] Stat bars
@@ -145,45 +178,73 @@ export class ClassSelectScene extends Phaser.Scene {
       barG.fillStyle(color, 1);
       barG.fillRect(barX, barsTop + yOff, Math.max(4, Math.floor(barW * Math.min(fill, 1))), 7);
     };
-    drawBar(0,  def.maxEnergy / 130,  0xdd4444);
-    drawBar(20, def.maxSanity / 120,  0x44ddaa);
-    drawBar(40, def.speedMult / 1.2,  0x4488ff);
+    drawBar(0, def.maxEnergy / 130, 0xdd4444);
+    drawBar(20, def.maxSanity / 120, 0x44ddaa);
+    drawBar(40, def.speedMult / 1.2, 0x4488ff);
     container.add(barG);
 
     // [5,6,7] Stat labels
     const lblStyle = (color: string) => ({ fontFamily: "monospace", fontSize: "8px", color });
-    container.add(this.add.text(barX, barsTop - 11, `ENERGIA  ${def.maxEnergy}`, lblStyle("#dd6666")));
-    container.add(this.add.text(barX, barsTop + 9,  `SANIDADE ${def.maxSanity}`, lblStyle("#44ddaa")));
-    container.add(this.add.text(barX, barsTop + 29,
-      `VELOCIDADE ${def.speedMult >= 1 ? "+" : ""}${Math.round((def.speedMult - 1) * 100)}%`, lblStyle("#4488ff")));
+    container.add(
+      this.add.text(barX, barsTop - 11, `ENERGIA  ${def.maxEnergy}`, lblStyle("#dd6666")),
+    );
+    container.add(
+      this.add.text(barX, barsTop + 9, `SANIDADE ${def.maxSanity}`, lblStyle("#44ddaa")),
+    );
+    container.add(
+      this.add.text(
+        barX,
+        barsTop + 29,
+        `VELOCIDADE ${def.speedMult >= 1 ? "+" : ""}${Math.round((def.speedMult - 1) * 100)}%`,
+        lblStyle("#4488ff"),
+      ),
+    );
 
     // [8] Description
     container.add(
-      this.add.text(0, -hh + 200, def.description, {
-        fontFamily: "monospace", fontSize: "9px", color: TEXT_DIM,
-        align: "center", wordWrap: { width: CARD_W - 20 },
-      }).setOrigin(0.5, 0),
+      this.add
+        .text(0, -hh + 200, def.description, {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: TEXT_DIM,
+          align: "center",
+          wordWrap: { width: CARD_W - 20 },
+        })
+        .setOrigin(0.5, 0),
     );
 
     // [9] Weapon
     container.add(
-      this.add.text(0, hh - 68, `⚔ ${weapon.name}`, {
-        fontFamily: "monospace", fontSize: "10px", fontStyle: "bold", color: TEXT_ACCENT,
-      }).setOrigin(0.5, 0),
+      this.add
+        .text(0, hh - 68, `⚔ ${weapon.name}`, {
+          fontFamily: "monospace",
+          fontSize: "10px",
+          fontStyle: "bold",
+          color: TEXT_ACCENT,
+        })
+        .setOrigin(0.5, 0),
     );
 
     // [10] Trait
     container.add(
-      this.add.text(0, hh - 48, def.trait, {
-        fontFamily: "monospace", fontSize: "9px", color: "#88ff88",
-      }).setOrigin(0.5, 0),
+      this.add
+        .text(0, hh - 48, def.trait, {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: "#88ff88",
+        })
+        .setOrigin(0.5, 0),
     );
 
     // [11] Confirm hint
     container.add(
-      this.add.text(0, hh - 18, "[ ENTER ] para jogar", {
-        fontFamily: "monospace", fontSize: "8px", color: "#444444",
-      }).setOrigin(0.5, 0),
+      this.add
+        .text(0, hh - 18, "[ ENTER ] para jogar", {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: "#444444",
+        })
+        .setOrigin(0.5, 0),
     );
 
     return container;
@@ -219,7 +280,7 @@ export class ClassSelectScene extends Phaser.Scene {
   }
 
   update() {
-    const leftDown  = this.leftKey.isDown;
+    const leftDown = this.leftKey.isDown;
     const rightDown = this.rightKey.isDown;
     if (leftDown && !this.prevLeft) {
       this.selectedIndex = Math.max(0, this.selectedIndex - 1);
@@ -229,7 +290,7 @@ export class ClassSelectScene extends Phaser.Scene {
       this.selectedIndex = Math.min(CLASS_IDS.length - 1, this.selectedIndex + 1);
       this.refreshCards();
     }
-    this.prevLeft  = leftDown;
+    this.prevLeft = leftDown;
     this.prevRight = rightDown;
   }
 
@@ -240,21 +301,28 @@ export class ClassSelectScene extends Phaser.Scene {
     // Apply permanent upgrades from Reconhecimento meta-progression
     const levels = loadUpgrades();
     const mods = {
-      maxEnergy: 0, maxSanity: 0, vrDropMult: 0, parryWindowBonus: 0,
-      specialCooldownMult: 1.0, dashCooldownBonus: 0, damageReductionMult: 1.0,
-      parryEnergyRestore: 0, parryVrDrop: 0, comboHitsBonus: 0,
+      maxEnergy: 0,
+      maxSanity: 0,
+      vrDropMult: 0,
+      parryWindowBonus: 0,
+      specialCooldownMult: 1.0,
+      dashCooldownBonus: 0,
+      damageReductionMult: 1.0,
+      parryEnergyRestore: 0,
+      parryVrDrop: 0,
+      comboHitsBonus: 0,
     };
     applyUpgradesToRun(levels, run, mods);
-    run.upgMaxEnergy           = mods.maxEnergy;
-    run.upgMaxSanity           = mods.maxSanity;
-    run.upgVrDropMult          = mods.vrDropMult;
-    run.upgParryWindowBonus    = mods.parryWindowBonus;
+    run.upgMaxEnergy = mods.maxEnergy;
+    run.upgMaxSanity = mods.maxSanity;
+    run.upgVrDropMult = mods.vrDropMult;
+    run.upgParryWindowBonus = mods.parryWindowBonus;
     run.upgSpecialCooldownMult = mods.specialCooldownMult;
-    run.upgDashCooldownBonus   = mods.dashCooldownBonus;
+    run.upgDashCooldownBonus = mods.dashCooldownBonus;
     run.upgDamageReductionMult = mods.damageReductionMult;
-    run.upgParryEnergyRestore  = mods.parryEnergyRestore;
-    run.upgParryVrDrop         = mods.parryVrDrop;
-    run.upgComboHitsBonus      = mods.comboHitsBonus;
+    run.upgParryEnergyRestore = mods.parryEnergyRestore;
+    run.upgParryVrDrop = mods.parryVrDrop;
+    run.upgComboHitsBonus = mods.comboHitsBonus;
 
     this.cameras.main.fadeOut(280, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => {

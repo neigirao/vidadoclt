@@ -62,7 +62,9 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -96,15 +98,21 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("telemarketer_zumbi");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── ImpressoraAssombrada ─────────────────────────────────────────────────────
@@ -144,7 +152,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
       fxGlow(this, 0xff6666, 380);
       showTelegraph(this, "#ff6666");
       this.scene.time.delayedCall(320, () => {
-        if (this.active) [-1, 0, 1].forEach(dir => this.onFire?.(this.x, this.y - 10, dir));
+        if (this.active) [-1, 0, 1].forEach((dir) => this.onFire?.(this.x, this.y - 10, dir));
       });
     }
   }
@@ -156,15 +164,21 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("impressora_assombrada");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── GuardiaoDoCafe ───────────────────────────────────────────────────────────
@@ -199,7 +213,9 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -218,8 +234,11 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     this.setTint(0x884422); // restore brown base tint when not charging
 
     // patrol
-    if (this.x < this._startX - 100) { this._dir = 1; }
-    else if (this.x > this._startX + 100) { this._dir = -1; }
+    if (this.x < this._startX - 100) {
+      this._dir = 1;
+    } else if (this.x > this._startX + 100) {
+      this._dir = -1;
+    }
     this.setFlipX(this._dir === -1);
     body.setVelocityX(this._dir * this.speed * speedMult);
     animPhase(this, t, "guardiao-cafe", 4);
@@ -232,15 +251,21 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("guardiao_cafe");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── NuvemBoardSentinela ──────────────────────────────────────────────────────
@@ -274,7 +299,9 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (body.blocked.left) this._driftDir = 1;
@@ -286,7 +313,9 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
       this._nextFireAt = t + 2500;
       fxGlow(this, 0xffdd66, 380);
       showTelegraph(this);
-      this.scene.time.delayedCall(320, () => { if (this.active) this.onFire?.(this.x, this.y + 16); });
+      this.scene.time.delayedCall(320, () => {
+        if (this.active) this.onFire?.(this.x, this.y + 16);
+      });
     }
     animPhase(this, t, "noticeboard", 4);
   }
@@ -298,15 +327,21 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("nuvem_board_sentinela");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── EvangelistaCorporativo ───────────────────────────────────────────────────
@@ -342,10 +377,15 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
-    if (!this.target) { body.setVelocityX(0); return; }
+    if (!this.target) {
+      body.setVelocityX(0);
+      return;
+    }
 
     switch (this._aiState) {
       case "approach": {
@@ -392,15 +432,21 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("evangelista_corporativo");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── ColetorDeDados ───────────────────────────────────────────────────────────
@@ -432,7 +478,9 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -451,15 +499,21 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("coletor_dados");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── PlanilhaViva ─────────────────────────────────────────────────────────────
@@ -496,7 +550,9 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -510,7 +566,9 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
       this._nextFireAt = t + 3000;
       fxGlow(this, 0x88ff88, 380);
       showTelegraph(this, "#88ff88");
-      this.scene.time.delayedCall(320, () => { if (this.active) this.onFire?.(this.x, this.y); });
+      this.scene.time.delayedCall(320, () => {
+        if (this.active) this.onFire?.(this.x, this.y);
+      });
     }
     animPhase(this, t, "planilha", 4);
   }
@@ -522,7 +580,9 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= this.maxHp * 0.5 && !this.split) {
@@ -533,8 +593,12 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── CaboDeRede ───────────────────────────────────────────────────────────────
@@ -569,7 +633,9 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.cableUsed && t >= this._cableResetAt) {
@@ -612,15 +678,21 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("cabo_rede");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── TiSuporte ────────────────────────────────────────────────────────────────
@@ -654,7 +726,9 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -668,7 +742,9 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
       this._nextSpawnAt = t + 4000;
       fxGlow(this, 0x66ccff, 380);
       showTelegraph(this, "#66ccff");
-      this.scene.time.delayedCall(320, () => { if (this.active) this.onSpawnError?.(this.x, this.y - 30); });
+      this.scene.time.delayedCall(320, () => {
+        if (this.active) this.onSpawnError?.(this.x, this.y - 30);
+      });
     }
     animPhase(this, t, "ti-suporte", 3);
   }
@@ -680,15 +756,21 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("ti_suporte");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── DroneDeVigilancia ────────────────────────────────────────────────────────
@@ -723,7 +805,9 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     // Track player X, maintain float Y
@@ -732,14 +816,16 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
     const dy = this._floatY - this.y;
     body.setVelocity(
       Math.sign(dx) * Math.min(Math.abs(dx) * 2, 80) * speedMult,
-      Math.sign(dy) * Math.min(Math.abs(dy) * 2, 40)
+      Math.sign(dy) * Math.min(Math.abs(dy) * 2, 40),
     );
 
     if (t >= this._nextBombAt) {
       this._nextBombAt = t + 3000;
       fxGlow(this, 0xff8844, 380);
       showTelegraph(this, "#ff8844");
-      this.scene.time.delayedCall(320, () => { if (this.active) this.onBomb?.(this.x, this.y + 10); });
+      this.scene.time.delayedCall(320, () => {
+        if (this.active) this.onBomb?.(this.x, this.y + 10);
+      });
     }
     animPhase(this, t, "drone", 4, 130);
   }
@@ -751,15 +837,21 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("drone_vigilancia");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── SegurancaCorporativa ─────────────────────────────────────────────────────
@@ -797,7 +889,9 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.taseUsed && t >= this._taseResetAt) {
@@ -848,15 +942,21 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("seguranca_corporativa");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── CarimbadorAutomatico ─────────────────────────────────────────────────────
@@ -890,7 +990,9 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -913,15 +1015,21 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) markKilled("carimbador_automatico");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── ArquivoAmbulante ─────────────────────────────────────────────────────────
@@ -954,7 +1062,9 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.target) {
@@ -972,15 +1082,21 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.3); // very heavy
     if (this.hp <= 0) markKilled("arquivo_ambulante");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── BateriaSocial ────────────────────────────────────────────────────────────
@@ -1011,13 +1127,17 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
     this._startX = x;
   }
 
-  getAuraRange(): number { return 200; }
+  getAuraRange(): number {
+    return 200;
+  }
 
   preUpdate(t: number, dt: number) {
     super.preUpdate(t, dt);
     if (!this.active || !this.body) return;
     const body = this.body as Phaser.Physics.Arcade.Body;
-    if (t < this._frozen) { return; }
+    if (t < this._frozen) {
+      return;
+    }
     const speedMult = t < this._slow ? 0.4 : 1;
 
     if (this.x < this._startX - 100) this._patrolDir = 1;
@@ -1033,7 +1153,9 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback);
     if (this.hp <= 0) {
@@ -1043,8 +1165,12 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── ReuniaoCorportiva ─────────────────────────────────────────────────────────
@@ -1077,7 +1203,7 @@ export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
     body.setOffset(4, 8);
     body.setCollideWorldBounds(true);
     this._startX = x;
-    this._animOffset = Math.random() * 2000 | 0;
+    this._animOffset = (Math.random() * 2000) | 0;
     this._auraAt = scene.time.now + 5000;
   }
 
@@ -1109,14 +1235,20 @@ export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("reuniao_corporativa");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── ImpressoraVermelha ────────────────────────────────────────────────────────
@@ -1145,7 +1277,7 @@ export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
     body.setOffset(2, 16);
     body.setCollideWorldBounds(true);
     this._nextFireAt = scene.time.now + 3500;
-    this._animOffset = Math.random() * 2000 | 0;
+    this._animOffset = (Math.random() * 2000) | 0;
   }
 
   preUpdate(t: number, dt: number) {
@@ -1178,14 +1310,20 @@ export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("impressora_vermelha");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── ImpressoraFantasma ────────────────────────────────────────────────────────
@@ -1215,7 +1353,7 @@ export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
     body.setOffset(2, 16);
     body.setCollideWorldBounds(true);
     this._nextFireAt = scene.time.now + 3000;
-    this._animOffset = Math.random() * 2000 | 0;
+    this._animOffset = (Math.random() * 2000) | 0;
   }
 
   preUpdate(t: number, dt: number) {
@@ -1249,14 +1387,20 @@ export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("impressora_fantasma");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── ImpressoraNecromorfa ──────────────────────────────────────────────────────
@@ -1286,7 +1430,7 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
     body.setOffset(2, 16);
     body.setCollideWorldBounds(true);
     this._nextFireAt = scene.time.now + 2500;
-    this._animOffset = Math.random() * 2000 | 0;
+    this._animOffset = (Math.random() * 2000) | 0;
   }
 
   preUpdate(t: number, dt: number) {
@@ -1324,7 +1468,9 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) {
       this.onDeath?.();
@@ -1333,8 +1479,12 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── EvangelistaAvancado ───────────────────────────────────────────────────────
@@ -1367,7 +1517,7 @@ export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(true);
     this._nextFireAt = scene.time.now + 2500;
     this._nextHealAt = scene.time.now + 6000;
-    this._animOffset = Math.random() * 2000 | 0;
+    this._animOffset = (Math.random() * 2000) | 0;
   }
 
   preUpdate(t: number, dt: number) {
@@ -1404,14 +1554,20 @@ export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("evangelista_avancado");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }
 
 // ─── EvangelistaMegaCorp ───────────────────────────────────────────────────────
@@ -1444,7 +1600,7 @@ export class EvangelistaMegaCorp extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(true);
     this._nextFireAt = scene.time.now + 2000;
     this._nextHealAt = scene.time.now + 4000;
-    this._animOffset = Math.random() * 2000 | 0;
+    this._animOffset = (Math.random() * 2000) | 0;
   }
 
   preUpdate(t: number, dt: number) {
@@ -1484,12 +1640,18 @@ export class EvangelistaMegaCorp extends Phaser.Physics.Arcade.Sprite {
     this._invulnUntil = now + HIT_INVULN_MS;
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
-    this.scene.time.delayedCall(100, () => { if (this.active) this.clearTint(); });
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("evangelista_megacorp");
     return this.hp <= 0;
   }
 
-  applyFreeze(ms: number) { this._frozen = Math.max(this._frozen, this.scene.time.now + ms); }
-  applySlowdown(ms: number) { this._slow = Math.max(this._slow, this.scene.time.now + ms); }
+  applyFreeze(ms: number) {
+    this._frozen = Math.max(this._frozen, this.scene.time.now + ms);
+  }
+  applySlowdown(ms: number) {
+    this._slow = Math.max(this._slow, this.scene.time.now + ms);
+  }
 }

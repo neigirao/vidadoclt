@@ -1,23 +1,25 @@
 // Image processing script for game background images
 // Uses sharp to resize/crop source images to target dimensions
 
-import sharp from '/home/user/vidadoclt/node_modules/sharp/dist/index.mjs';
-import { existsSync } from 'fs';
+import sharp from "/home/user/vidadoclt/node_modules/sharp/dist/index.mjs";
+import { existsSync } from "fs";
 
-const SPRITES = '/home/user/vidadoclt/public/assets/sprites';
-const OUT = '/home/user/vidadoclt/public/assets';
+const SPRITES = "/home/user/vidadoclt/public/assets/sprites";
+const OUT = "/home/user/vidadoclt/public/assets";
 
 async function resize(input, output, width, height) {
-  console.log(`Processing: ${input.split('/').pop()} → ${output.split('/').pop()} (${width}x${height})`);
+  console.log(
+    `Processing: ${input.split("/").pop()} → ${output.split("/").pop()} (${width}x${height})`,
+  );
   await sharp(input)
     .resize(width, height, {
-      fit: 'cover',
-      position: 'centre',
+      fit: "cover",
+      position: "centre",
       kernel: sharp.kernel.lanczos3,
     })
     .png()
     .toFile(output);
-  console.log(`  Done → ${output.split('/').pop()}`);
+  console.log(`  Done → ${output.split("/").pop()}`);
 }
 
 async function extractFromGrid(input, output, width, height, gridCols, gridRows, col, row) {
@@ -26,17 +28,19 @@ async function extractFromGrid(input, output, width, height, gridCols, gridRows,
   const cellH = Math.floor(meta.height / gridRows);
   const left = col * cellW;
   const top = row * cellH;
-  console.log(`Extracting from grid: col=${col}, row=${row}, cell=${cellW}x${cellH} at (${left},${top}) → ${output.split('/').pop()} (${width}x${height})`);
+  console.log(
+    `Extracting from grid: col=${col}, row=${row}, cell=${cellW}x${cellH} at (${left},${top}) → ${output.split("/").pop()} (${width}x${height})`,
+  );
   await sharp(input)
     .extract({ left, top, width: cellW, height: cellH })
     .resize(width, height, {
-      fit: 'cover',
-      position: 'centre',
+      fit: "cover",
+      position: "centre",
       kernel: sharp.kernel.lanczos3,
     })
     .png()
     .toFile(output);
-  console.log(`  Done → ${output.split('/').pop()}`);
+  console.log(`  Done → ${output.split("/").pop()}`);
 }
 
 async function main() {
@@ -73,30 +77,39 @@ async function main() {
   // We need: bg-atendimento, bg-comercial, bg-produto, bg-tecnologia, bg-rh,
   //          bg-compliance, bg-diretoria, bg-presidencia, bg-cobertura, bg-copa
   const phaseBackgrounds = [
-    { col: 0, row: 0, name: 'bg-atendimento' },
-    { col: 1, row: 0, name: 'bg-comercial' },
-    { col: 0, row: 1, name: 'bg-produto' },
-    { col: 1, row: 1, name: 'bg-tecnologia' },
-    { col: 0, row: 2, name: 'bg-rh' },
-    { col: 1, row: 2, name: 'bg-compliance' },
-    { col: 0, row: 3, name: 'bg-diretoria' },
-    { col: 1, row: 3, name: 'bg-presidencia' },
-    { col: 0, row: 4, name: 'bg-cobertura' },
-    { col: 1, row: 4, name: 'bg-copa' },
+    { col: 0, row: 0, name: "bg-atendimento" },
+    { col: 1, row: 0, name: "bg-comercial" },
+    { col: 0, row: 1, name: "bg-produto" },
+    { col: 1, row: 1, name: "bg-tecnologia" },
+    { col: 0, row: 2, name: "bg-rh" },
+    { col: 1, row: 2, name: "bg-compliance" },
+    { col: 0, row: 3, name: "bg-diretoria" },
+    { col: 1, row: 3, name: "bg-presidencia" },
+    { col: 0, row: 4, name: "bg-cobertura" },
+    { col: 1, row: 4, name: "bg-copa" },
   ];
 
-  console.log('\nExtracting phase backgrounds from grid...');
+  console.log("\nExtracting phase backgrounds from grid...");
   for (const { col, row, name } of phaseBackgrounds) {
-    const isCopa = name === 'bg-copa';
+    const isCopa = name === "bg-copa";
     const outW = isCopa ? 960 : 1920;
     const outH = 480;
-    await extractFromGrid(gridSrc, `${OUT}/${name}.png`, outW, outH, GRID_COLS, GRID_ROWS, col, row);
+    await extractFromGrid(
+      gridSrc,
+      `${OUT}/${name}.png`,
+      outW,
+      outH,
+      GRID_COLS,
+      GRID_ROWS,
+      col,
+      row,
+    );
   }
 
-  console.log('\nAll done!');
+  console.log("\nAll done!");
 }
 
-main().catch(err => {
-  console.error('Error:', err);
+main().catch((err) => {
+  console.error("Error:", err);
   process.exit(1);
 });

@@ -43,7 +43,8 @@ export class MenuScene extends Phaser.Scene {
   create() {
     Music.start("office");
     // Full-screen reference art background (loaded from assets)
-    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
+    this.add
+      .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
       .setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
     this.drawBackground();
     this.drawTitle();
@@ -141,7 +142,8 @@ export class MenuScene extends Phaser.Scene {
       this.menuButtons.push(container);
 
       // Click handler
-      const hitArea = this.add.rectangle(14 + 148, y + 18, 296, 38, 0x000000, 0)
+      const hitArea = this.add
+        .rectangle(14 + 148, y + 18, 296, 38, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hitArea.on("pointerdown", () => {
         this.selectedIndex = i;
@@ -198,9 +200,12 @@ export class MenuScene extends Phaser.Scene {
     const icons = ["💬", "📊", "🏆", "⚙"];
     icons.forEach((ic, i) => {
       const x = GAME_WIDTH - 40 - i * 36;
-      const btn = this.add.text(x, 8, ic, {
-        fontFamily: "monospace", fontSize: "18px",
-      }).setInteractive({ useHandCursor: true });
+      const btn = this.add
+        .text(x, 8, ic, {
+          fontFamily: "monospace",
+          fontSize: "18px",
+        })
+        .setInteractive({ useHandCursor: true });
       btn.on("pointerover", () => btn.setAlpha(0.7));
       btn.on("pointerout", () => btn.setAlpha(1));
     });
@@ -227,33 +232,61 @@ export class MenuScene extends Phaser.Scene {
     g.fillRect(newsX + 9, GAME_HEIGHT - 41, 18, 16);
 
     this.add.text(newsX + 38, GAME_HEIGHT - 42, "CORPORATE NEWS", {
-      fontFamily: "monospace", fontSize: "8px", color: TEXT_ACCENT,
+      fontFamily: "monospace",
+      fontSize: "8px",
+      color: TEXT_ACCENT,
     });
-    this.add.text(newsX + 38, GAME_HEIGHT - 31, "Nova rota definida!\nProduzir mais. Reclamar menos.", {
-      fontFamily: "monospace", fontSize: "8px", color: TEXT_DIM,
-    });
+    this.add.text(
+      newsX + 38,
+      GAME_HEIGHT - 31,
+      "Nova rota definida!\nProduzir mais. Reclamar menos.",
+      {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: TEXT_DIM,
+      },
+    );
 
     // Arrow
-    this.add.text(newsX + 285, GAME_HEIGHT - 26, "►", {
-      fontFamily: "monospace", fontSize: "10px", color: TEXT_ACCENT,
-    }).setInteractive({ useHandCursor: true });
+    this.add
+      .text(newsX + 285, GAME_HEIGHT - 26, "►", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: TEXT_ACCENT,
+      })
+      .setInteractive({ useHandCursor: true });
 
     // Right: Social + copyright
-    this.add.text(GAME_WIDTH - 20, GAME_HEIGHT - 44, "© 2025 Vida do CLT Inc. / Todos os direitos explorados.", {
-      fontFamily: "monospace", fontSize: "8px", color: TEXT_DIM,
-    }).setOrigin(1, 0);
+    this.add
+      .text(
+        GAME_WIDTH - 20,
+        GAME_HEIGHT - 44,
+        "© 2025 Vida do CLT Inc. / Todos os direitos explorados.",
+        {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        },
+      )
+      .setOrigin(1, 0);
 
     const socials = ["𝕏", "TK", "▶", "in"];
     socials.forEach((s, i) => {
-      this.add.text(GAME_WIDTH - 180 + i * 30, GAME_HEIGHT - 25, s, {
-        fontFamily: "monospace", fontSize: "12px", color: TEXT_DIM,
-      }).setInteractive({ useHandCursor: true })
+      this.add
+        .text(GAME_WIDTH - 180 + i * 30, GAME_HEIGHT - 25, s, {
+          fontFamily: "monospace",
+          fontSize: "12px",
+          color: TEXT_DIM,
+        })
+        .setInteractive({ useHandCursor: true })
         .on("pointerover", (obj: Phaser.GameObjects.Text) => obj.setColor(TEXT_ACCENT))
         .on("pointerout", (obj: Phaser.GameObjects.Text) => obj.setColor(TEXT_DIM));
     });
 
     this.add.text(GAME_WIDTH - 195, GAME_HEIGHT - 42, "Siga-nos:", {
-      fontFamily: "monospace", fontSize: "8px", color: TEXT_DIM,
+      fontFamily: "monospace",
+      fontSize: "8px",
+      color: TEXT_DIM,
     });
   }
 
@@ -299,18 +332,28 @@ export class MenuScene extends Phaser.Scene {
 
     if (run.reconhecimento > 0 || run.loopCount > 0) {
       this.add.text(20, 437, "FICHA DO FUNCIONARIO", {
-        fontFamily: "monospace", fontSize: "9px", color: TEXT_ACCENT,
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: TEXT_ACCENT,
       });
       this.add.text(20, 450, `Reconhecimento:  ${run.reconhecimento.toLocaleString("pt-BR")}`, {
-        fontFamily: "monospace", fontSize: "11px", color: TEXT_LIGHT,
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: TEXT_LIGHT,
       });
       this.add.text(20, 464, `FGTS: ${run.fgts} pts   Loops: ${run.loopCount}`, {
-        fontFamily: "monospace", fontSize: "10px", color: TEXT_DIM,
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: TEXT_DIM,
       });
     } else {
-      this.add.text(154, 456, "Primeiro dia de trabalho.", {
-        fontFamily: "monospace", fontSize: "11px", color: TEXT_DIM,
-      }).setOrigin(0.5);
+      this.add
+        .text(154, 456, "Primeiro dia de trabalho.", {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: TEXT_DIM,
+        })
+        .setOrigin(0.5);
     }
   }
 
@@ -363,8 +406,10 @@ export class MenuScene extends Phaser.Scene {
   private showOverlay(type: string) {
     this.hideOverlay();
 
-    const OX = 328, OY = 52;
-    const OW = GAME_WIDTH - OX - 8, OH = GAME_HEIGHT - OY - 56;
+    const OX = 328,
+      OY = 52;
+    const OW = GAME_WIDTH - OX - 8,
+      OH = GAME_HEIGHT - OY - 56;
 
     this.overlay = this.add.container(OX, OY);
 
@@ -385,17 +430,25 @@ export class MenuScene extends Phaser.Scene {
     }
 
     // Close hint
-    const closeT = this.add.text(OW / 2, OH - 20, "[ESC] Fechar", {
-      fontFamily: "monospace", fontSize: "10px", color: TEXT_DIM,
-    }).setOrigin(0.5, 1);
+    const closeT = this.add
+      .text(OW / 2, OH - 20, "[ESC] Fechar", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: TEXT_DIM,
+      })
+      .setOrigin(0.5, 1);
     this.overlay.add(closeT);
 
     // Click outside to close
-    const blocker = this.add.rectangle(OX + OW / 2, OY + OH / 2, OW, OH, 0x000000, 0)
+    const blocker = this.add
+      .rectangle(OX + OW / 2, OY + OH / 2, OW, OH, 0x000000, 0)
       .setInteractive();
-    blocker.on("pointerdown", (_p: Phaser.Input.Pointer, _lx: number, _ly: number, evt: Phaser.Types.Input.EventData) => {
-      evt.stopPropagation();
-    });
+    blocker.on(
+      "pointerdown",
+      (_p: Phaser.Input.Pointer, _lx: number, _ly: number, evt: Phaser.Types.Input.EventData) => {
+        evt.stopPropagation();
+      },
+    );
     this.overlay.add(blocker);
 
     const closeBtnBg = this.add.graphics();
@@ -405,9 +458,14 @@ export class MenuScene extends Phaser.Scene {
     closeBtnBg.strokeRect(OW - 28, 4, 24, 20);
     this.overlay.add(closeBtnBg);
 
-    const closeBtn = this.add.text(OW - 16, 14, "✕", {
-      fontFamily: "monospace", fontSize: "12px", color: "#cc4444",
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const closeBtn = this.add
+      .text(OW - 16, 14, "✕", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#cc4444",
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
     closeBtn.on("pointerdown", () => this.hideOverlay());
     closeBtn.on("pointerover", () => closeBtn.setColor("#ff6666"));
     closeBtn.on("pointerout", () => closeBtn.setColor("#cc4444"));
@@ -418,18 +476,30 @@ export class MenuScene extends Phaser.Scene {
     if (!this.overlay) return;
 
     this.overlay.add(
-      this.add.text(OW / 2, 14, "🎒 ARSENAL", {
-        fontFamily: "monospace", fontSize: "16px", fontStyle: "bold", color: TEXT_ACCENT,
-      }).setOrigin(0.5, 0)
+      this.add
+        .text(OW / 2, 14, "🎒 ARSENAL", {
+          fontFamily: "monospace",
+          fontSize: "16px",
+          fontStyle: "bold",
+          color: TEXT_ACCENT,
+        })
+        .setOrigin(0.5, 0),
     );
     this.overlay.add(
-      this.add.text(OW / 2, 34, "Armas disponíveis na run atual", {
-        fontFamily: "monospace", fontSize: "8px", color: TEXT_DIM,
-      }).setOrigin(0.5, 0)
+      this.add
+        .text(OW / 2, 34, "Armas disponíveis na run atual", {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        })
+        .setOrigin(0.5, 0),
     );
 
     const rarityColor: Record<string, string> = {
-      comum: "#aaaaaa", raro: "#5588ff", epico: "#cc44ee", lendario: "#ffaa00",
+      comum: "#aaaaaa",
+      raro: "#5588ff",
+      epico: "#cc44ee",
+      lendario: "#ffaa00",
     };
     const weapons = Object.values(WEAPONS);
     const colW = (OW - 24) / 2;
@@ -458,24 +528,40 @@ export class MenuScene extends Phaser.Scene {
 
       this.overlay!.add(
         this.add.text(wx + 8, wy + 5, w.name, {
-          fontFamily: "monospace", fontSize: "10px", fontStyle: "bold", color: TEXT_LIGHT,
-        })
+          fontFamily: "monospace",
+          fontSize: "10px",
+          fontStyle: "bold",
+          color: TEXT_LIGHT,
+        }),
       );
       this.overlay!.add(
-        this.add.text(wx + 8, wy + 18, `${w.type === "melee" ? "Corpo a corpo" : "À distância"} · ${w.rarity.toUpperCase()}`, {
-          fontFamily: "monospace", fontSize: "7px", color: rColor,
-        })
+        this.add.text(
+          wx + 8,
+          wy + 18,
+          `${w.type === "melee" ? "Corpo a corpo" : "À distância"} · ${w.rarity.toUpperCase()}`,
+          {
+            fontFamily: "monospace",
+            fontSize: "7px",
+            color: rColor,
+          },
+        ),
       );
       this.overlay!.add(
         this.add.text(wx + 8, wy + 28, `Esp: ${w.specialName}`, {
-          fontFamily: "monospace", fontSize: "7px", color: "#778899",
-        })
+          fontFamily: "monospace",
+          fontSize: "7px",
+          color: "#778899",
+        }),
       );
       if (w.shopCost > 0) {
         this.overlay!.add(
-          this.add.text(wx + colW - 14, wy + 5, `R$${w.shopCost}`, {
-            fontFamily: "monospace", fontSize: "8px", color: "#f2c14e",
-          }).setOrigin(1, 0)
+          this.add
+            .text(wx + colW - 14, wy + 5, `R$${w.shopCost}`, {
+              fontFamily: "monospace",
+              fontSize: "8px",
+              color: "#f2c14e",
+            })
+            .setOrigin(1, 0),
         );
       }
     });
@@ -486,21 +572,38 @@ export class MenuScene extends Phaser.Scene {
     const run = getRun(this);
 
     this.overlay.add(
-      this.add.text(OW / 2, 14, "★ CONQUISTAS", {
-        fontFamily: "monospace", fontSize: "16px", fontStyle: "bold", color: TEXT_ACCENT,
-      }).setOrigin(0.5, 0)
+      this.add
+        .text(OW / 2, 14, "★ CONQUISTAS", {
+          fontFamily: "monospace",
+          fontSize: "16px",
+          fontStyle: "bold",
+          color: TEXT_ACCENT,
+        })
+        .setOrigin(0.5, 0),
     );
     this.overlay.add(
-      this.add.text(OW / 2, 34, "Progresso do funcionário", {
-        fontFamily: "monospace", fontSize: "8px", color: TEXT_DIM,
-      }).setOrigin(0.5, 0)
+      this.add
+        .text(OW / 2, 34, "Progresso do funcionário", {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        })
+        .setOrigin(0.5, 0),
     );
 
     const stats = [
-      { label: "Reconhecimento acumulado", value: run.reconhecimento.toLocaleString("pt-BR"), color: "#f2c14e" },
+      {
+        label: "Reconhecimento acumulado",
+        value: run.reconhecimento.toLocaleString("pt-BR"),
+        color: "#f2c14e",
+      },
       { label: "FGTS acumulado", value: `${run.fgts} pts`, color: "#88cc88" },
       { label: "Loops temporais", value: String(run.loopCount), color: "#8888ff" },
-      { label: "Perks desbloqueados", value: `${(run.perks ?? []).length} / ${Object.keys(PERKS).length}`, color: "#cc88ff" },
+      {
+        label: "Perks desbloqueados",
+        value: `${(run.perks ?? []).length} / ${Object.keys(PERKS).length}`,
+        color: "#cc88ff",
+      },
     ];
 
     const rowH = 54;
@@ -515,13 +618,18 @@ export class MenuScene extends Phaser.Scene {
       this.overlay!.add(card);
       this.overlay!.add(
         this.add.text(28, sy + 8, stat.label, {
-          fontFamily: "monospace", fontSize: "9px", color: TEXT_DIM,
-        })
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: TEXT_DIM,
+        }),
       );
       this.overlay!.add(
         this.add.text(28, sy + 22, stat.value, {
-          fontFamily: "monospace", fontSize: "22px", fontStyle: "bold", color: stat.color,
-        })
+          fontFamily: "monospace",
+          fontSize: "22px",
+          fontStyle: "bold",
+          color: stat.color,
+        }),
       );
     });
 
@@ -531,17 +639,25 @@ export class MenuScene extends Phaser.Scene {
       const perkY = startY + stats.length * rowH + 8;
       this.overlay!.add(
         this.add.text(16, perkY, "PERKS ATIVOS:", {
-          fontFamily: "monospace", fontSize: "8px", color: TEXT_DIM,
-        })
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        }),
       );
       perks.forEach((pid, i) => {
         const pd = PERKS[pid as keyof typeof PERKS];
         if (!pd) return;
         this.overlay!.add(
-          this.add.text(16 + (i % 3) * 180, perkY + 14 + Math.floor(i / 3) * 18,
-            `${pd.icon} ${pd.name}`, {
-              fontFamily: "monospace", fontSize: "9px", color: TEXT_LIGHT,
-            })
+          this.add.text(
+            16 + (i % 3) * 180,
+            perkY + 14 + Math.floor(i / 3) * 18,
+            `${pd.icon} ${pd.name}`,
+            {
+              fontFamily: "monospace",
+              fontSize: "9px",
+              color: TEXT_LIGHT,
+            },
+          ),
         );
       });
     }
@@ -551,9 +667,14 @@ export class MenuScene extends Phaser.Scene {
     if (!this.overlay) return;
 
     this.overlay.add(
-      this.add.text(OW / 2, 14, "⚙ CONFIGURAÇÕES", {
-        fontFamily: "monospace", fontSize: "16px", fontStyle: "bold", color: TEXT_ACCENT,
-      }).setOrigin(0.5, 0)
+      this.add
+        .text(OW / 2, 14, "⚙ CONFIGURAÇÕES", {
+          fontFamily: "monospace",
+          fontSize: "16px",
+          fontStyle: "bold",
+          color: TEXT_ACCENT,
+        })
+        .setOrigin(0.5, 0),
     );
 
     const items = [
@@ -572,15 +693,22 @@ export class MenuScene extends Phaser.Scene {
       this.overlay!.add(rowG);
       this.overlay!.add(
         this.add.text(28, iy + 9, txt, {
-          fontFamily: "monospace", fontSize: "11px", color: TEXT_LIGHT,
-        })
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: TEXT_LIGHT,
+        }),
       );
     });
 
     this.overlay!.add(
-      this.add.text(OW / 2, OH - 60, "Configurações completas\nchegarão em uma atualização futura.", {
-        fontFamily: "monospace", fontSize: "9px", color: TEXT_DIM, align: "center",
-      }).setOrigin(0.5, 1)
+      this.add
+        .text(OW / 2, OH - 60, "Configurações completas\nchegarão em uma atualização futura.", {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: TEXT_DIM,
+          align: "center",
+        })
+        .setOrigin(0.5, 1),
     );
   }
 }

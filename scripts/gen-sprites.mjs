@@ -1,5 +1,5 @@
-import sharp from 'sharp';
-import { fileURLToPath } from 'url';
+import sharp from "sharp";
+import { fileURLToPath } from "url";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Gerador procedural de sprites de pixel-art.
@@ -20,54 +20,88 @@ import { fileURLToPath } from 'url';
 // no topo-esquerdo, como os PNGs do atlas.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DIR = new URL('../public/assets/sprites/', import.meta.url).pathname;
+const DIR = new URL("../public/assets/sprites/", import.meta.url).pathname;
 
 export function canvas(w, h) {
   const d = new Uint8ClampedArray(w * h * 4);
   const px = (x, y, [r, g, b, a = 255]) => {
-    x = Math.round(x); y = Math.round(y);
+    x = Math.round(x);
+    y = Math.round(y);
     if (x < 0 || y < 0 || x >= w || y >= h) return;
     const i = (y * w + x) * 4;
-    const af = a / 255, ia = 1 - af;
-    d[i] = r * af + d[i] * ia; d[i + 1] = g * af + d[i + 1] * ia;
-    d[i + 2] = b * af + d[i + 2] * ia; d[i + 3] = Math.max(d[i + 3], a);
+    const af = a / 255,
+      ia = 1 - af;
+    d[i] = r * af + d[i] * ia;
+    d[i + 1] = g * af + d[i + 1] * ia;
+    d[i + 2] = b * af + d[i + 2] * ia;
+    d[i + 3] = Math.max(d[i + 3], a);
   };
-  const rect = (x, y, rw, rh, c) => { for (let yy = 0; yy < rh; yy++) for (let xx = 0; xx < rw; xx++) px(x + xx, y + yy, c); };
+  const rect = (x, y, rw, rh, c) => {
+    for (let yy = 0; yy < rh; yy++) for (let xx = 0; xx < rw; xx++) px(x + xx, y + yy, c);
+  };
   const hline = (x, y, len, c) => rect(x, y, len, 1, c);
   return {
-    d, w, h, px, rect, hline,
-    save: (name) => sharp(Buffer.from(d.buffer), { raw: { width: w, height: h, channels: 4 } }).png().toFile(DIR + name),
+    d,
+    w,
+    h,
+    px,
+    rect,
+    hline,
+    save: (name) =>
+      sharp(Buffer.from(d.buffer), { raw: { width: w, height: h, channels: 4 } })
+        .png()
+        .toFile(DIR + name),
   };
 }
 
 // ── Paletas compartilhadas ────────────────────────────────────────────────────
-const PAPER = [247, 214, 70], PAPER_D = [214, 178, 38], PAPER_L = [255, 233, 120];
-const INK = [90, 78, 30], CORNER = [196, 160, 30], SHADOW = [0, 0, 0, 70];
-const CUP = [238, 232, 222], CUP_D = [196, 188, 176], CUP_L = [252, 250, 245];
-const LID = [80, 70, 62], LID_D = [54, 47, 41];
-const SLEEVE = [150, 96, 54], SLEEVE_D = [110, 68, 36], STEAM = [220, 220, 220, 120];
+const PAPER = [247, 214, 70],
+  PAPER_D = [214, 178, 38],
+  PAPER_L = [255, 233, 120];
+const INK = [90, 78, 30],
+  CORNER = [196, 160, 30],
+  SHADOW = [0, 0, 0, 70];
+const CUP = [238, 232, 222],
+  CUP_D = [196, 188, 176],
+  CUP_L = [252, 250, 245];
+const LID = [80, 70, 62],
+  LID_D = [54, 47, 41];
+const SLEEVE = [150, 96, 54],
+  SLEEVE_D = [110, 68, 36],
+  STEAM = [220, 220, 220, 120];
 
 // ── Post-it: nota adesiva voadora, 28x28, 3 frames (flutter) ──────────────────
 function postit(frame) {
-  const W = 28, H = 28, c = canvas(W, H);
+  const W = 28,
+    H = 28,
+    c = canvas(W, H);
   const skews = [
     (r) => Math.round(Math.sin(r / 6) * 1.2),
     (r) => Math.round((r - 11) * 0.18),
     (r) => Math.round((11 - r) * 0.18),
   ];
   const sk = skews[frame];
-  const x0 = 5, y0 = 4, bw = 18, bh = 18;
+  const x0 = 5,
+    y0 = 4,
+    bw = 18,
+    bh = 18;
   for (let r = 0; r < bh; r++) c.rect(x0 + sk(r) + 1, y0 + r + 1, bw, 1, SHADOW);
   for (let r = 0; r < bh; r++) {
     const sx = x0 + sk(r);
-    const shade = r < 3 ? PAPER_L : (r > bh - 4 ? PAPER_D : PAPER);
+    const shade = r < 3 ? PAPER_L : r > bh - 4 ? PAPER_D : PAPER;
     c.rect(sx, y0 + r, bw, 1, shade);
   }
-  for (let r = 0; r < bh; r++) { const sx = x0 + sk(r); c.px(sx, y0 + r, PAPER_L); c.px(sx + bw - 1, y0 + r, PAPER_D); }
-  const fr = bh - 1, fsx = x0 + sk(fr);
+  for (let r = 0; r < bh; r++) {
+    const sx = x0 + sk(r);
+    c.px(sx, y0 + r, PAPER_L);
+    c.px(sx + bw - 1, y0 + r, PAPER_D);
+  }
+  const fr = bh - 1,
+    fsx = x0 + sk(fr);
   for (let k = 0; k < 5; k++) c.rect(fsx + bw - 5 + k, y0 + fr - 4 + k, 5 - k, 1, CORNER);
   for (let li = 0; li < 3; li++) {
-    const ry = 5 + li * 4, sx = x0 + sk(ry);
+    const ry = 5 + li * 4,
+      sx = x0 + sk(ry);
     c.hline(sx + 3, y0 + ry, bw - 7 - (li === 2 ? 4 : 0), INK);
   }
   return c.save(`item-postit-active${frame}.png`);
@@ -76,29 +110,39 @@ function postit(frame) {
 // Desenha um copo de viagem centrado em `cx`, base em `baseY`, escala de corpo.
 function drawCup(c, cx, top, cw, bodyH, sleeveAt) {
   const x0 = cx - cw / 2;
-  c.rect(x0 - 1, top, cw + 2, 3, LID);            // tampa
+  c.rect(x0 - 1, top, cw + 2, 3, LID); // tampa
   c.rect(x0 - 1, top + 2, cw + 2, 1, LID_D);
-  c.rect(cx - 2, top - 2, 4, 2, LID);             // bico da tampa
-  for (let r = 0; r < bodyH; r++) {               // corpo afunilado
+  c.rect(cx - 2, top - 2, 4, 2, LID); // bico da tampa
+  for (let r = 0; r < bodyH; r++) {
+    // corpo afunilado
     const inset = Math.floor(r / 6);
-    const sx = x0 + inset, len = cw - inset * 2;
-    const shade = r < 2 ? CUP_L : (r > bodyH - 3 ? CUP_D : CUP);
+    const sx = x0 + inset,
+      len = cw - inset * 2;
+    const shade = r < 2 ? CUP_L : r > bodyH - 3 ? CUP_D : CUP;
     c.rect(sx, top + 3 + r, len, 1, shade);
-    c.px(sx, top + 3 + r, CUP_D); c.px(sx + len - 1, top + 3 + r, CUP_D);
+    c.px(sx, top + 3 + r, CUP_D);
+    c.px(sx + len - 1, top + 3 + r, CUP_D);
   }
-  for (let r = 0; r < 6; r++) {                   // cinta de papelão
-    const rr = top + 3 + sleeveAt + r, inset = Math.floor((sleeveAt + r) / 6);
-    const sx = x0 + inset, len = cw - inset * 2;
+  for (let r = 0; r < 6; r++) {
+    // cinta de papelão
+    const rr = top + 3 + sleeveAt + r,
+      inset = Math.floor((sleeveAt + r) / 6);
+    const sx = x0 + inset,
+      len = cw - inset * 2;
     c.rect(sx, rr, len, 1, r < 1 || r > 4 ? SLEEVE_D : SLEEVE);
   }
 }
 
 // ── Café (drop): copo + vapor animado, 28x36, 3 frames ────────────────────────
 function coffeeDrop(frame) {
-  const W = 28, H = 36, c = canvas(W, H);
-  const cx = 14, ph = frame * 1.4;
+  const W = 28,
+    H = 36,
+    c = canvas(W, H);
+  const cx = 14,
+    ph = frame * 1.4;
   for (let i = 0; i < 12; i++) {
-    const yy = 2 + i, xx = cx + Math.round(Math.sin((i + ph) / 2.2) * 3);
+    const yy = 2 + i,
+      xx = cx + Math.round(Math.sin((i + ph) / 2.2) * 3);
     if (i < 9) c.px(xx, yy, STEAM);
     if (i < 6) c.px(xx + 1, yy, STEAM);
   }
@@ -108,21 +152,25 @@ function coffeeDrop(frame) {
 
 // ── Café (estático, Copa): copo maior 40x48 com vapor fixo ────────────────────
 function coffeeStatic() {
-  const W = 40, H = 48, c = canvas(W, H);
+  const W = 40,
+    H = 48,
+    c = canvas(W, H);
   const cx = 20;
-  for (let i = 0; i < 9; i++) {                   // vapor estático (dois fios)
+  for (let i = 0; i < 9; i++) {
+    // vapor estático (dois fios)
     const yy = 4 + i;
     c.px(cx - 3 + Math.round(Math.sin(i / 2) * 2), yy, STEAM);
     c.px(cx + 3 + Math.round(Math.cos(i / 2) * 2), yy, STEAM);
   }
   drawCup(c, cx, 15, 24, 28, 9);
-  return c.save('item-coffee-cup.png');
+  return c.save("item-coffee-cup.png");
 }
 
 // RNG determinístico (mulberry32) — mantém a textura reproduzível byte-a-byte.
 function rng(seed) {
   return () => {
-    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -134,157 +182,236 @@ const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
 // tex-floor é usado como tileSprite no rodapé das fases. Uma emenda vertical
 // escura em x=0 vira "junta de painel" a cada 32px; topo tem a linha da
 // superfície (onde os pés pisam) + textura de carpete pontilhada.
-const F_BASE = [56, 62, 72], F_DARK = [42, 47, 56], F_LIGHT = [74, 82, 95], F_EDGE = [100, 108, 124];
+const F_BASE = [56, 62, 72],
+  F_DARK = [42, 47, 56],
+  F_LIGHT = [74, 82, 95],
+  F_EDGE = [100, 108, 124];
 function floorTile() {
-  const W = 32, H = 16, c = canvas(W, H);
+  const W = 32,
+    H = 16,
+    c = canvas(W, H);
   const r = rng(1337);
   for (let y = 0; y < H; y++) {
-    const grad = mix(F_BASE, F_DARK, y / H * 0.6); // escurece para baixo
+    const grad = mix(F_BASE, F_DARK, (y / H) * 0.6); // escurece para baixo
     c.hline(0, y, W, grad);
   }
-  c.hline(0, 0, W, F_EDGE);                 // linha da superfície (pés)
+  c.hline(0, 0, W, F_EDGE); // linha da superfície (pés)
   c.hline(0, 1, W, mix(F_LIGHT, F_BASE, 0.4)); // bisel sutil
-  for (let y = 2; y < H; y++) { c.px(0, y, F_DARK); c.px(1, y, mix(F_DARK, F_BASE, 0.5)); } // junta de painel
+  for (let y = 2; y < H; y++) {
+    c.px(0, y, F_DARK);
+    c.px(1, y, mix(F_DARK, F_BASE, 0.5));
+  } // junta de painel
   c.hline(0, 8, W, mix(F_DARK, F_BASE, 0.35)); // emenda horizontal (ladrilho)
-  for (let i = 0; i < 70; i++) {            // textura pontilhada de carpete
-    const x = (r() * W) | 0, y = 2 + ((r() * (H - 2)) | 0);
+  for (let i = 0; i < 70; i++) {
+    // textura pontilhada de carpete
+    const x = (r() * W) | 0,
+      y = 2 + ((r() * (H - 2)) | 0);
     c.px(x, y, r() < 0.5 ? mix(F_BASE, F_LIGHT, 0.6) : mix(F_BASE, F_DARK, 0.6));
   }
-  return c.save('tile-floor.png');
+  return c.save("tile-floor.png");
 }
 
 // ── Tampo de mesa (madeira), 32x16 — usado no Lab (mesas in-game são graphics) ─
-const W_BASE = [96, 62, 34], W_DARK = [66, 41, 21], W_LIGHT = [126, 84, 48], W_EDGE = [150, 104, 62];
+const W_BASE = [96, 62, 34],
+  W_DARK = [66, 41, 21],
+  W_LIGHT = [126, 84, 48],
+  W_EDGE = [150, 104, 62];
 function platformTile() {
-  const W = 32, H = 16, c = canvas(W, H);
+  const W = 32,
+    H = 16,
+    c = canvas(W, H);
   const r = rng(4242);
-  for (let y = 0; y < H; y++) c.hline(0, y, W, mix(W_BASE, W_DARK, y / H * 0.5));
-  c.hline(0, 0, W, W_EDGE);                 // quina iluminada do tampo
+  for (let y = 0; y < H; y++) c.hline(0, y, W, mix(W_BASE, W_DARK, (y / H) * 0.5));
+  c.hline(0, 0, W, W_EDGE); // quina iluminada do tampo
   c.hline(0, 1, W, W_LIGHT);
-  for (let g = 0; g < 3; g++) {             // veios de madeira horizontais
+  for (let g = 0; g < 3; g++) {
+    // veios de madeira horizontais
     const y = 4 + g * 4;
     for (let x = 0; x < W; x++) if (r() < 0.7) c.px(x, y, mix(W_BASE, W_DARK, 0.55));
   }
-  return c.save('tile-platform.png');
+  return c.save("tile-platform.png");
 }
 
 // ── Moeda VR (drop de moeda), base 52x52 + 3 frames de giro ───────────────────
 // O jogo tinta com 0xffd700 (dropVR), então desenhar CLARO (tint multiplica).
-const COIN = [255, 244, 200], COIN_D = [216, 196, 140], COIN_L = [255, 255, 240], COIN_TXT = [150, 122, 60];
+const COIN = [255, 244, 200],
+  COIN_D = [216, 196, 140],
+  COIN_L = [255, 255, 240],
+  COIN_TXT = [150, 122, 60];
 function vrCoinFrame(frame, name) {
-  const W = 52, H = 52, c = canvas(W, H);
-  const cx = 26, cy = 26, R = 19;
+  const W = 52,
+    H = 52,
+    c = canvas(W, H);
+  const cx = 26,
+    cy = 26,
+    R = 19;
   // largura do disco por frame de giro: cheio → médio → de perfil
   const widths = [1, 0.55, 0.18];
   const k = widths[Math.min(frame, 2)];
   for (let y = -R; y <= R; y++) {
     const half = Math.sqrt(Math.max(0, R * R - y * y)) * k;
     if (half < 0.6) continue;
-    const shade = y < -R * 0.4 ? COIN_L : (y > R * 0.5 ? COIN_D : COIN);
+    const shade = y < -R * 0.4 ? COIN_L : y > R * 0.5 ? COIN_D : COIN;
     c.rect(cx - half, cy + y, half * 2, 1, shade);
-    c.px(cx - half, cy + y, COIN_D); c.px(cx + half - 1, cy + y, COIN_D);
+    c.px(cx - half, cy + y, COIN_D);
+    c.px(cx + half - 1, cy + y, COIN_D);
   }
-  if (frame === 0) { // "R$" gravado só no frame cheio
+  if (frame === 0) {
+    // "R$" gravado só no frame cheio
     // R
-    c.rect(cx - 8, cy - 6, 2, 12, COIN_TXT); c.rect(cx - 6, cy - 6, 4, 2, COIN_TXT);
-    c.rect(cx - 3, cy - 4, 2, 3, COIN_TXT); c.rect(cx - 6, cy - 1, 3, 2, COIN_TXT);
+    c.rect(cx - 8, cy - 6, 2, 12, COIN_TXT);
+    c.rect(cx - 6, cy - 6, 4, 2, COIN_TXT);
+    c.rect(cx - 3, cy - 4, 2, 3, COIN_TXT);
+    c.rect(cx - 6, cy - 1, 3, 2, COIN_TXT);
     c.rect(cx - 4, cy + 1, 2, 5, COIN_TXT);
     // $
-    c.rect(cx + 2, cy - 6, 6, 2, COIN_TXT); c.rect(cx + 1, cy - 4, 2, 3, COIN_TXT);
-    c.rect(cx + 2, cy - 1, 6, 2, COIN_TXT); c.rect(cx + 7, cy + 1, 2, 3, COIN_TXT);
-    c.rect(cx + 2, cy + 4, 6, 2, COIN_TXT); c.rect(cx + 4, cy - 8, 2, 16, COIN_TXT);
+    c.rect(cx + 2, cy - 6, 6, 2, COIN_TXT);
+    c.rect(cx + 1, cy - 4, 2, 3, COIN_TXT);
+    c.rect(cx + 2, cy - 1, 6, 2, COIN_TXT);
+    c.rect(cx + 7, cy + 1, 2, 3, COIN_TXT);
+    c.rect(cx + 2, cy + 4, 6, 2, COIN_TXT);
+    c.rect(cx + 4, cy - 8, 2, 16, COIN_TXT);
   }
   return c.save(name);
 }
 
 // ── E-mail (projétil do Gerente), 44x36, 2 frames ─────────────────────────────
-const ENV = [240, 240, 248], ENV_D = [196, 198, 214], ENV_L = [255, 255, 255], SEAL = [204, 60, 60];
+const ENV = [240, 240, 248],
+  ENV_D = [196, 198, 214],
+  ENV_L = [255, 255, 255],
+  SEAL = [204, 60, 60];
 function emailFrame(frame) {
-  const W = 44, H = 36, c = canvas(W, H);
-  const x0 = 6, y0 = 9 + (frame === 1 ? 1 : 0), w = 32, h = 20;
-  for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? ENV_L : (r > h - 3 ? ENV_D : ENV));
+  const W = 44,
+    H = 36,
+    c = canvas(W, H);
+  const x0 = 6,
+    y0 = 9 + (frame === 1 ? 1 : 0),
+    w = 32,
+    h = 20;
+  for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? ENV_L : r > h - 3 ? ENV_D : ENV);
   // contorno + aba em V
-  c.hline(x0, y0, w, ENV_D); c.hline(x0, y0 + h - 1, w, ENV_D);
-  for (let r = 0; r < h; r++) { c.px(x0, y0 + r, ENV_D); c.px(x0 + w - 1, y0 + r, ENV_D); }
+  c.hline(x0, y0, w, ENV_D);
+  c.hline(x0, y0 + h - 1, w, ENV_D);
+  for (let r = 0; r < h; r++) {
+    c.px(x0, y0 + r, ENV_D);
+    c.px(x0 + w - 1, y0 + r, ENV_D);
+  }
   for (let i = 0; i <= w / 2; i++) {
-    const yy = y0 + Math.round(i * (h * 0.55) / (w / 2));
-    c.px(x0 + i, yy, ENV_D); c.px(x0 + w - 1 - i, yy, ENV_D);
+    const yy = y0 + Math.round((i * (h * 0.55)) / (w / 2));
+    c.px(x0 + i, yy, ENV_D);
+    c.px(x0 + w - 1 - i, yy, ENV_D);
   }
   c.rect(x0 + w / 2 - 2, y0 + h * 0.5 - 1, 4, 4, SEAL); // selo "urgente"
   // linhas de velocidade (voando)
   const sl = frame === 0 ? [4, 12] : [7, 15];
-  for (const yy of sl) c.hline(x0 - 5, y0 + yy * h / 20, 4, [255, 255, 255, 110]);
+  for (const yy of sl) c.hline(x0 - 5, y0 + (yy * h) / 20, 4, [255, 255, 255, 110]);
   return c.save(`item-email-idle${frame}.png`);
 }
 
 // ── Convite de reunião (armadilha), 48x36, 3 frames (pulso do "!") ────────────
-const CARD = [245, 240, 228], CARD_D = [206, 198, 178], BAR = [90, 110, 200], ALERT = [220, 60, 50];
+const CARD = [245, 240, 228],
+  CARD_D = [206, 198, 178],
+  BAR = [90, 110, 200],
+  ALERT = [220, 60, 50];
 function conviteFrame(frame) {
-  const W = 48, H = 36, c = canvas(W, H);
-  const x0 = 8, y0 = 6, w = 32, h = 24;
-  for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? [255, 255, 252] : (r > h - 3 ? CARD_D : CARD));
-  for (let r = 0; r < h; r++) { c.px(x0, y0 + r, CARD_D); c.px(x0 + w - 1, y0 + r, CARD_D); }
-  c.rect(x0, y0, w, 4, BAR);                    // faixa de "calendário"
-  c.hline(x0 + 3, y0 + 8, w - 14, CARD_D);      // linhas de texto
+  const W = 48,
+    H = 36,
+    c = canvas(W, H);
+  const x0 = 8,
+    y0 = 6,
+    w = 32,
+    h = 24;
+  for (let r = 0; r < h; r++)
+    c.rect(x0, y0 + r, w, 1, r < 2 ? [255, 255, 252] : r > h - 3 ? CARD_D : CARD);
+  for (let r = 0; r < h; r++) {
+    c.px(x0, y0 + r, CARD_D);
+    c.px(x0 + w - 1, y0 + r, CARD_D);
+  }
+  c.rect(x0, y0, w, 4, BAR); // faixa de "calendário"
+  c.hline(x0 + 3, y0 + 8, w - 14, CARD_D); // linhas de texto
   c.hline(x0 + 3, y0 + 12, w - 10, CARD_D);
   c.hline(x0 + 3, y0 + 16, w - 16, CARD_D);
   // "!" pulsante no canto (0=pequeno, 1=médio, 2=grande)
   const s = 1 + frame * 0.5;
-  const bx = x0 + w - 7, by = y0 + h - 12;
+  const bx = x0 + w - 7,
+    by = y0 + h - 12;
   c.rect(bx, by, 2 * s > 3 ? 3 : 2, Math.round(6 * s) - 2, ALERT);
   c.rect(bx, by + Math.round(6 * s), 2, 2, ALERT);
   return c.save(`item-convite-accepted${frame}.png`);
 }
 
 // ── Fase 5: objetos-monstro (48x64, pés na base, corpo ~centro p/ física) ─────
-const METAL = [120, 126, 138], METAL_D = [82, 87, 97], METAL_L = [166, 172, 184];
-const INKPAD = [180, 40, 50], WOODB = [104, 72, 44];
+const METAL = [120, 126, 138],
+  METAL_D = [82, 87, 97],
+  METAL_L = [166, 172, 184];
+const INKPAD = [180, 40, 50],
+  WOODB = [104, 72, 44];
 
 // Carimbador Automático: máquina de carimbo com braço e almofada de tinta.
 function carimbador() {
-  const W = 48, H = 64, c = canvas(W, H);
-  c.rect(10, 56, 28, 6, METAL_D);               // base
+  const W = 48,
+    H = 64,
+    c = canvas(W, H);
+  c.rect(10, 56, 28, 6, METAL_D); // base
   c.rect(12, 54, 24, 2, METAL);
-  c.rect(30, 20, 6, 36, METAL);                  // coluna
+  c.rect(30, 20, 6, 36, METAL); // coluna
   c.rect(30, 20, 2, 36, METAL_L);
-  c.rect(14, 18, 24, 6, METAL);                  // braço horizontal
+  c.rect(14, 18, 24, 6, METAL); // braço horizontal
   c.hline(14, 18, 24, METAL_L);
-  c.rect(14, 24, 8, 10, METAL_D);                // cabeça do carimbo
-  c.rect(13, 34, 10, 4, WOODB);                  // borracha do carimbo
-  c.rect(12, 50, 14, 4, INKPAD);                 // almofada de tinta
+  c.rect(14, 24, 8, 10, METAL_D); // cabeça do carimbo
+  c.rect(13, 34, 10, 4, WOODB); // borracha do carimbo
+  c.rect(12, 50, 14, 4, INKPAD); // almofada de tinta
   c.rect(12, 49, 14, 1, [220, 80, 90]);
-  c.rect(38, 30, 4, 4, ALERT);                   // luz de status
+  c.rect(38, 30, 4, 4, ALERT); // luz de status
   for (let i = 0; i < 3; i++) c.rect(16 + i * 6, 60, 3, 2, [40, 42, 48]); // parafusos
-  return c.save('enemy-carimbador.png');
+  return c.save("enemy-carimbador.png");
 }
 
 // Arquivo Ambulante: arquivo de aço com gaveta aberta e pezinhos.
 function arquivo() {
-  const W = 48, H = 64, c = canvas(W, H);
-  const x0 = 12, w = 24, y0 = 10, h = 46;
+  const W = 48,
+    H = 64,
+    c = canvas(W, H);
+  const x0 = 12,
+    w = 24,
+    y0 = 10,
+    h = 46;
   for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? METAL_L : METAL);
-  for (let r = 0; r < h; r++) { c.px(x0, y0 + r, METAL_D); c.px(x0 + w - 1, y0 + r, METAL_D); }
-  for (let g = 0; g < 3; g++) {                  // 3 gavetas
+  for (let r = 0; r < h; r++) {
+    c.px(x0, y0 + r, METAL_D);
+    c.px(x0 + w - 1, y0 + r, METAL_D);
+  }
+  for (let g = 0; g < 3; g++) {
+    // 3 gavetas
     const gy = y0 + 4 + g * 14;
     c.hline(x0 + 1, gy + 11, w - 2, METAL_D);
     c.rect(x0 + w / 2 - 4, gy + 5, 8, 3, METAL_D); // puxador
   }
-  c.rect(x0 - 6, y0 + 4, 8, 6, METAL_L);         // gaveta do topo aberta
+  c.rect(x0 - 6, y0 + 4, 8, 6, METAL_L); // gaveta do topo aberta
   c.rect(x0 - 6, y0 + 4, 8, 1, [255, 255, 255]);
   c.rect(x0 - 4, y0 + 1, 5, 3, [235, 232, 220]); // papel saindo
-  c.rect(x0 + 3, y0 + 56 - y0, 6, 6, METAL_D);   // pezinhos
+  c.rect(x0 + 3, y0 + 56 - y0, 6, 6, METAL_D); // pezinhos
   c.rect(x0 + w - 9, 56, 6, 6, METAL_D);
   c.rect(x0 + 3, 56, 6, 6, METAL_D);
-  return c.save('enemy-arquivo.png');
+  return c.save("enemy-arquivo.png");
 }
 
 // Bateria Social: pilha grande com barras de carga (baixa) e olhinhos.
 function bateria() {
-  const W = 48, H = 64, c = canvas(W, H);
-  const x0 = 14, w = 20, y0 = 14, h = 44;
-  c.rect(x0 + 6, y0 - 4, 8, 4, METAL_D);         // terminal
-  for (let r = 0; r < h; r++) c.rect(x0, y0 + r, w, 1, r < 2 ? METAL_L : (r > h - 3 ? METAL_D : METAL));
-  for (let r = 0; r < h; r++) { c.px(x0, y0 + r, METAL_D); c.px(x0 + w - 1, y0 + r, METAL_D); }
+  const W = 48,
+    H = 64,
+    c = canvas(W, H);
+  const x0 = 14,
+    w = 20,
+    y0 = 14,
+    h = 44;
+  c.rect(x0 + 6, y0 - 4, 8, 4, METAL_D); // terminal
+  for (let r = 0; r < h; r++)
+    c.rect(x0, y0 + r, w, 1, r < 2 ? METAL_L : r > h - 3 ? METAL_D : METAL);
+  for (let r = 0; r < h; r++) {
+    c.px(x0, y0 + r, METAL_D);
+    c.px(x0 + w - 1, y0 + r, METAL_D);
+  }
   // janela de carga: 4 células, só 1 acesa (bateria social no fim)
   for (let i = 0; i < 4; i++) {
     const cy2 = y0 + 8 + i * 9;
@@ -293,30 +420,46 @@ function bateria() {
   }
   c.rect(x0 + 4, y0 + 2, 3, 3, [255, 255, 255]); // olhinhos cansados
   c.rect(x0 + 13, y0 + 2, 3, 3, [255, 255, 255]);
-  return c.save('enemy-bateria.png');
+  return c.save("enemy-bateria.png");
 }
 
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
-  ['postit', () => postit(0)], ['postit', () => postit(1)], ['postit', () => postit(2)],
-  ['coffee', () => coffeeDrop(0)], ['coffee', () => coffeeDrop(1)], ['coffee', () => coffeeDrop(2)],
-  ['coffee', coffeeStatic],
-  ['tile', floorTile], ['tile', platformTile],
-  ['vr', () => vrCoinFrame(0, 'item-vr-coin.png')],
-  ['vr', () => vrCoinFrame(0, 'item-vr-coin-active0.png')],
-  ['vr', () => vrCoinFrame(1, 'item-vr-coin-active1.png')],
-  ['vr', () => vrCoinFrame(2, 'item-vr-coin-active2.png')],
-  ['email', () => emailFrame(0)], ['email', () => emailFrame(1)],
-  ['convite', () => conviteFrame(0)], ['convite', () => conviteFrame(1)], ['convite', () => conviteFrame(2)],
-  ['fase5', carimbador], ['fase5', arquivo], ['fase5', bateria],
+  ["postit", () => postit(0)],
+  ["postit", () => postit(1)],
+  ["postit", () => postit(2)],
+  ["coffee", () => coffeeDrop(0)],
+  ["coffee", () => coffeeDrop(1)],
+  ["coffee", () => coffeeDrop(2)],
+  ["coffee", coffeeStatic],
+  ["tile", floorTile],
+  ["tile", platformTile],
+  ["vr", () => vrCoinFrame(0, "item-vr-coin.png")],
+  ["vr", () => vrCoinFrame(0, "item-vr-coin-active0.png")],
+  ["vr", () => vrCoinFrame(1, "item-vr-coin-active1.png")],
+  ["vr", () => vrCoinFrame(2, "item-vr-coin-active2.png")],
+  ["email", () => emailFrame(0)],
+  ["email", () => emailFrame(1)],
+  ["convite", () => conviteFrame(0)],
+  ["convite", () => conviteFrame(1)],
+  ["convite", () => conviteFrame(2)],
+  ["fase5", carimbador],
+  ["fase5", arquivo],
+  ["fase5", bateria],
 ];
 
 async function main() {
   const filter = process.argv[2];
   const todo = SPRITES.filter(([tag]) => !filter || tag.includes(filter));
   await Promise.all(todo.map(([, fn]) => fn()));
-  console.log(`Gerados ${todo.length} sprite(s)${filter ? ` (filtro: ${filter})` : ''}. Rode 'node scripts/pack-atlas.mjs' para re-empacotar.`);
+  console.log(
+    `Gerados ${todo.length} sprite(s)${filter ? ` (filtro: ${filter})` : ""}. Rode 'node scripts/pack-atlas.mjs' para re-empacotar.`,
+  );
 }
 
 // Só executa se chamado direto (permite importar canvas() em outros scripts).
-if (process.argv[1] === fileURLToPath(import.meta.url)) main().catch((e) => { console.error(e); process.exit(1); });
+if (process.argv[1] === fileURLToPath(import.meta.url))
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

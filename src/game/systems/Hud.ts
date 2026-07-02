@@ -129,9 +129,15 @@ export class Hud {
   }
 
   private buildHeatIndicator() {
-    this.heatText = this.scene.add.text(GAME_WIDTH / 2 + 60, 4, "", {
-      fontFamily: F, fontSize: "10px", color: "#ff8800",
-    }).setScrollFactor(0).setDepth(1001).setOrigin(0, 0);
+    this.heatText = this.scene.add
+      .text(GAME_WIDTH / 2 + 60, 4, "", {
+        fontFamily: F,
+        fontSize: "10px",
+        color: "#ff8800",
+      })
+      .setScrollFactor(0)
+      .setDepth(1001)
+      .setOrigin(0, 0);
   }
 
   private buildTopSeparator() {
@@ -161,40 +167,51 @@ export class Hud {
     portraitBg.strokeRect(4, 4, 46, 48);
     this.topLeft.add(portraitBg);
 
-    const portrait = this.scene.add.image(27, 28, ATLAS_KEY, "player-idle0")
-      .setDisplaySize(40, 44);
+    const portrait = this.scene.add.image(27, 28, ATLAS_KEY, "player-idle0").setDisplaySize(40, 44);
     this.topLeft.add(portrait);
 
     // ENERGIA label + bar
     this.topLeft.add(
-      this.scene.add.text(56, 3, "❤ ENERGIA", { fontFamily: F, fontSize: "8px", color: "#ffa0a0" })
+      this.scene.add.text(56, 3, "❤ ENERGIA", { fontFamily: F, fontSize: "8px", color: "#ffa0a0" }),
     );
     this.energyBarG = this.scene.add.graphics();
     this.topLeft.add(this.energyBarG);
     this.energyNumT = this.scene.add.text(56 + BAR_W + 4, 3, "100/100", {
-      fontFamily: F, fontSize: "8px", color: "#ffd0d0",
+      fontFamily: F,
+      fontSize: "8px",
+      color: "#ffd0d0",
     });
     this.topLeft.add(this.energyNumT);
 
     // SANIDADE label + bar
     this.topLeft.add(
-      this.scene.add.text(56, 23, "🧠 SANIDADE", { fontFamily: F, fontSize: "8px", color: "#a0c0ff" })
+      this.scene.add.text(56, 23, "🧠 SANIDADE", {
+        fontFamily: F,
+        fontSize: "8px",
+        color: "#a0c0ff",
+      }),
     );
     this.sanityBarG = this.scene.add.graphics();
     this.topLeft.add(this.sanityBarG);
     this.sanityNumT = this.scene.add.text(56 + BAR_W + 4, 23, "100/100", {
-      fontFamily: F, fontSize: "8px", color: "#cfe2ff",
+      fontFamily: F,
+      fontSize: "8px",
+      color: "#cfe2ff",
     });
     this.topLeft.add(this.sanityNumT);
 
     // VR and Reconhecimento
     this.vrTopT = this.scene.add.text(56, 43, "VR: R$ 0,00", {
-      fontFamily: F, fontSize: "9px", color: "#f2c14e",
+      fontFamily: F,
+      fontSize: "9px",
+      color: "#f2c14e",
     });
     this.topLeft.add(this.vrTopT);
 
     this.recoT = this.scene.add.text(180, 43, "R: 0", {
-      fontFamily: F, fontSize: "9px", color: "#aaaaaa",
+      fontFamily: F,
+      fontSize: "9px",
+      color: "#aaaaaa",
     });
     this.topLeft.add(this.recoT);
 
@@ -213,19 +230,32 @@ export class Hud {
     bg.fillRect(0, 0, W, HUD_TOP_H);
     ctr.add(bg);
 
-    this.phaseTitleT = this.scene.add.text(W / 2, 5, "FASE 1 — OPEN SPACE", {
-      fontFamily: F, fontSize: "12px", fontStyle: "bold", color: "#eaeaea",
-    }).setOrigin(0.5, 0);
+    this.phaseTitleT = this.scene.add
+      .text(W / 2, 5, "FASE 1 — OPEN SPACE", {
+        fontFamily: F,
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: "#eaeaea",
+      })
+      .setOrigin(0.5, 0);
     ctr.add(this.phaseTitleT);
 
-    this.objectiveT = this.scene.add.text(W / 2, 21, "OBJETIVO: Chegue ao elevador e desça", {
-      fontFamily: F, fontSize: "9px", color: "#888888",
-    }).setOrigin(0.5, 0);
+    this.objectiveT = this.scene.add
+      .text(W / 2, 21, "OBJETIVO: Chegue ao elevador e desça", {
+        fontFamily: F,
+        fontSize: "9px",
+        color: "#888888",
+      })
+      .setOrigin(0.5, 0);
     ctr.add(this.objectiveT);
 
-    this.clockT = this.scene.add.text(W / 2, 36, "18:00", {
-      fontFamily: F, fontSize: "13px", color: "#eaeaea",
-    }).setOrigin(0.5, 0);
+    this.clockT = this.scene.add
+      .text(W / 2, 36, "18:00", {
+        fontFamily: F,
+        fontSize: "13px",
+        color: "#eaeaea",
+      })
+      .setOrigin(0.5, 0);
     ctr.add(this.clockT);
   }
 
@@ -246,23 +276,37 @@ export class Hud {
     this.bossContainer.add(bg);
 
     this.bossContainer.add(
-      this.scene.add.text(RIGHT_W / 2, 4, "CHEFE DA FASE", {
-        fontFamily: F, fontSize: "9px", color: "#cc4444",
-      }).setOrigin(0.5, 0)
+      this.scene.add
+        .text(RIGHT_W / 2, 4, "CHEFE DA FASE", {
+          fontFamily: F,
+          fontSize: "9px",
+          color: "#cc4444",
+        })
+        .setOrigin(0.5, 0),
     );
 
-    this.bossNameT = this.scene.add.text(RIGHT_W / 2, 15, "", {
-      fontFamily: F, fontSize: "12px", fontStyle: "bold", color: "#ff6666",
-    }).setOrigin(0.5, 0);
+    this.bossNameT = this.scene.add
+      .text(RIGHT_W / 2, 15, "", {
+        fontFamily: F,
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: "#ff6666",
+      })
+      .setOrigin(0.5, 0);
     this.bossContainer.add(this.bossNameT);
 
     this.bossBarG = this.scene.add.graphics();
     this.bossContainer.add(this.bossBarG);
 
-    this.bossHpT = this.scene.add.text(RIGHT_W / 2, 44, "", {
-      fontFamily: F, fontSize: "9px", color: "#ff9999",
-      stroke: "#ff4444", strokeThickness: 2,
-    }).setOrigin(0.5, 0);
+    this.bossHpT = this.scene.add
+      .text(RIGHT_W / 2, 44, "", {
+        fontFamily: F,
+        fontSize: "9px",
+        color: "#ff9999",
+        stroke: "#ff4444",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5, 0);
     this.bossContainer.add(this.bossHpT);
   }
 
@@ -282,7 +326,7 @@ export class Hud {
     // Section dividers
     const divG = this.scene.add.graphics();
     divG.lineStyle(1, 0x2a3040, 1);
-    [SEC1_W, SEC1_W + SEC2_W, SEC1_W + SEC2_W + SEC3_W].forEach(x => {
+    [SEC1_W, SEC1_W + SEC2_W, SEC1_W + SEC2_W + SEC3_W].forEach((x) => {
       divG.lineBetween(x, 2, x, HUD_BOT_H - 2);
     });
     this.botContainer.add(divG);
@@ -293,10 +337,18 @@ export class Hud {
     this.buildSec4();
 
     // Interact hint (floating above bottom bar)
-    this.interactHintT = this.scene.add.text(GAME_WIDTH / 2, HUD_BOT_Y - 14, "", {
-      fontFamily: F, fontSize: "10px", color: "#f2c14e",
-      backgroundColor: "#000000cc", padding: { x: 8, y: 3 },
-    }).setOrigin(0.5, 1).setScrollFactor(0).setDepth(1001).setVisible(false);
+    this.interactHintT = this.scene.add
+      .text(GAME_WIDTH / 2, HUD_BOT_Y - 14, "", {
+        fontFamily: F,
+        fontSize: "10px",
+        color: "#f2c14e",
+        backgroundColor: "#000000cc",
+        padding: { x: 8, y: 3 },
+      })
+      .setOrigin(0.5, 1)
+      .setScrollFactor(0)
+      .setDepth(1001)
+      .setVisible(false);
   }
 
   // ─── Section 1: Character portrait + stats ──────────────────────
@@ -316,12 +368,9 @@ export class Hud {
     portBg.strokeRect(PORTRAIT_X, PORTRAIT_Y, PORTRAIT_W, PORTRAIT_H);
     this.botContainer.add(portBg);
 
-    const port = this.scene.add.image(
-      PORTRAIT_X + PORTRAIT_W / 2,
-      PORTRAIT_Y + PORTRAIT_H / 2,
-      ATLAS_KEY,
-      "player-idle0",
-    ).setDisplaySize(PORTRAIT_W - 4, PORTRAIT_H - 4);
+    const port = this.scene.add
+      .image(PORTRAIT_X + PORTRAIT_W / 2, PORTRAIT_Y + PORTRAIT_H / 2, ATLAS_KEY, "player-idle0")
+      .setDisplaySize(PORTRAIT_W - 4, PORTRAIT_H - 4);
     this.botContainer.add(port);
 
     // Stat labels and bars
@@ -329,39 +378,56 @@ export class Hud {
 
     // ENERGIA label
     this.botContainer.add(
-      this.scene.add.text(statX, 7, "ENERGIA", { fontFamily: F, fontSize: "9px", color: "#ff9090" })
+      this.scene.add.text(statX, 7, "ENERGIA", {
+        fontFamily: F,
+        fontSize: "9px",
+        color: "#ff9090",
+      }),
     );
     // ENERGIA bar graphics
     this.sec1EnergyG = this.scene.add.graphics();
     this.botContainer.add(this.sec1EnergyG);
     // ENERGIA number
     this.sec1EnergyNumT = this.scene.add.text(statX + BAR_W + 3, 7, "100/100", {
-      fontFamily: F, fontSize: "9px", color: "#ffd0d0",
+      fontFamily: F,
+      fontSize: "9px",
+      color: "#ffd0d0",
     });
     this.botContainer.add(this.sec1EnergyNumT);
 
     // SANIDADE label
     this.botContainer.add(
-      this.scene.add.text(statX, 24, "SANIDADE", { fontFamily: F, fontSize: "9px", color: "#80a0ff" })
+      this.scene.add.text(statX, 24, "SANIDADE", {
+        fontFamily: F,
+        fontSize: "9px",
+        color: "#80a0ff",
+      }),
     );
     // SANIDADE bar graphics
     this.sec1SanityG = this.scene.add.graphics();
     this.botContainer.add(this.sec1SanityG);
     // SANIDADE number
     this.sec1SanityNumT = this.scene.add.text(statX + BAR_W + 3, 24, "100/100", {
-      fontFamily: F, fontSize: "9px", color: "#cfe2ff",
+      fontFamily: F,
+      fontSize: "9px",
+      color: "#cfe2ff",
     });
     this.botContainer.add(this.sec1SanityNumT);
 
     // VR gold text
     this.sec1VrT = this.scene.add.text(statX, 42, "VR  R$ 0,00", {
-      fontFamily: F, fontSize: "9px", fontStyle: "bold", color: "#f2c14e",
+      fontFamily: F,
+      fontSize: "9px",
+      fontStyle: "bold",
+      color: "#f2c14e",
     });
     this.botContainer.add(this.sec1VrT);
 
     // Reconhecimento
     this.sec1RecoT = this.scene.add.text(statX, 55, "RECO: 0", {
-      fontFamily: F, fontSize: "9px", color: "#c8b840",
+      fontFamily: F,
+      fontSize: "9px",
+      color: "#c8b840",
     });
     this.botContainer.add(this.sec1RecoT);
   }
@@ -371,16 +437,20 @@ export class Hud {
   private buildSec2() {
     // Header
     this.botContainer.add(
-      this.scene.add.text(S2_X + SEC2_W / 2, 3, "UT / HUD", {
-        fontFamily: F, fontSize: "9px", color: "#666677",
-      }).setOrigin(0.5, 0)
+      this.scene.add
+        .text(S2_X + SEC2_W / 2, 3, "UT / HUD", {
+          fontFamily: F,
+          fontSize: "9px",
+          color: "#666677",
+        })
+        .setOrigin(0.5, 0),
     );
 
     const slotDefs = [
       { label: "1", hint: "ATQ", color: 0x3a2a4a, border: 0xf2c14e, active: true },
       { label: "2", hint: "ESP", color: 0x1a2a3a, border: 0x4a7a8a, active: false },
-      { label: "3", hint: "",    color: 0x151820, border: 0x2a2e38, active: false },
-      { label: "4", hint: "",    color: 0x151820, border: 0x2a2e38, active: false },
+      { label: "3", hint: "", color: 0x151820, border: 0x2a2e38, active: false },
+      { label: "4", hint: "", color: 0x151820, border: 0x2a2e38, active: false },
     ];
 
     const totalW = slotDefs.length * ITEM_SLOT_SIZE + (slotDefs.length - 1) * ITEM_SLOT_GAP;
@@ -419,8 +489,10 @@ export class Hud {
       // Slot number badge
       this.botContainer.add(
         this.scene.add.text(sx + 3, sy + ITEM_SLOT_SIZE - 10, sd.label, {
-          fontFamily: F, fontSize: "9px", color: sd.active ? "#f2c14e" : "#555566",
-        })
+          fontFamily: F,
+          fontSize: "9px",
+          color: sd.active ? "#f2c14e" : "#555566",
+        }),
       );
     });
 
@@ -433,20 +505,39 @@ export class Hud {
     qG.strokeRect(qx, ITEM_SLOT_Y + 4, 36, 36);
     this.botContainer.add(qG);
     this.botContainer.add(
-      this.scene.add.text(qx + 18, ITEM_SLOT_Y + 22, "Q", {
-        fontFamily: F, fontSize: "12px", fontStyle: "bold", color: "#444455",
-      }).setOrigin(0.5)
+      this.scene.add
+        .text(qx + 18, ITEM_SLOT_Y + 22, "Q", {
+          fontFamily: F,
+          fontSize: "12px",
+          fontStyle: "bold",
+          color: "#444455",
+        })
+        .setOrigin(0.5),
     );
 
     // Weapon name below
-    this.weaponNameT = this.scene.add.text(S2_X + 6, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 4, "GRAMPEADOR", {
-      fontFamily: F, fontSize: "9px", color: "#ccccdd",
-    });
+    this.weaponNameT = this.scene.add.text(
+      S2_X + 6,
+      ITEM_SLOT_Y + ITEM_SLOT_SIZE + 4,
+      "GRAMPEADOR",
+      {
+        fontFamily: F,
+        fontSize: "9px",
+        color: "#ccccdd",
+      },
+    );
     this.botContainer.add(this.weaponNameT);
 
-    this.specialNameT = this.scene.add.text(S2_X + 6, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 14, "CAFÉ TURBO", {
-      fontFamily: F, fontSize: "9px", color: "#f2c14e",
-    });
+    this.specialNameT = this.scene.add.text(
+      S2_X + 6,
+      ITEM_SLOT_Y + ITEM_SLOT_SIZE + 14,
+      "CAFÉ TURBO",
+      {
+        fontFamily: F,
+        fontSize: "9px",
+        color: "#f2c14e",
+      },
+    );
     this.botContainer.add(this.specialNameT);
 
     // Dash cooldown overlay graphics (draw over slot index 2, i.e. 3rd slot — SHIFT/DASH)
@@ -455,13 +546,17 @@ export class Hud {
 
     // Parry indicator — "F" label + status text below slots
     this.parryLabelT = this.scene.add.text(
-      S2_X + SEC2_W - 48, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 4,
-      "F  RECLAMAR", { fontFamily: F, fontSize: "9px", color: "#00ffdd" }
+      S2_X + SEC2_W - 48,
+      ITEM_SLOT_Y + ITEM_SLOT_SIZE + 4,
+      "F  RECLAMAR",
+      { fontFamily: F, fontSize: "9px", color: "#00ffdd" },
     );
     this.botContainer.add(this.parryLabelT);
     this.parryStateT = this.scene.add.text(
-      S2_X + SEC2_W - 48, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 14,
-      "PRONTO", { fontFamily: F, fontSize: "9px", color: "#00bb99" }
+      S2_X + SEC2_W - 48,
+      ITEM_SLOT_Y + ITEM_SLOT_SIZE + 14,
+      "PRONTO",
+      { fontFamily: F, fontSize: "9px", color: "#00bb99" },
     );
     this.botContainer.add(this.parryStateT);
   }
@@ -471,9 +566,13 @@ export class Hud {
   private buildSec3() {
     // Header
     this.botContainer.add(
-      this.scene.add.text(S3_X + SEC3_W / 2, 3, "PERKS ATIVOS", {
-        fontFamily: F, fontSize: "9px", color: "#666677",
-      }).setOrigin(0.5, 0)
+      this.scene.add
+        .text(S3_X + SEC3_W / 2, 3, "PERKS ATIVOS", {
+          fontFamily: F,
+          fontSize: "9px",
+          color: "#666677",
+        })
+        .setOrigin(0.5, 0),
     );
 
     this.perkSlotGraphics = this.scene.add.graphics();
@@ -485,7 +584,7 @@ export class Hud {
 
   private drawPerkSlots() {
     this.perkSlotGraphics.clear();
-    this.perkTexts.forEach(t => t.destroy());
+    this.perkTexts.forEach((t) => t.destroy());
     this.perkTexts = [];
 
     const totalW = PERK_COUNT * PERK_SLOT_SIZE + (PERK_COUNT - 1) * PERK_SLOT_GAP;
@@ -507,18 +606,26 @@ export class Hud {
         // Icon from PERKS definition, fallback to 3-letter abbreviation
         const perkDef = PERKS[perk as PerkId];
         const iconLabel = perkDef ? perkDef.icon : perk.substring(0, 3).toUpperCase();
-        const iconT = this.scene.add.text(px + PERK_SLOT_SIZE / 2, py + PERK_SLOT_SIZE / 2 - 3, iconLabel, {
-          fontFamily: F, fontSize: "14px", color: "#ffffff",
-        }).setOrigin(0.5);
+        const iconT = this.scene.add
+          .text(px + PERK_SLOT_SIZE / 2, py + PERK_SLOT_SIZE / 2 - 3, iconLabel, {
+            fontFamily: F,
+            fontSize: "14px",
+            color: "#ffffff",
+          })
+          .setOrigin(0.5);
         this.perkSlotGraphics.scene.children.bringToTop(iconT);
         (this.botContainer as any).add(iconT);
         this.perkTexts.push(iconT);
         // Short name label below icon
         const nameLabel = perkDef ? perkDef.name.split(" ")[0].substring(0, 5).toUpperCase() : "";
         if (nameLabel) {
-          const nameT = this.scene.add.text(px + PERK_SLOT_SIZE / 2, py + PERK_SLOT_SIZE - 8, nameLabel, {
-            fontFamily: F, fontSize: "5px", color: "#ddddee",
-          }).setOrigin(0.5, 1);
+          const nameT = this.scene.add
+            .text(px + PERK_SLOT_SIZE / 2, py + PERK_SLOT_SIZE - 8, nameLabel, {
+              fontFamily: F,
+              fontSize: "5px",
+              color: "#ddddee",
+            })
+            .setOrigin(0.5, 1);
           this.perkSlotGraphics.scene.children.bringToTop(nameT);
           (this.botContainer as any).add(nameT);
           this.perkTexts.push(nameT);
@@ -543,9 +650,13 @@ export class Hud {
   private buildSec4() {
     // Header
     this.botContainer.add(
-      this.scene.add.text(S4_X + SEC4_W / 2, 3, "MAPA DA FASE", {
-        fontFamily: F, fontSize: "9px", color: "#666677",
-      }).setOrigin(0.5, 0)
+      this.scene.add
+        .text(S4_X + SEC4_W / 2, 3, "MAPA DA FASE", {
+          fontFamily: F,
+          fontSize: "9px",
+          color: "#666677",
+        })
+        .setOrigin(0.5, 0),
     );
 
     // Background for entire minimap area
@@ -627,10 +738,14 @@ export class Hud {
   // ─── public update API ──────────────────────────────────────────
 
   update(opts: {
-    energy: number; maxEnergy: number;
-    sanity: number; maxSanity: number;
-    vr: number; reconhecimento: number;
-    time: number; startTime: number;
+    energy: number;
+    maxEnergy: number;
+    sanity: number;
+    maxSanity: number;
+    vr: number;
+    reconhecimento: number;
+    time: number;
+    startTime: number;
     playerX: number;
     interactHint?: string;
     dashCooldown?: number;
@@ -641,16 +756,26 @@ export class Hud {
   }) {
     // Sanity color: green→orange at 50%, orange→pulsing red at 25%
     const sanityPct = opts.sanity / opts.maxSanity;
-    const sanityColor = sanityPct > 0.5
-      ? COLORS.sanityBar
-      : sanityPct > 0.25
-        ? 0xffaa44
-        : (Math.floor(opts.time / 350) % 2 === 0 ? 0xff3322 : 0xff8844);
+    const sanityColor =
+      sanityPct > 0.5
+        ? COLORS.sanityBar
+        : sanityPct > 0.25
+          ? 0xffaa44
+          : Math.floor(opts.time / 350) % 2 === 0
+            ? 0xff3322
+            : 0xff8844;
 
     const sanityHex = sanityPct > 0.5 ? "#cfe2ff" : sanityPct > 0.25 ? "#ffcc88" : "#ff9977";
 
     // Bottom-left bars (section 1)
-    this.drawBar(this.sec1EnergyG, STAT_X, BAR_ENERGY_Y, opts.energy, opts.maxEnergy, COLORS.energyBar);
+    this.drawBar(
+      this.sec1EnergyG,
+      STAT_X,
+      BAR_ENERGY_Y,
+      opts.energy,
+      opts.maxEnergy,
+      COLORS.energyBar,
+    );
     this.drawBar(this.sec1SanityG, STAT_X, BAR_SANITY_Y, opts.sanity, opts.maxSanity, sanityColor);
     this.sec1EnergyNumT.setText(`${opts.energy}/${opts.maxEnergy}`);
     this.sec1SanityNumT.setText(`${opts.sanity}/${opts.maxSanity}`).setColor(sanityHex);
@@ -661,8 +786,10 @@ export class Hud {
     if (this.prevVr >= 0 && opts.vr > this.prevVr) {
       this.scene.tweens.add({
         targets: this.sec1VrT,
-        scaleX: 1.5, scaleY: 1.5,
-        duration: 70, yoyo: true,
+        scaleX: 1.5,
+        scaleY: 1.5,
+        duration: 70,
+        yoyo: true,
         onComplete: () => this.sec1VrT.setScale(1),
       });
     }
@@ -695,7 +822,12 @@ export class Hud {
       const startX = S2_X + (SEC2_W - totalW - 40) / 2;
       const dsx = startX + 2 * (ITEM_SLOT_SIZE + ITEM_SLOT_GAP);
       this.dashCooldownG.fillStyle(0x000000, 0.72);
-      this.dashCooldownG.fillRect(dsx, ITEM_SLOT_Y, ITEM_SLOT_SIZE, Math.round(dashRatio * ITEM_SLOT_SIZE));
+      this.dashCooldownG.fillRect(
+        dsx,
+        ITEM_SLOT_Y,
+        ITEM_SLOT_SIZE,
+        Math.round(dashRatio * ITEM_SLOT_SIZE),
+      );
       this.dashCooldownG.lineStyle(1, 0x6688cc, 0.9);
       this.dashCooldownG.strokeRect(dsx, ITEM_SLOT_Y, ITEM_SLOT_SIZE, ITEM_SLOT_SIZE);
     }
@@ -720,7 +852,9 @@ export class Hud {
     // Heat indicator
     const heatLevel = opts.heatLevel ?? 0;
     if (this.heatText) {
-      this.heatText.setText(heatLevel > 0 ? "🔥".repeat(Math.min(heatLevel, 6)) + ` HEAT ${heatLevel}` : "");
+      this.heatText.setText(
+        heatLevel > 0 ? "🔥".repeat(Math.min(heatLevel, 6)) + ` HEAT ${heatLevel}` : "",
+      );
     }
 
     // Perks — detect new perk gained for elastic animation
@@ -808,13 +942,15 @@ export class Hud {
         target.setScale(0.4);
         this.scene.tweens.add({
           targets: target,
-          scaleX: 1.2, scaleY: 1.2,
+          scaleX: 1.2,
+          scaleY: 1.2,
           duration: 150,
           ease: "Back.easeOut",
           onComplete: () => {
             this.scene.tweens.add({
               targets: target,
-              scaleX: 1, scaleY: 1,
+              scaleX: 1,
+              scaleY: 1,
               duration: 120,
               ease: "Quad.easeInOut",
             });
@@ -848,8 +984,10 @@ export class Hud {
 
   private drawBar(
     g: Phaser.GameObjects.Graphics,
-    x: number, y: number,
-    value: number, max: number,
+    x: number,
+    y: number,
+    value: number,
+    max: number,
     color: number,
   ) {
     g.clear();

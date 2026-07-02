@@ -35,7 +35,8 @@ export class CombatFx {
    * Call on combo step 3 when an enemy was hit.
    */
   comboFinisher(playerX: number, enemyX: number): void {
-    void playerX; void enemyX;
+    void playerX;
+    void enemyX;
     const cam = this.scene.cameras.main;
     // NÃO rotacionar a câmera: num side-scroller preso aos limites do mundo, girar
     // a câmera na borda (onde o boss fica, x≈1820 de 1920) inclina a cena inteira
@@ -60,7 +61,9 @@ export class CombatFx {
     phys.pause();
     // Use real-time setTimeout so the physics.resume() fires regardless of scene time scale
     setTimeout(() => {
-      try { phys.resume(); } catch {}
+      try {
+        phys.resume();
+      } catch {}
     }, durationMs);
   }
 
@@ -125,9 +128,16 @@ export class CombatFx {
    */
   fadeOut(onComplete?: () => void, durationMs = 400): void {
     const cam = this.scene.cameras.main;
-    cam.fade(durationMs, 0, 0, 0, false, (_cam: Phaser.Cameras.Scene2D.Camera, progress: number) => {
-      if (progress === 1) onComplete?.();
-    });
+    cam.fade(
+      durationMs,
+      0,
+      0,
+      0,
+      false,
+      (_cam: Phaser.Cameras.Scene2D.Camera, progress: number) => {
+        if (progress === 1) onComplete?.();
+      },
+    );
   }
 
   // ── Sprite helpers (call on the sprite directly, not camera) ─────────────
@@ -136,7 +146,10 @@ export class CombatFx {
    * Hit-flash on a sprite: briefly tints the sprite orange-white then clears.
    * Uses setTint (modulate mode) — setTintFill was removed in Phaser 4.
    */
-  static flashSprite(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite, durationMs = 60): void {
+  static flashSprite(
+    sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite,
+    durationMs = 60,
+  ): void {
     // Brief desaturated tint — avoids ADD blend mode which causes photosensitivity issues
     sprite.setTint(0xffe0cc);
     sprite.scene.time.delayedCall(Math.min(durationMs, 50), () => {
@@ -181,13 +194,17 @@ export class CombatFx {
     const label = crit ? `${amount}!` : `${amount}`;
     const fontSize = crit ? "14px" : "11px";
 
-    const txt = this.scene.add.text(x, y - 10, label, {
-      fontFamily: "monospace",
-      fontSize,
-      color,
-      stroke: "#000000",
-      strokeThickness: 2,
-    }).setOrigin(0.5, 1).setDepth(200).setScrollFactor(1);
+    const txt = this.scene.add
+      .text(x, y - 10, label, {
+        fontFamily: "monospace",
+        fontSize,
+        color,
+        stroke: "#000000",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(200)
+      .setScrollFactor(1);
 
     const offX = Phaser.Math.Between(-14, 14);
 

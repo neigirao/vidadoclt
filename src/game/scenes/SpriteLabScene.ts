@@ -13,7 +13,12 @@ type Subject = {
 };
 
 // Constrói estados de personagem a partir de [frameInicial, quantidade].
-function mkChar(name: string, cat: string, prefix: string, defs: Record<string, [number, number]>): Subject {
+function mkChar(
+  name: string,
+  cat: string,
+  prefix: string,
+  defs: Record<string, [number, number]>,
+): Subject {
   const states: Record<string, string[]> = {};
   for (const [st, [start, count]] of Object.entries(defs)) {
     states[st] = Array.from({ length: count }, (_, i) => `tex-${prefix}-${st}${start + i}`);
@@ -30,23 +35,69 @@ function walk(prefix: string, count: number): string[] {
 
 const SUBJECTS: Subject[] = [
   mkChar("PLAYER", "Personagem", "player", {
-    idle: [1, 4], walk: [0, 8], run: [0, 8], jump: [0, 6], fall: [0, 3], attack: [0, 3], hurt: [0, 1], dash: [0, 1],
+    idle: [1, 4],
+    walk: [0, 8],
+    run: [0, 8],
+    jump: [0, 6],
+    fall: [0, 3],
+    attack: [0, 3],
+    hurt: [0, 1],
+    dash: [0, 1],
   }),
-  mkChar("Estagiário", "Inimigo", "estagiario", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Estagiário", "Inimigo", "estagiario", {
+    idle: [0, 4],
+    walk: [0, 4],
+    attack: [0, 1],
+    hurt: [0, 1],
+  }),
   mkChar("Estagiário B", "Inimigo", "estagiario-b", { idle: [0, 4], walk: [0, 5], hurt: [0, 1] }),
-  mkChar("Analista", "Inimigo", "analista", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Analista", "Inimigo", "analista", {
+    idle: [0, 4],
+    walk: [0, 4],
+    attack: [0, 1],
+    hurt: [0, 1],
+  }),
   mkChar("Analista Novo", "Inimigo", "analista-novo", { idle: [0, 4], walk: [0, 5], hurt: [0, 1] }),
   mkChar("RH", "Inimigo", "rh", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
-  mkChar("Facilitador", "Inimigo", "facilitador", { idle: [0, 4], walk: [0, 2], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Facilitador", "Inimigo", "facilitador", {
+    idle: [0, 4],
+    walk: [0, 2],
+    attack: [0, 1],
+    hurt: [0, 1],
+  }),
   mkChar("Scrum", "Inimigo", "scrum", { idle: [0, 4], walk: [0, 6], attack: [0, 1], hurt: [0, 1] }),
-  mkChar("Coordenador", "Inimigo", "coordenador", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
-  mkChar("Sênior", "Inimigo", "senior", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("Coordenador", "Inimigo", "coordenador", {
+    idle: [0, 4],
+    walk: [0, 4],
+    attack: [0, 1],
+    hurt: [0, 1],
+  }),
+  mkChar("Sênior", "Inimigo", "senior", {
+    idle: [0, 4],
+    walk: [0, 4],
+    attack: [0, 1],
+    hurt: [0, 1],
+  }),
   mkChar("Gerente (boss)", "Boss", "gerente", {
-    idle: [0, 2], walk: [0, 4], run: [0, 4], hurt: [0, 3], death: [0, 3], attack: [0, 2],
-    "atk-deadline": [0, 4], "atk-escopo": [0, 4], "atk-sprint": [0, 3], "run-charge": [0, 3],
+    idle: [0, 2],
+    walk: [0, 4],
+    run: [0, 4],
+    hurt: [0, 3],
+    death: [0, 3],
+    attack: [0, 2],
+    "atk-deadline": [0, 4],
+    "atk-escopo": [0, 4],
+    "atk-sprint": [0, 3],
+    "run-charge": [0, 3],
   }),
   mkChar("CEO (boss)", "Boss", "boss-ceo", {
-    idle: [0, 2], walk: [0, 2], run: [0, 6], attack: [0, 4], special: [0, 4], hurt: [0, 1], death: [0, 2],
+    idle: [0, 2],
+    walk: [0, 2],
+    run: [0, 6],
+    attack: [0, 4],
+    special: [0, 4],
+    hurt: [0, 1],
+    death: [0, 2],
   }),
   // ── Fase 2 ── (render estático da base; walk quando animado no jogo)
   mkItem("Telemarketer", "Fase 2", { base: ["tex-telemarketer"], walk: walk("telemarketer", 4) }),
@@ -55,13 +106,22 @@ const SUBJECTS: Subject[] = [
   mkItem("Guardião Café", "Fase 2", { base: ["tex-guardiao-cafe"] }),
   mkItem("Mural", "Fase 2", { base: ["tex-noticeboard"] }),
   // ── Fase 3 ──
-  mkItem("Impressora Verm.", "Fase 3", { base: ["enemy-impressora-b-idle0"], walk: walk("impressora-b", 6) }),
+  mkItem("Impressora Verm.", "Fase 3", {
+    base: ["enemy-impressora-b-idle0"],
+    walk: walk("impressora-b", 6),
+  }),
   mkItem("Evangelista", "Fase 3", { base: ["tex-evangelista"] }),
   mkItem("Coletor de Dados", "Fase 3", { base: ["tex-coletor"] }),
   mkItem("Planilha Viva", "Fase 3", { base: ["tex-planilha"] }),
   // ── Fase 4 ──
-  mkItem("Impressora Fant.", "Fase 4", { base: ["enemy-impressora-c-idle0"], walk: walk("impressora-c", 6) }),
-  mkItem("Evangelista Boss", "Fase 4", { base: ["enemy-evangelista-boss-idle0"], walk: walk("evangelista-boss", 3) }),
+  mkItem("Impressora Fant.", "Fase 4", {
+    base: ["enemy-impressora-c-idle0"],
+    walk: walk("impressora-c", 6),
+  }),
+  mkItem("Evangelista Boss", "Fase 4", {
+    base: ["enemy-evangelista-boss-idle0"],
+    walk: walk("evangelista-boss", 3),
+  }),
   mkItem("Cabo de Rede", "Fase 4", { base: ["tex-cabo"] }),
   mkItem("TI Suporte", "Fase 4", { base: ["tex-ti-suporte"] }),
   mkItem("Drone", "Fase 4", { base: ["tex-drone"] }),
@@ -75,12 +135,20 @@ const SUBJECTS: Subject[] = [
   mkItem("Ponto", "Objeto", { idle: ["tex-ponto"] }),
   mkItem("Quadro Motiv.", "Objeto", { idle: ["tex-quadro-motivacional"] }),
   // Drops
-  mkItem("VR (moeda)", "Drop", { spin: ["item-vr-coin-active0", "item-vr-coin-active1", "item-vr-coin-active2"] }),
-  mkItem("Café (drop)", "Drop", { vapor: ["item-coffee-cup-active0", "item-coffee-cup-active1", "item-coffee-cup-active2"] }),
+  mkItem("VR (moeda)", "Drop", {
+    spin: ["item-vr-coin-active0", "item-vr-coin-active1", "item-vr-coin-active2"],
+  }),
+  mkItem("Café (drop)", "Drop", {
+    vapor: ["item-coffee-cup-active0", "item-coffee-cup-active1", "item-coffee-cup-active2"],
+  }),
   // Projéteis
-  mkItem("Post-it", "Projétil", { active: ["item-postit-active0", "item-postit-active1", "item-postit-active2"] }),
+  mkItem("Post-it", "Projétil", {
+    active: ["item-postit-active0", "item-postit-active1", "item-postit-active2"],
+  }),
   mkItem("Tinta (Bic)", "Projétil", { idle: ["item-inkproj", "tex-inkproj"] }),
-  mkItem("Convite", "Projétil", { idle: ["item-convite-accepted0", "item-convite-accepted1", "item-convite-accepted2"] }),
+  mkItem("Convite", "Projétil", {
+    idle: ["item-convite-accepted0", "item-convite-accepted1", "item-convite-accepted2"],
+  }),
   mkItem("E-mail", "Projétil", { idle: ["item-email-idle0", "item-email-idle1"] }),
   // ── Cenário (Fase 1): tiles de chão/plataforma + fundo gerado ──
   mkItem("Chão (tile)", "Cenário", { idle: ["tile-floor"] }),
@@ -111,24 +179,42 @@ export class SpriteLabScene extends Phaser.Scene {
   private readonly CX = 350;
   private readonly FEET_Y = 430;
 
-  constructor() { super("SpriteLabScene"); }
+  constructor() {
+    super("SpriteLabScene");
+  }
 
   create() {
     this.cameras.main.setBackgroundColor("#15171c");
 
-    this.add.text(GAME_WIDTH / 2, 8, "LAB DE SPRITES — FASE 1", {
-      fontFamily: "monospace", fontSize: "15px", color: "#f2c14e", stroke: "#000", strokeThickness: 2,
-    }).setOrigin(0.5, 0);
-    this.add.text(GAME_WIDTH / 2, 28, "clique nos botões (personagem à esquerda, ação embaixo) — a ação roda em loop   ·   [ESC] sair", {
-      fontFamily: "monospace", fontSize: "9px", color: "#8a93a0",
-    }).setOrigin(0.5, 0);
+    this.add
+      .text(GAME_WIDTH / 2, 8, "LAB DE SPRITES — FASE 1", {
+        fontFamily: "monospace",
+        fontSize: "15px",
+        color: "#f2c14e",
+        stroke: "#000",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5, 0);
+    this.add
+      .text(
+        GAME_WIDTH / 2,
+        28,
+        "clique nos botões (personagem à esquerda, ação embaixo) — a ação roda em loop   ·   [ESC] sair",
+        {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: "#8a93a0",
+        },
+      )
+      .setOrigin(0.5, 0);
 
     // Checkerboard do preview
     const chk = this.add.graphics().setDepth(0);
-    for (let y = 110; y < 460; y += 16) for (let x = 195; x < 545; x += 16) {
-      chk.fillStyle(((x / 16 + y / 16) & 1) ? 0x2a2d35 : 0x20232a, 1);
-      chk.fillRect(x, y, 16, 16);
-    }
+    for (let y = 110; y < 460; y += 16)
+      for (let x = 195; x < 545; x += 16) {
+        chk.fillStyle((x / 16 + y / 16) & 1 ? 0x2a2d35 : 0x20232a, 1);
+        chk.fillRect(x, y, 16, 16);
+      }
 
     this.feetLine = this.add.graphics().setDepth(1);
     this.bbox = this.add.graphics().setDepth(3);
@@ -137,7 +223,11 @@ export class SpriteLabScene extends Phaser.Scene {
     // Painel de diagnóstico
     this.add.rectangle(745, 230, 390, 230, 0x0d0f13, 0.92).setStrokeStyle(1, 0x333a44);
     this.info = this.add.text(560, 122, "", {
-      fontFamily: "monospace", fontSize: "11px", color: "#cfd6e0", lineSpacing: 4, wordWrap: { width: 372 },
+      fontFamily: "monospace",
+      fontSize: "11px",
+      color: "#cfd6e0",
+      lineSpacing: 4,
+      wordWrap: { width: 372 },
     });
 
     this.stripG = this.add.container(0, 0).setDepth(4);
@@ -146,29 +236,62 @@ export class SpriteLabScene extends Phaser.Scene {
     this.buildSubjectButtons();
 
     this.input.keyboard!.on("keydown-ESC", () => this.scene.start("MenuScene"));
-    this.input.keyboard!.on("keydown-SPACE", () => { this.playing = !this.playing; });
+    this.input.keyboard!.on("keydown-SPACE", () => {
+      this.playing = !this.playing;
+    });
 
     this.loadState();
   }
 
   // ── Botões de personagem (2 colunas à esquerda, agrupados por categoria) ─────
   private buildSubjectButtons() {
-    const COL_W = 90, ROW_H = 13, TOP = 46, MAX_Y = 528;
+    const COL_W = 90,
+      ROW_H = 13,
+      TOP = 46,
+      MAX_Y = 528;
     const cols = [6, 98];
-    let col = 0, y = TOP, lastCat = "";
+    let col = 0,
+      y = TOP,
+      lastCat = "";
     SUBJECTS.forEach((s, i) => {
       if (s.cat !== lastCat) {
-        if (y + 12 + ROW_H > MAX_Y && col === 0) { col = 1; y = TOP; } // quebra p/ 2ª coluna
-        this.add.text(cols[col], y, s.cat.toUpperCase(), { fontFamily: "monospace", fontSize: "7px", color: "#5f6a78" });
-        y += 10; lastCat = s.cat;
+        if (y + 12 + ROW_H > MAX_Y && col === 0) {
+          col = 1;
+          y = TOP;
+        } // quebra p/ 2ª coluna
+        this.add.text(cols[col], y, s.cat.toUpperCase(), {
+          fontFamily: "monospace",
+          fontSize: "7px",
+          color: "#5f6a78",
+        });
+        y += 10;
+        lastCat = s.cat;
       }
-      if (y + ROW_H > MAX_Y && col === 0) { col = 1; y = TOP; }
-      const bg = this.add.rectangle(cols[col], y, COL_W - 4, ROW_H - 1, 0x1a1d23).setOrigin(0, 0).setStrokeStyle(1, 0x2a2f3a)
+      if (y + ROW_H > MAX_Y && col === 0) {
+        col = 1;
+        y = TOP;
+      }
+      const bg = this.add
+        .rectangle(cols[col], y, COL_W - 4, ROW_H - 1, 0x1a1d23)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0x2a2f3a)
         .setInteractive({ useHandCursor: true });
-      this.add.text(cols[col] + 3, y + 2, s.name, { fontFamily: "monospace", fontSize: "8px", color: "#cfd6e0" });
-      bg.on("pointerover", () => { if (this.subjIdx !== i) bg.setFillStyle(0x252a36); });
-      bg.on("pointerout", () => { if (this.subjIdx !== i) bg.setFillStyle(0x1a1d23); });
-      bg.on("pointerdown", () => { this.subjIdx = i; this.stateName = Object.keys(s.states)[0]; this.loadState(); });
+      this.add.text(cols[col] + 3, y + 2, s.name, {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#cfd6e0",
+      });
+      bg.on("pointerover", () => {
+        if (this.subjIdx !== i) bg.setFillStyle(0x252a36);
+      });
+      bg.on("pointerout", () => {
+        if (this.subjIdx !== i) bg.setFillStyle(0x1a1d23);
+      });
+      bg.on("pointerdown", () => {
+        this.subjIdx = i;
+        this.stateName = Object.keys(s.states)[0];
+        this.loadState();
+      });
       this.subjBtns.push({ idx: i, bg });
       y += ROW_H;
     });
@@ -176,8 +299,10 @@ export class SpriteLabScene extends Phaser.Scene {
 
   private refreshSubjectButtons() {
     this.subjBtns.forEach(({ idx, bg }) => {
-      bg.setFillStyle(idx === this.subjIdx ? 0x3a4250 : 0x1a1d23)
-        .setStrokeStyle(1, idx === this.subjIdx ? 0xf2c14e : 0x2a2f3a);
+      bg.setFillStyle(idx === this.subjIdx ? 0x3a4250 : 0x1a1d23).setStrokeStyle(
+        1,
+        idx === this.subjIdx ? 0xf2c14e : 0x2a2f3a,
+      );
     });
   }
 
@@ -185,32 +310,58 @@ export class SpriteLabScene extends Phaser.Scene {
   private buildStateButtons() {
     this.stateBtns.removeAll(true);
     const states = Object.keys(SUBJECTS[this.subjIdx].states);
-    let x = 200; const y = 478;
-    states.forEach(st => {
+    let x = 200;
+    const y = 478;
+    states.forEach((st) => {
       const w = 18 + st.length * 7;
       const active = st === this.stateName;
-      const bg = this.add.rectangle(x, y, w, 22, active ? 0x2a6b3a : 0x222834).setOrigin(0, 0)
-        .setStrokeStyle(1, active ? 0x55ff99 : 0x39404e).setInteractive({ useHandCursor: true });
-      const t = this.add.text(x + w / 2, y + 11, st, {
-        fontFamily: "monospace", fontSize: "10px", color: active ? "#ffffff" : "#aab3c0",
-      }).setOrigin(0.5);
-      bg.on("pointerover", () => { if (st !== this.stateName) bg.setFillStyle(0x2c3340); });
-      bg.on("pointerout", () => { if (st !== this.stateName) bg.setFillStyle(0x222834); });
-      bg.on("pointerdown", () => { this.stateName = st; this.playing = true; this.loadState(); });
-      this.stateBtns.add(bg); this.stateBtns.add(t);
+      const bg = this.add
+        .rectangle(x, y, w, 22, active ? 0x2a6b3a : 0x222834)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, active ? 0x55ff99 : 0x39404e)
+        .setInteractive({ useHandCursor: true });
+      const t = this.add
+        .text(x + w / 2, y + 11, st, {
+          fontFamily: "monospace",
+          fontSize: "10px",
+          color: active ? "#ffffff" : "#aab3c0",
+        })
+        .setOrigin(0.5);
+      bg.on("pointerover", () => {
+        if (st !== this.stateName) bg.setFillStyle(0x2c3340);
+      });
+      bg.on("pointerout", () => {
+        if (st !== this.stateName) bg.setFillStyle(0x222834);
+      });
+      bg.on("pointerdown", () => {
+        this.stateName = st;
+        this.playing = true;
+        this.loadState();
+      });
+      this.stateBtns.add(bg);
+      this.stateBtns.add(t);
       x += w + 6;
-      if (x > GAME_WIDTH - 120) { x = 200; }
+      if (x > GAME_WIDTH - 120) {
+        x = 200;
+      }
     });
   }
 
   private getInfo(key: string): FrameInfo {
     const [tex, frame] = resolveSprite(key);
-    let ok = false, w = 0, h = 0;
+    let ok = false,
+      w = 0,
+      h = 0;
     if (isAtlasKey(key) && frame) {
-      ok = true; const f = this.textures.get(ATLAS_KEY).get(frame); w = f.cutWidth; h = f.cutHeight;
+      ok = true;
+      const f = this.textures.get(ATLAS_KEY).get(frame);
+      w = f.cutWidth;
+      h = f.cutHeight;
     } else if (this.textures.exists(tex)) {
-      ok = true; const src = this.textures.get(tex).getSourceImage() as { width: number; height: number };
-      w = src.width; h = src.height;
+      ok = true;
+      const src = this.textures.get(tex).getSourceImage() as { width: number; height: number };
+      w = src.width;
+      h = src.height;
     }
     return { key, ok, tex, frame, w, h };
   }
@@ -218,7 +369,7 @@ export class SpriteLabScene extends Phaser.Scene {
   private loadState() {
     const subj = SUBJECTS[this.subjIdx];
     const keys = subj.states[this.stateName] ?? [];
-    this.frames = keys.map(k => this.getInfo(k));
+    this.frames = keys.map((k) => this.getInfo(k));
     this.frameIdx = 0;
     this.refreshSubjectButtons();
     this.buildStateButtons();
@@ -229,14 +380,17 @@ export class SpriteLabScene extends Phaser.Scene {
 
   private applyFrame() {
     const f = this.frames[this.frameIdx];
-    this.bbox.clear(); this.feetLine.clear();
+    this.bbox.clear();
+    this.feetLine.clear();
     if (f && f.ok) {
-      if (f.frame) this.preview.setTexture(f.tex, f.frame); else this.preview.setTexture(f.tex);
+      if (f.frame) this.preview.setTexture(f.tex, f.frame);
+      else this.preview.setTexture(f.tex);
       // Escala 4x para sprites pequenos; encolhe para caber assets grandes
       // (backgrounds/tiles largos) na janela de preview (~340x300).
       const scale = Math.min(this.SCALE, 340 / f.w, 300 / f.h);
       this.preview.setVisible(true).setScale(scale).setPosition(this.CX, this.FEET_Y);
-      const dw = f.w * scale, dh = f.h * scale;
+      const dw = f.w * scale,
+        dh = f.h * scale;
       this.bbox.lineStyle(1, 0x44ff88, 0.85).strokeRect(this.CX - dw / 2, this.FEET_Y - dh, dw, dh);
       this.feetLine.lineStyle(1, 0xff8844, 0.55).lineBetween(195, this.FEET_Y, 545, this.FEET_Y);
     } else {
@@ -248,53 +402,77 @@ export class SpriteLabScene extends Phaser.Scene {
 
   private buildStrip() {
     this.stripG.removeAll(true);
-    const y = 525, cell = 44, total = this.frames.length;
+    const y = 525,
+      cell = 44,
+      total = this.frames.length;
     const startX = this.CX - (total * cell) / 2 + cell / 2;
     this.frames.forEach((f, i) => {
       const x = startX + i * cell;
-      const border = this.add.rectangle(x, y, cell - 4, cell - 4, 0x1a1d23).setStrokeStyle(2, f.ok ? 0x44ff88 : 0xff3333);
+      const border = this.add
+        .rectangle(x, y, cell - 4, cell - 4, 0x1a1d23)
+        .setStrokeStyle(2, f.ok ? 0x44ff88 : 0xff3333);
       this.stripG.add(border);
       if (f.ok) {
         const img = f.frame ? this.add.image(x, y, f.tex, f.frame) : this.add.image(x, y, f.tex);
         img.setScale(Math.min((cell - 8) / f.w, (cell - 8) / f.h));
         this.stripG.add(img);
       } else {
-        this.stripG.add(this.add.text(x, y, "✗", { fontFamily: "monospace", fontSize: "16px", color: "#ff5555" }).setOrigin(0.5));
+        this.stripG.add(
+          this.add
+            .text(x, y, "✗", { fontFamily: "monospace", fontSize: "16px", color: "#ff5555" })
+            .setOrigin(0.5),
+        );
       }
-      this.stripG.add(this.add.text(x, y + 20, String(i), { fontFamily: "monospace", fontSize: "8px", color: "#8a93a0" }).setOrigin(0.5));
+      this.stripG.add(
+        this.add
+          .text(x, y + 20, String(i), {
+            fontFamily: "monospace",
+            fontSize: "8px",
+            color: "#8a93a0",
+          })
+          .setOrigin(0.5),
+      );
     });
   }
 
   private highlightStrip() {
-    const cell = 44, total = this.frames.length;
+    const cell = 44,
+      total = this.frames.length;
     const startX = this.CX - (total * cell) / 2 + cell / 2;
-    (this.stripG.list as Phaser.GameObjects.GameObject[]).forEach(o => {
+    (this.stripG.list as Phaser.GameObjects.GameObject[]).forEach((o) => {
       if (o instanceof Phaser.GameObjects.Rectangle) {
         const idx = Math.round((o.x - startX) / cell);
         const f = this.frames[idx];
-        if (f) o.setStrokeStyle(idx === this.frameIdx ? 3 : 2, idx === this.frameIdx ? 0xffdd44 : (f.ok ? 0x44ff88 : 0xff3333));
+        if (f)
+          o.setStrokeStyle(
+            idx === this.frameIdx ? 3 : 2,
+            idx === this.frameIdx ? 0xffdd44 : f.ok ? 0x44ff88 : 0xff3333,
+          );
       }
     });
   }
 
   private logDiagnostics() {
     const subj = SUBJECTS[this.subjIdx];
-    const missing = this.frames.filter(f => !f.ok).map(f => f.key);
-    const sizes = [...new Set(this.frames.filter(f => f.ok).map(f => `${f.w}x${f.h}`))];
+    const missing = this.frames.filter((f) => !f.ok).map((f) => f.key);
+    const sizes = [...new Set(this.frames.filter((f) => f.ok).map((f) => `${f.w}x${f.h}`))];
     const cur = this.frames[this.frameIdx];
     const lines = [
       `${subj.cat.toUpperCase()}:  ${subj.name}`,
       `ANIMAÇÃO:  ${this.stateName}   (${this.frames.length} frames)`,
       `tamanhos:  ${sizes.join(", ") || "—"}` + (sizes.length > 1 ? "  ⚠ INCONSISTENTE" : "  ✓"),
       `faltando:  ${missing.length ? "⚠ " + missing.length : "✓ 0"}`,
-      ...missing.map(m => `   ✗ ${m}`),
+      ...missing.map((m) => `   ✗ ${m}`),
       ``,
       `frame atual: ${cur ? (cur.frame ?? cur.tex) : "—"}  (${cur ? cur.w + "x" + cur.h : "—"})`,
     ];
     this.info.setText(lines.join("\n"));
     const status = missing.length || sizes.length > 1 ? "⚠ PROBLEMA" : "OK";
-    // eslint-disable-next-line no-console
-    console.log(`[SpriteLab] ${subj.name}/${this.stateName}: ${this.frames.length}f sizes=${sizes.join("|")} missing=${missing.length} → ${status}`, missing.length ? missing : "");
+
+    console.log(
+      `[SpriteLab] ${subj.name}/${this.stateName}: ${this.frames.length}f sizes=${sizes.join("|")} missing=${missing.length} → ${status}`,
+      missing.length ? missing : "",
+    );
   }
 
   update(time: number) {

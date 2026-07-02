@@ -62,7 +62,7 @@ export class CopaScene extends Phaser.Scene {
     for (let x = 0; x <= LEVEL_WIDTH; x += 96) bg.lineBetween(x, 60, x, GAME_HEIGHT - 64);
     for (let y = 60; y < GAME_HEIGHT - 64; y += 64) bg.lineBetween(0, y, LEVEL_WIDTH, y);
     // Window patches (warm break-room light)
-    [200, 580, 960, 1160].forEach(wx => {
+    [200, 580, 960, 1160].forEach((wx) => {
       bg.fillStyle(0x3a5c3a, 0.375);
       bg.fillRect(wx, 70, 80, 120);
       bg.fillStyle(0xfff0c0, 0.125);
@@ -73,14 +73,22 @@ export class CopaScene extends Phaser.Scene {
     for (let x = 40; x < LEVEL_WIDTH; x += 200) bg.fillRect(x, 60, 120, 6);
 
     this.platforms = this.physics.add.staticGroup();
-    const floor = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 16, LEVEL_WIDTH, 32, COLORS.copaFloor);
+    const floor = this.add.rectangle(
+      LEVEL_WIDTH / 2,
+      FLOOR_Y + 16,
+      LEVEL_WIDTH,
+      32,
+      COLORS.copaFloor,
+    );
     this.physics.add.existing(floor, true);
     this.platforms.add(floor);
-    ([
-      [320, FLOOR_Y - 90, 4],
-      [720, FLOOR_Y - 90, 4],
-      [1000, FLOOR_Y - 140, 3],
-    ] as [number, number, number][]).forEach(([x, y, t]) => {
+    (
+      [
+        [320, FLOOR_Y - 90, 4],
+        [720, FLOOR_Y - 90, 4],
+        [1000, FLOOR_Y - 140, 3],
+      ] as [number, number, number][]
+    ).forEach(([x, y, t]) => {
       const w = t * 32;
       const plat = this.add.rectangle(x + w / 2, y, w, 14, COLORS.copaAccent);
       this.physics.add.existing(plat, true);
@@ -89,35 +97,47 @@ export class CopaScene extends Phaser.Scene {
 
     // Coffee machine
     this.coffee = this.add.image(180, FLOOR_Y - 20, "tex-coffee");
-    this.add.text(180, FLOOR_Y - 56, "CAFE", {
-      fontFamily: "monospace", fontSize: "10px", color: "#eac08a",
-    }).setOrigin(0.5);
+    this.add
+      .text(180, FLOOR_Y - 56, "CAFE", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#eac08a",
+      })
+      .setOrigin(0.5);
 
     // Ponto eletrônico
     this.ponto = this.add.image(LEVEL_WIDTH - 140, FLOOR_Y - 20, "tex-ponto");
-    this.add.text(LEVEL_WIDTH - 140, FLOOR_Y - 56, "PONTO", {
-      fontFamily: "monospace", fontSize: "10px", color: "#f2c14e",
-    }).setOrigin(0.5);
+    this.add
+      .text(LEVEL_WIDTH - 140, FLOOR_Y - 56, "PONTO", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#f2c14e",
+      })
+      .setOrigin(0.5);
 
     // Door back to OpenSpace
     const doorBack = this.add.image(40, FLOOR_Y - 30, "tex-door");
-    this.add.text(40, FLOOR_Y - 70, "VOLTAR", {
-      fontFamily: "monospace", fontSize: "9px", color: "#c9a36a",
-    }).setOrigin(0.5);
+    this.add
+      .text(40, FLOOR_Y - 70, "VOLTAR", {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#c9a36a",
+      })
+      .setOrigin(0.5);
     doorBack.setData("door", "back");
 
     // Player
     const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
     this.player = new Player(this, 80, FLOOR_Y - 60);
-    this.player.maxEnergy           = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
-    this.player.maxSanity           = classDef.maxSanity + (run.upgMaxSanity ?? 0);
-    this.player.vrDropMult          = classDef.vrMult + (run.upgVrDropMult ?? 0);
-    this.player.parryWindowBonus    = run.upgParryWindowBonus ?? 0;
+    this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
+    this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
+    this.player.vrDropMult = classDef.vrMult + (run.upgVrDropMult ?? 0);
+    this.player.parryWindowBonus = run.upgParryWindowBonus ?? 0;
     this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
-    this.player.dashCooldownBonus   = run.upgDashCooldownBonus ?? 0;
+    this.player.dashCooldownBonus = run.upgDashCooldownBonus ?? 0;
     this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
-    this.player.parryEnergyRestore  = run.upgParryEnergyRestore ?? 0;
-    this.player.parryVrDrop         = run.upgParryVrDrop ?? 0;
+    this.player.parryEnergyRestore = run.upgParryEnergyRestore ?? 0;
+    this.player.parryVrDrop = run.upgParryVrDrop ?? 0;
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;
@@ -148,28 +168,43 @@ export class CopaScene extends Phaser.Scene {
 
     let fala: string;
     if (loopCount <= 1) {
-      fala = cause === "burnout"
-        ? "Bom dia! Parece cansado... O café tá fresquinho."
-        : "Bom dia! A copa é sua. Café tá fresquinho.";
+      fala =
+        cause === "burnout"
+          ? "Bom dia! Parece cansado... O café tá fresquinho."
+          : "Bom dia! A copa é sua. Café tá fresquinho.";
     } else if (loopCount <= 3) {
-      fala = cause === "burnout"
-        ? "De novo com a cabeça pesada? Eu conheço esse olho."
-        : "De novo? Você parece familiar... Café?";
+      fala =
+        cause === "burnout"
+          ? "De novo com a cabeça pesada? Eu conheço esse olho."
+          : "De novo? Você parece familiar... Café?";
     } else if (loopCount <= 6) {
-      fala = cause === "energy"
-        ? `Cara... você tá bem? Já te vi sair machucado umas ${loopCount} vezes hoje.`
-        : `Cara... você tá bem? Já te vi sair daqui umas ${loopCount} vezes hoje.`;
+      fala =
+        cause === "energy"
+          ? `Cara... você tá bem? Já te vi sair machucado umas ${loopCount} vezes hoje.`
+          : `Cara... você tá bem? Já te vi sair daqui umas ${loopCount} vezes hoje.`;
     } else if (loopCount <= 10) {
       fala = "Olha, entre nós... eu também não consigo sair daqui. Só finjo que limpo.";
     } else {
       fala = "Talvez a saída não seja às 18h. Talvez a saída seja... dentro de você.";
     }
     this.time.delayedCall(1200, () => {
-      const bubble = this.add.text(520, FLOOR_Y - 130, fala, {
-        fontFamily: "monospace", fontSize: "11px", color: "#c9e8c9",
-        backgroundColor: "#1a2a1a", padding: { x: 6, y: 4 },
-      }).setOrigin(0.5).setDepth(500);
-      this.tweens.add({ targets: bubble, alpha: 0, delay: 2800, duration: 600, onComplete: () => bubble.destroy() });
+      const bubble = this.add
+        .text(520, FLOOR_Y - 130, fala, {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: "#c9e8c9",
+          backgroundColor: "#1a2a1a",
+          padding: { x: 6, y: 4 },
+        })
+        .setOrigin(0.5)
+        .setDepth(500);
+      this.tweens.add({
+        targets: bubble,
+        alpha: 0,
+        delay: 2800,
+        duration: 600,
+        onComplete: () => bubble.destroy(),
+      });
     });
     this.physics.add.collider(this.faxineiros, this.platforms);
 
@@ -191,31 +226,73 @@ export class CopaScene extends Phaser.Scene {
     // offer a free sanity restore (sanidade como decisão de gameplay)
     if (this.player.sanity < 25) {
       this.time.delayedCall(400, () => {
-        const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH * 0.7, 110, 0x0a1f0a, 0.93)
-          .setScrollFactor(0).setDepth(990).setAlpha(0);
-        const msg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28,
-          "BURNOUT IMINENTE\nO Faxineiro oferece um chá de camomila gratuito.\n[ ESPAÇO ] Aceitar  —  restaura +40 Sanidade",
-          { fontFamily: "monospace", fontSize: "12px", color: "#44ffaa",
-            align: "center", lineSpacing: 4 })
-          .setOrigin(0.5).setScrollFactor(0).setDepth(991).setAlpha(0);
+        const overlay = this.add
+          .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH * 0.7, 110, 0x0a1f0a, 0.93)
+          .setScrollFactor(0)
+          .setDepth(990)
+          .setAlpha(0);
+        const msg = this.add
+          .text(
+            GAME_WIDTH / 2,
+            GAME_HEIGHT / 2 - 28,
+            "BURNOUT IMINENTE\nO Faxineiro oferece um chá de camomila gratuito.\n[ ESPAÇO ] Aceitar  —  restaura +40 Sanidade",
+            {
+              fontFamily: "monospace",
+              fontSize: "12px",
+              color: "#44ffaa",
+              align: "center",
+              lineSpacing: 4,
+            },
+          )
+          .setOrigin(0.5)
+          .setScrollFactor(0)
+          .setDepth(991)
+          .setAlpha(0);
         this.tweens.add({ targets: [overlay, msg], alpha: 1, duration: 300 });
         const accept = () => {
           this.player.sanity = Math.min(100, this.player.sanity + 40);
-          const fxt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, "+40 SANIDADE", {
-            fontFamily: "monospace", fontSize: "15px", color: "#44ffaa",
-            stroke: "#000000", strokeThickness: 3 })
-            .setOrigin(0.5).setScrollFactor(0).setDepth(992);
-          this.tweens.add({ targets: fxt, y: fxt.y - 30, alpha: 0, duration: 900, onComplete: () => fxt.destroy() });
-          this.tweens.add({ targets: [overlay, msg], alpha: 0, duration: 300,
-            onComplete: () => { overlay.destroy(); msg.destroy(); } });
+          const fxt = this.add
+            .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, "+40 SANIDADE", {
+              fontFamily: "monospace",
+              fontSize: "15px",
+              color: "#44ffaa",
+              stroke: "#000000",
+              strokeThickness: 3,
+            })
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(992);
+          this.tweens.add({
+            targets: fxt,
+            y: fxt.y - 30,
+            alpha: 0,
+            duration: 900,
+            onComplete: () => fxt.destroy(),
+          });
+          this.tweens.add({
+            targets: [overlay, msg],
+            alpha: 0,
+            duration: 300,
+            onComplete: () => {
+              overlay.destroy();
+              msg.destroy();
+            },
+          });
           this.input.keyboard!.off("keydown-SPACE", accept);
         };
         this.input.keyboard!.once("keydown-SPACE", accept);
         // auto-dismiss after 6s if ignored
         this.time.delayedCall(6000, () => {
           if (overlay.active) {
-            this.tweens.add({ targets: [overlay, msg], alpha: 0, duration: 400,
-              onComplete: () => { overlay.destroy(); msg.destroy(); } });
+            this.tweens.add({
+              targets: [overlay, msg],
+              alpha: 0,
+              duration: 400,
+              onComplete: () => {
+                overlay.destroy();
+                msg.destroy();
+              },
+            });
           }
         });
       });
@@ -225,10 +302,10 @@ export class CopaScene extends Phaser.Scene {
     // Persist into sourcePhase so it survives subsequent transitions.
     const phaseBackMap: Record<string, string> = {
       openspace: "OpenSpaceV2Scene",
-      phase2:    "Phase2Scene",
-      phase3:    "Phase3Scene",
-      phase4:    "Phase4Scene",
-      phase5:    "Phase5Scene",
+      phase2: "Phase2Scene",
+      phase3: "Phase3Scene",
+      phase4: "Phase4Scene",
+      phase5: "Phase5Scene",
     };
     if (run.cameFrom && phaseBackMap[run.cameFrom]) {
       run.sourcePhase = run.cameFrom;
@@ -258,16 +335,24 @@ export class CopaScene extends Phaser.Scene {
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
     this.hintText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 18,
+      .text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT - 18,
         "E para interagir  •  Cafe restaura Energia  •  Ponto abre a loja",
-        { fontFamily: "monospace", fontSize: "11px", color: "#aaaaaa" })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+        { fontFamily: "monospace", fontSize: "11px", color: "#aaaaaa" },
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1000);
 
     // Door back trigger — returns to the phase the player came from
     const doorBackZone = this.add.zone(40, FLOOR_Y - 30, 40, 60);
     this.physics.add.existing(doorBackZone, true);
     this.physics.add.overlap(this.player, doorBackZone, () => {
-      if (Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed) {
+      if (
+        Phaser.Input.Keyboard.JustDown(this.interactKey) ||
+        this.player.gamepadInteractJustPressed
+      ) {
         this.persist();
         const r = getRun(this);
         const src = r.sourcePhase ?? "openspace";
@@ -279,10 +364,20 @@ export class CopaScene extends Phaser.Scene {
 
     const title = this.add
       .text(GAME_WIDTH / 2, 80, "COPA — 18:14\nLuz fluorescente piscando.", {
-        fontFamily: "monospace", fontSize: "16px", color: "#eaeaea", align: "center",
+        fontFamily: "monospace",
+        fontSize: "16px",
+        color: "#eaeaea",
+        align: "center",
       })
-      .setOrigin(0.5).setScrollFactor(0);
-    this.tweens.add({ targets: title, alpha: 0, duration: 800, delay: 2000, onComplete: () => title.destroy() });
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+    this.tweens.add({
+      targets: title,
+      alpha: 0,
+      duration: 800,
+      delay: 2000,
+      onComplete: () => title.destroy(),
+    });
   }
 
   private persist() {
@@ -303,12 +398,20 @@ export class CopaScene extends Phaser.Scene {
     const cy = hb.y + hb.height / 2;
     const r = Math.max(hb.width, hb.height) * 0.6;
     const startAngle = this.player.facing > 0 ? -Math.PI * 0.6 : Math.PI * 0.4;
-    const endAngle   = this.player.facing > 0 ?  Math.PI * 0.6 : Math.PI * 1.6;
+    const endAngle = this.player.facing > 0 ? Math.PI * 0.6 : Math.PI * 1.6;
     slash.lineStyle(3, 0xffffff, 0.75);
     slash.beginPath();
     slash.arc(cx, cy, r, startAngle, endAngle, false);
     slash.strokePath();
-    this.tweens.add({ targets: slash, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 140, ease: "Quad.easeOut", onComplete: () => slash.destroy() });
+    this.tweens.add({
+      targets: slash,
+      alpha: 0,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      duration: 140,
+      ease: "Quad.easeOut",
+      onComplete: () => slash.destroy(),
+    });
 
     this.faxineiros.getChildren().forEach((c) => {
       const f = c as Faxineiro;
@@ -323,7 +426,15 @@ export class CopaScene extends Phaser.Scene {
         }
         if (f.hit(damage, knockback)) {
           this.dropVR(f.x, f.y, 5);
-          this.tweens.add({ targets: f, y: f.y - 18, scaleY: 0.5, alpha: 0, duration: 200, ease: "Quad.easeOut", onComplete: () => f.destroy() });
+          this.tweens.add({
+            targets: f,
+            y: f.y - 18,
+            scaleY: 0.5,
+            alpha: 0,
+            duration: 200,
+            ease: "Quad.easeOut",
+            onComplete: () => f.destroy(),
+          });
           f.setActive(false);
         }
       }
@@ -332,7 +443,11 @@ export class CopaScene extends Phaser.Scene {
 
   private dropVR(x: number, y: number, count = 1) {
     for (let i = 0; i < count; i++) {
-      const d = this.drops.create(x + (i - count / 2) * 8, y - 10, "tex-vr") as Phaser.Physics.Arcade.Sprite;
+      const d = this.drops.create(
+        x + (i - count / 2) * 8,
+        y - 10,
+        "tex-vr",
+      ) as Phaser.Physics.Arcade.Sprite;
       d.setDepth(8);
       const body = d.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(Phaser.Math.Between(-120, 120), Phaser.Math.Between(-260, -160));
@@ -352,7 +467,8 @@ export class CopaScene extends Phaser.Scene {
         const pb = this.player.getBounds();
         if (Phaser.Geom.Intersects.RectangleToRectangle(f.swingHitbox, pb)) {
           this.player.takeDamage(f.swingDamage, f.sanityDamage);
-          f.swingActive = false; f.swingHitbox = null;
+          f.swingActive = false;
+          f.swingHitbox = null;
         }
       }
     });
@@ -366,28 +482,54 @@ export class CopaScene extends Phaser.Scene {
         if (dist < 90) {
           this.lastHealAt = time;
           this.player.sanity = Math.min(100, this.player.sanity + 5);
-          const fx = this.add.text(f.x, f.y - 40, "+5 SANIDADE", {
-            fontFamily: "monospace", fontSize: "11px", color: "#44ffaa",
-          }).setOrigin(0.5).setDepth(500);
-          this.tweens.add({ targets: fx, y: fx.y - 28, alpha: 0, duration: 750, onComplete: () => fx.destroy() });
+          const fx = this.add
+            .text(f.x, f.y - 40, "+5 SANIDADE", {
+              fontFamily: "monospace",
+              fontSize: "11px",
+              color: "#44ffaa",
+            })
+            .setOrigin(0.5)
+            .setDepth(500);
+          this.tweens.add({
+            targets: fx,
+            y: fx.y - 28,
+            alpha: 0,
+            duration: 750,
+            onComplete: () => fx.destroy(),
+          });
         }
       });
     }
 
     // Interact: coffee and ponto
-    const nearCoffee = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.coffee.x, this.coffee.y) < 40;
-    const nearPonto = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.ponto.x, this.ponto.y) < 40;
+    const nearCoffee =
+      Phaser.Math.Distance.Between(this.player.x, this.player.y, this.coffee.x, this.coffee.y) < 40;
+    const nearPonto =
+      Phaser.Math.Distance.Between(this.player.x, this.player.y, this.ponto.x, this.ponto.y) < 40;
 
-    if (Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed) {
+    if (
+      Phaser.Input.Keyboard.JustDown(this.interactKey) ||
+      this.player.gamepadInteractJustPressed
+    ) {
       if (nearCoffee && time >= this.coffeeReadyAt && this.player.vr >= 2) {
         this.player.vr -= 2;
         this.player.energy = Math.min(100, this.player.energy + 25);
         this.player.sanity = Math.max(0, this.player.sanity - 5);
         this.coffeeReadyAt = time + 3000;
-        const fxt = this.add.text(this.coffee.x, this.coffee.y - 50, "+25 ENERGIA  -5 SANIDADE", {
-          fontFamily: "monospace", fontSize: "11px", color: "#eac08a",
-        }).setOrigin(0.5);
-        this.tweens.add({ targets: fxt, y: fxt.y - 24, alpha: 0, duration: 700, onComplete: () => fxt.destroy() });
+        const fxt = this.add
+          .text(this.coffee.x, this.coffee.y - 50, "+25 ENERGIA  -5 SANIDADE", {
+            fontFamily: "monospace",
+            fontSize: "11px",
+            color: "#eac08a",
+          })
+          .setOrigin(0.5);
+        this.tweens.add({
+          targets: fxt,
+          y: fxt.y - 24,
+          alpha: 0,
+          duration: 700,
+          onComplete: () => fxt.destroy(),
+        });
       } else if (nearPonto) {
         this.persist();
         this.shop.toggle();
@@ -409,16 +551,22 @@ export class CopaScene extends Phaser.Scene {
       startTime: this.startTimeMs,
       playerX: this.player.x,
       interactHint: nearCoffee
-        ? (time < this.coffeeReadyAt ? "Cafeteira recarregando..." : "[ E ]  Cafe Triplo (2 VR)")
-        : nearPonto ? "[ E ]  Ponto Eletronico (loja)"
-        : undefined,
+        ? time < this.coffeeReadyAt
+          ? "Cafeteira recarregando..."
+          : "[ E ]  Cafe Triplo (2 VR)"
+        : nearPonto
+          ? "[ E ]  Ponto Eletronico (loja)"
+          : undefined,
     });
 
     this.hintText.setText(
       nearCoffee
-        ? (time < this.coffeeReadyAt ? "Cafeteira recarregando..." : "E: Cafe Triplo (2 VR  +25 Energia  -5 Sanidade)")
-        : nearPonto ? "E: abrir Ponto Eletronico (loja)"
-        : "E para interagir  •  <- voltar pelo escritorio",
+        ? time < this.coffeeReadyAt
+          ? "Cafeteira recarregando..."
+          : "E: Cafe Triplo (2 VR  +25 Energia  -5 Sanidade)"
+        : nearPonto
+          ? "E: abrir Ponto Eletronico (loja)"
+          : "E para interagir  •  <- voltar pelo escritorio",
     );
   }
 }

@@ -18,11 +18,7 @@ const PHASE_PROP_KEYS: Record<number, string[]> = {
  * Places decorative props from the phase tileset along the floor level.
  * Purely visual (depth=1, no physics body). Call after addPhaseBackground.
  */
-export function addPhaseDecor(
-  scene: Phaser.Scene,
-  phase: 1 | 2 | 3 | 4 | 5,
-  floorY: number,
-): void {
+export function addPhaseDecor(scene: Phaser.Scene, phase: 1 | 2 | 3 | 4 | 5, floorY: number): void {
   const keys = PHASE_PROP_KEYS[phase] ?? [];
   if (!keys.length) return;
 
@@ -30,10 +26,7 @@ export function addPhaseDecor(
   keys.forEach((key, i) => {
     const x = spacing + i * spacing * 2;
     const [tex, frame] = resolveSprite(`tex-${key}`);
-    scene.add.image(x, floorY, tex, frame)
-      .setOrigin(0.5, 1)
-      .setDepth(1)
-      .setAlpha(0.7);
+    scene.add.image(x, floorY, tex, frame).setOrigin(0.5, 1).setDepth(1).setAlpha(0.7);
   });
 }
 

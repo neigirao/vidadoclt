@@ -457,7 +457,9 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     archetype: "ranged",
     spritePrefix: "ti-suporte",
     bodySize: { w: 34, h: 56 },
-    attacks: [{ name: "have_you_tried_restarting", telegraphMs: 350, damage: 12, cooldownMs: 1500 }],
+    attacks: [
+      { name: "have_you_tried_restarting", telegraphMs: 350, damage: 12, cooldownMs: 1500 },
+    ],
     drops: { vr: [2, 5] },
     description: "Pergunta se você reiniciou. Três vezes.",
     lore: "Abriu um chamado no sistema de chamados para consertar o sistema de chamados. O chamado foi encerrado como 'sem reprodução'. Reiniciou o computador.",

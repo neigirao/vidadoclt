@@ -3,8 +3,18 @@ import seedrandom from "seedrandom";
 
 // Thematic seed prefixes — corporate Brazilian slang
 const PREFIXES = [
-  "CLT", "FGTS", "META", "KPIS", "JIRA", "HORA",
-  "MEMO", "MGMT", "PGTO", "AGIL", "PJBT", "CNPJ",
+  "CLT",
+  "FGTS",
+  "META",
+  "KPIS",
+  "JIRA",
+  "HORA",
+  "MEMO",
+  "MGMT",
+  "PGTO",
+  "AGIL",
+  "PJBT",
+  "CNPJ",
 ];
 
 /**

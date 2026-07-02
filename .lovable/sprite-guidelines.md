@@ -6,14 +6,14 @@ Referência para toda revisão ou criação de sprites de personagens, inimigos,
 
 ## 1. Dimensões e grade
 
-| Tipo | Tamanho do PNG | Observação |
-|------|---------------|------------|
-| Personagem jogador | 80×80 px | margem de ~10px em cada lado |
-| Inimigos comuns | 48×64 px | corpo centrado, pés na base |
-| Chefões (Gerente, CEO) | 64×96 px ou maior | proporção livre, mas consistente dentro do boss |
-| Objetos de cena | 48×48 px | `obj-*` no atlas |
-| Itens coletáveis | 24×24 px | `item-*` no atlas |
-| Tiles (chão, plataforma) | 16×16 px | tileable horizontalmente |
+| Tipo                     | Tamanho do PNG    | Observação                                      |
+| ------------------------ | ----------------- | ----------------------------------------------- |
+| Personagem jogador       | 80×80 px          | margem de ~10px em cada lado                    |
+| Inimigos comuns          | 48×64 px          | corpo centrado, pés na base                     |
+| Chefões (Gerente, CEO)   | 64×96 px ou maior | proporção livre, mas consistente dentro do boss |
+| Objetos de cena          | 48×48 px          | `obj-*` no atlas                                |
+| Itens coletáveis         | 24×24 px          | `item-*` no atlas                               |
+| Tiles (chão, plataforma) | 16×16 px          | tileable horizontalmente                        |
 
 **Regra:** todos os frames de uma mesma entidade **devem ter exatamente o mesmo tamanho**. Frames de tamanhos diferentes causam saltos visuais e quebram os offsets de hitbox.
 
@@ -33,6 +33,7 @@ Referência para toda revisão ou criação de sprites de personagens, inimigos,
 Todos os personagens e inimigos recebem **outline preto de 1px** automático via script. Não adicionar outline manualmente no sprite — o script `pack-atlas.mjs` aplica via `outline-sprites.mjs`.
 
 Benefícios comprovados no projeto:
+
 - Legibilidade sobre fundos variados (claro, escuro, colorido).
 - Consistência visual entre sprites de origens diferentes.
 
@@ -42,15 +43,15 @@ Benefícios comprovados no projeto:
 
 Padrão: `<categoria>-<nome>-<estado><frame>`
 
-| Categoria | Prefixo | Exemplo |
-|-----------|---------|---------|
-| Inimigo | `enemy-` | `enemy-estagiario-idle0` |
-| Chefão | `boss-` | `boss-gerente-idle0` |
-| Jogador | `player-` | `player-walk2` |
-| Objeto de cena | `obj-` | `obj-mesa-idle` |
-| Item coletável | `item-` | `item-coffee-cup` |
-| NPC | `npc-` | `npc-faxineiro-idle0` |
-| Tile | `tile-` | `tile-platform` |
+| Categoria      | Prefixo   | Exemplo                  |
+| -------------- | --------- | ------------------------ |
+| Inimigo        | `enemy-`  | `enemy-estagiario-idle0` |
+| Chefão         | `boss-`   | `boss-gerente-idle0`     |
+| Jogador        | `player-` | `player-walk2`           |
+| Objeto de cena | `obj-`    | `obj-mesa-idle`          |
+| Item coletável | `item-`   | `item-coffee-cup`        |
+| NPC            | `npc-`    | `npc-faxineiro-idle0`    |
+| Tile           | `tile-`   | `tile-platform`          |
 
 **Estados obrigatórios** para inimigos: `idle0`, `walk0`, `walk1`, `hurt0`, `attack0`.
 **Estados opcionais:** `death0–death3`, `attack1`, `idle1`.
@@ -95,8 +96,8 @@ if (this.hp <= 0) markKilled("<enemy_id_do_catalogo>");
 ### Novo objeto
 
 ```ts
-addImage(scene, x, y, "tex-<nome>");           // imagem estática
-addSprite(scene, x, y, "tex-<nome>-idle0");    // sprite animável
+addImage(scene, x, y, "tex-<nome>"); // imagem estática
+addSprite(scene, x, y, "tex-<nome>-idle0"); // sprite animável
 ```
 
 ### Verificar frames em dev
@@ -163,11 +164,11 @@ warnMissing(this, "<nome>");
 
 ## 12. Anti-patterns conhecidos (não repetir)
 
-| Problema | O que não fazer | Solução |
-|----------|----------------|---------|
-| Flicker de textura | `setTexture()` a cada frame | `applyTexture()` — troca só quando muda |
-| Arco-íris em móveis | Esticar texturas de estante colorida | `add.graphics().fillStyle()` sólido |
-| Parede invisível | Inimigos colidindo com `furnitureBodies` | Só player colide com móveis; inimigos só com `platforms` |
-| Frames fantasma | PNG com pixels residuais de frame anterior | Re-extrair com threshold correto |
-| Sprite cortado | Margem insuficiente no PNG | Mínimo 4px de margem em cada lado |
-| Outline duplo | Outline manual + outline do script | Não adicionar outline manual |
+| Problema            | O que não fazer                            | Solução                                                  |
+| ------------------- | ------------------------------------------ | -------------------------------------------------------- |
+| Flicker de textura  | `setTexture()` a cada frame                | `applyTexture()` — troca só quando muda                  |
+| Arco-íris em móveis | Esticar texturas de estante colorida       | `add.graphics().fillStyle()` sólido                      |
+| Parede invisível    | Inimigos colidindo com `furnitureBodies`   | Só player colide com móveis; inimigos só com `platforms` |
+| Frames fantasma     | PNG com pixels residuais de frame anterior | Re-extrair com threshold correto                         |
+| Sprite cortado      | Margem insuficiente no PNG                 | Mínimo 4px de margem em cada lado                        |
+| Outline duplo       | Outline manual + outline do script         | Não adicionar outline manual                             |
