@@ -163,6 +163,15 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 
 `drawLevelOverlay(scene, spec, report)` desenha o diagnóstico **em cima da fase** (tecla **V** em DEV): raio seguro de spawn, arco de pulo, teto de pulo, plataformas/mesas coloridas (verde=ok, vermelho=problema), zonas de dificuldade com contagem, boss/saída, pontos de inimigos, e um painel fixo com PASS/FAIL + checks.
 
+**Ligado em todas as fases**: OpenSpaceV2 e `BasePhaseScene` (Fases 2–5) rodam o validador em DEV. `expectBoss: false` para fases sem boss por design (Fase 5 → CEO é a cena seguinte). As Fases 2–5 têm **3 variantes de layout por seed** (0 original, 1 espelhado, 2 alturas alternadas) aplicadas genericamente sobre `getPlatformLayout()` — todas validadas.
+
+### Padrão de inimigo de fase (2–5)
+- **Animação**: `animPhase(this, t, "<prefixo>", nFrames)` no fim do `preUpdate` — cicla `enemy-<prefixo>-walkN` em movimento, volta à base parado. Whitelist: só prefixos cujo walk tem o MESMO tamanho da base (evangelista fora: 64×64 vs 32×48).
+- **Telegrafia**: atirador usa `fxGlow` + `showTelegraph` + `delayedCall(320)` antes do disparo (padrão leve; o windup travado do Facilitador/Onboarding é o padrão pesado da Fase 1).
+
+### Eventos de sala (Fase 1) e segredo
+`rollRoomEvent` tem 6 eventos + sala normal; os **mecânicos** são APAGÃO (escuridão com lanterna no player — textura 2× da tela com furo radial, pois GeometryMask é Canvas-only no Phaser 4) e FISCALIZAÇÃO (Sênior extra). Segredo: bater no extintor (x≈1793) derruba +3 VR, 1× por run (`checkExtintorSecret`).
+
 ### Band-aids de sprite ativos
 Nenhum band-aid ativo no momento.
 - ✅ **Post-it / Café (drop) / copo da Copa**: refeitos via `gen-sprites.mjs` (eram bloco amarelo / respingos).
