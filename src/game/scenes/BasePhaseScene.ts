@@ -13,6 +13,7 @@ import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
+import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -192,13 +193,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
 
-    // A janela ativa do golpe (Player) re-dispara onAttack a cada frame; sem o
-    // dedup por swingId (só a Fase 1 tem), processa apenas o 1º frame — senão
-    // slash/SFX repetem ~8x por golpe (o dano já é protegido pelos i-frames
-    // de 400ms dos inimigos de fase).
-    this.player.onAttack = (hb, step, _swingId, firstFrame) => {
-      if (firstFrame !== false) this.resolveAttack(hb, step);
-    };
+    // Combate canônico (MeleeCombat): janela ativa com dedup por swingId —
+    // todas as fases ganham a hitbox persistente da Fase 1 corretamente.
+    this.player.onAttack = (hb, step, swingId, firstFrame) =>
+      this.resolveAttack(hb, step, swingId, firstFrame);
 
     this.player.onRangedAttack = (fx, fy, facing) => {
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
@@ -618,74 +616,35 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.scene.launch("CulturaSelectScene", { caller: this.scene.key, options });
   }
 
-  protected resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
-    const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
-    const comboHits = def.hitDamages[2] === 0 ? 2 : 3;
-    const dmgIndex = Math.min(step - 1, def.hitDamages.length - 1);
-    const baseDmg = def.hitDamages[dmgIndex] || def.hitDamages[0];
-    let strikeMult = 1.0;
-    if (this.player.firstStrikeReady) {
-      this.player.firstStrikeReady = false;
-      strikeMult = 1.5;
-      this.cameras.main.flash(180, 255, 215, 0, false);
+  // Host do combate canônico — construído 1x (grupos lidos por getter vivo).
+  private _meleeHost?: MeleeHost;
+
+  protected getMeleeHost(): MeleeHost {
+    if (!this._meleeHost) {
+      this._meleeHost = {
+        scene: this,
+        player: this.player,
+        combatFx: this.combatFx,
+        getGroups: () => this.enemyGroups,
+        getBoss: () => this.boss as ReturnType<MeleeHost["getBoss"]>,
+        dropVR: (x, y, n) => this.dropVR(x, y, n),
+        onBossDied: () => this.handleBossDefeat(),
+        onEnemyKilled: (e) => this.onEnemyKilledByMelee(e),
+      };
     }
-    const damage = Math.round(baseDmg * this.player.damageMult * strikeMult);
-    const knockback = (step >= comboHits ? def.comboKnockback : 80) * this.player.facing;
-    const slowMs = def.hitSlow;
+    // player/combatFx são recriados a cada create() da cena
+    this._meleeHost.player = this.player;
+    this._meleeHost.combatFx = this.combatFx;
+    return this._meleeHost;
+  }
 
-    const slash = this.add.rectangle(
-      hb.x + hb.width / 2,
-      hb.y + hb.height / 2,
-      hb.width,
-      hb.height,
-      0xffffff,
-      0.5,
-    );
-    this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
-    const isFinal = step >= comboHits;
-    if (isFinal) {
-      this.combatFx.finisherImpact();
-      Sfx.meleeHeavy();
-      Sfx.comboFinisher();
-    } else Sfx.meleeLight();
-
-    const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
-      Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
-
-    for (const groupDef of this.enemyGroups) {
-      const { group, vrDrop } = groupDef;
-      group.getChildren().forEach((c) => {
-        const e = c as Phaser.Physics.Arcade.Sprite & {
-          hit: (d: number, k: number) => boolean;
-          applySlowdown?: (ms: number) => void;
-        };
-        if (!e.active || !tryHit(e)) return;
-        if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
-        CombatFx.flashSprite(e as unknown as Phaser.Physics.Arcade.Sprite, 55);
-        const died = e.hit(damage, knockback);
-        this.combatFx.spawnDamageNumber(
-          e.x,
-          e.y - 20,
-          damage,
-          isFinal ? "#ffdd44" : "#ffffff",
-          isFinal,
-        );
-        if (isFinal) this.combatFx.finisherImpact();
-        if (died) {
-          this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
-          this.onEnemyKilledByMelee(e);
-          if ((e as any).active !== false) e.destroy();
-        }
-      });
-    }
-
-    if (this.boss && this.boss.active && tryHit(this.boss as Phaser.Physics.Arcade.Sprite)) {
-      CombatFx.flashSprite(this.boss as unknown as Phaser.Physics.Arcade.Sprite, 55);
-      const died = this.boss.hit(damage, knockback);
-      this.combatFx.spawnDamageNumber(this.boss.x, this.boss.y - 40, damage, "#ff8800", isFinal);
-      if (isFinal) this.combatFx.impactHeavy(120);
-      if (died) this.handleBossDefeat();
-    }
+  protected resolveAttack(
+    hb: Phaser.Geom.Rectangle,
+    step: number,
+    swingId?: number,
+    firstFrame = true,
+  ) {
+    resolveMeleeAttack(this.getMeleeHost(), hb, step, swingId, firstFrame);
   }
 
   protected handleSpecial(type: string, fx: number, fy: number, facing: 1 | -1, def: any) {

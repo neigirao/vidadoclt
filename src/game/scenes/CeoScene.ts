@@ -12,6 +12,8 @@ import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { reapplyAllPerks } from "../systems/PerkSystem";
+import { CombatFx } from "../systems/CombatFx";
+import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
 
 const LEVEL_WIDTH = 960; // single screen fight
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -27,6 +29,7 @@ export class CeoScene extends Phaser.Scene {
   private drops!: Phaser.Physics.Arcade.Group;
   private startTimeMs = 0;
   private fx!: SanityFx;
+  private combatFx!: CombatFx;
   private hud!: Hud;
   private levelWidth = LEVEL_WIDTH;
 
@@ -103,11 +106,9 @@ export class CeoScene extends Phaser.Scene {
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
 
-    // Janela ativa do golpe re-dispara onAttack por frame; sem dedup aqui,
-    // processa só o 1º frame (evita slash/SFX 8x por golpe).
-    this.player.onAttack = (hb, step, _swingId, firstFrame) => {
-      if (firstFrame !== false) this.resolveAttack(hb, step);
-    };
+    // Combate canônico com janela ativa + dedup por swingId (MeleeCombat).
+    this.player.onAttack = (hb, step, swingId, firstFrame) =>
+      this.resolveAttack(hb, step, swingId, firstFrame);
 
     this.player.onRangedAttack = (fx, fy, facing) => {
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
@@ -294,6 +295,7 @@ export class CeoScene extends Phaser.Scene {
     });
 
     this.fx = new SanityFx(this);
+    this.combatFx = new CombatFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.hud.setPhaseTitle("CEO — CONFRONTO FINAL");
     this.hud.setObjective("Derrote o CEO Milton Freitas da Cunha IV");
@@ -445,49 +447,35 @@ export class CeoScene extends Phaser.Scene {
     this.platforms.add(plat);
   }
 
-  private resolveAttack(hb: Phaser.Geom.Rectangle, step: number) {
-    const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
-    const comboHits = def.hitDamages[2] === 0 ? 2 : 3;
-    const dmgIndex = Math.min(step - 1, def.hitDamages.length - 1);
-    let strikeMult = 1.0;
-    if (this.player.firstStrikeReady) {
-      this.player.firstStrikeReady = false;
-      strikeMult = 1.5;
-      this.cameras.main.flash(180, 255, 215, 0, false);
+  // Combate canônico (systems/MeleeCombat). A derrota do CEO é tratada pelo
+  // próprio CeoBoss/fluxo da cena — onBossDied fica noop (comportamento igual
+  // ao anterior, que ignorava o retorno de boss.hit).
+  private _meleeHost?: MeleeHost;
+
+  private getMeleeHost(): MeleeHost {
+    if (!this._meleeHost) {
+      this._meleeHost = {
+        scene: this,
+        player: this.player,
+        combatFx: this.combatFx,
+        getGroups: () => [{ group: this.minions, vrDrop: 2 }],
+        getBoss: () => this.boss as ReturnType<MeleeHost["getBoss"]>,
+        dropVR: (x, y, n) => this.dropVR(x, y, n),
+        onBossDied: () => {},
+      };
     }
-    const damage = Math.round(
-      (def.hitDamages[dmgIndex] || def.hitDamages[0]) * this.player.damageMult * strikeMult,
-    );
-    const knockback = (step >= comboHits ? def.comboKnockback : 80) * this.player.facing;
+    this._meleeHost.player = this.player;
+    this._meleeHost.combatFx = this.combatFx;
+    return this._meleeHost;
+  }
 
-    const slash = this.add.rectangle(
-      hb.x + hb.width / 2,
-      hb.y + hb.height / 2,
-      hb.width,
-      hb.height,
-      0xffffff,
-      0.5,
-    );
-    this.tweens.add({ targets: slash, alpha: 0, duration: 140, onComplete: () => slash.destroy() });
-    if (step >= comboHits) this.cameras.main.shake(80, 0.006);
-
-    const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
-      Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
-
-    // Boss hit
-    if (this.boss.active && tryHit(this.boss)) {
-      this.boss.hit(damage, knockback);
-    }
-
-    // Minion hits
-    this.minions.getChildren().forEach((c) => {
-      const m = c as Phaser.Physics.Arcade.Sprite & { hit?: (d: number, k: number) => boolean };
-      if (!m.active || !m.hit || !tryHit(m)) return;
-      if (m.hit(damage, knockback)) {
-        this.dropVR(m.x, m.y, Math.max(1, Math.round(2 * this.player.vrDropMult)));
-        m.destroy();
-      }
-    });
+  private resolveAttack(
+    hb: Phaser.Geom.Rectangle,
+    step: number,
+    swingId?: number,
+    firstFrame = true,
+  ) {
+    resolveMeleeAttack(this.getMeleeHost(), hb, step, swingId, firstFrame);
   }
 
   private handleSpecial(type: string, fx: number, fy: number, facing: 1 | -1, def: any) {

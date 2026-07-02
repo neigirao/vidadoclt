@@ -38,6 +38,7 @@ import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
+import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -64,8 +65,6 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private bossDefeated = false;
   // Ids de golpe: golpes avulsos (K) usam ids negativos decrescentes; a dedup e
   // o juice da janela ativa comparam por id para agir 1x por golpe.
-  private _oneShotSwingId = 0;
-  private _juiceSwingDone = 0;
   // Evento APAGÃO + segredo do extintor
   private apagaoDark?: Phaser.GameObjects.Image;
   private extintorLooted = false;
@@ -1295,188 +1294,48 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     });
   }
 
+  // Combate canônico (systems/MeleeCombat) com os hooks da Fase 1:
+  // produtividade × evento no VR, segredo do extintor no 1º frame, e boss
+  // tratado pelo onDied do próprio GerenteMicrogestor (não pelo host).
+  private _meleeHost?: MeleeHost;
+
+  private getMeleeHost(): MeleeHost {
+    if (!this._meleeHost) {
+      this._meleeHost = {
+        scene: this,
+        player: this.player,
+        combatFx: this.combatFx,
+        getGroups: () => [
+          { group: this.estagiarios, vrDrop: 1 },
+          { group: this.sobrecarregados, vrDrop: 2 },
+          { group: this.analistas, vrDrop: 3 },
+          { group: this.onboardings, vrDrop: 2 },
+          { group: this.facilitadores, vrDrop: 2 },
+          { group: this.scrums, vrDrop: 2 },
+          { group: this.coordenadores, vrDrop: 4 },
+          { group: this.seniors, vrDrop: 6 },
+          { group: this.rhs, vrDrop: 3 },
+        ],
+        getBoss: () => this.boss as ReturnType<MeleeHost["getBoss"]>,
+        dropVR: (x, y, n) => this.dropVR(x, y, n),
+        // O GerenteMicrogestor dispara handleBossDefeat via onDied próprio.
+        onBossDied: () => {},
+        killVrMult: (x, y) => this.registerKill(x, y) * this.eventVrMult,
+        onSwingStart: (hb) => this.checkExtintorSecret(hb),
+      };
+    }
+    this._meleeHost.player = this.player;
+    this._meleeHost.combatFx = this.combatFx;
+    return this._meleeHost;
+  }
+
   private resolveAttack(
     hb: Phaser.Geom.Rectangle,
     step: number,
     swingId?: number,
     firstFrame = true,
   ): void {
-    // Um golpe = um swingId. Frames seguintes da janela ativa reusam o mesmo id;
-    // a dedup por inimigo (getData("hitSwing")) garante 1 hit por golpe. Golpes
-    // avulsos (especial K) chegam sem swingId → recebem um id único descartável.
-    const sid = swingId ?? (this._oneShotSwingId -= 1);
-    const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
-    const comboHits = def.hitDamages[2] === 0 ? 2 : 3;
-    const dmgIndex = Math.min(step - 1, def.hitDamages.length - 1);
-    const baseDmg = def.hitDamages[dmgIndex] || def.hitDamages[0];
-    let strikeMult = 1.0;
-    if (firstFrame && this.player.firstStrikeReady) {
-      this.player.firstStrikeReady = false;
-      strikeMult = 1.5;
-      this.cameras.main.flash(180, 255, 215, 0, false);
-    }
-    const damage = Math.round(baseDmg * this.player.damageMult * strikeMult);
-    const knockback = (step >= comboHits ? def.comboKnockback : 80) * this.player.facing;
-    const slowMs = def.hitSlow;
-    const isFinisher = step >= comboHits;
-
-    // Efeito visual do arco + SFX: só no 1º frame do golpe (não a cada frame).
-    if (firstFrame) {
-      const slash = this.add.graphics().setDepth(15);
-      const cx = hb.x + hb.width / 2;
-      const cy = hb.y + hb.height / 2;
-      const r = Math.max(hb.width, hb.height) * 0.6;
-      const startAngle = this.player.facing > 0 ? -Math.PI * 0.6 : Math.PI * 0.4;
-      const endAngle = this.player.facing > 0 ? Math.PI * 0.6 : Math.PI * 1.6;
-      slash.lineStyle(3, 0xffffff, 0.75);
-      slash.beginPath();
-      slash.arc(cx, cy, r, startAngle, endAngle, false);
-      slash.strokePath();
-      this.tweens.add({
-        targets: slash,
-        alpha: 0,
-        scaleX: 1.2,
-        scaleY: 1.2,
-        duration: 140,
-        ease: "Quad.easeOut",
-        onComplete: () => slash.destroy(),
-      });
-      if (isFinisher) {
-        Sfx.meleeHeavy();
-        Sfx.comboFinisher();
-      } else Sfx.meleeLight();
-      this.checkExtintorSecret(hb);
-    }
-
-    let hitAnything = false;
-
-    const tryHit = (s: Phaser.Physics.Arcade.Sprite) =>
-      Phaser.Geom.Intersects.RectangleToRectangle(hb, s.getBounds());
-    // Já acertado neste golpe? (dedup da janela ativa)
-    const freshHit = (s: Phaser.GameObjects.GameObject) => {
-      if (s.getData("hitSwing") === sid) return false;
-      s.setData("hitSwing", sid);
-      return true;
-    };
-
-    const hitGroup = (
-      group: Phaser.Physics.Arcade.Group,
-      vrDrop: number,
-      cast: (c: Phaser.GameObjects.GameObject) => Phaser.Physics.Arcade.Sprite & {
-        hit: (d: number, k: number) => boolean;
-        applySlowdown?: (ms: number) => void;
-      },
-    ) => {
-      group.getChildren().forEach((c) => {
-        const e = cast(c);
-        if (!e.active || !tryHit(e) || !freshHit(e)) return;
-        hitAnything = true;
-        if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
-        this.spawnHitSparks(e.x, e.y - 10, isFinisher);
-        CombatFx.flashSprite(e as unknown as Phaser.Physics.Arcade.Sprite, 55);
-        if (isFinisher) {
-          ParticleFactory.hitHeavy(this, e.x, e.y - 20);
-        } else {
-          ParticleFactory.hitLight(this, e.x, e.y - 20);
-        }
-        this.combatFx.spawnDamageNumber(
-          e.x,
-          e.y - 20,
-          damage,
-          isFinisher ? "#ff4444" : "#ffcc44",
-          isFinisher,
-        );
-        if (e.hit(damage, knockback)) {
-          ParticleFactory.enemyDeath(this, e.x, e.y - 10);
-          const prodMult = this.registerKill(e.x, e.y);
-          this.dropVR(
-            e.x,
-            e.y,
-            Math.max(1, Math.round(vrDrop * this.player.vrDropMult * this.eventVrMult * prodMult)),
-          );
-          if (this.player.healOnKill > 0)
-            this.player.energy = Math.min(
-              this.player.maxEnergy,
-              this.player.energy + this.player.healOnKill,
-            );
-          this.player.onKill?.();
-          this.tweens.add({
-            targets: e,
-            y: e.y - 18,
-            scaleY: 0.5,
-            alpha: 0,
-            duration: 200,
-            ease: "Quad.easeOut",
-            onComplete: () => e.destroy(),
-          });
-          e.setActive(false);
-        }
-      });
-    };
-
-    hitGroup(this.estagiarios, 1, (c) => c as EstagiarioDesesperado);
-    hitGroup(this.sobrecarregados, 2, (c) => c as EstagiarioSobrecarregado);
-    hitGroup(this.analistas, 3, (c) => c as AnalistaJunior);
-    hitGroup(this.onboardings, 2, (c) => c as AnalistaOnboarding);
-    hitGroup(this.facilitadores, 2, (c) => c as FacilitadorDeWorkshop);
-    hitGroup(this.scrums, 2, (c) => c as ScrumMasterCaotico);
-    hitGroup(this.coordenadores, 4, (c) => c as CoordenadorDeSinergia);
-    hitGroup(this.seniors, 6, (c) => c as AnalistaSeniorExausto);
-    hitGroup(this.rhs, 3, (c) => c as EnemyRH);
-
-    if (this.boss?.active && tryHit(this.boss) && freshHit(this.boss)) {
-      hitAnything = true;
-      this.spawnHitSparks(this.boss.x, this.boss.y - 10, isFinisher);
-      CombatFx.flashSprite(this.boss as unknown as Phaser.Physics.Arcade.Sprite, 55);
-      if (isFinisher) {
-        ParticleFactory.hitHeavy(this, this.boss.x, this.boss.y - 20);
-        this.combatFx.hitHeavy();
-      } else {
-        ParticleFactory.hitLight(this, this.boss.x, this.boss.y - 20);
-      }
-      this.combatFx.spawnDamageNumber(
-        this.boss.x,
-        this.boss.y - 20,
-        damage,
-        isFinisher ? "#ff4444" : "#ffcc44",
-        isFinisher,
-      );
-      const died = this.boss.hit(damage, knockback);
-      if (died) return;
-    }
-
-    // Juice (hitStop/finisher/shake) só uma vez por golpe — mesmo que a janela
-    // ativa acerte inimigos em frames diferentes.
-    if (hitAnything && this._juiceSwingDone !== sid) {
-      this._juiceSwingDone = sid;
-      const hitPauseMs = Math.min(120, 30 + damage * 3);
-      this.combatFx.hitStop(hitPauseMs);
-      if (isFinisher) {
-        this.combatFx.comboFinisher(this.player.x, hb.x + hb.width / 2);
-      } else {
-        this.combatFx.hitLight();
-      }
-    }
-  }
-
-  private spawnHitSparks(x: number, y: number, finisher: boolean): void {
-    const count = finisher ? 10 : 5;
-    const tints = finisher ? [0xff4444, 0xff8800] : [0xffcc44, 0xffffff];
-    const emitter = this.add
-      .particles(x, y, "__WHITE", {
-        lifespan: finisher ? 300 : 200,
-        speed: { min: 60, max: finisher ? 200 : 130 },
-        angle: { min: -160, max: -20 },
-        scale: { start: finisher ? 1.1 : 0.7, end: 0 },
-        alpha: { start: 1, end: 0 },
-        tint: tints,
-        gravityY: 600,
-      })
-      .setDepth(600);
-    emitter.explode(count);
-    this.time.delayedCall(400, () => {
-      if (emitter.scene) emitter.destroy();
-    });
+    resolveMeleeAttack(this.getMeleeHost(), hb, step, swingId, firstFrame);
   }
 
   private spawnProjectile(opts: {
