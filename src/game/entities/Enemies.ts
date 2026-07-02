@@ -96,18 +96,21 @@ const _telegraphActive = new WeakSet<Phaser.GameObjects.GameObject>();
 export function showTelegraph(e: Phaser.Physics.Arcade.Sprite, color = "#ffcc00"): void {
   if (_telegraphActive.has(e)) return;
   _telegraphActive.add(e);
-  const mark = e.scene.add.text(e.x, e.y - 40, "!", {
+  // Captura a cena AGORA: se o inimigo morrer durante o telegraph, destroy()
+  // zera e.scene e o onComplete estouraria ao acessar e.scene.events.
+  const scene = e.scene;
+  const mark = scene.add.text(e.x, e.y - 40, "!", {
     fontFamily: "monospace", fontSize: "18px", fontStyle: "bold",
     color, stroke: "#000000", strokeThickness: 3,
   }).setOrigin(0.5).setDepth(560).setScale(0.4);
   // Acompanha o inimigo enquanto o aviso está na tela (antes ficava parado no
   // ponto inicial e "descolava" de quem se move durante o windup).
   const follow = () => { if (mark.active && e.active) mark.setPosition(e.x, e.y - 40); };
-  e.scene.events.on("update", follow);
-  e.scene.tweens.add({ targets: mark, scale: 1, duration: 120, ease: "Back.easeOut" });
-  e.scene.tweens.add({
+  scene.events.on("update", follow);
+  scene.tweens.add({ targets: mark, scale: 1, duration: 120, ease: "Back.easeOut" });
+  scene.tweens.add({
     targets: mark, alpha: 0, duration: 240, delay: 360,
-    onComplete: () => { e.scene.events.off("update", follow); mark.destroy(); _telegraphActive.delete(e); },
+    onComplete: () => { scene.events.off("update", follow); mark.destroy(); _telegraphActive.delete(e); },
   });
 }
 
