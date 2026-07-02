@@ -14,6 +14,7 @@ import {
   ScrumMasterCaotico,
   CoordenadorDeSinergia,
   AnalistaSeniorExausto,
+  fxGlow,
 } from "../entities/Enemies";
 import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { getRun, savePersisted } from "../systems/PlayerState";
@@ -58,6 +59,9 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   // o juice da janela ativa comparam por id para agir 1x por golpe.
   private _oneShotSwingId = 0;
   private _juiceSwingDone = 0;
+  // Evento APAGÃO + segredo do extintor
+  private apagaoDark?: Phaser.GameObjects.Image;
+  private extintorLooted = false;
   private startTimeMs = 0;
   private fx!: SanityFx;
   private combatFx!: CombatFx;
@@ -1058,6 +1062,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       this.tweens.add({ targets: slash, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 140, ease: "Quad.easeOut", onComplete: () => slash.destroy() });
       if (isFinisher) { Sfx.meleeHeavy(); Sfx.comboFinisher(); }
       else Sfx.meleeLight();
+      this.checkExtintorSecret(hb);
     }
 
     let hitAnything = false;
@@ -1383,6 +1388,56 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this.time.delayedCall(10000, () => { if (coffee.active) coffee.destroy(); steam.remove(); });
   }
 
+  // ── Evento APAGÃO: escuridão com "lanterna" ao redor do player ──────────────
+  // Máscaras de geometria são Canvas-only no Phaser 4 (o jogo roda WebGL), então
+  // a lanterna é uma textura 2x maior que a tela, escura com um furo radial no
+  // centro (recorte via destination-out), centralizada no player a cada frame.
+  private enableApagao(): void {
+    const key = "apagao-tex";
+    if (!this.textures.exists(key)) {
+      const tw = GAME_WIDTH * 2, th = GAME_HEIGHT * 2;
+      const cnv = this.textures.createCanvas(key, tw, th);
+      if (!cnv) return;
+      const ctx = cnv.getContext();
+      ctx.fillStyle = "rgba(4,6,11,0.92)";
+      ctx.fillRect(0, 0, tw, th);
+      const R = 170;
+      const grad = ctx.createRadialGradient(tw / 2, th / 2, R * 0.35, tw / 2, th / 2, R);
+      grad.addColorStop(0, "rgba(0,0,0,1)");
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(tw / 2, th / 2, R, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      cnv.refresh();
+    }
+    this.apagaoDark = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, key)
+      .setScrollFactor(0).setDepth(950);
+  }
+
+  // ── Evento FISCALIZAÇÃO: um Sênior extra ronda o meio da sala ───────────────
+  private spawnFiscal(): void {
+    const sr = new AnalistaSeniorExausto(this, 1050, FLOOR_Y - 60);
+    sr.target = this.player;
+    this.seniors.add(sr); // colliders/dano/hit já cobrem membros novos do grupo
+    fxGlow(sr, 0xffaa33, 1200); // destaque de entrada do fiscal
+  }
+
+  // ── Segredo: bater no extintor derruba um cache de VR (1x por run) ──────────
+  private checkExtintorSecret(hb: Phaser.Geom.Rectangle): void {
+    if (this.extintorLooted) return;
+    const zone = new Phaser.Geom.Rectangle(1782, FLOOR_Y - 54, 28, 48);
+    if (!Phaser.Geom.Intersects.RectangleToRectangle(hb, zone)) return;
+    this.extintorLooted = true;
+    ParticleFactory.hitLight(this, 1800, FLOOR_Y - 30);
+    this.dropVR(1795, FLOOR_Y - 40, 3);
+    const t = this.add.text(1800, FLOOR_Y - 70, "🧯 CAIXINHA DO EXTINTOR  +3 VR", {
+      fontFamily: "monospace", fontSize: "10px", color: "#ffdd66",
+      stroke: "#000000", strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(610);
+    this.tweens.add({ targets: t, y: t.y - 24, alpha: 0, duration: 1200, onComplete: () => t.destroy() });
+  }
+
   // Item 1 — registra um kill no medidor de Produtividade e devolve o multiplicador de VR.
   private registerKill(x: number, y: number): number {
     const now = this.time.now;
@@ -1427,6 +1482,11 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
         color: "#ffdd44", apply: () => { this.player.walkSpeed *= 1.25; this.player.dashCooldownBonus += 250; } },
       { id: "deadline",  name: "DEADLINE INADIÁVEL",   desc: "Inimigos mais rápidos, mas +40% VR",
         color: "#ff5566", apply: () => { this.eventVrMult = 1.4; } },
+      // Eventos MECÂNICOS (mudam regra, não só número):
+      { id: "apagao",    name: "APAGÃO",               desc: "Só se vê perto de você. +60% VR",
+        color: "#aa88ff", apply: () => { this.eventVrMult = 1.6; this.enableApagao(); } },
+      { id: "fiscal",    name: "FISCALIZAÇÃO",         desc: "Um Sênior extra ronda a sala. +50% VR",
+        color: "#ffaa33", apply: () => { this.eventVrMult = 1.5; this.spawnFiscal(); } },
       { id: "normal",    name: "",                     desc: "", color: "#ffffff", apply: () => {} },
     ];
     const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
@@ -1478,6 +1538,12 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     if (!this.eventNoSanityDrain) this.player.tickPassive(time);
     this.drawProdMeter(time);
     this.updateHealerMarkers(time);
+
+    // APAGÃO: centraliza o furo da escuridão no player (coords de tela).
+    if (this.apagaoDark) {
+      const cam = this.cameras.main;
+      this.apagaoDark.setPosition(this.player.x - cam.scrollX, this.player.y - cam.scrollY);
+    }
 
     // Physics body sleep: disable body for enemies far off-screen to save CPU
     const camBounds = this.cameras.main.worldView;

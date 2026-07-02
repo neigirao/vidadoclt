@@ -33,6 +33,7 @@ export interface LevelSpec {
   furniture: StaticGroup;  // corpos sólidos (mesas) que bloqueiam o corredor
   enemies: EnemyGroup[];
   boss?: Phaser.GameObjects.Components.Transform & { active: boolean };
+  expectBoss?: boolean; // false p/ fases sem boss por design (ex.: Fase 5 → CEO)
   exit?: { x: number; y: number };
 }
 
@@ -231,6 +232,8 @@ export function validateLevel(spec: LevelSpec): LevelReport {
     const b = spec.boss as unknown as { x: number; y: number; active: boolean };
     const grounded = b.y <= spec.floorY + 20 && b.y >= spec.ceilingY;
     add(grounded, "boss-posicionado", grounded ? `boss em (${b.x.toFixed(0)},${b.y.toFixed(0)})` : `boss fora do nível jogável (y=${b.y.toFixed(0)})`);
+  } else if (spec.expectBoss === false) {
+    add(true, "boss-presente", "fase sem boss (por design)");
   } else {
     add(false, "boss-presente", "cena sem boss");
   }

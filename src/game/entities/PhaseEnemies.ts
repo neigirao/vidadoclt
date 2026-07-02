@@ -1,9 +1,34 @@
 import Phaser from "phaser";
-import { resolveSprite } from "../systems/SpriteLibrary";
+import { resolveSprite, applyTexture } from "../systems/SpriteLibrary";
 import { markKilled } from "../systems/BestiarySystem";
 import { fxGlow, showTelegraph } from "./Enemies";
 
 const HIT_INVULN_MS = 400;
+
+// ── Animação de caminhada dos inimigos de fase ───────────────────────────────
+// Estes inimigos renderizavam a base ESTÁTICA (liam como objeto, não ameaça).
+// Cicla frames enemy-<prefix>-walkN quando em movimento; parado volta à base.
+// Whitelist: só prefixos cujos frames de walk têm o MESMO tamanho da base
+// (evangelista fica de fora — walk 64x64 vs base 32x48 daria "pulo" visual).
+const _phaseAnimOff = new WeakMap<Phaser.GameObjects.Sprite, number>();
+function animPhase(
+  e: Phaser.Physics.Arcade.Sprite,
+  t: number,
+  prefix: string,
+  frames: number, // quantos walkN ciclar (0..frames-1)
+  ms = 190,
+): void {
+  const body = e.body as Phaser.Physics.Arcade.Body | null;
+  if (!body) return;
+  if (!_phaseAnimOff.has(e)) _phaseAnimOff.set(e, (Math.random() * 1500) | 0);
+  const off = _phaseAnimOff.get(e)!;
+  if (Math.abs(body.velocity.x) > 5 || Math.abs(body.velocity.y) > 5) {
+    const f = Math.floor((t + off) / ms) % frames;
+    applyTexture(e, `tex-${prefix}-walk${f}`);
+  } else {
+    applyTexture(e, `tex-${prefix}`);
+  }
+}
 
 // ─── TelemarketerZumbi ────────────────────────────────────────────────────────
 export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
@@ -19,6 +44,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
   private _frozen = 0;
   private _slow = 0;
   private _nextFireAt = 0;
+  private _windupUntil = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-telemarketer"));
@@ -45,11 +71,22 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
       this.setFlipX(dir === -1);
       body.setVelocityX(dir * this.speed * speedMult);
 
-      if (t >= this._nextFireAt) {
+      // Disparo telegrafado: "!" + trava 350ms antes de atirar (era instantâneo).
+      if (t >= this._nextFireAt && this._windupUntil === 0) {
         this._nextFireAt = t + 3000;
-        this.onFire?.(this.x, this.y - 10, this.target.x, this.target.y);
+        this._windupUntil = t + 350;
+        fxGlow(this, 0xffdd66, 420);
+        showTelegraph(this);
+      }
+      if (this._windupUntil > 0) {
+        body.setVelocityX(0);
+        if (t >= this._windupUntil) {
+          this._windupUntil = 0;
+          this.onFire?.(this.x, this.y - 10, this.target.x, this.target.y);
+        }
       }
     }
+    animPhase(this, t, "telemarketer", 4);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -104,7 +141,11 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
 
     if (t >= this._nextFireAt) {
       this._nextFireAt = t + 4000;
-      [-1, 0, 1].forEach(dir => this.onFire?.(this.x, this.y - 10, dir));
+      fxGlow(this, 0xff6666, 380);
+      showTelegraph(this, "#ff6666");
+      this.scene.time.delayedCall(320, () => {
+        if (this.active) [-1, 0, 1].forEach(dir => this.onFire?.(this.x, this.y - 10, dir));
+      });
     }
   }
 
@@ -181,6 +222,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     else if (this.x > this._startX + 100) { this._dir = -1; }
     this.setFlipX(this._dir === -1);
     body.setVelocityX(this._dir * this.speed * speedMult);
+    animPhase(this, t, "guardiao-cafe", 4);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -239,10 +281,14 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
     else if (body.blocked.right) this._driftDir = -1;
     body.setVelocityX(this._driftDir * 40 * speedMult);
 
+    // Telegrafa e dispara 320ms depois (posição atual no momento do disparo).
     if (t >= this._nextFireAt) {
       this._nextFireAt = t + 2500;
-      this.onFire?.(this.x, this.y + 16);
+      fxGlow(this, 0xffdd66, 380);
+      showTelegraph(this);
+      this.scene.time.delayedCall(320, () => { if (this.active) this.onFire?.(this.x, this.y + 16); });
     }
+    animPhase(this, t, "noticeboard", 4);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -393,7 +439,9 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
       const angle = Phaser.Math.Angle.Between(this.x, this.y, this.target.x, this.target.y);
       const spd = this.speed * speedMult;
       body.setVelocity(Math.cos(angle) * spd, Math.sin(angle) * spd);
+      this.setFlipX(this.target.x < this.x);
     }
+    animPhase(this, t, "coletor", 4);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -460,8 +508,11 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
 
     if (t >= this._nextFireAt) {
       this._nextFireAt = t + 3000;
-      this.onFire?.(this.x, this.y);
+      fxGlow(this, 0x88ff88, 380);
+      showTelegraph(this, "#88ff88");
+      this.scene.time.delayedCall(320, () => { if (this.active) this.onFire?.(this.x, this.y); });
     }
+    animPhase(this, t, "planilha", 4);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -551,6 +602,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
         body.setVelocityX(dir * this.speed * speedMult);
       }
     }
+    animPhase(this, t, "cabo", 4);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -614,8 +666,11 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
 
     if (t >= this._nextSpawnAt) {
       this._nextSpawnAt = t + 4000;
-      this.onSpawnError?.(this.x, this.y - 30);
+      fxGlow(this, 0x66ccff, 380);
+      showTelegraph(this, "#66ccff");
+      this.scene.time.delayedCall(320, () => { if (this.active) this.onSpawnError?.(this.x, this.y - 30); });
     }
+    animPhase(this, t, "ti-suporte", 3);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -682,8 +737,11 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
 
     if (t >= this._nextBombAt) {
       this._nextBombAt = t + 3000;
-      this.onBomb?.(this.x, this.y + 10);
+      fxGlow(this, 0xff8844, 380);
+      showTelegraph(this, "#ff8844");
+      this.scene.time.delayedCall(320, () => { if (this.active) this.onBomb?.(this.x, this.y + 10); });
     }
+    animPhase(this, t, "drone", 4, 130);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -780,6 +838,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
     else if (this.x > this._startX + 80) this._patrolDir = -1;
     this.setFlipX(this._patrolDir === -1);
     body.setVelocityX(this._patrolDir * (this.speed * 0.5) * speedMult);
+    animPhase(this, t, "seguranca", 6);
   }
 
   hit(damage: number, knockback: number): boolean {

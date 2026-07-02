@@ -12,6 +12,7 @@ import { CulturaId, CULTURAS, reapplyAllCulturas } from "../systems/CulturaSyste
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
+import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -41,6 +42,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected levelWidth = LEVEL_WIDTH;
   protected enemyGroups: EnemyGroupDef[] = [];
   protected combatFx!: CombatFx;
+  private _layoutVariant = 0;
 
   // --- Abstract methods ---
   protected abstract getBgKey(): string;
@@ -86,7 +88,23 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.furnitureBodies = this.physics.add.staticGroup();
     this.platIdx = 0;
     this.buildFloor();
-    for (const [x, y, tiles] of this.getPlatformLayout()) {
+    // Variedade roguelite: o layout autorado é perturbado por seed em 3
+    // variantes — 0: original, 1: espelhado, 2: alturas alternadas. Todas
+    // validadas em DEV pelo LevelValidator no fim do create().
+    const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
+    const layoutVariant = (seedNum + (run.loopCount ?? 0)) % 3;
+    let layout = this.getPlatformLayout();
+    if (layoutVariant === 1) {
+      layout = layout.map(([x, y, tiles]) =>
+        [LEVEL_WIDTH - x, y, tiles] as [number, number, number]);
+    } else if (layoutVariant === 2) {
+      const ys = layout.map(([, y]) => y);
+      const hi = Math.min(...ys), lo = Math.max(...ys);
+      layout = layout.map(([x, y, tiles], i) =>
+        [x, i % 2 === 0 ? (y === hi ? lo : hi) : y, tiles] as [number, number, number]);
+    }
+    this._layoutVariant = layoutVariant;
+    for (const [x, y, tiles] of layout) {
       this.buildPlatform(x, y, tiles);
     }
 
@@ -373,6 +391,28 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       stroke: "#000000", strokeThickness: 3,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(999);
     this.tweens.add({ targets: title, alpha: 0, duration: 800, delay: 2200, onComplete: () => title.destroy() });
+
+    // 21. Validação de fase (só DEV) + overlay com a tecla V — mesmo padrão da
+    // Fase 1. Garante que a variante de layout sorteada é jogável/justa.
+    if (import.meta.env.DEV) {
+      const spec = {
+        label: this.getPhaseTitle(), seedVariant: this._layoutVariant,
+        floorY: FLOOR_Y, ceilingY: HUD_TOP_H, levelWidth: LEVEL_WIDTH,
+        playerSpawn: { x: spawnX, y: FLOOR_Y - 60 },
+        jumpVel: -520, gravity: 1200,
+        platforms: this.platforms, furniture: this.furnitureBodies,
+        enemies: this.enemyGroups.map(d => d.group),
+        boss: this.boss, expectBoss: this.getBossName() !== "",
+        exit: { x: this.doorEl.x, y: this.doorEl.y },
+      };
+      const report = validateLevel(spec);
+      logLevelReport(`${this.getPhaseTitle()} (layout ${this._layoutVariant})`, report);
+      let overlay: Phaser.GameObjects.Container | undefined;
+      this.input.keyboard?.on("keydown-V", () => {
+        if (overlay) { overlay.destroy(); overlay = undefined; }
+        else overlay = drawLevelOverlay(this, spec, report);
+      });
+    }
   }
 
   update(time: number, delta: number) {
