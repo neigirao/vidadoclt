@@ -222,18 +222,25 @@ Nenhum band-aid ativo no momento.
 
 - Player completo: andar, pular (coyote + buffer), dash (i-frames), combo, ataque especial (K), interação (E)
 - 3 classes (Estagiário, Analista, Terceirizado) com stats próprios
-- 15 armas (WeaponSystem) + perks (PerkSystem)
-- Inimigos da Fase 1 (Enemies.ts) e fases 2–5 (PhaseEnemies.ts)
+- 15 armas (WeaponSystem) + perks aleatórios pós-boss (PerkSystem)
+- **12 Culturas Corporativas** (CulturaSystem) — modificadores de run selecionados antes da Fase 1
+- Inimigos da Fase 1 (Enemies.ts) e Fases 2–5 (PhaseEnemies.ts); catálogo de metadados em `EnemyCatalog.ts` (29 IDs)
 - Bosses: Gerente Microgestor (Boss.ts), CEO (CeoBoss.ts)
-- Fases: Open Space (V2), Fases 2–5, CEO, Copa, Vitória
+- Fases: Open Space (V2), Fases 2–5 via `BasePhaseScene`, CEO, Copa, Vitória
 - Sprites reais via atlas; Sanidade com efeitos visuais por faixa (SanityFx)
+- **Áudio 100% procedural** (Web Audio): SFX em `AudioSystem.ts`, trilha ambiente em `MusicSystem.ts` (temas office/boss/burnout)
+- **Meta-progressão**: Reconhecimento persistente, loja de upgrades permanentes (`ReconhecimentoScene` + `ReconhecimentoSystem`)
+- **Heat System / Hora Extra**: dificuldade opt-in que multiplica HP inimigo em troca de VR/Reconhecimento
+- **Ranking online**: submissão e leitura de scores via Supabase/Lovable Cloud (`Ranking.ts`)
+- **Bestiário persistente**: `BestiarySystem` grava kills + contagens em `localStorage`; `BestiaryScene` mostra silhueta `???` para não-vistos
+- **RNG determinística** por seed temática (`RNG.ts` — prefixos CLT/FGTS/META/...)
 - Persistência de Reconhecimento/FGTS/Loops em `localStorage` (PlayerState)
 - Copa: cura de sanidade + loja (Faxineiro), checkpoint
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 
 ### Pendente / em aberto
 
-- (nenhum item crítico — áudio procedural implementado via Web Audio API em `AudioSystem.ts`)
+- **Etapa 4 do roadmap de catálogo**: `BossCatalog` para os 7 bosses cuja arte existe em `_sources/` mas ainda não estão no jogo (arquiteto, cacador-metas, coordenador, diretor, guardiao-ordem, product-owner, rh-predador, vice-presidente). Ver `.lovable/plan.md`.
 
 ## Padrões e convenções
 
