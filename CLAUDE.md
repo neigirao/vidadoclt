@@ -130,17 +130,23 @@ HIT_INVULN_MS = 600; // i-frames após tomar dano
 ## Fluxo de cenas
 
 ```
-BootScene → MenuScene → ClassSelectScene → OpenSpaceV2Scene ─┐
-                     └→ SpriteLabScene (lab)                 ↓
+PreloadScene → BootScene → MenuScene ─┬─ JOGAR ──→ ClassSelectScene → CulturaSelectScene → OpenSpaceV2Scene ─┐
+                                      ├─ RECONHECIMENTO ──→ ReconhecimentoScene (loja permanente)            ↓
+                                      ├─ RANKING ──→ RankingScene (Supabase)                                  │
+                                      ├─ BESTIÁRIO ──→ BestiaryScene                                          │
+                                      ├─ HORA EXTRA ──→ HoraExtraScene (heat system)                          │
+                                      └─ LAB SPRITES ──→ SpriteLabScene                                       │
+                                                                                                              ↓
    CopaScene ↔ Phase2 → Phase3 → Phase4 → Phase5 → CeoScene → VitoriaScene
-                                                            ↓
-                                                     GameOverScene
+                                                             ↓
+                                                      GameOverScene
 ```
 
-- **BootScene** carrega o atlas (`/assets/atlas.png` + `.json`) e backgrounds, depois vai pra MenuScene.
-- **MenuScene** → "JOGAR" → ClassSelectScene → OpenSpaceV2Scene. "LAB SPRITES" abre a SpriteLabScene.
-- **ClassSelectScene** → aplica upgrades de Reconhecimento no `run` e `this.scene.start("OpenSpaceV2Scene")`.
+- **PreloadScene** mostra splash AMI BIOS enquanto o atlas carrega; encadeia BootScene → MenuScene.
+- **MenuScene** roteia para todas as sub-telas listadas acima.
+- **ClassSelectScene → CulturaSelectScene** aplicam upgrades/modificadores no `run` e iniciam `OpenSpaceV2Scene`.
 - Após derrotar o boss da fase, a porta da **Copa** desbloqueia (tecla E).
+- **PauseScene** entra via `scene.launch` (overlay) — não substitui a cena ativa.
 - Morte do jogador → `scene.start("GameOverScene", { vr, cause })`.
 - **A V1 (`OpenSpaceScene`) foi aposentada**: não está no array `scene` do `config.ts`. Só existe a V2.
 
