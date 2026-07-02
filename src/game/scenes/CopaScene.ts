@@ -128,7 +128,11 @@ export class CopaScene extends Phaser.Scene {
       this.persist();
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
-    this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
+    // Janela ativa do golpe re-dispara onAttack por frame; sem dedup aqui,
+    // processa só o 1º frame (evita slash/SFX 8x por golpe).
+    this.player.onAttack = (hb, step, _swingId, firstFrame) => {
+      if (firstFrame !== false) this.resolveAttack(hb, step);
+    };
 
     // Faxineiros
     this.faxineiros = this.physics.add.group({ classType: Faxineiro, runChildUpdate: false });

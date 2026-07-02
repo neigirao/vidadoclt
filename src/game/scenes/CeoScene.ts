@@ -100,7 +100,11 @@ export class CeoScene extends Phaser.Scene {
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
 
-    this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
+    // Janela ativa do golpe re-dispara onAttack por frame; sem dedup aqui,
+    // processa só o 1º frame (evita slash/SFX 8x por golpe).
+    this.player.onAttack = (hb, step, _swingId, firstFrame) => {
+      if (firstFrame !== false) this.resolveAttack(hb, step);
+    };
 
     this.player.onRangedAttack = (fx, fy, facing) => {
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;

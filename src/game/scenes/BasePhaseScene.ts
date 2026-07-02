@@ -175,7 +175,13 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.scene.start("GameOverScene", { vr: this.player.vr, cause });
     };
 
-    this.player.onAttack = (hb, step) => this.resolveAttack(hb, step);
+    // A janela ativa do golpe (Player) re-dispara onAttack a cada frame; sem o
+    // dedup por swingId (só a Fase 1 tem), processa apenas o 1º frame — senão
+    // slash/SFX repetem ~8x por golpe (o dano já é protegido pelos i-frames
+    // de 400ms dos inimigos de fase).
+    this.player.onAttack = (hb, step, _swingId, firstFrame) => {
+      if (firstFrame !== false) this.resolveAttack(hb, step);
+    };
 
     this.player.onRangedAttack = (fx, fy, facing) => {
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
