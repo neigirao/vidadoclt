@@ -2,7 +2,6 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import { addPhaseBackground } from "../systems/Background";
-import { Player } from "../entities/Player";
 import {
   EstagiarioDesesperado,
   EstagiarioSobrecarregado,
@@ -18,35 +17,28 @@ import {
 } from "../entities/Enemies";
 import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { getRun, savePersisted } from "../systems/PlayerState";
-import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
+import { WEAPONS, WeaponId } from "../systems/WeaponSystem";
 import { ParticleFactory } from "../systems/ParticleFactory";
 import { SanityFx } from "../systems/SanityFx";
 import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
-import {
-  reapplyAllPerks,
-  applyPerk,
-  checkAndApplySynergies,
-  PERKS,
-  SYNERGIES,
-  PerkId,
-} from "../systems/PerkSystem";
-import { reapplyAllCulturas } from "../systems/CulturaSystem";
+import { applyPerk, checkAndApplySynergies, PERKS, SYNERGIES, PerkId } from "../systems/PerkSystem";
 import { HEAT_LEVELS } from "./HoraExtraScene";
 import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
-import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
+import { MeleeHost } from "../systems/MeleeCombat";
+import { BasePhaseScene } from "./BasePhaseScene";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
 
-export class OpenSpaceV2Scene extends Phaser.Scene {
-  private player!: Player;
-  private platforms!: Phaser.Physics.Arcade.StaticGroup;
-  private furnitureBodies!: Phaser.Physics.Arcade.StaticGroup;
+export class OpenSpaceV2Scene extends BasePhaseScene {
+  // Campos herdados de BasePhaseScene (protected): player, platforms,
+  // furnitureBodies, inkProjectiles, drops, boss, bossDefeated, startTimeMs,
+  // fx, combatFx, hud, doorLabel, interactKey, levelWidth. Aqui só os da Fase 1.
   private estagiarios!: Phaser.Physics.Arcade.Group;
   private sobrecarregados!: Phaser.Physics.Arcade.Group;
   private analistas!: Phaser.Physics.Arcade.Group;
@@ -58,25 +50,15 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   private rhs!: Phaser.Physics.Arcade.Group;
   private postits!: Phaser.Physics.Arcade.Group;
   private emails!: Phaser.Physics.Arcade.Group;
-  private inkProjectiles!: Phaser.Physics.Arcade.Group;
-  private drops!: Phaser.Physics.Arcade.Group;
   private coffeeDrops!: Phaser.Physics.Arcade.Group;
-  private boss?: GerenteMicrogestor;
-  private bossDefeated = false;
-  // Ids de golpe: golpes avulsos (K) usam ids negativos decrescentes; a dedup e
-  // o juice da janela ativa comparam por id para agir 1x por golpe.
+  // O boss da Fase 1 é sempre um GerenteMicrogestor; a referência tipada evita
+  // casts repetidos (this.boss herdado é o supertipo BossEntity).
+  private gerente?: GerenteMicrogestor;
   // Evento APAGÃO + segredo do extintor
   private apagaoDark?: Phaser.GameObjects.Image;
   private extintorLooted = false;
-  private startTimeMs = 0;
-  private fx!: SanityFx;
-  private combatFx!: CombatFx;
-  private hud!: Hud;
   private shadowG!: Phaser.GameObjects.Graphics;
   private doorCopa!: Phaser.GameObjects.Image;
-  private doorLabel!: Phaser.GameObjects.Text;
-  private interactKey!: Phaser.Input.Keyboard.Key;
-  private levelWidth = LEVEL_WIDTH;
   private reuniaoUsed = false;
   private bossEntryTriggered = false;
 
@@ -111,6 +93,48 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   constructor() {
     super("OpenSpaceV2Scene");
   }
+
+  // --- Métodos abstratos de BasePhaseScene ---
+  // A Fase 1 mantém create()/update() próprios (não chama super.create()), então
+  // estes servem de fonte única de verdade e habilitam a futura unificação total.
+  protected getBgKey(): string {
+    return "pxbg-openspace";
+  }
+  protected getPhaseTitle(): string {
+    return "FASE 1 — OPEN SPACE  [v2]";
+  }
+  protected getPhaseNumber(): 1 {
+    return 1;
+  }
+  protected getInitialObjective(): string {
+    return "Derrote o Gerente e acesse a Copa";
+  }
+  protected getPlatformLayout(): Array<[number, number, number]> {
+    return [
+      [200, FLOOR_Y - 30, 5],
+      [460, FLOOR_Y - 72, 4],
+      [700, FLOOR_Y - 30, 5],
+      [1000, FLOOR_Y - 72, 6],
+      [1350, FLOOR_Y - 30, 5],
+      [1620, FLOOR_Y - 72, 4],
+    ];
+  }
+  protected getDoorConfig() {
+    return {
+      x: LEVEL_WIDTH - 60,
+      tint: 0x555555,
+      label: "COPA\n[BLOQUEADO]",
+      cameFrom: "openspace",
+      destScene: "CopaScene",
+      nextScene: "Phase2Scene",
+      nearLabel: "Entrar na Copa",
+    };
+  }
+  protected getBossName(): string {
+    return "Gerente Microgestor";
+  }
+  // A Fase 1 monta seus inimigos no próprio create() via spawnEnemies().
+  protected setupEnemiesAndGroups(): void {}
 
   create() {
     const run = getRun(this);
@@ -257,81 +281,14 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
-    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
-    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
-
+    // Setup do player compartilhado (stats/arma/upgrades/perks/culturas/onDeath/
+    // onAttack/onRangedAttack) via BasePhaseScene. Callbacks abaixo são da Fase 1.
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
-    this.player = new Player(this, spawnX, FLOOR_Y - 60);
-    this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
-    this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
-    this.player.walkSpeed = 200 * classDef.speedMult;
-    this.player.damageMult = classDef.damageMult;
-    this.player.vrDropMult = classDef.vrMult + (run.upgVrDropMult ?? 0);
-    this.player.parryWindowBonus = run.upgParryWindowBonus ?? 0;
-    this.player.weaponId = weaponId;
-    this.player.attackRange = weaponDef.attackRange;
-    this.player.specialCooldown = weaponDef.specialCooldown;
-    this.player.specialType = weaponDef.specialType;
-    this.player.hitAutoRanged = weaponDef.hitAutoRanged;
-    this.player.isRangedPrimary = weaponDef.type === "ranged";
-    this.player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
-    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
-    this.player.autonomia = run.autonomia ?? false;
-    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
-    this.player.dashCooldownBonus = run.upgDashCooldownBonus ?? 0;
-    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
-    this.player.parryEnergyRestore = run.upgParryEnergyRestore ?? 0;
-    this.player.parryVrDrop = run.upgParryVrDrop ?? 0;
-    if ((run.upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
-
-    if (run.cameFrom === "copa") {
-      this.player.energy = run.energy;
-      this.player.sanity = run.sanity;
-    } else {
-      this.player.energy = this.player.maxEnergy;
-      this.player.sanity = this.player.maxSanity;
-    }
-    this.player.vr = run.vr;
-    reapplyAllPerks(this.player, run);
-    reapplyAllCulturas(this.player, run);
+    this.buildPlayer(run, spawnX);
+    // Específico da Fase 1: sinergias de perks + multiplicador de Heat (Hora Extra)
     checkAndApplySynergies(this.player, run);
-    // Feature 7: Apply heat VR multiplier
     const heatLvl = HEAT_LEVELS[run.heatLevel ?? 0] ?? HEAT_LEVELS[0];
     this.player.vrDropMult *= heatLvl.vrMult;
-
-    this.physics.add.collider(this.player, this.platforms);
-    this.physics.add.collider(this.player, this.furnitureBodies);
-    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-
-    this.player.onDeath = (cause) => {
-      const r = getRun(this);
-      if ((r.extraLives ?? 0) > 0) {
-        r.extraLives!--;
-        this.player.energy = 30;
-        this.player.setTint(0xff4444);
-        this.time.delayedCall(500, () => this.player.clearTint());
-        return;
-      }
-      this.persist();
-      this.scene.start("GameOverScene", { vr: this.player.vr, cause });
-    };
-
-    this.player.onAttack = (hb, step, swingId, firstFrame) =>
-      this.resolveAttack(hb, step, swingId, firstFrame);
-
-    this.player.onRangedAttack = (fx, fy, facing) => {
-      const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
-      this.spawnProjectile({
-        x: fx + facing * 20,
-        y: fy - 5,
-        velX: facing * (def.rangedSpeed || 500),
-        damage: def.rangedDamage || def.hitDamages[0],
-        piercing: def.rangedPiercing,
-        bounces: def.rangedBounce,
-        homing: def.rangedHoming,
-      });
-    };
 
     this.player.onSpecialAttack = (type, fx, fy, facing) => {
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
@@ -871,7 +828,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       .setDepth(2);
   }
 
-  private buildFloor(): void {
+  protected buildFloor(): void {
     this.add.tileSprite(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, "tex-floor").setDepth(8);
     // Physics body is 120px tall (starting at FLOOR_Y) so fast-falling objects
     // never tunnel through the thin visual strip.
@@ -888,7 +845,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
    * surfY: Y da superfície (topo da mesa, onde se anda).
    * tiles: largura em blocos de 32 px.
    */
-  private buildPlatform(x: number, surfY: number, tiles: number): void {
+  protected buildPlatform(x: number, surfY: number, tiles: number): void {
     const w = tiles * 32;
     const cx = x + w / 2;
     const bodyTop = surfY + 7;
@@ -1112,7 +1069,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       // #4 Glow: reddish tint on boss in phase 2
       boss.setTint(0xff7755);
     };
-    boss.onDied = () => this.handleBossDefeat(boss);
+    boss.onDied = () => this.handleGerenteDefeat(boss);
+    this.gerente = boss;
     this.boss = boss;
     this.physics.add.collider(boss, this.platforms);
     this.physics.add.collider(boss, this.furnitureBodies, this.hopOverFurniture);
@@ -1174,7 +1132,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     });
   }
 
-  private handleBossDefeat(boss: GerenteMicrogestor): void {
+  private handleGerenteDefeat(boss: GerenteMicrogestor): void {
     if (this.bossDefeated) return;
     this.bossDefeated = true;
     getRun(this).openSpaceCleared = true;
@@ -1257,14 +1215,6 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     });
   }
 
-  private persist(): void {
-    const r = getRun(this);
-    r.energy = this.player.energy;
-    r.sanity = this.player.sanity;
-    r.vr = this.player.vr;
-    r.autonomia = this.player.autonomia;
-  }
-
   private checkSynergiesAndPopup(run: import("../systems/PlayerState").RunState): void {
     const prevSynergies = run.activeSynergies ?? [];
     const newSynergies = checkAndApplySynergies(this.player, run);
@@ -1301,9 +1251,8 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
   // Combate canônico (systems/MeleeCombat) com os hooks da Fase 1:
   // produtividade × evento no VR, segredo do extintor no 1º frame, e boss
   // tratado pelo onDied do próprio GerenteMicrogestor (não pelo host).
-  private _meleeHost?: MeleeHost;
-
-  private getMeleeHost(): MeleeHost {
+  // Sobrescreve BasePhaseScene.getMeleeHost() e reusa o cache herdado _meleeHost.
+  protected getMeleeHost(): MeleeHost {
     if (!this._meleeHost) {
       this._meleeHost = {
         scene: this,
@@ -1331,40 +1280,6 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     this._meleeHost.player = this.player;
     this._meleeHost.combatFx = this.combatFx;
     return this._meleeHost;
-  }
-
-  private resolveAttack(
-    hb: Phaser.Geom.Rectangle,
-    step: number,
-    swingId?: number,
-    firstFrame = true,
-  ): void {
-    resolveMeleeAttack(this.getMeleeHost(), hb, step, swingId, firstFrame);
-  }
-
-  private spawnProjectile(opts: {
-    x: number;
-    y: number;
-    velX: number;
-    velY?: number;
-    damage: number;
-    piercing?: boolean;
-    bounces?: number;
-    homing?: boolean;
-  }) {
-    const ink = this.inkProjectiles.create(
-      opts.x,
-      opts.y,
-      "tex-inkproj",
-    ) as Phaser.Physics.Arcade.Sprite;
-    const body = ink.body as Phaser.Physics.Arcade.Body;
-    body.setVelocity(opts.velX, opts.velY ?? 0);
-    ink.setData("damage", opts.damage);
-    ink.setData("piercing", opts.piercing ?? false);
-    ink.setData("bounces", opts.bounces ?? 0);
-    ink.setData("homing", opts.homing ?? false);
-    ink.setData("lifetime", this.time.now + 4000);
-    return ink;
   }
 
   private spawnMemo(mx: number, my: number, run: import("../systems/PlayerState").RunState): void {
@@ -1955,7 +1870,7 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
     );
   }
 
-  private dropVR(x: number, y: number, count = 1): void {
+  protected dropVR(x: number, y: number, count = 1): void {
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(
         x + (i - count / 2) * 8,
@@ -2096,23 +2011,24 @@ export class OpenSpaceV2Scene extends Phaser.Scene {
       }
     });
 
-    // Boss melee + walk contact
-    if (this.boss?.active) {
+    // Boss melee + walk contact (usa a ref tipada do Gerente p/ os campos de swing)
+    const gerente = this.gerente;
+    if (gerente?.active) {
       if (
-        this.boss.swingActive &&
-        this.boss.swingHitbox &&
+        gerente.swingActive &&
+        gerente.swingHitbox &&
         !this.player.isInvulnerable(time) &&
-        Phaser.Geom.Intersects.RectangleToRectangle(this.boss.swingHitbox, this.player.getBounds())
+        Phaser.Geom.Intersects.RectangleToRectangle(gerente.swingHitbox, this.player.getBounds())
       ) {
-        this.player.takeDamage(this.boss.swingDamage, 5, this.boss.x);
-        this.boss.swingActive = false;
-        this.boss.swingHitbox = null;
+        this.player.takeDamage(gerente.swingDamage, 5, gerente.x);
+        gerente.swingActive = false;
+        gerente.swingHitbox = null;
       }
       if (
         !this.player.isInvulnerable(time) &&
-        Phaser.Geom.Intersects.RectangleToRectangle(this.boss.getBounds(), this.player.getBounds())
+        Phaser.Geom.Intersects.RectangleToRectangle(gerente.getBounds(), this.player.getBounds())
       ) {
-        this.player.takeDamage(this.boss.contactDamage, 3, this.boss.x);
+        this.player.takeDamage(gerente.contactDamage, 3, gerente.x);
       }
     }
 

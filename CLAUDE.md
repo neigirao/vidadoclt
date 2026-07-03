@@ -286,15 +286,15 @@ O HUD (`Hud.ts`) usa `setScrollFactor(0)` para fixar à câmera. Instanciar `new
 
 ## Terminologia do jogo → código
 
-| GDD              | Código                                       |
-| ---------------- | -------------------------------------------- |
-| Energia          | `player.energy`                              |
-| Sanidade         | `player.sanity`                              |
-| Vale Refeição    | `player.vr`                                  |
-| Reconhecimento   | `run.reconhecimento` (persistido)            |
-| Rescisão         | tela de Game Over                            |
-| Ponto Eletrônico | checkpoint (Copa)                            |
-| Autonomia        | `run.autonomia` (perk pós-boss)              |
+| GDD              | Código                                                                                                                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Energia          | `player.energy`                                                                                                                                                                                     |
+| Sanidade         | `player.sanity`                                                                                                                                                                                     |
+| Vale Refeição    | `player.vr`                                                                                                                                                                                         |
+| Reconhecimento   | `run.reconhecimento` (persistido)                                                                                                                                                                   |
+| Rescisão         | tela de Game Over                                                                                                                                                                                   |
+| Ponto Eletrônico | checkpoint (Copa)                                                                                                                                                                                   |
+| Autonomia        | `run.autonomia` (perk pós-boss)                                                                                                                                                                     |
 | Burnout          | sanidade = 0, faixa "burnout" (`sanityBand`); penalidades sistêmicas em `Player.getBurnoutMods()` — velocidade, cooldowns, dano recebido, parry desabilitado, tremor (`isTremoring`) invertendo L/R |
 
 ## Comandos
@@ -317,4 +317,5 @@ node scripts/pack-atlas.mjs  # re-empacota o atlas a partir de public/assets/spr
 - **Arcade physics**: suficiente. Não mudar para Matter.js sem necessidade concreta.
 - **pixelArt: true** no config Phaser: desativa antialiasing. Não remover.
 - **Hitboxes manuais no resolveAttack**: o ataque usa `Phaser.Geom.Intersects.RectangleToRectangle` com hitbox calculada pelo Player, não `physics.add.overlap`. Mantém controle preciso do timing do combo.
-- **Combate melee ÚNICO em `systems/MeleeCombat.ts`**: `resolveMeleeAttack(host, hb, step, swingId, firstFrame)` é a implementação canônica (dedup por swingId da janela ativa, juice 1×/golpe, sparks, slow, healOnKill). OpenSpaceV2, BasePhaseScene (Fases 2–5) e CeoScene delegam via um `MeleeHost` (hooks: `killVrMult` p/ produtividade×evento, `onSwingStart` p/ segredo do extintor, `onBossDied`). **Não** reimplementar resolveAttack em cena nova — montar um host. (CopaScene mantém uma mini-versão própria de sandbox, com gate de 1º frame.) Débito conhecido: OpenSpaceV2 ainda estende `Phaser.Scene` cru em vez de `BasePhaseScene` — a unificação estrutural é o próximo refactor.
+- **Combate melee ÚNICO em `systems/MeleeCombat.ts`**: `resolveMeleeAttack(host, hb, step, swingId, firstFrame)` é a implementação canônica (dedup por swingId da janela ativa, juice 1×/golpe, sparks, slow, healOnKill). OpenSpaceV2, BasePhaseScene (Fases 2–5) e CeoScene delegam via um `MeleeHost` (hooks: `killVrMult` p/ produtividade×evento, `onSwingStart` p/ segredo do extintor, `onBossDied`). **Não** reimplementar resolveAttack em cena nova — montar um host. (CopaScene mantém uma mini-versão própria de sandbox, com gate de 1º frame.)
+- **OpenSpaceV2Scene estende `BasePhaseScene`**: a Fase 1 herda os helpers compartilhados (`buildPlayer`, `persist`, `spawnProjectile`, `spawnEnemyProjectile`, `resolveAttack`, `handleSpecial`) e implementa os métodos abstratos (`getBgKey`/`getPhaseTitle`/`getDoorConfig`/etc.). Ainda mantém `create()`/`update()` próprios (não chama `super.create()`) por conta das mecânicas exclusivas (4 variantes de layout, eventos de sala, apagão, medidor de produtividade, healers, café, memo). Overrides da Fase 1: `buildFloor`/`buildPlatform` (mesas desenhadas vs. tiles de PLAT_DEFS), `dropVR` (tint dourado + hover), `getMeleeHost` (hooks `killVrMult`/`onSwingStart`). O boss é um `GerenteMicrogestor` guardado em `this.gerente` (ref tipada) além do `this.boss` herdado (supertipo `BossEntity`); a derrota é `handleGerenteDefeat` (renomeado p/ não colidir com `handleBossDefeat` da base). **Próximo passo (Fase B):** fazer a Fase 1 adotar `super.create()`/`super.update()` via hooks, eliminando os `create`/`update` próprios.

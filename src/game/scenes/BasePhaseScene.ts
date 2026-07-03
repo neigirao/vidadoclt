@@ -71,6 +71,89 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected onEnemyKilledByMelee(_e: GameEnemy): void {}
   protected onEnemyKilledByProjectile(_e: GameEnemy): void {}
 
+  /**
+   * Instancia o Player e aplica todo o wiring compartilhado por TODAS as fases:
+   * stats de classe, arma, upgrades permanentes, energia/sanidade, perks/culturas,
+   * colliders com o cenário, câmera e os callbacks comuns (onDeath, onAttack,
+   * onRangedAttack). Callbacks que divergem por fase (onSpecialAttack, onParry,
+   * sinergias, heat) ficam a cargo de quem chama, DEPOIS deste método.
+   */
+  protected buildPlayer(run: ReturnType<typeof getRun>, spawnX: number): void {
+    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
+    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
+    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
+
+    this.player = new Player(this, spawnX, FLOOR_Y - 60);
+
+    this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
+    this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
+    this.player.walkSpeed = 200 * classDef.speedMult;
+    this.player.damageMult = classDef.damageMult;
+    this.player.vrDropMult = classDef.vrMult + (run.upgVrDropMult ?? 0);
+    this.player.parryWindowBonus = run.upgParryWindowBonus ?? 0;
+    this.player.weaponId = weaponId;
+    this.player.attackRange = weaponDef.attackRange;
+    this.player.specialCooldown = weaponDef.specialCooldown;
+    this.player.specialType = weaponDef.specialType;
+    this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.isRangedPrimary = weaponDef.type === "ranged";
+    this.player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
+    this.player.autonomia = run.autonomia ?? false;
+    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
+    this.player.dashCooldownBonus = run.upgDashCooldownBonus ?? 0;
+    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
+    this.player.parryEnergyRestore = run.upgParryEnergyRestore ?? 0;
+    this.player.parryVrDrop = run.upgParryVrDrop ?? 0;
+    if ((run.upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
+
+    if (run.cameFrom === "copa") {
+      this.player.energy = run.energy;
+      this.player.sanity = run.sanity;
+    } else {
+      this.player.energy = this.player.maxEnergy;
+      this.player.sanity = this.player.maxSanity;
+    }
+    this.player.vr = run.vr;
+    reapplyAllPerks(this.player, run);
+    reapplyAllCulturas(this.player, run);
+
+    this.physics.add.collider(this.player, this.platforms);
+    this.physics.add.collider(this.player, this.furnitureBodies);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+
+    this.player.onDeath = (cause) => {
+      const r = getRun(this);
+      if ((r.extraLives ?? 0) > 0) {
+        r.extraLives!--;
+        this.player.energy = 30;
+        this.player.setTint(0xff4444);
+        this.time.delayedCall(500, () => this.player.clearTint());
+        return;
+      }
+      this.persist();
+      this.scene.start("GameOverScene", { vr: this.player.vr, cause });
+    };
+
+    // Combate canônico (MeleeCombat): janela ativa com dedup por swingId —
+    // todas as fases ganham a hitbox persistente da Fase 1 corretamente.
+    this.player.onAttack = (hb, step, swingId, firstFrame) =>
+      this.resolveAttack(hb, step, swingId, firstFrame);
+
+    this.player.onRangedAttack = (fx, fy, facing) => {
+      const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
+      this.spawnProjectile({
+        x: fx + facing * 20,
+        y: fy - 5,
+        velX: facing * (def.rangedSpeed || 500),
+        damage: def.rangedDamage || def.hitDamages[0],
+        piercing: def.rangedPiercing,
+        bounces: def.rangedBounce,
+        homing: def.rangedHoming,
+      });
+    };
+  }
+
   create() {
     const run = getRun(this);
     this.platIdx = 0;
@@ -129,83 +212,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // 4. Player setup
-    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
-    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
-    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
-
+    // 4. Player setup (bloco idêntico compartilhado com a Fase 1 — ver buildPlayer)
     const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
-    this.player = new Player(this, spawnX, FLOOR_Y - 60);
+    this.buildPlayer(run, spawnX);
 
-    this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
-    this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
-    this.player.walkSpeed = 200 * classDef.speedMult;
-    this.player.damageMult = classDef.damageMult;
-    this.player.vrDropMult = classDef.vrMult + (run.upgVrDropMult ?? 0);
-    this.player.parryWindowBonus = run.upgParryWindowBonus ?? 0;
-    this.player.weaponId = weaponId;
-    this.player.attackRange = weaponDef.attackRange;
-    this.player.specialCooldown = weaponDef.specialCooldown;
-    this.player.specialType = weaponDef.specialType;
-    this.player.hitAutoRanged = weaponDef.hitAutoRanged;
-    this.player.isRangedPrimary = weaponDef.type === "ranged";
-    this.player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
-    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
-    this.player.autonomia = run.autonomia ?? false;
-    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
-    this.player.dashCooldownBonus = run.upgDashCooldownBonus ?? 0;
-    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
-    this.player.parryEnergyRestore = run.upgParryEnergyRestore ?? 0;
-    this.player.parryVrDrop = run.upgParryVrDrop ?? 0;
-    if ((run.upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
-
-    if (run.cameFrom === "copa") {
-      this.player.energy = run.energy;
-      this.player.sanity = run.sanity;
-    } else {
-      this.player.energy = this.player.maxEnergy;
-      this.player.sanity = this.player.maxSanity;
-    }
-    this.player.vr = run.vr;
-    reapplyAllPerks(this.player, run);
-    reapplyAllCulturas(this.player, run);
-
-    this.physics.add.collider(this.player, this.platforms);
-    this.physics.add.collider(this.player, this.furnitureBodies);
-    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-
-    // 5. Player callbacks
-    this.player.onDeath = (cause) => {
-      const r = getRun(this);
-      if ((r.extraLives ?? 0) > 0) {
-        r.extraLives!--;
-        this.player.energy = 30;
-        this.player.setTint(0xff4444);
-        this.time.delayedCall(500, () => this.player.clearTint());
-        return;
-      }
-      this.persist();
-      this.scene.start("GameOverScene", { vr: this.player.vr, cause });
-    };
-
-    // Combate canônico (MeleeCombat): janela ativa com dedup por swingId —
-    // todas as fases ganham a hitbox persistente da Fase 1 corretamente.
-    this.player.onAttack = (hb, step, swingId, firstFrame) =>
-      this.resolveAttack(hb, step, swingId, firstFrame);
-
-    this.player.onRangedAttack = (fx, fy, facing) => {
-      const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
-      this.spawnProjectile({
-        x: fx + facing * 20,
-        y: fy - 5,
-        velX: facing * (def.rangedSpeed || 500),
-        damage: def.rangedDamage || def.hitDamages[0],
-        piercing: def.rangedPiercing,
-        bounces: def.rangedBounce,
-        homing: def.rangedHoming,
-      });
-    };
-
+    // 5. Player callbacks específicos da cena base (special + parry)
     this.player.onSpecialAttack = (type, fx, fy, facing) => {
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
       this.handleSpecial(type, fx, fy, facing, def);
@@ -624,7 +635,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   }
 
   // Host do combate canônico — construído 1x (grupos lidos por getter vivo).
-  private _meleeHost?: MeleeHost;
+  // protected: a Fase 1 sobrescreve getMeleeHost() com hooks próprios e reusa este cache.
+  protected _meleeHost?: MeleeHost;
 
   protected getMeleeHost(): MeleeHost {
     if (!this._meleeHost) {
