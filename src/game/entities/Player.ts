@@ -474,7 +474,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this._frozenTintActive = false;
     }
 
-    const curSpeed = time < this.speedMultUntil ? this.walkSpeed * this.speedMult : this.walkSpeed;
+    // Sintomas do burnout: aplica penalidade de velocidade e atualiza tremor
+    this.tickBurnoutTremor(time);
+    const burnout = this.getBurnoutMods();
+    const slowFromWeapon = time < this.speedMultUntil ? this.speedMult : 1;
+    const curSpeed = this.walkSpeed * slowFromWeapon * burnout.speedMult;
 
     // Gamepad input — prefer cached pad, fall back to pad1 if hot-plugged
     const pad = this.pad ?? this.scene.input.gamepad?.pad1 ?? null;
@@ -482,8 +486,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const stickLeft = (pad?.axes[0]?.getValue() ?? 0) < -STICK_THRESHOLD;
     const stickRight = (pad?.axes[0]?.getValue() ?? 0) > STICK_THRESHOLD;
 
-    const left = this.keys.left.isDown || this.holdA || stickLeft || (pad?.left ?? false);
-    const right = this.keys.right.isDown || this.holdD || stickRight || (pad?.right ?? false);
+    let left = this.keys.left.isDown || this.holdA || stickLeft || (pad?.left ?? false);
+    let right = this.keys.right.isDown || this.holdD || stickRight || (pad?.right ?? false);
+    // Tremor de ansiedade: inverte L/R durante o surto
+    if (this.isTremoring(time)) {
+      const tmp = left;
+      left = right;
+      right = tmp;
+    }
     const jumpDown = this.keys.jump.isDown || this.keys.jumpAlt.isDown || (pad?.A ?? false);
     const attackDown = this.keys.attack.isDown || (pad?.X ?? false);
     const dashDown = this.keys.dash.isDown || !!pad?.R1;
