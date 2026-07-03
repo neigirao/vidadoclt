@@ -661,7 +661,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Special attack (K)
     if (specialPressed && time >= this.specialCooldownUntil) {
       this.specialCooldownUntil =
-        time + Math.round(this.specialCooldown * this.specialCooldownMult);
+        time + Math.round(this.specialCooldown * this.specialCooldownMult * burnout.specialCooldownMult);
       // Charge flash: tint white briefly before firing
       this.setTint(0xffffff);
       this.scene.time.delayedCall(120, () => {
