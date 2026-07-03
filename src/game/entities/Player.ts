@@ -259,6 +259,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   getParryState(now: number): "active" | "cooldown" | "low_sanity" | undefined {
     if (now < this.parryActiveUntil) return "active";
     if (now < this.parryCooldownUntil) return "cooldown";
+    if (this.getBurnoutMods().parryDisabled) return "low_sanity";
     return undefined;
   }
 
