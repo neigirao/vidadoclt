@@ -285,7 +285,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return true;
     }
 
-    const reducedAmount = Math.round(amount * this.damageReductionMult);
+    const burnoutMods = this.getBurnoutMods();
+    const reducedAmount = Math.round(amount * this.damageReductionMult * burnoutMods.damageTakenMult);
     this.energy = Math.max(0, this.energy - reducedAmount);
     if (sanityHit) this.sanity = Math.max(this.sanityFloor, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
