@@ -68,7 +68,7 @@ src/
       Hud.ts                 # HUD (Energia, Sanidade, VR, boss bar, minimapa)
       PlayerState.ts         # RunState (registry "run"), persistência localStorage
       RNG.ts                 # Seed determinística (seedrandom) + prefixos temáticos
-      WeaponSystem.ts        # CLASSES + WEAPONS (3 classes, 15 armas)
+      WeaponSystem.ts        # CLASSES + WEAPONS (3 classes, 12 armas)
       PerkSystem.ts          # Perks aleatórios pós-boss
       CulturaSystem.ts       # 12 Culturas Corporativas (modificadores de run)
       ReconhecimentoSystem.ts# Upgrades permanentes comprados com Reconhecimento
@@ -222,7 +222,7 @@ Nenhum band-aid ativo no momento.
 
 - Player completo: andar, pular (coyote + buffer), dash (i-frames), combo, ataque especial (K), interação (E)
 - 3 classes (Estagiário, Analista, Terceirizado) com stats próprios
-- 15 armas (WeaponSystem) + perks aleatórios pós-boss (PerkSystem)
+- 12 armas (WeaponSystem) + perks aleatórios pós-boss (PerkSystem)
 - **12 Culturas Corporativas** (CulturaSystem) — modificadores de run selecionados antes da Fase 1
 - Inimigos da Fase 1 (Enemies.ts) e Fases 2–5 (PhaseEnemies.ts); catálogo de metadados em `EnemyCatalog.ts` (29 IDs)
 - Bosses: Gerente Microgestor (Boss.ts), CEO (CeoBoss.ts)
