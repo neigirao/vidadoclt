@@ -286,7 +286,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     const burnoutMods = this.getBurnoutMods();
-    const reducedAmount = Math.round(amount * this.damageReductionMult * burnoutMods.damageTakenMult);
+    const reducedAmount = Math.round(
+      amount * this.damageReductionMult * burnoutMods.damageTakenMult,
+    );
     this.energy = Math.max(0, this.energy - reducedAmount);
     if (sanityHit) this.sanity = Math.max(this.sanityFloor, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
@@ -602,7 +604,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         Sfx.parryWhiff();
         this.parryCooldownUntil = time + 400;
       } else {
-        const windowMs = Math.max(80, PARRY_WINDOW_MS + this.parryWindowBonus + burnout.parryWindowDelta);
+        const windowMs = Math.max(
+          80,
+          PARRY_WINDOW_MS + this.parryWindowBonus + burnout.parryWindowDelta,
+        );
         this.parryActiveUntil = time + windowMs;
         this.setTint(0x00ffdd);
         const windowEnd = this.parryActiveUntil;
@@ -661,7 +666,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Special attack (K)
     if (specialPressed && time >= this.specialCooldownUntil) {
       this.specialCooldownUntil =
-        time + Math.round(this.specialCooldown * this.specialCooldownMult * burnout.specialCooldownMult);
+        time +
+        Math.round(this.specialCooldown * this.specialCooldownMult * burnout.specialCooldownMult);
       // Charge flash: tint white briefly before firing
       this.setTint(0xffffff);
       this.scene.time.delayedCall(120, () => {

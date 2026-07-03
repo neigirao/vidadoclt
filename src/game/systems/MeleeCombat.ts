@@ -143,7 +143,11 @@ export function resolveMeleeAttack(
         ParticleFactory.enemyDeath(scene, e.x, e.y - 10);
         const mult = host.killVrMult?.(e.x, e.y) ?? 1;
         const burnoutVrMult = player.getBurnoutMods().vrDropMult;
-        host.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * player.vrDropMult * mult * burnoutVrMult)));
+        host.dropVR(
+          e.x,
+          e.y,
+          Math.max(1, Math.round(vrDrop * player.vrDropMult * mult * burnoutVrMult)),
+        );
         if (player.healOnKill > 0)
           player.energy = Math.min(player.maxEnergy, player.energy + player.healOnKill);
         player.onKill?.();
