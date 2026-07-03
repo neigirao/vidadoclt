@@ -3,6 +3,7 @@ import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
+import { sanityBand } from "../systems/PlayerState";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
