@@ -3,6 +3,7 @@ import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
+import { sanityBand } from "../systems/PlayerState";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -121,6 +122,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   onParrySuccess?: (fromX: number) => void;
   private lastSanityDrainAt = 0;
   private _frozenTintActive = false;
+
+  // ─── Sintomas do Burnout ─────────────────────────────────────────────────
+  // Penalidades sistêmicas escalonadas por faixa de Sanidade. Aplicadas todo
+  // frame em applyBurnoutSymptoms() e consultadas em takeDamage/parry/special.
+  //   ok       (75-100): sem efeitos
+  //   distraido(50-74):  velocidade -10%, parry -40ms
+  //   ansioso  (25-49):  +cooldown especial +30%, VR drop -20%, tremor 6s/400ms
+  //   colapso  ( 0-24):  +parry DESABILITADO, +30% dano recebido, tremor 3s/700ms,
+  //                      drena Sanidade 60% mais rápido
+  private _tremorUntil = 0;
+  private _nextTremorAt = 0;
+  private _lastBurnoutBand: ReturnType<typeof sanityBand> = "ok";
+  private tremorLabel: Phaser.GameObjects.Text | null = null;
 
   /** True for exactly one frame when the gamepad B button is pressed (interact).
    *  Scenes that use keyboard E for interact can check this alongside JustDown. */
@@ -245,6 +259,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   getParryState(now: number): "active" | "cooldown" | "low_sanity" | undefined {
     if (now < this.parryActiveUntil) return "active";
     if (now < this.parryCooldownUntil) return "cooldown";
+    if (this.getBurnoutMods().parryDisabled) return "low_sanity";
     return undefined;
   }
 
@@ -270,7 +285,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return true;
     }
 
-    const reducedAmount = Math.round(amount * this.damageReductionMult);
+    const burnoutMods = this.getBurnoutMods();
+    const reducedAmount = Math.round(amount * this.damageReductionMult * burnoutMods.damageTakenMult);
     this.energy = Math.max(0, this.energy - reducedAmount);
     if (sanityHit) this.sanity = Math.max(this.sanityFloor, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
@@ -312,10 +328,120 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   /** Passive sanity drain to simulate the long shift. */
   tickPassive(time: number) {
-    if (time - this.lastSanityDrainAt > 4000) {
+    // Colapso drena Sanidade 60% mais rápido (a espiral acelera sozinha).
+    const interval = sanityBand(this.sanity) === "burnout" ? 2500 : 4000;
+    if (time - this.lastSanityDrainAt > interval) {
       this.lastSanityDrainAt = time;
       this.drainSanity(1);
     }
+  }
+
+  /** Sintomas do Burnout — mods derivados da faixa de Sanidade. */
+  getBurnoutMods(): {
+    speedMult: number;
+    parryWindowDelta: number; // ms adicionados (negativo = penalidade)
+    parryDisabled: boolean;
+    specialCooldownMult: number;
+    damageTakenMult: number;
+    vrDropMult: number;
+  } {
+    const band = sanityBand(this.sanity);
+    switch (band) {
+      case "stressed":
+        return {
+          speedMult: 0.9,
+          parryWindowDelta: -40,
+          parryDisabled: false,
+          specialCooldownMult: 1.0,
+          damageTakenMult: 1.0,
+          vrDropMult: 1.0,
+        };
+      case "anxious":
+        return {
+          speedMult: 0.9,
+          parryWindowDelta: -40,
+          parryDisabled: false,
+          specialCooldownMult: 1.3,
+          damageTakenMult: 1.0,
+          vrDropMult: 0.8,
+        };
+      case "burnout":
+        return {
+          speedMult: 0.85,
+          parryWindowDelta: -40,
+          parryDisabled: true,
+          specialCooldownMult: 1.3,
+          damageTakenMult: 1.3,
+          vrDropMult: 0.8,
+        };
+      default:
+        return {
+          speedMult: 1.0,
+          parryWindowDelta: 0,
+          parryDisabled: false,
+          specialCooldownMult: 1.0,
+          damageTakenMult: 1.0,
+          vrDropMult: 1.0,
+        };
+    }
+  }
+
+  /** Retorna true se os controles L/R devem inverter agora (tremor de ansiedade). */
+  isTremoring(time: number): boolean {
+    return time < this._tremorUntil;
+  }
+
+  /**
+   * Roda a cada frame para gerenciar os tremores (surtos que invertem
+   * controles). Só age nas faixas "ansioso" e "burnout".
+   */
+  private tickBurnoutTremor(time: number) {
+    const band = sanityBand(this.sanity);
+    // Mudança de faixa: reagenda próximo tremor
+    if (band !== this._lastBurnoutBand) {
+      this._lastBurnoutBand = band;
+      this._tremorUntil = 0;
+      if (band === "anxious") this._nextTremorAt = time + 6000;
+      else if (band === "burnout") this._nextTremorAt = time + 3000;
+      else this._nextTremorAt = 0;
+    }
+    if (band !== "anxious" && band !== "burnout") return;
+    if (time < this._nextTremorAt) return;
+    // Dispara tremor
+    const dur = band === "burnout" ? 700 : 400;
+    const interval = band === "burnout" ? 3000 : 6000;
+    this._tremorUntil = time + dur;
+    this._nextTremorAt = time + interval + dur;
+    // Feedback visual
+    this.setTint(0xff44aa);
+    this.scene.time.delayedCall(dur, () => {
+      if (!this._frozenTintActive && this.scene?.time && time >= this._tremorUntil - 10)
+        this.clearTint();
+    });
+    this.showTremorLabel();
+  }
+
+  private showTremorLabel() {
+    if (this.tremorLabel && this.tremorLabel.scene) this.tremorLabel.destroy();
+    const label = this.scene.add
+      .text(this.x, this.y - this.displayHeight * 0.55 - 18, "TREMOR!", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#ff88cc",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(this.depth + 20);
+    this.tremorLabel = label;
+    this.scene.tweens.add({
+      targets: label,
+      y: label.y - 12,
+      alpha: 0,
+      duration: 700,
+      ease: "Quad.easeOut",
+      onComplete: () => label.destroy(),
+    });
   }
 
   update(time: number, _delta: number) {
@@ -348,7 +474,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this._frozenTintActive = false;
     }
 
-    const curSpeed = time < this.speedMultUntil ? this.walkSpeed * this.speedMult : this.walkSpeed;
+    // Sintomas do burnout: aplica penalidade de velocidade e atualiza tremor
+    this.tickBurnoutTremor(time);
+    const burnout = this.getBurnoutMods();
+    const slowFromWeapon = time < this.speedMultUntil ? this.speedMult : 1;
+    const curSpeed = this.walkSpeed * slowFromWeapon * burnout.speedMult;
 
     // Gamepad input — prefer cached pad, fall back to pad1 if hot-plugged
     const pad = this.pad ?? this.scene.input.gamepad?.pad1 ?? null;
@@ -356,8 +486,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const stickLeft = (pad?.axes[0]?.getValue() ?? 0) < -STICK_THRESHOLD;
     const stickRight = (pad?.axes[0]?.getValue() ?? 0) > STICK_THRESHOLD;
 
-    const left = this.keys.left.isDown || this.holdA || stickLeft || (pad?.left ?? false);
-    const right = this.keys.right.isDown || this.holdD || stickRight || (pad?.right ?? false);
+    let left = this.keys.left.isDown || this.holdA || stickLeft || (pad?.left ?? false);
+    let right = this.keys.right.isDown || this.holdD || stickRight || (pad?.right ?? false);
+    // Tremor de ansiedade: inverte L/R durante o surto
+    if (this.isTremoring(time)) {
+      const tmp = left;
+      left = right;
+      right = tmp;
+    }
     const jumpDown = this.keys.jump.isDown || this.keys.jumpAlt.isDown || (pad?.A ?? false);
     const attackDown = this.keys.attack.isDown || (pad?.X ?? false);
     const dashDown = this.keys.dash.isDown || !!pad?.R1;
@@ -456,20 +592,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Parry "Reclamar" — abre janela de absorção (F / LB)
-    // Gratuito para ativar; se a janela expirar sem absorver, custa energia
+    // Gratuito para ativar; se a janela expirar sem absorver, custa energia.
+    // Em Colapso (Sanidade < 25) o parry fica DESABILITADO — sem fôlego pra reclamar.
     if (parryPressed && time >= this.parryCooldownUntil) {
-      this.parryActiveUntil = time + PARRY_WINDOW_MS + this.parryWindowBonus;
-      this.setTint(0x00ffdd);
-      const windowEnd = this.parryActiveUntil;
-      this.scene.time.delayedCall(PARRY_WINDOW_MS + this.parryWindowBonus + 10, () => {
-        if (!this.scene?.time) return;
-        // Só penaliza se a janela expirou SEM absorver (parryActiveUntil não foi zerado)
-        if (this.parryActiveUntil >= windowEnd) {
-          this.energy = Math.max(0, this.energy - PARRY_WHIFF_ENERGY_COST);
-          this.clearTint();
-          Sfx.parryWhiff();
-        }
-      });
+      if (burnout.parryDisabled) {
+        // Feedback claro: flash vermelho + sfx de whiff, sem abrir janela
+        this.setTint(0x883333);
+        this.scene.time.delayedCall(140, () => this.clearTint());
+        Sfx.parryWhiff();
+        this.parryCooldownUntil = time + 400;
+      } else {
+        const windowMs = Math.max(80, PARRY_WINDOW_MS + this.parryWindowBonus + burnout.parryWindowDelta);
+        this.parryActiveUntil = time + windowMs;
+        this.setTint(0x00ffdd);
+        const windowEnd = this.parryActiveUntil;
+        this.scene.time.delayedCall(windowMs + 10, () => {
+          if (!this.scene?.time) return;
+          if (this.parryActiveUntil >= windowEnd) {
+            this.energy = Math.max(0, this.energy - PARRY_WHIFF_ENERGY_COST);
+            this.clearTint();
+            Sfx.parryWhiff();
+          }
+        });
+      }
     }
 
     // Dash
@@ -516,7 +661,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Special attack (K)
     if (specialPressed && time >= this.specialCooldownUntil) {
       this.specialCooldownUntil =
-        time + Math.round(this.specialCooldown * this.specialCooldownMult);
+        time + Math.round(this.specialCooldown * this.specialCooldownMult * burnout.specialCooldownMult);
       // Charge flash: tint white briefly before firing
       this.setTint(0xffffff);
       this.scene.time.delayedCall(120, () => {

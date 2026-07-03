@@ -295,7 +295,7 @@ O HUD (`Hud.ts`) usa `setScrollFactor(0)` para fixar à câmera. Instanciar `new
 | Rescisão         | tela de Game Over                            |
 | Ponto Eletrônico | checkpoint (Copa)                            |
 | Autonomia        | `run.autonomia` (perk pós-boss)              |
-| Burnout          | sanidade = 0, faixa "burnout" (`sanityBand`) |
+| Burnout          | sanidade = 0, faixa "burnout" (`sanityBand`); penalidades sistêmicas em `Player.getBurnoutMods()` — velocidade, cooldowns, dano recebido, parry desabilitado, tremor (`isTremoring`) invertendo L/R |
 
 ## Comandos
 
