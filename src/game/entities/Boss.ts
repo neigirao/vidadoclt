@@ -47,6 +47,9 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   private currentAttack: BossAttack = "follow_up";
   private stateUntil = 0;
   private phase2 = false;
+  /** Âncora da arena: se o player fugir, o boss volta para cá em vez de vagar
+   *  pelo mapa (e encalhar atrás de um móvel fora da câmera — "o boss sumiu"). */
+  private homeX: number;
   private attackQueue: BossAttack[] = [];
   private dashCount = 0;
   private nextDashAt = 0;
@@ -68,6 +71,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-gerente"));
+    this.homeX = x;
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
@@ -117,6 +121,14 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
         break;
 
       case "idle": {
+        // Leash: player fugiu da arena → volta para casa em vez de persegui-lo
+        // pelo mapa (encalhava atrás de móvel fora da câmera = "boss sumiu").
+        if (!this.engaged()) {
+          const homeDx = this.homeX - this.x;
+          body.setVelocityX(Math.abs(homeDx) > 16 ? Math.sign(homeDx) * 90 : 0);
+          this.stateUntil = t + 200; // não ataca enquanto retorna
+          break;
+        }
         const idleDx = this.target ? this.target.x - this.x : 0;
         body.setVelocityX(Math.abs(idleDx) > 120 ? Math.sign(idleDx) * 90 : 0);
         if (t >= this.stateUntil) this.startTelegraph(t);
@@ -140,8 +152,12 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
         break;
 
       case "recover": {
-        const recDx = this.target ? this.target.x - this.x : 0;
-        body.setVelocityX(Math.abs(recDx) > 120 ? Math.sign(recDx) * 70 : 0);
+        const recDx = this.engaged()
+          ? this.target!.x - this.x
+          : Math.abs(this.homeX - this.x) > 16
+            ? this.homeX - this.x
+            : 0;
+        body.setVelocityX(Math.abs(recDx) > 120 || !this.engaged() ? Math.sign(recDx) * 70 : 0);
         if (t >= this.stateUntil) {
           this.bossState = "idle";
           this.stateUntil = t + (this.phase2 ? 320 : 520);
@@ -151,6 +167,11 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.updateTexture(t);
+  }
+
+  /** Player dentro do alcance de combate da arena? (ativação é <480) */
+  private engaged(): boolean {
+    return !!this.target && Math.abs(this.target.x - this.x) < 560;
   }
 
   private showIntroText() {
