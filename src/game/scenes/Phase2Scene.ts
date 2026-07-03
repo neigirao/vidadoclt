@@ -118,7 +118,7 @@ export class Phase2Scene extends BasePhaseScene {
     // Rebalance (playtest): 80 HP deixava o boss 5x mais fraco que o lixo da
     // fase (Impressora 400). Boss deve ser a maior luta da própria fase.
     boss.hp = 380;
-    this.boss = boss as any;
+    this.boss = boss;
 
     this.enemyGroups.push(
       { group: this.telemarketers, vrDrop: 2 },

@@ -34,7 +34,10 @@ describe("ReconhecimentoSystem — catálogo de upgrades", () => {
   });
 
   it("exclusões mútuas são simétricas (A tranca B ⇒ B tranca A)", () => {
-    for (const [id, def] of Object.entries(UPGRADES) as [UpgradeId, (typeof UPGRADES)[UpgradeId]][]) {
+    for (const [id, def] of Object.entries(UPGRADES) as [
+      UpgradeId,
+      (typeof UPGRADES)[UpgradeId],
+    ][]) {
       for (const other of def.excludes ?? []) {
         expect(UPGRADES[other].excludes ?? []).toContain(id);
       }
@@ -53,7 +56,10 @@ describe("ReconhecimentoSystem — progressão de compra", () => {
   });
 
   it("isLocked trava quando o exclusivo foi comprado", () => {
-    for (const [id, def] of Object.entries(UPGRADES) as [UpgradeId, (typeof UPGRADES)[UpgradeId]][]) {
+    for (const [id, def] of Object.entries(UPGRADES) as [
+      UpgradeId,
+      (typeof UPGRADES)[UpgradeId],
+    ][]) {
       if (!def.excludes?.length) continue;
       const levels: UpgradeLevels = { [id]: 1 };
       expect(isLocked(levels, def.excludes[0])).toBe(id);

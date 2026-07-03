@@ -318,7 +318,7 @@ export function applyBackgroundFilters(scene: Phaser.Scene): void {
   ];
   keys.forEach((k) => {
     const tex = scene.textures.get(k);
-    if (tex) (tex as any).setFilter(1);
+    if (tex) tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
   });
 }
 

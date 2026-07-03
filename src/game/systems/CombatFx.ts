@@ -63,7 +63,9 @@ export class CombatFx {
     setTimeout(() => {
       try {
         phys.resume();
-      } catch {}
+      } catch {
+        /* storage/áudio indisponível — ignorar */
+      }
     }, durationMs);
   }
 

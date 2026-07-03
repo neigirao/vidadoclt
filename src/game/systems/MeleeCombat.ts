@@ -198,12 +198,7 @@ export function resolveMeleeAttack(
   }
 }
 
-export function spawnHitSparks(
-  scene: Phaser.Scene,
-  x: number,
-  y: number,
-  finisher: boolean,
-): void {
+export function spawnHitSparks(scene: Phaser.Scene, x: number, y: number, finisher: boolean): void {
   const count = finisher ? 10 : 5;
   const tints = finisher ? [0xff4444, 0xff8800] : [0xffcc44, 0xffffff];
   const emitter = scene.add

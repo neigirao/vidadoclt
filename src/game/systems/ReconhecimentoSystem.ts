@@ -176,7 +176,9 @@ export function loadUpgrades(): UpgradeLevels {
 export function saveUpgrades(levels: UpgradeLevels) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(levels));
-  } catch {}
+  } catch {
+    /* storage/áudio indisponível — ignorar */
+  }
 }
 
 export function getLevel(levels: UpgradeLevels, id: UpgradeId): number {

@@ -7,13 +7,14 @@ import { Player } from "../entities/Player";
 import { EstagiarioDesesperado } from "../entities/Enemies";
 import { CeoBoss } from "../entities/CeoBoss";
 import { getRun, savePersisted } from "../systems/PlayerState";
-import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
+import { CLASSES, WEAPONS, WeaponId, ClassId, WeaponDef } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
+import { GameEnemy } from "../entities/types";
 
 const LEVEL_WIDTH = 960; // single screen fight
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -478,7 +479,7 @@ export class CeoScene extends Phaser.Scene {
     resolveMeleeAttack(this.getMeleeHost(), hb, step, swingId, firstFrame);
   }
 
-  private handleSpecial(type: string, fx: number, fy: number, facing: 1 | -1, def: any) {
+  private handleSpecial(type: string, fx: number, fy: number, facing: 1 | -1, def: WeaponDef) {
     switch (type) {
       case "burst_ranged":
         for (let i = 0; i < 2; i++)
@@ -512,8 +513,8 @@ export class CeoScene extends Phaser.Scene {
       case "emp_pulse": {
         this.boss.applyFreeze(900);
         this.minions.getChildren().forEach((m) => {
-          const e = m as any;
-          if (e.applyFreeze) e.applyFreeze(900);
+          const e = m as GameEnemy;
+          e.applyFreeze?.(900);
         });
         const ring = this.add.circle(this.player.x, this.player.y, 8, 0x88aaff, 0.6);
         this.tweens.add({
@@ -593,7 +594,7 @@ export class CeoScene extends Phaser.Scene {
         break;
       }
       case "chain_lightning": {
-        const allTargets: any[] = [this.boss, ...this.minions.getChildren()];
+        const allTargets = [this.boss, ...this.minions.getChildren()] as GameEnemy[];
         allTargets
           .filter((e) => e.active)
           .sort(
@@ -604,7 +605,7 @@ export class CeoScene extends Phaser.Scene {
           .slice(0, 3)
           .forEach((enemy, i) => {
             this.time.delayedCall(i * 80, () => {
-              (enemy as any).hit?.(def.hitDamages[2], 150);
+              enemy.hit?.(def.hitDamages[2], 150);
               const flash = this.add.rectangle(enemy.x, enemy.y, 6, 40, 0xffff44, 0.9);
               this.time.delayedCall(150, () => flash.destroy());
             });

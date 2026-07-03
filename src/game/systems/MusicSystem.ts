@@ -186,10 +186,14 @@ function startOffice(c: AudioContext, master: AudioNode): () => void {
     alive = false;
     try {
       drone1.stop();
-    } catch {}
+    } catch {
+      /* storage/áudio indisponível — ignorar */
+    }
     try {
       drone2.stop();
-    } catch {}
+    } catch {
+      /* storage/áudio indisponível — ignorar */
+    }
   };
 }
 

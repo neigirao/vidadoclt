@@ -5,7 +5,7 @@ import { addPhaseBackground, addPhaseDecor } from "../systems/Background";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
-import { CLASSES, WEAPONS, WeaponId, ClassId } from "../systems/WeaponSystem";
+import { CLASSES, WEAPONS, WeaponId, ClassId, WeaponDef } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CulturaId, CULTURAS, reapplyAllCulturas } from "../systems/CulturaSystem";
@@ -14,6 +14,7 @@ import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
+import { GameEnemy, BossEntity } from "../entities/types";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -32,13 +33,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected inkProjectiles!: Phaser.Physics.Arcade.Group;
   protected enemyProjectiles!: Phaser.Physics.Arcade.Group;
   protected drops!: Phaser.Physics.Arcade.Group;
-  protected boss?: Phaser.Physics.Arcade.Sprite & {
-    hp: number;
-    maxHp?: number;
-    contactDamage: number;
-    hit: (d: number, k: number) => boolean;
-    onHpChange?: (hp: number) => void;
-  };
+  protected boss?: BossEntity;
   protected bossDefeated = false;
   protected startTimeMs = 0;
   protected fx!: SanityFx;
@@ -73,8 +68,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
   // --- Virtual hooks (empty defaults) ---
   protected onPhaseUpdate(_t: number, _d: number): void {}
-  protected onEnemyKilledByMelee(_e: any): void {}
-  protected onEnemyKilledByProjectile(_e: any): void {}
+  protected onEnemyKilledByMelee(_e: GameEnemy): void {}
+  protected onEnemyKilledByProjectile(_e: GameEnemy): void {}
 
   create() {
     const run = getRun(this);
@@ -278,7 +273,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       const mult = 1 + loopCount * 0.15;
       for (const def of this.enemyGroups) {
         def.group.getChildren().forEach((obj) => {
-          const e = obj as any;
+          const e = obj as GameEnemy;
           if (typeof e.hp === "number") e.hp = Math.round(e.hp * mult);
           if (typeof e.maxHp === "number") e.maxHp = Math.round(e.maxHp * mult);
         });
@@ -322,7 +317,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       if (!def.aerial) {
         this.physics.add.overlap(this.player, def.group, (_p, eObj) => {
           if (this.player.isInvulnerable(this.time.now)) return;
-          const e = eObj as any;
+          const e = eObj as GameEnemy;
           this.player.takeDamage(e.contactDamage ?? 8, 4, e.x);
         });
       }
@@ -418,13 +413,25 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         r.cameFrom = doorCfg.cameFrom;
         if (doorCfg.nextScene) {
           r.nextScene = doorCfg.nextScene;
-          this.cameras.main.fadeOut(300, 0, 0, 0, (_cam: any, t: number) => {
-            if (t === 1) this.scene.start(doorCfg.destScene);
-          });
+          this.cameras.main.fadeOut(
+            300,
+            0,
+            0,
+            0,
+            (_cam: Phaser.Cameras.Scene2D.Camera, t: number) => {
+              if (t === 1) this.scene.start(doorCfg.destScene);
+            },
+          );
         } else {
-          this.cameras.main.fadeOut(300, 0, 0, 0, (_cam: any, t: number) => {
-            if (t === 1) this.scene.start(doorCfg.destScene);
-          });
+          this.cameras.main.fadeOut(
+            300,
+            0,
+            0,
+            0,
+            (_cam: Phaser.Cameras.Scene2D.Camera, t: number) => {
+              if (t === 1) this.scene.start(doorCfg.destScene);
+            },
+          );
         }
       }
     });
@@ -647,7 +654,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     resolveMeleeAttack(this.getMeleeHost(), hb, step, swingId, firstFrame);
   }
 
-  protected handleSpecial(type: string, fx: number, fy: number, facing: 1 | -1, def: any) {
+  protected handleSpecial(type: string, fx: number, fy: number, facing: 1 | -1, def: WeaponDef) {
     switch (type) {
       case "burst_ranged":
         for (let i = 0; i < 2; i++) {
@@ -681,13 +688,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         });
         break;
       case "emp_pulse": {
-        const stun = (s: any) => {
-          if (s.applyFreeze) s.applyFreeze(900);
+        const stun = (s: Phaser.GameObjects.GameObject) => {
+          const e = s as GameEnemy;
+          e.applyFreeze?.(900);
         };
         for (const gd of this.enemyGroups) {
           gd.group.getChildren().forEach(stun);
         }
-        (this.boss as any)?.applyFreeze?.(900);
+        this.boss?.applyFreeze?.(900);
         const ring = this.add.circle(this.player.x, this.player.y, 8, 0x88aaff, 0.6);
         this.tweens.add({
           targets: ring,
@@ -777,13 +785,13 @@ export abstract class BasePhaseScene extends Phaser.Scene {
           );
         sorted.slice(0, 3).forEach((enemy, i) => {
           this.time.delayedCall(i * 80, () => {
-            const e = enemy as any;
+            const e = enemy as GameEnemy;
             if (e.hit) e.hit(def.hitDamages[2], 150);
             const flash = this.add.rectangle(enemy.x, enemy.y, 6, 40, 0xffff44, 0.9);
             this.time.delayedCall(150, () => flash.destroy());
           });
         });
-        (this.boss as any)?.hit?.(def.hitDamages[2], 150);
+        this.boss?.hit(def.hitDamages[2], 150);
         break;
       }
       case "heal_pulse": {
@@ -807,11 +815,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       }
       case "clock_slow": {
         for (const gd of this.enemyGroups) {
-          gd.group.getChildren().forEach((s: any) => {
-            if (s.applySlowdown) s.applySlowdown(2000);
+          gd.group.getChildren().forEach((s) => {
+            const e = s as GameEnemy;
+            e.applySlowdown?.(2000);
           });
         }
-        (this.boss as any)?.applySlowdown?.(2000);
+        this.boss?.applySlowdown?.(2000);
         const overlay = this.add.circle(this.player.x, this.player.y, 8, 0xaaaaff, 0.5);
         this.tweens.add({
           targets: overlay,

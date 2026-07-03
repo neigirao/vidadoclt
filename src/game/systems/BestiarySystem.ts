@@ -19,7 +19,9 @@ function load(): Set<EnemyId> {
 function persist(set: Set<EnemyId>) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify([...set]));
-  } catch {}
+  } catch {
+    /* storage/áudio indisponível — ignorar */
+  }
 }
 
 function cache(): Set<EnemyId> {
@@ -43,7 +45,9 @@ function loadCounts(): Record<string, number> {
 function persistCounts(counts: Record<string, number>) {
   try {
     localStorage.setItem(LS_COUNTS_KEY, JSON.stringify(counts));
-  } catch {}
+  } catch {
+    /* storage/áudio indisponível — ignorar */
+  }
 }
 
 function counts(): Record<string, number> {

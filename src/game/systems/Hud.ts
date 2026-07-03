@@ -614,7 +614,7 @@ export class Hud {
           })
           .setOrigin(0.5);
         this.perkSlotGraphics.scene.children.bringToTop(iconT);
-        (this.botContainer as any).add(iconT);
+        this.botContainer.add(iconT);
         this.perkTexts.push(iconT);
         // Short name label below icon
         const nameLabel = perkDef ? perkDef.name.split(" ")[0].substring(0, 5).toUpperCase() : "";
@@ -627,7 +627,7 @@ export class Hud {
             })
             .setOrigin(0.5, 1);
           this.perkSlotGraphics.scene.children.bringToTop(nameT);
-          (this.botContainer as any).add(nameT);
+          this.botContainer.add(nameT);
           this.perkTexts.push(nameT);
         }
       } else {

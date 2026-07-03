@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
+import { GameEnemy } from "../entities/types";
 import {
   CarimbadorAutomatico,
   ArquivoAmbulante,
@@ -125,10 +126,11 @@ export class Phase5Scene extends BasePhaseScene {
           ...this.carimbadores.getChildren(),
           ...this.arquivos.getChildren(),
           ...this.baterias.getChildren(),
-        ] as any[];
+        ] as GameEnemy[];
         nearby.forEach((en) => {
-          if (en.active && Phaser.Math.Distance.Between(en.x, en.y, e.x, e.y) < e.getAuraRange()) {
-            en.hp = Math.max(en.hp - 0, en.hp);
+          if (!en.active || en.hp === undefined) return;
+          if (Phaser.Math.Distance.Between(en.x, en.y, e.x, e.y) < e.getAuraRange()) {
+            en.hp = Math.max(en.hp - 0, en.hp); // TODO: efeito real da aura (hoje é no-op)
           }
         });
       };
@@ -172,7 +174,7 @@ export class Phase5Scene extends BasePhaseScene {
           this.evangelistasM,
         ].forEach((g) =>
           g.getChildren().forEach((c) => {
-            const en = c as any;
+            const en = c as GameEnemy;
             if (en.active && en.hp !== undefined) en.hp = Math.min(en.hp + 50, en.hp + 50);
           }),
         );
@@ -196,11 +198,11 @@ export class Phase5Scene extends BasePhaseScene {
     this.hud.setObjective(`Derrote todos os inimigos (${this.enemyCount} restantes)`);
   }
 
-  protected onEnemyKilledByMelee(_e: any) {
+  protected onEnemyKilledByMelee(_e: GameEnemy) {
     this.checkAllDefeated();
   }
 
-  protected onEnemyKilledByProjectile(_e: any) {
+  protected onEnemyKilledByProjectile(_e: GameEnemy) {
     this.checkAllDefeated();
   }
 

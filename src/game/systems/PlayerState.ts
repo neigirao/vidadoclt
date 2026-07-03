@@ -64,7 +64,9 @@ function lsGet(key: string): number {
 function lsSet(key: string, n: number) {
   try {
     localStorage.setItem(key, String(n));
-  } catch {}
+  } catch {
+    /* storage/áudio indisponível — ignorar */
+  }
 }
 
 export function savePersisted(reconhecimento: number, fgts: number, loopCount: number) {

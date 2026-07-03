@@ -765,6 +765,7 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
 // ─── Analista Sênior Exausto ─────────────────────────────────────────────────
 export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
   hp = 80;
+  maxHp?: number; // definido quando atua como boss da Fase 3 (barra de HP)
   contactDamage = 12; // rebalance: tank elite, ameaça real perto do boss
   speed = 45;
 

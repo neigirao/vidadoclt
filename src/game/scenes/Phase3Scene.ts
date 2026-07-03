@@ -144,9 +144,8 @@ export class Phase3Scene extends BasePhaseScene {
     boss.target = this.player;
     // Rebalance (playtest): 100 HP < Impressora Vermelha comum (480).
     boss.hp = 450;
-    // @ts-ignore
     boss.maxHp = 450;
-    this.boss = boss as any;
+    this.boss = boss;
 
     this.enemyGroups.push(
       { group: this.evangelistas, vrDrop: 3 },

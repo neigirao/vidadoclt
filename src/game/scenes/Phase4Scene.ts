@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { ScrumMasterCaotico } from "../entities/Enemies";
+import { GameEnemy } from "../entities/types";
 import {
   CaboDeRede,
   TiSuporte,
@@ -170,7 +171,7 @@ export class Phase4Scene extends BasePhaseScene {
           this.evangelistasA,
         ].forEach((g) =>
           g.getChildren().forEach((c) => {
-            const en = c as any;
+            const en = c as GameEnemy;
             if (en.active && en.hp !== undefined) en.hp = Math.min(en.hp + 30, en.hp + 30);
           }),
         );
@@ -213,7 +214,7 @@ export class Phase4Scene extends BasePhaseScene {
         this.player.applyFreeze(900);
       }
     };
-    this.boss = boss as any;
+    this.boss = boss;
 
     this.enemyGroups.push(
       { group: this.cabos, vrDrop: 2 },
@@ -225,7 +226,7 @@ export class Phase4Scene extends BasePhaseScene {
     );
   }
 
-  protected onEnemyKilledByMelee(e: any) {
+  protected onEnemyKilledByMelee(e: GameEnemy) {
     this.tweens.add({
       targets: e,
       scaleX: 1.6,
@@ -237,7 +238,7 @@ export class Phase4Scene extends BasePhaseScene {
     e.setActive(false);
   }
 
-  protected onEnemyKilledByProjectile(e: any) {
+  protected onEnemyKilledByProjectile(e: GameEnemy) {
     this.tweens.add({
       targets: e,
       scaleX: 1.6,
