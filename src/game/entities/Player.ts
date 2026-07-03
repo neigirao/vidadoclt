@@ -592,20 +592,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Parry "Reclamar" — abre janela de absorção (F / LB)
-    // Gratuito para ativar; se a janela expirar sem absorver, custa energia
+    // Gratuito para ativar; se a janela expirar sem absorver, custa energia.
+    // Em Colapso (Sanidade < 25) o parry fica DESABILITADO — sem fôlego pra reclamar.
     if (parryPressed && time >= this.parryCooldownUntil) {
-      this.parryActiveUntil = time + PARRY_WINDOW_MS + this.parryWindowBonus;
-      this.setTint(0x00ffdd);
-      const windowEnd = this.parryActiveUntil;
-      this.scene.time.delayedCall(PARRY_WINDOW_MS + this.parryWindowBonus + 10, () => {
-        if (!this.scene?.time) return;
-        // Só penaliza se a janela expirou SEM absorver (parryActiveUntil não foi zerado)
-        if (this.parryActiveUntil >= windowEnd) {
-          this.energy = Math.max(0, this.energy - PARRY_WHIFF_ENERGY_COST);
-          this.clearTint();
-          Sfx.parryWhiff();
-        }
-      });
+      if (burnout.parryDisabled) {
+        // Feedback claro: flash vermelho + sfx de whiff, sem abrir janela
+        this.setTint(0x883333);
+        this.scene.time.delayedCall(140, () => this.clearTint());
+        Sfx.parryWhiff();
+        this.parryCooldownUntil = time + 400;
+      } else {
+        const windowMs = Math.max(80, PARRY_WINDOW_MS + this.parryWindowBonus + burnout.parryWindowDelta);
+        this.parryActiveUntil = time + windowMs;
+        this.setTint(0x00ffdd);
+        const windowEnd = this.parryActiveUntil;
+        this.scene.time.delayedCall(windowMs + 10, () => {
+          if (!this.scene?.time) return;
+          if (this.parryActiveUntil >= windowEnd) {
+            this.energy = Math.max(0, this.energy - PARRY_WHIFF_ENERGY_COST);
+            this.clearTint();
+            Sfx.parryWhiff();
+          }
+        });
+      }
     }
 
     // Dash
