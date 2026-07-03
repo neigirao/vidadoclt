@@ -123,6 +123,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private lastSanityDrainAt = 0;
   private _frozenTintActive = false;
 
+  // ─── Sintomas do Burnout ─────────────────────────────────────────────────
+  // Penalidades sistêmicas escalonadas por faixa de Sanidade. Aplicadas todo
+  // frame em applyBurnoutSymptoms() e consultadas em takeDamage/parry/special.
+  //   ok       (75-100): sem efeitos
+  //   distraido(50-74):  velocidade -10%, parry -40ms
+  //   ansioso  (25-49):  +cooldown especial +30%, VR drop -20%, tremor 6s/400ms
+  //   colapso  ( 0-24):  +parry DESABILITADO, +30% dano recebido, tremor 3s/700ms,
+  //                      drena Sanidade 60% mais rápido
+  private _tremorUntil = 0;
+  private _nextTremorAt = 0;
+  private _lastBurnoutBand: ReturnType<typeof sanityBand> = "ok";
+  private tremorLabel: Phaser.GameObjects.Text | null = null;
+
   /** True for exactly one frame when the gamepad B button is pressed (interact).
    *  Scenes that use keyboard E for interact can check this alongside JustDown. */
   gamepadInteractJustPressed = false;
