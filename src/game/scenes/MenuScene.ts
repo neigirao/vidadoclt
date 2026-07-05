@@ -13,8 +13,13 @@ const TEXT_ACCENT = "#f2a800";
 const BG_PANEL = 0x12151a;
 const BG_MENU = 0x1a1d23;
 
-const MENU_ITEMS = [
-  { label: "JOGAR", icon: "▶" },
+type MenuItem = { label: string; icon: string; firstRun?: boolean };
+
+// `firstRun: true` = visível na primeira run (antes de qualquer morte/vitória).
+// Itens sem a flag só aparecem a partir do 2º loop — reduz paralysis analysis
+// no primeiro contato com o jogo.
+const ALL_MENU_ITEMS: MenuItem[] = [
+  { label: "JOGAR", icon: "▶", firstRun: true },
   { label: "HORA EXTRA", icon: "🔥" },
   { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
@@ -22,7 +27,7 @@ const MENU_ITEMS = [
   { label: "LAB SPRITES", icon: "🔬" },
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
-  { label: "CONFIGURAÇÕES", icon: "⚙" },
+  { label: "CONFIGURAÇÕES", icon: "⚙", firstRun: true },
 ];
 
 export class MenuScene extends Phaser.Scene {
