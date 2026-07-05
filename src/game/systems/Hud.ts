@@ -797,6 +797,18 @@ export class Hud {
     heatLevel?: number;
     /** "active" = janela aberta, "cooldown" = em recarga, "low_sanity" = sem sanidade, undefined = pronto */
     parryState?: "active" | "cooldown" | "low_sanity";
+    /** Mods de Burnout (Player.getBurnoutMods()) para exibir sintomas ativos. */
+    burnoutMods?: {
+      speedMult: number;
+      parryDisabled: boolean;
+      specialCooldownMult: number;
+      damageTakenMult: number;
+      vrDropMult: number;
+    };
+    /** true durante o surto de tremor (controles invertidos). */
+    tremoring?: boolean;
+    /** ms até o próximo tremor durante a janela de aviso (0 se não estiver avisando). */
+    tremorWarnMs?: number;
   }) {
     // Sanity color: green→orange at 50%, orange→pulsing red at 25%
     const sanityPct = opts.sanity / opts.maxSanity;
