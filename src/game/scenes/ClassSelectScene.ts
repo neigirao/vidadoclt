@@ -99,11 +99,13 @@ export class ClassSelectScene extends Phaser.Scene {
         .rectangle(cx, this.cardY, CARD_W, CARD_H, 0, 0)
         .setInteractive({ useHandCursor: true });
       hit.on("pointerdown", () => {
+        if (this.lockedClasses.has(cid)) return;
         this.selectedIndex = i;
         this.refreshCards();
         this.confirm();
       });
       hit.on("pointerover", () => {
+        if (this.lockedClasses.has(cid)) return;
         this.selectedIndex = i;
         this.refreshCards();
       });
