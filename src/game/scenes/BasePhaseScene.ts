@@ -578,6 +578,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       interactHint: nearDoor ? `[ E ]  ${this.getDoorConfig().nearLabel}` : undefined,
       dashCooldown: this.player.getDashCooldownRatio(time),
       perks: run.perks,
+      burnoutMods: this.player.getBurnoutMods(),
+      tremoring: this.player.isTremoring(time),
+      tremorWarnMs: this.player.getTremorWarnMs(time),
     });
   }
 
