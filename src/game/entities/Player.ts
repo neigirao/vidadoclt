@@ -394,6 +394,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Retorna quantos ms restam até o próximo tremor SE já estivermos na janela
+   * de aviso (últimos 500ms antes do surto). Só na faixa "burnout". 0 caso
+   * contrário — permite ao HUD mostrar contagem regressiva e ao player
+   * planejar contra-jogo.
+   */
+  getTremorWarnMs(time: number): number {
+    if (sanityBand(this.sanity) !== "burnout") return 0;
+    if (this._nextTremorAt <= 0) return 0;
+    const delta = this._nextTremorAt - time;
+    if (delta <= 0 || delta > 500) return 0;
+    return delta;
+  }
+
+  /**
    * Roda a cada frame para gerenciar os tremores (surtos que invertem
    * controles). Só age nas faixas "ansioso" e "burnout".
    */
@@ -408,6 +422,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       else this._nextTremorAt = 0;
     }
     if (band !== "anxious" && band !== "burnout") return;
+    // Telegrafo do tremor: 500ms antes, pulsa outline magenta (só na banda
+    // burnout — a ansiosa mantém o susto como incômodo leve).
+    if (band === "burnout" && this._nextTremorAt > 0 && time < this._nextTremorAt) {
+      const warn = this._nextTremorAt - time;
+      if (warn <= 500 && !this._frozenTintActive && time > this._tremorUntil) {
+        const pulse = Math.sin(time / 60) > 0;
+        this.setTint(pulse ? 0xff88cc : 0xff44aa);
+      }
+    }
     if (time < this._nextTremorAt) return;
     // Dispara tremor
     const dur = band === "burnout" ? 700 : 400;

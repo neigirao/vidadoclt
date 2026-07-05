@@ -13,8 +13,13 @@ const TEXT_ACCENT = "#f2a800";
 const BG_PANEL = 0x12151a;
 const BG_MENU = 0x1a1d23;
 
-const MENU_ITEMS = [
-  { label: "JOGAR", icon: "▶" },
+type MenuItem = { label: string; icon: string; firstRun?: boolean };
+
+// `firstRun: true` = visível na primeira run (antes de qualquer morte/vitória).
+// Itens sem a flag só aparecem a partir do 2º loop — reduz paralysis analysis
+// no primeiro contato com o jogo.
+const ALL_MENU_ITEMS: MenuItem[] = [
+  { label: "JOGAR", icon: "▶", firstRun: true },
   { label: "HORA EXTRA", icon: "🔥" },
   { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
@@ -22,7 +27,7 @@ const MENU_ITEMS = [
   { label: "LAB SPRITES", icon: "🔬" },
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
-  { label: "CONFIGURAÇÕES", icon: "⚙" },
+  { label: "CONFIGURAÇÕES", icon: "⚙", firstRun: true },
 ];
 
 export class MenuScene extends Phaser.Scene {
@@ -35,6 +40,7 @@ export class MenuScene extends Phaser.Scene {
   private prevDownDown = false;
   private prevEnterDown = false;
   private overlay?: Phaser.GameObjects.Container;
+  private MENU_ITEMS: MenuItem[] = ALL_MENU_ITEMS;
 
   constructor() {
     super("MenuScene");
@@ -42,6 +48,11 @@ export class MenuScene extends Phaser.Scene {
 
   create() {
     Music.start("office");
+    // Primeira run (nunca morreu/venceu): menu enxuto para eliminar
+    // paralysis by analysis. Sub-telas destravam a partir do 2º loop.
+    const run = getRun(this);
+    this.MENU_ITEMS =
+      run.loopCount === 0 ? ALL_MENU_ITEMS.filter((it) => it.firstRun) : ALL_MENU_ITEMS;
     // Full-screen reference art background (loaded from assets)
     this.add
       .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
@@ -121,7 +132,7 @@ export class MenuScene extends Phaser.Scene {
 
     this.menuButtons = [];
 
-    MENU_ITEMS.forEach((item, i) => {
+    this.MENU_ITEMS.forEach((item, i) => {
       const y = startY + i * itemH;
       const container = this.add.container(14, y);
 
@@ -161,7 +172,7 @@ export class MenuScene extends Phaser.Scene {
 
   private refreshMenu() {
     const itemH = 44;
-    MENU_ITEMS.forEach((_, i) => {
+    this.MENU_ITEMS.forEach((_, i) => {
       const container = this.menuButtons[i];
       const bg = container.getAt(0) as Phaser.GameObjects.Graphics;
       const icon = container.getAt(1) as Phaser.GameObjects.Text;
@@ -306,11 +317,11 @@ export class MenuScene extends Phaser.Scene {
     }
 
     if (upDown && !this.prevUpDown) {
-      this.selectedIndex = (this.selectedIndex - 1 + MENU_ITEMS.length) % MENU_ITEMS.length;
+      this.selectedIndex = (this.selectedIndex - 1 + this.MENU_ITEMS.length) % this.MENU_ITEMS.length;
       this.refreshMenu();
     }
     if (downDown && !this.prevDownDown) {
-      this.selectedIndex = (this.selectedIndex + 1) % MENU_ITEMS.length;
+      this.selectedIndex = (this.selectedIndex + 1) % this.MENU_ITEMS.length;
       this.refreshMenu();
     }
     if (enterDown && !this.prevEnterDown) {
@@ -358,7 +369,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private confirm() {
-    const item = MENU_ITEMS[this.selectedIndex];
+    const item = this.MENU_ITEMS[this.selectedIndex];
     if (item.label === "JOGAR") {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {

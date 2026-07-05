@@ -557,6 +557,9 @@ export class CopaScene extends Phaser.Scene {
         : nearPonto
           ? "[ E ]  Ponto Eletronico (loja)"
           : undefined,
+      burnoutMods: this.player.getBurnoutMods(),
+      tremoring: this.player.isTremoring(time),
+      tremorWarnMs: this.player.getTremorWarnMs(time),
     });
 
     this.hintText.setText(

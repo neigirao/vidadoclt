@@ -114,6 +114,13 @@ export class Hud {
   private prevPerkCount = 0;
   private heatText!: Phaser.GameObjects.Text;
 
+  // ─── Burnout status row (sintomas ativos) ────────────────────────
+  private burnoutRow!: Phaser.GameObjects.Container;
+  private burnoutBg!: Phaser.GameObjects.Graphics;
+  private burnoutIconT!: Phaser.GameObjects.Text;
+  private burnoutLabelT!: Phaser.GameObjects.Text;
+  private burnoutTremorT!: Phaser.GameObjects.Text;
+
   private levelWidth: number;
 
   constructor(scene: Phaser.Scene, levelWidth = 1920) {
@@ -126,6 +133,43 @@ export class Hud {
     this.buildBottomBar();
     this.buildTopSeparator();
     this.buildHeatIndicator();
+    this.buildBurnoutRow();
+  }
+
+  private buildBurnoutRow() {
+    // Faixa flutuante logo acima da bottom bar, à esquerda. Só aparece quando
+    // há sintomas ativos. Mostra ícones dos mods + status do tremor com
+    // contagem regressiva.
+    this.burnoutRow = this.scene.add
+      .container(6, HUD_BOT_Y - 26)
+      .setScrollFactor(0)
+      .setDepth(1001)
+      .setVisible(false);
+
+    this.burnoutBg = this.scene.add.graphics();
+    this.burnoutRow.add(this.burnoutBg);
+
+    this.burnoutIconT = this.scene.add.text(6, 3, "", {
+      fontFamily: F,
+      fontSize: "11px",
+      color: "#ff88cc",
+    });
+    this.burnoutRow.add(this.burnoutIconT);
+
+    this.burnoutLabelT = this.scene.add.text(6, 3, "", {
+      fontFamily: F,
+      fontSize: "8px",
+      color: "#ffbbdd",
+    });
+    this.burnoutRow.add(this.burnoutLabelT);
+
+    this.burnoutTremorT = this.scene.add.text(6, 3, "", {
+      fontFamily: F,
+      fontSize: "9px",
+      fontStyle: "bold",
+      color: "#ff44aa",
+    });
+    this.burnoutRow.add(this.burnoutTremorT);
   }
 
   private buildHeatIndicator() {
@@ -753,6 +797,18 @@ export class Hud {
     heatLevel?: number;
     /** "active" = janela aberta, "cooldown" = em recarga, "low_sanity" = sem sanidade, undefined = pronto */
     parryState?: "active" | "cooldown" | "low_sanity";
+    /** Mods de Burnout (Player.getBurnoutMods()) para exibir sintomas ativos. */
+    burnoutMods?: {
+      speedMult: number;
+      parryDisabled: boolean;
+      specialCooldownMult: number;
+      damageTakenMult: number;
+      vrDropMult: number;
+    };
+    /** true durante o surto de tremor (controles invertidos). */
+    tremoring?: boolean;
+    /** ms até o próximo tremor durante a janela de aviso (0 se não estiver avisando). */
+    tremorWarnMs?: number;
   }) {
     // Sanity color: green→orange at 50%, orange→pulsing red at 25%
     const sanityPct = opts.sanity / opts.maxSanity;
@@ -871,6 +927,85 @@ export class Hud {
     } else {
       this.interactHintT.setVisible(false);
     }
+
+    // Burnout symptom row
+    this.updateBurnoutStatus(opts.burnoutMods, opts.tremoring, opts.tremorWarnMs, opts.time);
+  }
+
+  private updateBurnoutStatus(
+    mods:
+      | {
+          speedMult: number;
+          parryDisabled: boolean;
+          specialCooldownMult: number;
+          damageTakenMult: number;
+          vrDropMult: number;
+        }
+      | undefined,
+    tremoring: boolean | undefined,
+    tremorWarnMs: number | undefined,
+    time: number,
+  ) {
+    // Coleta sintomas ativos (ícone + label curta). Cada mod só aparece se
+    // divergir do baseline neutro. Ordem: gravidade crescente.
+    const chips: Array<{ icon: string; label: string; color: string }> = [];
+    if (mods) {
+      if (mods.speedMult < 1)
+        chips.push({ icon: "▼", label: "LENTO", color: "#ffcc88" });
+      if (mods.vrDropMult < 1) chips.push({ icon: "$", label: "VR-", color: "#ffcc88" });
+      if (mods.specialCooldownMult > 1)
+        chips.push({ icon: "⧗", label: "K+", color: "#ffaa66" });
+      if (mods.damageTakenMult > 1)
+        chips.push({ icon: "!", label: "DANO+", color: "#ff6666" });
+      if (mods.parryDisabled)
+        chips.push({ icon: "✕F", label: "PARRY OFF", color: "#ff4488" });
+    }
+
+    // Estado do tremor tem prioridade visual — vira o chip principal.
+    let tremorText = "";
+    if (tremoring) {
+      tremorText = "⚡ TREMOR!";
+    } else if (tremorWarnMs && tremorWarnMs > 0) {
+      // Contagem piscante nos últimos 500ms
+      const blink = Math.floor(time / 100) % 2 === 0;
+      const secs = (tremorWarnMs / 1000).toFixed(1);
+      tremorText = blink ? `⚡ TREMOR EM ${secs}s` : `  TREMOR EM ${secs}s`;
+    }
+
+    if (chips.length === 0 && !tremorText) {
+      this.burnoutRow.setVisible(false);
+      return;
+    }
+    this.burnoutRow.setVisible(true);
+
+    // Monta a linha: [tremor?] [chips]  — cada chip separado por espaço
+    const parts: string[] = [];
+    if (tremorText) parts.push(tremorText);
+    for (const c of chips) parts.push(`${c.icon} ${c.label}`);
+    const line = parts.join("  ");
+
+    const padX = 6;
+    const padY = 3;
+    this.burnoutIconT.setVisible(false);
+    this.burnoutLabelT.setVisible(false);
+    this.burnoutTremorT.setPosition(padX, padY).setText(line);
+    // Cor principal: vermelho pulsante se em tremor, magenta se avisando,
+    // laranja se só sintomas passivos.
+    let color = "#ffaa66";
+    if (tremoring) color = "#ff44aa";
+    else if (tremorWarnMs && tremorWarnMs > 0) color = "#ff88cc";
+    else if (chips.some((c) => c.color === "#ff4488" || c.color === "#ff6666"))
+      color = "#ff6688";
+    this.burnoutTremorT.setColor(color);
+
+    // Fundo escuro atrás da linha
+    const w = this.burnoutTremorT.width + padX * 2;
+    const h = this.burnoutTremorT.height + padY * 2;
+    this.burnoutBg.clear();
+    this.burnoutBg.fillStyle(0x000000, 0.72);
+    this.burnoutBg.fillRect(0, 0, w, h);
+    this.burnoutBg.lineStyle(1, tremoring ? 0xff44aa : 0x664466, 0.9);
+    this.burnoutBg.strokeRect(0, 0, w, h);
   }
 
   // ─── public methods ─────────────────────────────────────────────
