@@ -40,6 +40,7 @@ export class MenuScene extends Phaser.Scene {
   private prevDownDown = false;
   private prevEnterDown = false;
   private overlay?: Phaser.GameObjects.Container;
+  private MENU_ITEMS: MenuItem[] = ALL_MENU_ITEMS;
 
   constructor() {
     super("MenuScene");
