@@ -28,7 +28,6 @@ import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
-import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 import { MeleeHost } from "../systems/MeleeCombat";
 import { BasePhaseScene } from "./BasePhaseScene";
 
@@ -143,9 +142,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.bossDefeated = false;
     Music.start("office");
 
-    this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
-    this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
-    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.setupWorldAndCamera();
 
     addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
     this.spawnDustParticles();
@@ -375,58 +372,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       }
     };
 
-    // Parry "Reclamar" — stun nearest enemy, gold burst VFX
-    this.player.onParrySuccess = (_fromX: number) => {
-      const allGroups = [
-        this.estagiarios,
-        this.sobrecarregados,
-        this.analistas,
-        this.onboardings,
-        this.facilitadores,
-        this.scrums,
-        this.coordenadores,
-        this.seniors,
-        this.rhs,
-      ];
-      let closest: (Phaser.Physics.Arcade.Sprite & { frozenUntil?: number }) | null = null;
-      let closestDist = 160;
-      allGroups.forEach((g) =>
-        g?.getChildren().forEach((c) => {
-          const e = c as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
-          if (!e.active) return;
-          const d = Math.abs(e.x - this.player.x);
-          if (d < closestDist) {
-            closestDist = d;
-            closest = e;
-          }
-        }),
-      );
-      if (closest) {
-        const e = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
-        e.frozenUntil = this.time.now + 800;
-        e.setTint(0x00ffdd);
-        this.time.delayedCall(800, () => {
-          if (e.active) e.clearTint();
-        });
-      }
-      const burst = this.add
-        .text(this.player.x, this.player.y - 40, "RECLAMEI!", {
-          fontFamily: "monospace",
-          fontSize: "13px",
-          color: "#ffdd00",
-          stroke: "#000000",
-          strokeThickness: 2,
-        })
-        .setOrigin(0.5)
-        .setDepth(200);
-      this.tweens.add({
-        targets: burst,
-        y: burst.y - 30,
-        alpha: 0,
-        duration: 700,
-        onComplete: () => burst.destroy(),
-      });
-    };
+    // Parry "Reclamar" — compartilhado com Base (usa enemyGroups, populado abaixo).
+    this.wireParryReclamar();
 
     // Enemy groups (no classType — entities added manually)
     this.estagiarios = this.physics.add.group({ runChildUpdate: false });
@@ -666,10 +613,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
 
     // Pause on ESC
-    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
-      this.scene.pause();
-      this.scene.launch("PauseScene", { caller: "OpenSpaceV2Scene" });
-    });
+    this.setupPauseKey();
 
     // Copa door interaction zone
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -727,10 +671,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // Item 2 — modificador da sala (depende do seed + loop)
     this.rollRoomEvent(run);
 
-    // Validação de fase (só DEV): garante que a variante montada é jogável/justa.
-    // Loga no console e permite alternar um overlay visual com a tecla V.
-    if (import.meta.env.DEV) {
-      const spec = {
+    // Validação de fase (só DEV) + overlay na tecla V — helper compartilhado.
+    this.installLevelDebug(
+      {
         label: "OpenSpaceV2",
         seedVariant,
         floorY: FLOOR_Y,
@@ -754,17 +697,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         ],
         boss: this.boss,
         exit: { x: this.doorEl.x, y: this.doorEl.y },
-      };
-      const report = validateLevel(spec);
-      logLevelReport(`OpenSpaceV2 (seed variant ${seedVariant})`, report);
-      let overlay: Phaser.GameObjects.Container | undefined;
-      this.input.keyboard?.on("keydown-V", () => {
-        if (overlay) {
-          overlay.destroy();
-          overlay = undefined;
-        } else overlay = drawLevelOverlay(this, spec, report);
-      });
-    }
+      },
+      `OpenSpaceV2 (seed variant ${seedVariant})`,
+    );
   }
 
   // Animated clock hands overlaid on background clock positions

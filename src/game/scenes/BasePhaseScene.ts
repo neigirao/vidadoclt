@@ -158,6 +158,79 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     };
   }
 
+  // --- Blocos de create() compartilhados (chamados por Base e pela Fase 1) ---
+
+  protected setupWorldAndCamera(): void {
+    this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
+    this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
+    this.cameras.main.setBackgroundColor(COLORS.bg);
+  }
+
+  /** Parry "Reclamar": congela o inimigo mais próximo + burst dourado. */
+  protected wireParryReclamar(): void {
+    this.player.onParrySuccess = (_fromX: number) => {
+      let closest: (Phaser.Physics.Arcade.Sprite & { frozenUntil?: number }) | null = null;
+      let closestDist = 160;
+      for (const gDef of this.enemyGroups) {
+        gDef.group.getChildren().forEach((c) => {
+          const e = c as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+          if (!e.active) return;
+          const d = Math.abs(e.x - this.player.x);
+          if (d < closestDist) {
+            closestDist = d;
+            closest = e;
+          }
+        });
+      }
+      if (closest) {
+        const e = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
+        e.frozenUntil = this.time.now + 800;
+        e.setTint(0x00ffdd);
+        this.time.delayedCall(800, () => {
+          if (e.active) e.clearTint();
+        });
+      }
+      const burst = this.add
+        .text(this.player.x, this.player.y - 40, "RECLAMEI!", {
+          fontFamily: "monospace",
+          fontSize: "13px",
+          color: "#ffdd00",
+          stroke: "#000000",
+          strokeThickness: 2,
+        })
+        .setOrigin(0.5)
+        .setDepth(200);
+      this.tweens.add({
+        targets: burst,
+        y: burst.y - 30,
+        alpha: 0,
+        duration: 700,
+        onComplete: () => burst.destroy(),
+      });
+    };
+  }
+
+  protected setupPauseKey(): void {
+    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
+      this.scene.pause();
+      this.scene.launch("PauseScene", { caller: this.scene.key });
+    });
+  }
+
+  /** Valida a fase montada (só DEV) e liga o overlay de debug na tecla V. */
+  protected installLevelDebug(spec: Parameters<typeof validateLevel>[0], label: string): void {
+    if (!import.meta.env.DEV) return;
+    const report = validateLevel(spec);
+    logLevelReport(label, report);
+    let overlay: Phaser.GameObjects.Container | undefined;
+    this.input.keyboard?.on("keydown-V", () => {
+      if (overlay) {
+        overlay.destroy();
+        overlay = undefined;
+      } else overlay = drawLevelOverlay(this, spec, report);
+    });
+  }
+
   create() {
     const run = getRun(this);
     this.platIdx = 0;
@@ -167,9 +240,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     Music.start("office");
 
     // 1. World bounds, camera, background
-    this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
-    this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
-    this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.setupWorldAndCamera();
     addPhaseBackground(this, this.getBgKey(), HUD_TOP_H, FLOOR_Y);
     const pn = this.getPhaseNumber();
     if (pn !== null) addPhaseDecor(this, pn, FLOOR_Y);
@@ -227,47 +298,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     };
 
     // Parry "Reclamar" — stun nearest enemy, gold burst VFX
-    this.player.onParrySuccess = (_fromX: number) => {
-      let closest: (Phaser.Physics.Arcade.Sprite & { frozenUntil?: number }) | null = null;
-      let closestDist = 160;
-      for (const gDef of this.enemyGroups) {
-        gDef.group.getChildren().forEach((c) => {
-          const e = c as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
-          if (!e.active) return;
-          const d = Math.abs(e.x - this.player.x);
-          if (d < closestDist) {
-            closestDist = d;
-            closest = e;
-          }
-        });
-      }
-      if (closest) {
-        const e = closest as Phaser.Physics.Arcade.Sprite & { frozenUntil?: number };
-        e.frozenUntil = this.time.now + 800;
-        e.setTint(0x00ffdd);
-        this.time.delayedCall(800, () => {
-          if (e.active) e.clearTint();
-        });
-      }
-      // Gold burst
-      const burst = this.add
-        .text(this.player.x, this.player.y - 40, "RECLAMEI!", {
-          fontFamily: "monospace",
-          fontSize: "13px",
-          color: "#ffdd00",
-          stroke: "#000000",
-          strokeThickness: 2,
-        })
-        .setOrigin(0.5)
-        .setDepth(200);
-      this.tweens.add({
-        targets: burst,
-        y: burst.y - 30,
-        alpha: 0,
-        duration: 700,
-        onComplete: () => burst.destroy(),
-      });
-    };
+    this.wireParryReclamar();
 
     // 6. Projectile + drop groups
     this.inkProjectiles = this.physics.add.group();
@@ -408,10 +439,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     });
 
     // 17. ESC → PauseScene
-    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
-      this.scene.pause();
-      this.scene.launch("PauseScene", { caller: this.scene.key });
-    });
+    this.setupPauseKey();
 
     // 18. Interact key + door zone
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -476,10 +504,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       onComplete: () => title.destroy(),
     });
 
-    // 21. Validação de fase (só DEV) + overlay com a tecla V — mesmo padrão da
-    // Fase 1. Garante que a variante de layout sorteada é jogável/justa.
-    if (import.meta.env.DEV) {
-      const spec = {
+    // 21. Validação de fase (só DEV) + overlay com a tecla V.
+    this.installLevelDebug(
+      {
         label: this.getPhaseTitle(),
         seedVariant: this._layoutVariant,
         floorY: FLOOR_Y,
@@ -494,17 +521,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         boss: this.boss,
         expectBoss: this.getBossName() !== "",
         exit: { x: this.doorEl.x, y: this.doorEl.y },
-      };
-      const report = validateLevel(spec);
-      logLevelReport(`${this.getPhaseTitle()} (layout ${this._layoutVariant})`, report);
-      let overlay: Phaser.GameObjects.Container | undefined;
-      this.input.keyboard?.on("keydown-V", () => {
-        if (overlay) {
-          overlay.destroy();
-          overlay = undefined;
-        } else overlay = drawLevelOverlay(this, spec, report);
-      });
-    }
+      },
+      `${this.getPhaseTitle()} (layout ${this._layoutVariant})`,
+    );
   }
 
   update(time: number, delta: number) {
