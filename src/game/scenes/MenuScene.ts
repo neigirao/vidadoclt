@@ -317,7 +317,8 @@ export class MenuScene extends Phaser.Scene {
     }
 
     if (upDown && !this.prevUpDown) {
-      this.selectedIndex = (this.selectedIndex - 1 + this.MENU_ITEMS.length) % this.MENU_ITEMS.length;
+      this.selectedIndex =
+        (this.selectedIndex - 1 + this.MENU_ITEMS.length) % this.MENU_ITEMS.length;
       this.refreshMenu();
     }
     if (downDown && !this.prevDownDown) {

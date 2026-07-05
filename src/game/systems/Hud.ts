@@ -950,15 +950,11 @@ export class Hud {
     // divergir do baseline neutro. Ordem: gravidade crescente.
     const chips: Array<{ icon: string; label: string; color: string }> = [];
     if (mods) {
-      if (mods.speedMult < 1)
-        chips.push({ icon: "▼", label: "LENTO", color: "#ffcc88" });
+      if (mods.speedMult < 1) chips.push({ icon: "▼", label: "LENTO", color: "#ffcc88" });
       if (mods.vrDropMult < 1) chips.push({ icon: "$", label: "VR-", color: "#ffcc88" });
-      if (mods.specialCooldownMult > 1)
-        chips.push({ icon: "⧗", label: "K+", color: "#ffaa66" });
-      if (mods.damageTakenMult > 1)
-        chips.push({ icon: "!", label: "DANO+", color: "#ff6666" });
-      if (mods.parryDisabled)
-        chips.push({ icon: "✕F", label: "PARRY OFF", color: "#ff4488" });
+      if (mods.specialCooldownMult > 1) chips.push({ icon: "⧗", label: "K+", color: "#ffaa66" });
+      if (mods.damageTakenMult > 1) chips.push({ icon: "!", label: "DANO+", color: "#ff6666" });
+      if (mods.parryDisabled) chips.push({ icon: "✕F", label: "PARRY OFF", color: "#ff4488" });
     }
 
     // Estado do tremor tem prioridade visual — vira o chip principal.
@@ -994,8 +990,7 @@ export class Hud {
     let color = "#ffaa66";
     if (tremoring) color = "#ff44aa";
     else if (tremorWarnMs && tremorWarnMs > 0) color = "#ff88cc";
-    else if (chips.some((c) => c.color === "#ff4488" || c.color === "#ff6666"))
-      color = "#ff6688";
+    else if (chips.some((c) => c.color === "#ff4488" || c.color === "#ff6666")) color = "#ff6688";
     this.burnoutTremorT.setColor(color);
 
     // Fundo escuro atrás da linha
