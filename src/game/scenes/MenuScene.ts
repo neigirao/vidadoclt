@@ -40,7 +40,7 @@ export class MenuScene extends Phaser.Scene {
   private prevDownDown = false;
   private prevEnterDown = false;
   private overlay?: Phaser.GameObjects.Container;
-  private MENU_ITEMS: MenuItem[] = ALL_MENU_ITEMS;
+  private this.MENU_ITEMS: MenuItem[] = ALL_MENU_ITEMS;
 
   constructor() {
     super("MenuScene");
@@ -127,7 +127,7 @@ export class MenuScene extends Phaser.Scene {
 
     this.menuButtons = [];
 
-    MENU_ITEMS.forEach((item, i) => {
+    this.MENU_ITEMS.forEach((item, i) => {
       const y = startY + i * itemH;
       const container = this.add.container(14, y);
 
@@ -167,7 +167,7 @@ export class MenuScene extends Phaser.Scene {
 
   private refreshMenu() {
     const itemH = 44;
-    MENU_ITEMS.forEach((_, i) => {
+    this.MENU_ITEMS.forEach((_, i) => {
       const container = this.menuButtons[i];
       const bg = container.getAt(0) as Phaser.GameObjects.Graphics;
       const icon = container.getAt(1) as Phaser.GameObjects.Text;
@@ -312,11 +312,11 @@ export class MenuScene extends Phaser.Scene {
     }
 
     if (upDown && !this.prevUpDown) {
-      this.selectedIndex = (this.selectedIndex - 1 + MENU_ITEMS.length) % MENU_ITEMS.length;
+      this.selectedIndex = (this.selectedIndex - 1 + this.MENU_ITEMS.length) % this.MENU_ITEMS.length;
       this.refreshMenu();
     }
     if (downDown && !this.prevDownDown) {
-      this.selectedIndex = (this.selectedIndex + 1) % MENU_ITEMS.length;
+      this.selectedIndex = (this.selectedIndex + 1) % this.MENU_ITEMS.length;
       this.refreshMenu();
     }
     if (enterDown && !this.prevEnterDown) {
@@ -364,7 +364,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private confirm() {
-    const item = MENU_ITEMS[this.selectedIndex];
+    const item = this.MENU_ITEMS[this.selectedIndex];
     if (item.label === "JOGAR") {
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
