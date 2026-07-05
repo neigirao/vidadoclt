@@ -114,6 +114,13 @@ export class Hud {
   private prevPerkCount = 0;
   private heatText!: Phaser.GameObjects.Text;
 
+  // ─── Burnout status row (sintomas ativos) ────────────────────────
+  private burnoutRow!: Phaser.GameObjects.Container;
+  private burnoutBg!: Phaser.GameObjects.Graphics;
+  private burnoutIconT!: Phaser.GameObjects.Text;
+  private burnoutLabelT!: Phaser.GameObjects.Text;
+  private burnoutTremorT!: Phaser.GameObjects.Text;
+
   private levelWidth: number;
 
   constructor(scene: Phaser.Scene, levelWidth = 1920) {
@@ -126,6 +133,43 @@ export class Hud {
     this.buildBottomBar();
     this.buildTopSeparator();
     this.buildHeatIndicator();
+    this.buildBurnoutRow();
+  }
+
+  private buildBurnoutRow() {
+    // Faixa flutuante logo acima da bottom bar, à esquerda. Só aparece quando
+    // há sintomas ativos. Mostra ícones dos mods + status do tremor com
+    // contagem regressiva.
+    this.burnoutRow = this.scene.add
+      .container(6, HUD_BOT_Y - 26)
+      .setScrollFactor(0)
+      .setDepth(1001)
+      .setVisible(false);
+
+    this.burnoutBg = this.scene.add.graphics();
+    this.burnoutRow.add(this.burnoutBg);
+
+    this.burnoutIconT = this.scene.add.text(6, 3, "", {
+      fontFamily: F,
+      fontSize: "11px",
+      color: "#ff88cc",
+    });
+    this.burnoutRow.add(this.burnoutIconT);
+
+    this.burnoutLabelT = this.scene.add.text(6, 3, "", {
+      fontFamily: F,
+      fontSize: "8px",
+      color: "#ffbbdd",
+    });
+    this.burnoutRow.add(this.burnoutLabelT);
+
+    this.burnoutTremorT = this.scene.add.text(6, 3, "", {
+      fontFamily: F,
+      fontSize: "9px",
+      fontStyle: "bold",
+      color: "#ff44aa",
+    });
+    this.burnoutRow.add(this.burnoutTremorT);
   }
 
   private buildHeatIndicator() {
