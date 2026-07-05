@@ -25,6 +25,7 @@ export class ClassSelectScene extends Phaser.Scene {
   private rightKey!: Phaser.Input.Keyboard.Key;
   private prevLeft = false;
   private prevRight = false;
+  private lockedClasses = new Set<ClassId>();
 
   constructor() {
     super("ClassSelectScene");
