@@ -268,8 +268,9 @@ export class ClassSelectScene extends Phaser.Scene {
       const charSpr = container.getAt(3) as Phaser.GameObjects.Image;
       const def = CLASSES[CLASS_IDS[i]];
       const selected = i === this.selectedIndex;
+      const locked = this.lockedClasses.has(CLASS_IDS[i]);
       bg.clear();
-      if (selected) {
+      if (selected && !locked) {
         bg.fillStyle(BG_CARD, 1);
         bg.fillRect(-hw, -hh, CARD_W, CARD_H);
         bg.lineStyle(2, ACCENT, 1);
@@ -280,26 +281,62 @@ export class ClassSelectScene extends Phaser.Scene {
       } else {
         bg.fillStyle(BG_PANEL, 1);
         bg.fillRect(-hw, -hh, CARD_W, CARD_H);
-        bg.lineStyle(1, 0x252830, 1);
+        bg.lineStyle(1, locked ? 0x442222 : 0x252830, 1);
         bg.strokeRect(-hw, -hh, CARD_W, CARD_H);
-        charSpr.setTint(def.color);
-        container.setAlpha(0.48);
+        charSpr.setTint(locked ? 0x333333 : def.color);
+        container.setAlpha(locked ? 0.35 : 0.48);
         container.setY(this.cardY);
       }
+      // Overlay de bloqueio: só monta 1x (slot [12] no container)
+      if (locked && container.length < 13) {
+        const lockG = this.add.graphics();
+        lockG.fillStyle(0x000000, 0.55);
+        lockG.fillRect(-hw, -hh, CARD_W, CARD_H);
+        container.add(lockG);
+        const lockT = this.add
+          .text(0, 0, "🔒 BLOQUEADO", {
+            fontFamily: "monospace",
+            fontSize: "12px",
+            fontStyle: "bold",
+            color: "#cc6644",
+            stroke: "#000",
+            strokeThickness: 3,
+          })
+          .setOrigin(0.5);
+        container.add(lockT);
+        const hintT = this.add
+          .text(0, 22, "Complete a Fase 1 para destravar", {
+            fontFamily: "monospace",
+            fontSize: "8px",
+            color: "#886644",
+            align: "center",
+            wordWrap: { width: CARD_W - 20 },
+          })
+          .setOrigin(0.5, 0);
+        container.add(hintT);
+      }
     });
+  }
+
+  /** Move selectedIndex ao próximo card não-bloqueado na direção dada. */
+  private moveSelection(dir: 1 | -1) {
+    let idx = this.selectedIndex;
+    for (let step = 0; step < CLASS_IDS.length; step++) {
+      idx = Math.max(0, Math.min(CLASS_IDS.length - 1, idx + dir));
+      if (!this.lockedClasses.has(CLASS_IDS[idx])) {
+        this.selectedIndex = idx;
+        this.refreshCards();
+        return;
+      }
+      if (idx === 0 || idx === CLASS_IDS.length - 1) break;
+    }
   }
 
   update() {
     const leftDown = this.leftKey.isDown;
     const rightDown = this.rightKey.isDown;
-    if (leftDown && !this.prevLeft) {
-      this.selectedIndex = Math.max(0, this.selectedIndex - 1);
-      this.refreshCards();
-    }
-    if (rightDown && !this.prevRight) {
-      this.selectedIndex = Math.min(CLASS_IDS.length - 1, this.selectedIndex + 1);
-      this.refreshCards();
-    }
+    if (leftDown && !this.prevLeft) this.moveSelection(-1);
+    if (rightDown && !this.prevRight) this.moveSelection(1);
     this.prevLeft = leftDown;
     this.prevRight = rightDown;
   }
