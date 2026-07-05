@@ -927,6 +927,85 @@ export class Hud {
     } else {
       this.interactHintT.setVisible(false);
     }
+
+    // Burnout symptom row
+    this.updateBurnoutStatus(opts.burnoutMods, opts.tremoring, opts.tremorWarnMs, opts.time);
+  }
+
+  private updateBurnoutStatus(
+    mods:
+      | {
+          speedMult: number;
+          parryDisabled: boolean;
+          specialCooldownMult: number;
+          damageTakenMult: number;
+          vrDropMult: number;
+        }
+      | undefined,
+    tremoring: boolean | undefined,
+    tremorWarnMs: number | undefined,
+    time: number,
+  ) {
+    // Coleta sintomas ativos (ícone + label curta). Cada mod só aparece se
+    // divergir do baseline neutro. Ordem: gravidade crescente.
+    const chips: Array<{ icon: string; label: string; color: string }> = [];
+    if (mods) {
+      if (mods.speedMult < 1)
+        chips.push({ icon: "▼", label: "LENTO", color: "#ffcc88" });
+      if (mods.vrDropMult < 1) chips.push({ icon: "$", label: "VR-", color: "#ffcc88" });
+      if (mods.specialCooldownMult > 1)
+        chips.push({ icon: "⧗", label: "K+", color: "#ffaa66" });
+      if (mods.damageTakenMult > 1)
+        chips.push({ icon: "!", label: "DANO+", color: "#ff6666" });
+      if (mods.parryDisabled)
+        chips.push({ icon: "✕F", label: "PARRY OFF", color: "#ff4488" });
+    }
+
+    // Estado do tremor tem prioridade visual — vira o chip principal.
+    let tremorText = "";
+    if (tremoring) {
+      tremorText = "⚡ TREMOR!";
+    } else if (tremorWarnMs && tremorWarnMs > 0) {
+      // Contagem piscante nos últimos 500ms
+      const blink = Math.floor(time / 100) % 2 === 0;
+      const secs = (tremorWarnMs / 1000).toFixed(1);
+      tremorText = blink ? `⚡ TREMOR EM ${secs}s` : `  TREMOR EM ${secs}s`;
+    }
+
+    if (chips.length === 0 && !tremorText) {
+      this.burnoutRow.setVisible(false);
+      return;
+    }
+    this.burnoutRow.setVisible(true);
+
+    // Monta a linha: [tremor?] [chips]  — cada chip separado por espaço
+    const parts: string[] = [];
+    if (tremorText) parts.push(tremorText);
+    for (const c of chips) parts.push(`${c.icon} ${c.label}`);
+    const line = parts.join("  ");
+
+    const padX = 6;
+    const padY = 3;
+    this.burnoutIconT.setVisible(false);
+    this.burnoutLabelT.setVisible(false);
+    this.burnoutTremorT.setPosition(padX, padY).setText(line);
+    // Cor principal: vermelho pulsante se em tremor, magenta se avisando,
+    // laranja se só sintomas passivos.
+    let color = "#ffaa66";
+    if (tremoring) color = "#ff44aa";
+    else if (tremorWarnMs && tremorWarnMs > 0) color = "#ff88cc";
+    else if (chips.some((c) => c.color === "#ff4488" || c.color === "#ff6666"))
+      color = "#ff6688";
+    this.burnoutTremorT.setColor(color);
+
+    // Fundo escuro atrás da linha
+    const w = this.burnoutTremorT.width + padX * 2;
+    const h = this.burnoutTremorT.height + padY * 2;
+    this.burnoutBg.clear();
+    this.burnoutBg.fillStyle(0x000000, 0.72);
+    this.burnoutBg.fillRect(0, 0, w, h);
+    this.burnoutBg.lineStyle(1, tremoring ? 0xff44aa : 0x664466, 0.9);
+    this.burnoutBg.strokeRect(0, 0, w, h);
   }
 
   // ─── public methods ─────────────────────────────────────────────
