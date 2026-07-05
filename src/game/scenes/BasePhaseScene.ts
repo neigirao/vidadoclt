@@ -70,6 +70,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected onPhaseUpdate(_t: number, _d: number): void {}
   protected onEnemyKilledByMelee(_e: GameEnemy): void {}
   protected onEnemyKilledByProjectile(_e: GameEnemy): void {}
+  /** Drena sanidade passiva no update? A Fase 1 desativa no evento HOME OFFICE. */
+  protected sanityDrainEnabled(): boolean {
+    return true;
+  }
 
   /**
    * Instancia o Player e aplica todo o wiring compartilhado por TODAS as fases:
@@ -506,7 +510,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   update(time: number, delta: number) {
     // 1. Player update
     this.player.update(time, delta);
-    this.player.tickPassive(time);
+    if (this.sanityDrainEnabled()) this.player.tickPassive(time);
 
     // 2. Subclass phase logic
     this.onPhaseUpdate(time, delta);

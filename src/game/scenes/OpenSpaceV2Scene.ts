@@ -58,7 +58,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   private apagaoDark?: Phaser.GameObjects.Image;
   private extintorLooted = false;
   private shadowG!: Phaser.GameObjects.Graphics;
-  private doorCopa!: Phaser.GameObjects.Image;
   private reuniaoUsed = false;
   private bossEntryTriggered = false;
 
@@ -270,8 +269,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     );
 
     // Copa door — locked until boss defeated
-    this.doorCopa = addImage(this, LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door");
-    this.doorCopa.setTint(0x555555);
+    this.doorEl = addImage(this, LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door");
+    this.doorEl.setTint(0x555555);
     this.doorLabel = this.add
       .text(LEVEL_WIDTH - 60, FLOOR_Y - 72, "COPA\n[BLOQUEADO]", {
         fontFamily: "monospace",
@@ -445,6 +444,21 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.inkProjectiles = this.physics.add.group();
     this.drops = this.physics.add.group();
 
+    // Registro no array herdado enemyGroups: BasePhaseScene.update() usa isso p/
+    // o homing do projétil (a Fase 1 mantém seus próprios colliders/overlaps no
+    // create, com os hooks de VR — este array é só a lista viva de inimigos).
+    this.enemyGroups = [
+      { group: this.estagiarios, vrDrop: 1 },
+      { group: this.sobrecarregados, vrDrop: 2 },
+      { group: this.analistas, vrDrop: 3 },
+      { group: this.onboardings, vrDrop: 2 },
+      { group: this.facilitadores, vrDrop: 2 },
+      { group: this.scrums, vrDrop: 2 },
+      { group: this.coordenadores, vrDrop: 4 },
+      { group: this.seniors, vrDrop: 6 },
+      { group: this.rhs, vrDrop: 3 },
+    ];
+
     // Recompensa de exploração vertical: cache de VR na plataforma mais alta.
     this.spawnVerticalReward();
 
@@ -464,7 +478,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     if (run.openSpaceCleared === true) {
       this.bossDefeated = true;
-      this.doorCopa.clearTint();
+      this.doorEl.clearTint();
       this.doorLabel.setText("COPA").setColor("#c9a36a");
     } else {
       this.spawnEnemies();
@@ -659,7 +673,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     // Copa door interaction zone
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-    const doorZone = this.add.zone(this.doorCopa.x, this.doorCopa.y, 40, 60);
+    const doorZone = this.add.zone(this.doorEl.x, this.doorEl.y, 40, 60);
     this.physics.add.existing(doorZone, true);
     this.physics.add.overlap(this.player, doorZone, () => {
       if (!this.bossDefeated) return;
@@ -739,7 +753,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
           this.rhs,
         ],
         boss: this.boss,
-        exit: { x: this.doorCopa.x, y: this.doorCopa.y },
+        exit: { x: this.doorEl.x, y: this.doorEl.y },
       };
       const report = validateLevel(spec);
       logLevelReport(`OpenSpaceV2 (seed variant ${seedVariant})`, report);
@@ -1169,7 +1183,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.player.autonomia = true;
     savePersisted(run.reconhecimento, run.fgts, run.loopCount);
 
-    this.doorCopa.clearTint();
+    this.doorEl.clearTint();
     this.doorLabel.setText("COPA").setColor("#c9a36a");
 
     // #9 Hover: door label bobs to signal the way out
@@ -1899,9 +1913,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     }
   }
 
-  update(time: number, delta: number) {
-    this.player.update(time, delta);
-    if (!this.eventNoSanityDrain) this.player.tickPassive(time);
+  // BasePhaseScene.update() cuida de player.update, tickPassive (via
+  // sanityDrainEnabled), homing ink, contato+HUD do boss, sanity fx, near-door e
+  // hud.update. Aqui ficam só os extras exclusivos da Fase 1.
+  protected sanityDrainEnabled(): boolean {
+    return !this.eventNoSanityDrain;
+  }
+
+  protected onPhaseUpdate(time: number, _delta: number): void {
     this.drawProdMeter(time);
     this.updateHealerMarkers(time);
 
@@ -1930,42 +1949,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         if (sprite.body) (sprite.body as Phaser.Physics.Arcade.Body).enable = inView;
       });
     }
-
-    // Homing projectile steering
-    this.inkProjectiles.getChildren().forEach((obj) => {
-      const ink = obj as Phaser.Physics.Arcade.Sprite;
-      if (!ink.active) return;
-      const lifetime = ink.getData("lifetime") as number;
-      if (lifetime && lifetime < time) {
-        ink.destroy();
-        return;
-      }
-      if (!ink.getData("homing")) return;
-      const allEnemies: Phaser.Physics.Arcade.Sprite[] = [];
-      [
-        this.estagiarios,
-        this.analistas,
-        this.facilitadores,
-        this.scrums,
-        this.coordenadores,
-        this.seniors,
-        this.rhs,
-      ].forEach((g) =>
-        g?.getChildren().forEach((e) => allEnemies.push(e as Phaser.Physics.Arcade.Sprite)),
-      );
-      const nearest = allEnemies
-        .filter((e) => e.active)
-        .sort(
-          (a, b) =>
-            Phaser.Math.Distance.Between(ink.x, ink.y, a.x, a.y) -
-            Phaser.Math.Distance.Between(ink.x, ink.y, b.x, b.y),
-        )[0];
-      if (nearest) {
-        const ibody = ink.body as Phaser.Physics.Arcade.Body;
-        const angle = Phaser.Math.Angle.Between(ink.x, ink.y, nearest.x, nearest.y);
-        ibody.setVelocity(Math.cos(angle) * 480, Math.sin(angle) * 480);
-      }
-    });
 
     // AnalistaJunior melee hitbox
     this.analistas.getChildren().forEach((c) => {
@@ -2011,25 +1994,19 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       }
     });
 
-    // Boss melee + walk contact (usa a ref tipada do Gerente p/ os campos de swing)
+    // Golpe (swing) do Gerente — o contato + HUD do boss são tratados por
+    // BasePhaseScene.update(); aqui só a hitbox de ataque, que a base não conhece.
     const gerente = this.gerente;
-    if (gerente?.active) {
-      if (
-        gerente.swingActive &&
-        gerente.swingHitbox &&
-        !this.player.isInvulnerable(time) &&
-        Phaser.Geom.Intersects.RectangleToRectangle(gerente.swingHitbox, this.player.getBounds())
-      ) {
-        this.player.takeDamage(gerente.swingDamage, 5, gerente.x);
-        gerente.swingActive = false;
-        gerente.swingHitbox = null;
-      }
-      if (
-        !this.player.isInvulnerable(time) &&
-        Phaser.Geom.Intersects.RectangleToRectangle(gerente.getBounds(), this.player.getBounds())
-      ) {
-        this.player.takeDamage(gerente.contactDamage, 3, gerente.x);
-      }
+    if (
+      gerente?.active &&
+      gerente.swingActive &&
+      gerente.swingHitbox &&
+      !this.player.isInvulnerable(time) &&
+      Phaser.Geom.Intersects.RectangleToRectangle(gerente.swingHitbox, this.player.getBounds())
+    ) {
+      this.player.takeDamage(gerente.swingDamage, 5, gerente.x);
+      gerente.swingActive = false;
+      gerente.swingHitbox = null;
     }
 
     // Item 3 — Tutorial implícito: show control hints for first 12s on loop 0.
@@ -2152,30 +2129,5 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         Math.max(3, 8 - bLift * 0.03),
       );
     }
-
-    this.fx.update(time, this.player.sanity);
-
-    const nearDoor =
-      this.bossDefeated &&
-      Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorCopa.x, this.doorCopa.y) <
-        40;
-
-    const run = getRun(this);
-    this.hud.update({
-      energy: Math.ceil(this.player.energy),
-      maxEnergy: this.player.maxEnergy,
-      sanity: Math.ceil(this.player.sanity),
-      maxSanity: this.player.maxSanity,
-      vr: this.player.vr,
-      reconhecimento: run.reconhecimento,
-      time,
-      startTime: this.startTimeMs,
-      playerX: this.player.x,
-      interactHint: nearDoor ? "[ E ]  Entrar na Copa" : undefined,
-      dashCooldown: this.player.getDashCooldownRatio(time),
-      burnoutMods: this.player.getBurnoutMods(),
-      tremoring: this.player.isTremoring(time),
-      tremorWarnMs: this.player.getTremorWarnMs(time),
-    });
   }
 }
