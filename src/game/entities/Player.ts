@@ -213,12 +213,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   // player durante a janela ativa. Margem de perdão: começa levemente atrás do
   // centro (pega inimigo colado), alcance +18 e altura 44 (não "passa por cima").
   private buildMeleeHitbox(): Phaser.Geom.Rectangle {
-    const reach = this.attackRange + 18;
+    // Margens de perdão contra o "bati e não acertou": alcance = attackRange + 24,
+    // altura 52 (pega inimigo em degrau/plataforma baixa logo acima/abaixo) e a
+    // hitbox começa 8px atrás do centro (pega o inimigo colado nas costas/frente).
+    const reach = this.attackRange + 24;
     return new Phaser.Geom.Rectangle(
-      this.facing === 1 ? this.x - 4 : this.x + 4 - reach,
-      this.y - 22,
+      this.facing === 1 ? this.x - 8 : this.x + 8 - reach,
+      this.y - 26,
       reach,
-      44,
+      52,
     );
   }
 

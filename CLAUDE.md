@@ -108,8 +108,9 @@ JUMP_BUFFER_MS = 100; // janela de input do pulo
 COMBO_WINDOW_MS = 250; // janela entre hits do combo
 HIT_INVULN_MS = 600; // i-frames após tomar dano
 // dano/knockback por arma vêm de WEAPONS[weaponId].hitDamages / comboKnockback
-// Hitbox de melee (Player.ts): começa levemente atrás do centro (pega inimigo
-// colado), alcance = attackRange + 18, altura 44. Margem de perdão contra o
+// Hitbox de melee (Player.ts): começa 8px atrás do centro (pega inimigo
+// colado), alcance = attackRange + 24, altura 52 (pega inimigo em degrau/
+// plataforma baixa logo acima/abaixo). Margem de perdão contra o
 // "bati e não acertou". A hitbox fica ATIVA por MELEE_ACTIVE_MS (120ms): o
 // Player re-dispara onAttack a cada frame da janela (hitbox segue o player), e
 // a cena dedup por swingId (getData("hitSwing")) → 1 hit por inimigo por golpe.

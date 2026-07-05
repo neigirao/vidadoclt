@@ -1827,6 +1827,28 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     const ev = EVENTS[idx];
     if (!ev.name) return; // sala normal, sem banner
     ev.apply();
+
+    // Indicador FIXO do evento ativo (o banner de entrada some em ~3s e deixava
+    // o jogador sem saber por que a sala mudou — ex.: escuridão do APAGÃO). Fica
+    // no canto durante toda a fase; depth 972 > 950 da escuridão do apagão.
+    const badge = this.add
+      .text(12, HUD_TOP_H + 10, `◉ ${ev.name}\n${ev.desc}`, {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: ev.color,
+        stroke: "#000000",
+        strokeThickness: 3,
+        lineSpacing: 2,
+      })
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(972);
+    this.add
+      .rectangle(badge.x - 4, badge.y - 3, badge.width + 8, badge.height + 6, 0x0a0d12, 0.6)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(971);
+
     // Banner de entrada
     const banner = this.add
       .text(GAME_WIDTH / 2, 110, ev.name, {
