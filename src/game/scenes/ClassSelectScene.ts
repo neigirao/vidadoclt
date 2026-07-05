@@ -124,14 +124,8 @@ export class ClassSelectScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this.leftKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
     this.rightKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
-    kb.addKey(Phaser.Input.Keyboard.KeyCodes.A).on("down", () => {
-      this.selectedIndex = Math.max(0, this.selectedIndex - 1);
-      this.refreshCards();
-    });
-    kb.addKey(Phaser.Input.Keyboard.KeyCodes.D).on("down", () => {
-      this.selectedIndex = Math.min(CLASS_IDS.length - 1, this.selectedIndex + 1);
-      this.refreshCards();
-    });
+    kb.addKey(Phaser.Input.Keyboard.KeyCodes.A).on("down", () => this.moveSelection(-1));
+    kb.addKey(Phaser.Input.Keyboard.KeyCodes.D).on("down", () => this.moveSelection(1));
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER).on("down", () => this.confirm());
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on("down", () => this.confirm());
 
