@@ -48,6 +48,11 @@ export class MenuScene extends Phaser.Scene {
 
   create() {
     Music.start("office");
+    // Primeira run (nunca morreu/venceu): menu enxuto para eliminar
+    // paralysis by analysis. Sub-telas destravam a partir do 2º loop.
+    const run = getRun(this);
+    this.MENU_ITEMS =
+      run.loopCount === 0 ? ALL_MENU_ITEMS.filter((it) => it.firstRun) : ALL_MENU_ITEMS;
     // Full-screen reference art background (loaded from assets)
     this.add
       .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
