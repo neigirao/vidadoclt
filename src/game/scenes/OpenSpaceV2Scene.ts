@@ -2173,6 +2173,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       playerX: this.player.x,
       interactHint: nearDoor ? "[ E ]  Entrar na Copa" : undefined,
       dashCooldown: this.player.getDashCooldownRatio(time),
+      burnoutMods: this.player.getBurnoutMods(),
+      tremoring: this.player.isTremoring(time),
+      tremorWarnMs: this.player.getTremorWarnMs(time),
     });
   }
 }
