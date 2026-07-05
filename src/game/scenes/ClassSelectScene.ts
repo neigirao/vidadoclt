@@ -336,6 +336,7 @@ export class ClassSelectScene extends Phaser.Scene {
   }
 
   private confirm() {
+    if (this.lockedClasses.has(CLASS_IDS[this.selectedIndex])) return;
     const run = getRun(this);
     run.characterClass = CLASS_IDS[this.selectedIndex];
 
