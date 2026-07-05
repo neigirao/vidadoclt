@@ -38,6 +38,13 @@ export class ClassSelectScene extends Phaser.Scene {
     const run = getRun(this);
     applyRunSeed(run.seed);
 
+    // Primeira run: só Estagiário destravado. Analista/Terceirizado destravam
+    // ao completar a Fase 1 pela primeira vez (via loopCount > 0).
+    if (run.loopCount === 0) {
+      this.lockedClasses = new Set<ClassId>(["analista", "terceirizado"]);
+      this.selectedIndex = 0;
+    }
+
     // Background — match MenuScene palette
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, BG_PANEL);
     if (this.textures.exists("bg-menu")) {
