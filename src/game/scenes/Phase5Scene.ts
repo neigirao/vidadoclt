@@ -183,7 +183,8 @@ export class Phase5Scene extends BasePhaseScene {
       this.enemyCount++;
     });
 
-    [1520, 1660].forEach((x) => {
+    // 1600 (era 1660) fica >140px do spawn vindo da Copa (x≈1800) → spawn-seguro.
+    [1480, 1600].forEach((x) => {
       const ev = new EvangelistaMegaCorp(this, x, FLOOR_Y - 60);
       ev.target = this.player;
       ev.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 12, 0xff6600, 200);
