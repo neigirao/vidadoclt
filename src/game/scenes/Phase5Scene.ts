@@ -122,15 +122,36 @@ export class Phase5Scene extends BasePhaseScene {
       const e = new BateriaSocial(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onDeath = () => {
+        // "Bateria Social": ao descarregar (morrer), recarrega os colegas ao
+        // redor — cura 30 HP em cada inimigo no raio da aura. Vale matá-la longe
+        // do grupo (ou matar o grupo antes). Ring verde de feedback.
+        const range = e.getAuraRange();
+        const ring = this.add.graphics().setDepth(400);
+        ring.lineStyle(2, 0x44ff88, 0.85);
+        ring.strokeCircle(e.x, e.y, range);
+        this.tweens.add({
+          targets: ring,
+          alpha: 0,
+          scaleX: 1.25,
+          scaleY: 1.25,
+          duration: 520,
+          onComplete: () => ring.destroy(),
+        });
         const nearby = [
           ...this.carimbadores.getChildren(),
           ...this.arquivos.getChildren(),
           ...this.baterias.getChildren(),
         ] as GameEnemy[];
         nearby.forEach((en) => {
+          const spr = en as unknown as Phaser.Physics.Arcade.Sprite;
+          if (spr === (e as unknown as Phaser.Physics.Arcade.Sprite)) return;
           if (!en.active || en.hp === undefined) return;
-          if (Phaser.Math.Distance.Between(en.x, en.y, e.x, e.y) < e.getAuraRange()) {
-            en.hp = Math.max(en.hp - 0, en.hp); // TODO: efeito real da aura (hoje é no-op)
+          if (Phaser.Math.Distance.Between(en.x, en.y, e.x, e.y) < range) {
+            en.hp += 30;
+            spr.setTint(0x44ff88);
+            this.time.delayedCall(300, () => {
+              if (spr.active) spr.clearTint();
+            });
           }
         });
       };
