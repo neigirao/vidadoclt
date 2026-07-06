@@ -1266,6 +1266,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         onBossDied: () => {},
         killVrMult: (x, y) => this.prod.registerKill(x, y) * this.eventVrMult,
         onSwingStart: (hb) => this.checkExtintorSecret(hb),
+        onEnemyKilled: (e) => this.rollSanityDrop(e.x, e.y),
       };
     }
     this._meleeHost.player = this.player;

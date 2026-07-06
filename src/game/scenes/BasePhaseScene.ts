@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H, Hud } from "../systems/Hud";
 import { addPhaseBackground, addPhaseDecor } from "../systems/Background";
+import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
@@ -33,6 +34,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected inkProjectiles!: Phaser.Physics.Arcade.Group;
   protected enemyProjectiles!: Phaser.Physics.Arcade.Group;
   protected drops!: Phaser.Physics.Arcade.Group;
+  /** Cafezinhos — pickup que restaura Sanidade (contra-jogo do Burnout). */
+  protected sanityDrops!: Phaser.Physics.Arcade.Group;
   protected boss?: BossEntity;
   protected bossDefeated = false;
   protected startTimeMs = 0;
@@ -317,6 +320,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.inkProjectiles = this.physics.add.group();
     this.enemyProjectiles = this.physics.add.group();
     this.drops = this.physics.add.group();
+    this.sanityDrops = this.physics.add.group();
 
     // 7. FX + HUD — BEFORE setupEnemiesAndGroups
     this.fx = new SanityFx(this);
@@ -378,6 +382,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       }
     }
     this.physics.add.collider(this.drops, this.platforms);
+    this.physics.add.collider(this.sanityDrops, this.platforms);
 
     // 10b. Separação entre inimigos de chão (não-aéreos): evita empilhamento no
     // mesmo ponto. Só resolve a sobreposição; a IA re-aplica a velocidade.
@@ -439,6 +444,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         if (!piercing) ink.destroy();
         if (died) {
           this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
+          this.rollSanityDrop(enemy.x, enemy.y);
           enemy.destroy();
           this.onEnemyKilledByProjectile(enemy);
         }
@@ -467,6 +473,35 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
       this.player.addVR(1);
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
+    });
+
+    // 16b. Player → cafezinhos (restaura Sanidade — contra-jogo do Burnout)
+    this.physics.add.overlap(this.player, this.sanityDrops, (_p, dObj) => {
+      const spr = dObj as Phaser.Physics.Arcade.Sprite;
+      if (!spr.active) return;
+      const amount = (spr.getData("sanity") as number) ?? 15;
+      const before = this.player.sanity;
+      this.player.sanity = Math.min(this.player.maxSanity, this.player.sanity + amount);
+      const gained = Math.round(this.player.sanity - before);
+      spr.destroy();
+      const t = this.add
+        .text(this.player.x, this.player.y - 46, `+${gained} Sanidade`, {
+          fontFamily: "monospace",
+          fontSize: "12px",
+          fontStyle: "bold",
+          color: "#44ddaa",
+          stroke: "#000000",
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
+        .setDepth(500);
+      this.tweens.add({
+        targets: t,
+        y: t.y - 26,
+        alpha: 0,
+        duration: 800,
+        onComplete: () => t.destroy(),
+      });
     });
 
     // 17. ESC → PauseScene
@@ -704,7 +739,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         getBoss: () => this.boss as ReturnType<MeleeHost["getBoss"]>,
         dropVR: (x, y, n) => this.dropVR(x, y, n),
         onBossDied: () => this.handleBossDefeat(),
-        onEnemyKilled: (e) => this.onEnemyKilledByMelee(e),
+        onEnemyKilled: (e) => {
+          this.rollSanityDrop(e.x, e.y);
+          this.onEnemyKilledByMelee(e);
+        },
       };
     }
     // player/combatFx são recriados a cada create() da cena
@@ -972,6 +1010,42 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       body.setBounce(0.4);
       body.setDrag(120, 0);
     }
+  }
+
+  /** Cria um cafezinho que restaura `amount` de Sanidade ao ser coletado. */
+  protected spawnSanityDrop(x: number, y: number, amount = 15) {
+    const d = this.sanityDrops.create(x, y - 10, ...resolveSprite("tex-coffee")) as
+      | Phaser.Physics.Arcade.Sprite
+      | undefined;
+    if (!d) return;
+    d.setDepth(8).setDisplaySize(20, 20).setData("sanity", amount);
+    const body = d.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-240, -150));
+    body.setBounce(0.4);
+    body.setDrag(120, 0);
+    // Brilho pulsante ciano para diferenciar do VR dourado.
+    d.setTint(0x66ffdd);
+    this.tweens.add({
+      targets: d,
+      alpha: 0.55,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+
+  /**
+   * Rola a chance de um inimigo morto dropar um cafezinho. A chance sobe quando
+   * a Sanidade do jogador está baixa — o contra-jogo do Burnout fica mais
+   * generoso justamente quando o jogador precisa. Determinístico pela seed.
+   */
+  protected rollSanityDrop(x: number, y: number) {
+    const s = this.player.sanity;
+    const maxS = this.player.maxSanity || 100;
+    const ratio = s / maxS;
+    // 5% base; até +18% quando a sanidade está no chão.
+    const chance = 0.05 + (ratio < 0.5 ? (0.5 - ratio) * 0.36 : 0);
+    if (this.rng.frac() < chance) this.spawnSanityDrop(x, y, 15);
   }
 
   protected persist() {
