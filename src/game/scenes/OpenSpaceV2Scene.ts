@@ -34,6 +34,9 @@ import { BasePhaseScene } from "./BasePhaseScene";
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
 
+// Tipos de inimigo componíveis por seed nas zonas 1-4 (ver spawnEnemyOfType).
+type F1EnemyType = "estagiario" | "sobrecarregado" | "junior" | "rh" | "onboarding" | "facilitador";
+
 export class OpenSpaceV2Scene extends BasePhaseScene {
   // Campos herdados de BasePhaseScene (protected): player, platforms,
   // furnitureBodies, inkProjectiles, drops, boss, bossDefeated, startTimeMs,
@@ -74,6 +77,19 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   };
   private tutorialShown = false;
   private parryTaught = false;
+
+  // Disparo de post-it compartilhado por Onboarding e Facilitador (ranged).
+  private rangedShoot = (fx: number, fy: number, tx: number, ty: number): void => {
+    let p = this.postits.getFirstDead(false) as PostIt | null;
+    if (!p) {
+      p = new PostIt(this, fx, fy);
+      this.postits.add(p);
+    } else {
+      p.setPosition(fx, fy).setActive(true).setVisible(true);
+      (p.body as Phaser.Physics.Arcade.Body).enable = true;
+    }
+    p.fire(tx, ty);
+  };
 
   // Item 1 — Produtividade (combo de kills encadeados)
   private prodStreak = 0;
@@ -877,6 +893,55 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     }
   }
 
+  // Cria e liga um inimigo do tipo pedido na posição x (dir aleatória pela rng).
+  private spawnEnemyOfType(
+    type: F1EnemyType,
+    x: number,
+    rng: Phaser.Math.RandomDataGenerator,
+  ): void {
+    const dir: 1 | -1 = rng.frac() > 0.5 ? 1 : -1;
+    switch (type) {
+      case "estagiario": {
+        const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, dir);
+        e.target = this.player;
+        this.estagiarios.add(e);
+        break;
+      }
+      case "sobrecarregado": {
+        const e = new EstagiarioSobrecarregado(this, x, FLOOR_Y - 40, dir);
+        e.target = this.player;
+        this.sobrecarregados.add(e);
+        break;
+      }
+      case "junior": {
+        const a = new AnalistaJunior(this, x, FLOOR_Y - 60);
+        a.target = this.player;
+        this.analistas.add(a);
+        break;
+      }
+      case "rh": {
+        const rh = new EnemyRH(this, x, FLOOR_Y - 60);
+        rh.target = this.player;
+        this.rhs.add(rh);
+        break;
+      }
+      case "onboarding": {
+        const a = new AnalistaOnboarding(this, x, FLOOR_Y - 60);
+        a.target = this.player;
+        a.onShoot = this.rangedShoot;
+        this.onboardings.add(a);
+        break;
+      }
+      case "facilitador": {
+        const f = new FacilitadorDeWorkshop(this, x, FLOOR_Y - 60);
+        f.target = this.player;
+        f.onShoot = this.rangedShoot;
+        this.facilitadores.add(f);
+        break;
+      }
+    }
+  }
+
   private spawnEnemies(): void {
     // ── Dificuldade escalonada: fácil (esquerda) → difícil (direita) ──────────
     // O jogador entra em x≈80 e avança para a direita rumo ao boss (x≈1820).
@@ -888,57 +953,47 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // Zonas 4 e 5 SEPARADAS (antes 4=1320-1620 e 5=1480-1740 se sobrepunham,
     // formando um muro injusto de ranged+healer+tank grudado no boss).
 
-    // Zona 1 — Estagiários Desesperados
-    [320, 440, 560].forEach((x) => {
-      const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
-      e.target = this.player;
-      this.estagiarios.add(e);
-    });
+    // ── Composição por seed: as zonas 1-4 variam o TIPO de inimigo por run,
+    // com CONTAGEM fixa por zona (3/4/2/4) → orçamento de ameaça e distribuição
+    // do LevelValidator estáveis. Presets do mesmo tier evitam desbalanceamento.
+    // A zona 5 (elite/healer) é âncora fixa. Determinístico pela seed da run.
+    const rng = new Phaser.Math.RandomDataGenerator([getRun(this).seed ?? "CLT"]);
 
-    // Zona 2 — Estagiários Sobrecarregados
-    [660, 770].forEach((x) => {
-      const e = new EstagiarioSobrecarregado(this, x, FLOOR_Y - 40, Math.random() > 0.5 ? 1 : -1);
-      e.target = this.player;
-      this.sobrecarregados.add(e);
-    });
+    // Zona 1 (fodder, ensina melee) — 3 slots, quase sempre estagiários
+    const z1 = rng.pick([
+      ["estagiario", "estagiario", "estagiario"],
+      ["estagiario", "estagiario", "sobrecarregado"],
+    ]) as F1EnemyType[];
+    [320, 440, 560].forEach((x, i) => this.spawnEnemyOfType(z1[i], x, rng));
 
-    // Zona 4 — Analistas em Onboarding (ranged)
-    [1230, 1340].forEach((x) => {
-      const a = new AnalistaOnboarding(this, x, FLOOR_Y - 60);
-      a.target = this.player;
-      a.onShoot = (fx, fy, tx, ty) => {
-        let p = this.postits.getFirstDead(false) as PostIt | null;
-        if (!p) {
-          p = new PostIt(this, fx, fy);
-          this.postits.add(p);
-        } else {
-          p.setPosition(fx, fy).setActive(true).setVisible(true);
-          (p.body as Phaser.Physics.Arcade.Body).enable = true;
-        }
-        p.fire(tx, ty);
-      };
-      this.onboardings.add(a);
-    });
+    // Zona 2 (melee leve) — 4 slots: sobrecarregados + juniores
+    const z2 = rng.shuffle(
+      rng.pick([
+        ["sobrecarregado", "sobrecarregado", "junior", "junior"],
+        ["sobrecarregado", "junior", "junior", "junior"],
+        ["sobrecarregado", "sobrecarregado", "sobrecarregado", "junior"],
+      ]),
+    ) as F1EnemyType[];
+    [660, 770, 880, 990].forEach((x, i) => this.spawnEnemyOfType(z2[i], x, rng));
 
-    // Zona 4 — Facilitadores de Workshop (ranged)
-    [1420, 1520].forEach((x) => {
-      const f = new FacilitadorDeWorkshop(this, x, FLOOR_Y - 60);
-      f.target = this.player;
-      f.onShoot = (fx, fy, tx, ty) => {
-        let p = this.postits.getFirstDead(false) as PostIt | null;
-        if (!p) {
-          p = new PostIt(this, fx, fy);
-          this.postits.add(p);
-        } else {
-          p.setPosition(fx, fy).setActive(true).setVisible(true);
-          (p.body as Phaser.Physics.Arcade.Body).enable = true;
-        }
-        p.fire(tx, ty);
-      };
-      this.facilitadores.add(f);
-    });
+    // Zona 3 (perseguidor) — 2 slots
+    const z3 = rng.pick([
+      ["rh", "rh"],
+      ["rh", "sobrecarregado"],
+    ]) as F1EnemyType[];
+    [1100, 1210].forEach((x, i) => this.spawnEnemyOfType(z3[i], x, rng));
 
-    // Zona 5 — Scrum Master Caótico (elite, perto do boss)
+    // Zona 4 (ranged) — 4 slots: onboarding + facilitador
+    const z4 = rng.shuffle(
+      rng.pick([
+        ["onboarding", "onboarding", "facilitador", "facilitador"],
+        ["onboarding", "onboarding", "onboarding", "facilitador"],
+        ["onboarding", "facilitador", "facilitador", "facilitador"],
+      ]),
+    ) as F1EnemyType[];
+    [1230, 1340, 1420, 1520].forEach((x, i) => this.spawnEnemyOfType(z4[i], x, rng));
+
+    // Zona 5 — Scrum Master Caótico (elite, perto do boss) — âncora fixa
     const scrum = new ScrumMasterCaotico(this, 1620, FLOOR_Y - 60);
     scrum.target = this.player;
     scrum.onShout = (fromX) => {
@@ -948,20 +1003,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       }
     };
     this.scrums.add(scrum);
-
-    // Zona 2 — Analistas Junior (melee)
-    [880, 990].forEach((x) => {
-      const a = new AnalistaJunior(this, x, FLOOR_Y - 60);
-      a.target = this.player;
-      this.analistas.add(a);
-    });
-
-    // Zona 3 — RH (perseguidores)
-    [1100, 1210].forEach((x) => {
-      const rh = new EnemyRH(this, x, FLOOR_Y - 60);
-      rh.target = this.player;
-      this.rhs.add(rh);
-    });
 
     // Zona 5 — Coordenador de Sinergia (HEALER, prioridade) guardando o boss
     const coord = new CoordenadorDeSinergia(this, 1700, FLOOR_Y - 60);
