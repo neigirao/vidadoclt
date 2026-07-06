@@ -210,4 +210,3 @@ type RunState = {
   // + upgrades de Reconhecimento (upgMaxEnergy, upgVrDropMult, ...)
 };
 ```
-

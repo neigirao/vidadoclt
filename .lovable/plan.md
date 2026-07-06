@@ -1,4 +1,3 @@
-
 # Onboarding guiado + HUD de sintomas de Burnout
 
 Duas frentes complementares: **reduzir fricção da primeira run** e **tornar o Burnout legível** para o jogador conseguir jogar em torno dele em vez de sofrer sem entender.
@@ -22,13 +21,13 @@ Adiciona uma **linha de status** ao lado da barra de Sanidade no `Hud.ts`, mostr
 
 Sintomas exibidos (lidos de `Player.getBurnoutMods()` + estado do tremor):
 
-| Ícone      | Condição                    | Label                    |
-| ---------- | --------------------------- | ------------------------ |
-| 🔻         | `speedMult < 1`             | "LENTIDÃO −15%"          |
-| 🛡️✖       | `parryDisabled`             | "PARRY OFF"              |
-| 💥         | `damageTakenMult > 1`       | "DANO +30%"              |
-| 💸         | `vrDropMult < 1`            | "VR −20%"                |
-| ⏳         | `specialCooldownMult > 1`   | "K COOLDOWN +30%"        |
+| Ícone       | Condição                    | Label                     |
+| ----------- | --------------------------- | ------------------------- |
+| 🔻          | `speedMult < 1`             | "LENTIDÃO −15%"           |
+| 🛡️✖         | `parryDisabled`             | "PARRY OFF"               |
+| 💥          | `damageTakenMult > 1`       | "DANO +30%"               |
+| 💸          | `vrDropMult < 1`            | "VR −20%"                 |
+| ⏳          | `specialCooldownMult > 1`   | "K COOLDOWN +30%"         |
 | ⚡ piscando | `_nextTremorAt - t < 500ms` | "TREMOR EM Xs" (contagem) |
 | ⚡          | `isTremoring()`             | "TREMOR!" (magenta pulse) |
 

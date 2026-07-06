@@ -10,16 +10,16 @@ itens de engenharia do `CLAUDE.md`.
 
 ## Status por camada (GDD original)
 
-| Camada / Sprint             | Status       | Observação                                                              |
-| --------------------------- | ------------ | ---------------------------------------------------------------------- |
-| 1 — Núcleo jogável          | ✅ Concluído | Player, combo, HUD, VR, morte→Reconhecimento                           |
-| 2 — Loop de run             | ✅ Concluído | Sanidade/faixas, Copa, Ponto Eletrônico, Reconhecimento, FGTS          |
-| 3 — Fase 1 completa         | ✅ Concluído | Áreas 2/4, Gerente Microgestor (6 ataques), Autonomia, boss bar        |
-| 4 — Rogue-lite              | 🟢 ~90%      | 3 classes, 12 armas, perks, 12 Culturas. **Falta ramificação de rotas** |
-| 5 — Fases 2–3               | 🟡 Parcial   | Fases existem mas **lineares**; bosses são enemy-classes, não os únicos |
-| 6 — Fases 4–5 + CEO         | ✅ Concluído | Fases 4/5, CEO, tela de vitória                                        |
-| 7 — NPCs / eventos          | 🟡 Parcial   | Faxineiro + eventos de sala; falta o resto dos NPCs e eventos          |
-| 8 — Áudio / acessibilidade  | 🟡 Parcial   | Áudio procedural ✅; **acessibilidade quase toda pendente**             |
+| Camada / Sprint            | Status       | Observação                                                              |
+| -------------------------- | ------------ | ----------------------------------------------------------------------- |
+| 1 — Núcleo jogável         | ✅ Concluído | Player, combo, HUD, VR, morte→Reconhecimento                            |
+| 2 — Loop de run            | ✅ Concluído | Sanidade/faixas, Copa, Ponto Eletrônico, Reconhecimento, FGTS           |
+| 3 — Fase 1 completa        | ✅ Concluído | Áreas 2/4, Gerente Microgestor (6 ataques), Autonomia, boss bar         |
+| 4 — Rogue-lite             | 🟢 ~90%      | 3 classes, 12 armas, perks, 12 Culturas. **Falta ramificação de rotas** |
+| 5 — Fases 2–3              | 🟡 Parcial   | Fases existem mas **lineares**; bosses são enemy-classes, não os únicos |
+| 6 — Fases 4–5 + CEO        | ✅ Concluído | Fases 4/5, CEO, tela de vitória                                         |
+| 7 — NPCs / eventos         | 🟡 Parcial   | Faxineiro + eventos de sala; falta o resto dos NPCs e eventos           |
+| 8 — Áudio / acessibilidade | 🟡 Parcial   | Áudio procedural ✅; **acessibilidade quase toda pendente**             |
 
 ### Extras entregues (fora do GDD original)
 
