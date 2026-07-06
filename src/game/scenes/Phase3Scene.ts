@@ -71,7 +71,7 @@ export class Phase3Scene extends BasePhaseScene {
     this.seniors = this.physics.add.group({ runChildUpdate: false });
 
     // Encontros por seed: contagem fixa, posições variam por run.
-    this.pickPositions([200, 320, 440, 560, 680, 800], 4).forEach((x) => {
+    this.pickPositions([300, 420, 540, 660, 780, 900], 4).forEach((x) => {
       const e = new EvangelistaCorporativo(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 12, 0xff6600, 190);

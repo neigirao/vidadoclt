@@ -76,7 +76,7 @@ export class Phase4Scene extends BasePhaseScene {
     this.evangelistasA = this.physics.add.group({ runChildUpdate: false });
 
     // Encontros por seed: contagem fixa, posições variam por run.
-    this.pickPositions([220, 340, 460, 580], 3).forEach((x) => {
+    this.pickPositions([300, 400, 500, 600], 3).forEach((x) => {
       const e = new CaboDeRede(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onCable = () => {

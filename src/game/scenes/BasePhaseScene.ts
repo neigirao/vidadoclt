@@ -301,7 +301,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // 4. Player setup (bloco idêntico compartilhado com a Fase 1 — ver buildPlayer)
-    const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
+    const spawnX = run.cameFrom === "copa" ? 120 : 80;
     this.buildPlayer(run, spawnX);
 
     // 5. Player callbacks específicos da cena base (special + parry)

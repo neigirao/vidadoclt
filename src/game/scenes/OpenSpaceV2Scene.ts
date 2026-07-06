@@ -294,7 +294,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     // Setup do player compartilhado (stats/arma/upgrades/perks/culturas/onDeath/
     // onAttack/onRangedAttack) via BasePhaseScene. Callbacks abaixo são da Fase 1.
-    const spawnX = run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80;
+    const spawnX = run.cameFrom === "copa" ? 120 : 80;
     this.buildPlayer(run, spawnX);
     // Específico da Fase 1: sinergias de perks + multiplicador de Heat (Hora Extra)
     checkAndApplySynergies(this.player, run);

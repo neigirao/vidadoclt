@@ -73,7 +73,7 @@ export class Phase2Scene extends BasePhaseScene {
     this.coordenadores = this.physics.add.group({ runChildUpdate: false });
 
     // Encontros por seed: mesma CONTAGEM, posições/densidade variam por run.
-    this.pickPositions([200, 300, 400, 500, 600, 700, 820], 5).forEach((x) => {
+    this.pickPositions([280, 380, 480, 580, 680, 780, 880], 5).forEach((x) => {
       const e = new TelemarketerZumbi(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 10);
