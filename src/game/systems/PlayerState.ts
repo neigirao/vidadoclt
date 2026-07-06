@@ -123,9 +123,6 @@ export function resetRun(scene: Phaser.Scene): RunState {
   return fresh;
 }
 
-export function sanityBand(s: number): "ok" | "stressed" | "anxious" | "burnout" {
-  if (s > 74) return "ok";
-  if (s > 49) return "stressed";
-  if (s > 24) return "anxious";
-  return "burnout";
-}
+// sanityBand foi movida para ./sanity (módulo puro, testável) e é re-exportada
+// aqui para não quebrar os importadores existentes.
+export { sanityBand, type SanityBand } from "./sanity";

@@ -1,4 +1,4 @@
-import { Player } from "../entities/Player";
+import type { Player } from "../entities/Player";
 import type { RunState } from "./PlayerState";
 
 export type CulturaId =

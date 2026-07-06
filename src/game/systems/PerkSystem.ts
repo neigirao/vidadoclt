@@ -1,5 +1,5 @@
-import { Player } from "../entities/Player";
-import { RunState } from "./PlayerState";
+import type { Player } from "../entities/Player";
+import type { RunState } from "./PlayerState";
 
 export type PerkId =
   | "autonomia"
