@@ -289,13 +289,15 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
         break;
 
       case "freeze":
-        this.onFreeze?.(2500);
+        // 1500 (era 2500) + i-frames concedidos pela cena: freeze é negação de
+        // tempo, não combo de dano (o player não apanha congelado).
+        this.onFreeze?.(1500);
         this.stateUntil = t + 320;
         break;
 
       case "deadline":
         this.onPull?.(this.x);
-        this.onFreeze?.(1100);
+        this.onFreeze?.(800);
         this.stateUntil = t + 360;
         break;
     }

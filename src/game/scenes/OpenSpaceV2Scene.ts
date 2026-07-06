@@ -882,8 +882,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // Zona 1 (300-560): só estagiários (melee básico) para ensinar o combate.
     // Zona 2 (660-990): sobrecarregados + analistas junior.
     // Zona 3 (1100-1210): RH (perseguidores).
-    // Zona 4 (1320-1620): inimigos à distância (onboarding + facilitador).
-    // Zona 5 (1480-1740): elite — scrum, coordenador (healer) e sênior (tanky).
+    // Zona 4 (1230-1520): inimigos à distância (onboarding + facilitador).
+    // Zona 5 (1620-1760): elite — scrum, coordenador (healer) e sênior (tanky).
+    // Zonas 4 e 5 SEPARADAS (antes 4=1320-1620 e 5=1480-1740 se sobrepunham,
+    // formando um muro injusto de ranged+healer+tank grudado no boss).
 
     // Zona 1 — Estagiários Desesperados
     [320, 440, 560].forEach((x) => {
@@ -900,7 +902,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
 
     // Zona 4 — Analistas em Onboarding (ranged)
-    [1320, 1430].forEach((x) => {
+    [1230, 1340].forEach((x) => {
       const a = new AnalistaOnboarding(this, x, FLOOR_Y - 60);
       a.target = this.player;
       a.onShoot = (fx, fy, tx, ty) => {
@@ -918,7 +920,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
 
     // Zona 4 — Facilitadores de Workshop (ranged)
-    [1520, 1620].forEach((x) => {
+    [1420, 1520].forEach((x) => {
       const f = new FacilitadorDeWorkshop(this, x, FLOOR_Y - 60);
       f.target = this.player;
       f.onShoot = (fx, fy, tx, ty) => {
@@ -936,7 +938,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
 
     // Zona 5 — Scrum Master Caótico (elite, perto do boss)
-    const scrum = new ScrumMasterCaotico(this, 1480, FLOOR_Y - 60);
+    const scrum = new ScrumMasterCaotico(this, 1620, FLOOR_Y - 60);
     scrum.target = this.player;
     scrum.onShout = (fromX) => {
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, fromX, this.player.y) < 260) {
@@ -961,14 +963,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
 
     // Zona 5 — Coordenador de Sinergia (HEALER, prioridade) guardando o boss
-    const coord = new CoordenadorDeSinergia(this, 1660, FLOOR_Y - 60);
+    const coord = new CoordenadorDeSinergia(this, 1700, FLOOR_Y - 60);
     coord.target = this.player;
     coord.onCoffeeDrop = (cx, cy) => this.spawnCoffeeDrop(cx, cy);
     this.coordenadores.add(coord);
     this.tagHealer(coord);
 
     // Zona 5 — Analista Sênior Exausto (tanky)
-    const sr = new AnalistaSeniorExausto(this, 1740, FLOOR_Y - 60);
+    const sr = new AnalistaSeniorExausto(this, 1760, FLOOR_Y - 60);
     sr.target = this.player;
     this.seniors.add(sr);
 
@@ -979,6 +981,12 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       this.hud.setObjective("Derrote o Gerente Microgestor!");
       Sfx.bossAppear();
       Music.start("boss");
+      // Acende as luzes p/ a luta: o apagão + e-mails/adds no escuro era
+      // variância de dificuldade injusta. O bônus de VR do evento permanece.
+      if (this.apagaoDark) {
+        this.apagaoDark.destroy();
+        this.apagaoDark = undefined;
+      }
     };
     boss.onHpChange = (hp) => this.hud.updateBoss(hp);
     boss.onShoot = (fx, fy, tx, ty) => {
@@ -996,7 +1004,12 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       const dir = targetX > this.player.x ? 1 : -1;
       (this.player.body as Phaser.Physics.Arcade.Body).setVelocityX(dir * 360);
     };
-    boss.onFreeze = (ms) => this.player.applyFreeze(ms);
+    boss.onFreeze = (ms) => {
+      this.player.applyFreeze(ms);
+      // i-frames durante o congelamento: adds invocados/e-mails não podem
+      // castigar o jogador travado (fairness do CC do boss).
+      this.player.grantInvulnerability(ms);
+    };
     boss.onSpawn = (x, y) => {
       const e = new EstagiarioDesesperado(this, x, y, Math.random() > 0.5 ? 1 : -1);
       this.estagiarios.add(e);
@@ -1645,7 +1658,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     if (now - this.prodLastKillAt > OpenSpaceV2Scene.PROD_WINDOW_MS) this.prodStreak = 0;
     this.prodStreak++;
     this.prodLastKillAt = now;
-    const mult = 1 + Math.min(this.prodStreak * 0.1, 1.0); // até 2x no streak 10+
+    const mult = 1 + Math.min(this.prodStreak * 0.2, 1.0); // 2x já no streak 5 (alcançável)
     if (this.prodStreak >= 2) {
       const t = this.add
         .text(x, y - 34, `x${this.prodStreak} PRODUTIVIDADE`, {
@@ -1688,7 +1701,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.prodMeter.fillRect(x, y, w * ratio, h);
     this.prodLabel
       .setText(
-        `PRODUTIVIDADE x${this.prodStreak}  (+${Math.round(Math.min(this.prodStreak * 0.1, 1.0) * 100)}% VR)`,
+        `PRODUTIVIDADE x${this.prodStreak}  (+${Math.round(Math.min(this.prodStreak * 0.2, 1.0) * 100)}% VR)`,
       )
       .setColor(this.prodStreak >= 5 ? "#ffcc22" : "#aaffaa");
   }

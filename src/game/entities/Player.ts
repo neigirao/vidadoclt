@@ -248,6 +248,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.frozenUntil = Math.max(this.frozenUntil, this.scene.time.now + dur);
   }
 
+  /** Concede i-frames por `ms` (usado p/ o freeze do boss não virar combo de dano). */
+  grantInvulnerability(ms: number) {
+    this.invulnUntil = Math.max(this.invulnUntil, this.scene.time.now + ms);
+  }
+
   applySlowdown(ms: number) {
     const dur = this.autonomia ? Math.ceil(ms * 0.5) : ms;
     this.speedMultUntil = Math.max(this.speedMultUntil, this.scene.time.now + dur);
