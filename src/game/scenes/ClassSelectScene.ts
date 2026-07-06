@@ -5,6 +5,7 @@ import { getRun } from "../systems/PlayerState";
 import { applyRunSeed } from "../systems/RNG";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { loadUpgrades, applyUpgradesToRun } from "../systems/ReconhecimentoSystem";
+import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
 
 const BG_PANEL = 0x12151a;
 const BG_CARD = 0x1a1d23;
@@ -366,9 +367,20 @@ export class ClassSelectScene extends Phaser.Scene {
     run.upgParryVrDrop = mods.parryVrDrop;
     run.upgComboHitsBonus = mods.comboHitsBonus;
 
+    // Escolha da Cultura Corporativa ANTES da Fase 1 (modificador da run). A
+    // CulturaSelectScene inicia a Fase 1 ao escolher (via nextScene). As opções
+    // usam o RNG já semeado (applyRunSeed no create) → determinístico por seed.
+    const options = Phaser.Utils.Array.Shuffle(Object.keys(CULTURAS) as CulturaId[]).slice(
+      0,
+      3,
+    ) as CulturaId[];
     this.cameras.main.fadeOut(280, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => {
-      this.scene.start("OpenSpaceV2Scene");
+      this.scene.start("CulturaSelectScene", {
+        caller: "ClassSelectScene",
+        options,
+        nextScene: "OpenSpaceV2Scene",
+      });
     });
   }
 }

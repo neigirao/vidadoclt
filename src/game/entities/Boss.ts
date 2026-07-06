@@ -176,14 +176,19 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
 
   private showIntroText() {
     const speak = generateCorporateSpeak();
+    // Clampa X e usa wordWrap: o corporate-speak pode ser longo e o boss fica
+    // encostado na parede direita — sem isso o balão transbordava a tela.
+    const worldW = this.scene.physics.world.bounds.width || 1920;
+    const tx = Math.min(this.x, worldW - 130);
     const txt = this.scene.add
-      .text(this.x, this.y - 80, `"Antes de voce sair\nprecisamos ${speak}."`, {
+      .text(tx, this.y - 80, `"Antes de voce sair\nprecisamos ${speak}."`, {
         fontFamily: "monospace",
         fontSize: "12px",
         color: "#f2c14e",
         stroke: "#000000",
         strokeThickness: 3,
         align: "center",
+        wordWrap: { width: 240 },
       })
       .setOrigin(0.5)
       .setDepth(600);

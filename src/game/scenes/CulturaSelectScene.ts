@@ -9,7 +9,12 @@ export class CulturaSelectScene extends Phaser.Scene {
     super("CulturaSelectScene");
   }
 
-  create(data: { caller: string; options: CulturaId[] }) {
+  // Dois modos:
+  //  • overlay (pós-boss): `scene.launch` com { caller, options } → ao escolher,
+  //    para a si mesma e resume o caller pausado.
+  //  • cheia (antes da Fase 1): `scene.start` com { options, nextScene } → ao
+  //    escolher, inicia nextScene diretamente.
+  create(data: { caller: string; options: CulturaId[]; nextScene?: string }) {
     const run = getRun(this);
 
     // Dark overlay
@@ -144,8 +149,12 @@ export class CulturaSelectScene extends Phaser.Scene {
       if (id === "banco_horas") {
         run.extraLives = (run.extraLives ?? 0) + 1;
       }
-      this.scene.stop();
-      this.scene.resume(data.caller);
+      if (data.nextScene) {
+        this.scene.start(data.nextScene);
+      } else {
+        this.scene.stop();
+        this.scene.resume(data.caller);
+      }
     };
 
     // Key bindings
