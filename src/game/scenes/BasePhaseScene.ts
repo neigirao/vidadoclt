@@ -343,6 +343,19 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       }
     }
 
+    // Pulinho ao travar de lado num móvel (chão): sem isso o perseguidor
+    // encalha atrás da mesa fora da câmera. Espelha OpenSpaceV2.hopOverFurniture.
+    const hopOverFurniture: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (eObj) => {
+      const e = eObj as Phaser.Physics.Arcade.Sprite;
+      const body = e.body as Phaser.Physics.Arcade.Body;
+      if (!body || !body.blocked.down) return;
+      if (!(body.blocked.left || body.blocked.right)) return;
+      const now = this.time.now;
+      if (now < ((e.getData("nextHop") as number) ?? 0)) return;
+      body.setVelocityY(-320);
+      e.setData("nextHop", now + 500);
+    };
+
     // 9. Boss wiring
     if (this.boss) {
       const bossMaxHp = this.boss.maxHp ?? this.boss.hp;
@@ -350,13 +363,18 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       Sfx.bossAppear();
       Music.start("boss");
       this.boss.onHpChange = (hp: number) => this.hud.updateBoss(hp);
-      this.physics.add.collider(this.boss as Phaser.Physics.Arcade.Sprite, this.platforms);
+      const bossSprite = this.boss as Phaser.Physics.Arcade.Sprite;
+      this.physics.add.collider(bossSprite, this.platforms);
+      this.physics.add.collider(bossSprite, this.furnitureBodies, hopOverFurniture);
     }
 
-    // 10. Enemy group platform colliders (filter !aerial) + drops collider
+    // 10. Enemy group platform colliders (filter !aerial) + drops collider.
+    // Inimigos de chão respeitam mesas/móveis (antes atravessavam) e dão um
+    // pulinho quando travam de lado (hopOverFurniture) para não encalhar.
     for (const def of this.enemyGroups) {
       if (!def.aerial) {
         this.physics.add.collider(def.group, this.platforms);
+        this.physics.add.collider(def.group, this.furnitureBodies, hopOverFurniture);
       }
     }
     this.physics.add.collider(this.drops, this.platforms);
