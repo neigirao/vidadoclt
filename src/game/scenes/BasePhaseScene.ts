@@ -8,7 +8,7 @@ import { getRun, savePersisted } from "../systems/PlayerState";
 import { CLASSES, WEAPONS, WeaponId, ClassId, WeaponDef } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { reapplyAllPerks } from "../systems/PerkSystem";
-import { CulturaId, CULTURAS, reapplyAllCulturas } from "../systems/CulturaSystem";
+import { CulturaId, reapplyAllCulturas, selectableCulturaIds } from "../systems/CulturaSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
@@ -685,8 +685,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   }
 
   protected _launchCulturaSelect() {
-    const allIds = Object.keys(CULTURAS) as CulturaId[];
-    const options = Phaser.Utils.Array.Shuffle([...allIds]).slice(0, 3) as CulturaId[];
+    const options = Phaser.Utils.Array.Shuffle(selectableCulturaIds()).slice(0, 3) as CulturaId[];
     this.scene.pause();
     this.scene.launch("CulturaSelectScene", { caller: this.scene.key, options });
   }

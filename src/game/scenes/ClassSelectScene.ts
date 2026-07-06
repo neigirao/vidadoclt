@@ -5,7 +5,7 @@ import { getRun } from "../systems/PlayerState";
 import { applyRunSeed } from "../systems/RNG";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { loadUpgrades, applyUpgradesToRun } from "../systems/ReconhecimentoSystem";
-import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
+import { CulturaId, selectableCulturaIds } from "../systems/CulturaSystem";
 
 const BG_PANEL = 0x12151a;
 const BG_CARD = 0x1a1d23;
@@ -367,13 +367,22 @@ export class ClassSelectScene extends Phaser.Scene {
     run.upgParryVrDrop = mods.parryVrDrop;
     run.upgComboHitsBonus = mods.comboHitsBonus;
 
+    // Primeira run (loopCount === 0): pula a escolha de Cultura para não sobrecarregar
+    // o novato com um modificador que ele ainda não entende. Atribui o no-op `padrao_clt`
+    // e vai direto para a Fase 1. A partir da 2ª run, a roleta de Cultura aparece.
+    if (run.loopCount === 0) {
+      run.culturas = ["padrao_clt"];
+      this.cameras.main.fadeOut(280, 0, 0, 0);
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        this.scene.start("OpenSpaceV2Scene");
+      });
+      return;
+    }
+
     // Escolha da Cultura Corporativa ANTES da Fase 1 (modificador da run). A
     // CulturaSelectScene inicia a Fase 1 ao escolher (via nextScene). As opções
     // usam o RNG já semeado (applyRunSeed no create) → determinístico por seed.
-    const options = Phaser.Utils.Array.Shuffle(Object.keys(CULTURAS) as CulturaId[]).slice(
-      0,
-      3,
-    ) as CulturaId[];
+    const options = Phaser.Utils.Array.Shuffle(selectableCulturaIds()).slice(0, 3) as CulturaId[];
     this.cameras.main.fadeOut(280, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => {
       this.scene.start("CulturaSelectScene", {

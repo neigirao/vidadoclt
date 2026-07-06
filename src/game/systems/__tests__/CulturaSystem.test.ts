@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { CULTURAS, CulturaId, reapplyAllCulturas } from "../CulturaSystem";
+import { CULTURAS, CulturaId, reapplyAllCulturas, selectableCulturaIds } from "../CulturaSystem";
 import type { Player } from "../../entities/Player";
 import type { RunState } from "../PlayerState";
 
@@ -99,5 +99,20 @@ describe("CulturaSystem — efeitos aplicados na run", () => {
     const p = fakePlayer();
     reapplyAllCulturas(p, run(["happy_hour", "refeicao_executiva"]));
     expect(p.maxEnergy).toBe(100 + 25 + 20);
+  });
+
+  it("padrao_clt é no-op (primeira run, sem modificadores)", () => {
+    const p = fakePlayer();
+    const before = { ...p };
+    reapplyAllCulturas(p, run(["padrao_clt"]));
+    expect(p).toEqual(before);
+  });
+});
+
+describe("CulturaSystem — roleta de seleção", () => {
+  it("selectableCulturaIds exclui o no-op padrao_clt", () => {
+    const ids = selectableCulturaIds();
+    expect(ids).not.toContain("padrao_clt");
+    expect(ids.length).toBe(Object.keys(CULTURAS).length - 1);
   });
 });

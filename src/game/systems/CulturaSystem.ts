@@ -13,7 +13,8 @@ export type CulturaId =
   | "feedback_semanal"
   | "refeicao_executiva"
   | "autonomia_total"
-  | "plano_imediato";
+  | "plano_imediato"
+  | "padrao_clt";
 
 export interface CulturaDef {
   id: CulturaId;
@@ -95,7 +96,25 @@ export const CULTURAS: Record<CulturaId, CulturaDef> = {
     icon: "^^",
     description: "Energia maxima +40, Sanidade maxima -20.",
   },
+  // No-op: atribuída à primeira run (loopCount === 0) para pular a escolha de
+  // Cultura sem fricção. Nunca aparece na roleta de seleção (ver
+  // selectableCulturaIds) e não altera nenhum stat em reapplyAllCulturas.
+  padrao_clt: {
+    id: "padrao_clt",
+    name: "Padrao CLT",
+    icon: "==",
+    description: "Sem modificadores. O regime padrao da CLT.",
+  },
 };
+
+/**
+ * Ids de Cultura oferecíveis na roleta de seleção — exclui `padrao_clt`, que é
+ * o no-op reservado para a primeira run. Usado por ClassSelectScene e pelos
+ * overlays pós-boss (BasePhaseScene/OpenSpaceV2/Phase5).
+ */
+export function selectableCulturaIds(): CulturaId[] {
+  return (Object.keys(CULTURAS) as CulturaId[]).filter((id) => id !== "padrao_clt");
+}
 
 export function reapplyAllCulturas(player: Player, run: RunState) {
   // Called AFTER reapplyAllPerks. Applies stat changes additively.
@@ -136,6 +155,9 @@ export function reapplyAllCulturas(player: Player, run: RunState) {
       case "plano_imediato":
         player.maxEnergy += 40;
         player.maxSanity -= 20;
+        break;
+      case "padrao_clt":
+        // no-op: regime padrão, sem modificadores.
         break;
     }
   }

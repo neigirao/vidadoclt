@@ -24,7 +24,7 @@ import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
 import { applyPerk, checkAndApplySynergies, PERKS, SYNERGIES, PerkId } from "../systems/PerkSystem";
 import { HEAT_LEVELS } from "./HoraExtraScene";
-import { CulturaId, CULTURAS } from "../systems/CulturaSystem";
+import { CulturaId, selectableCulturaIds } from "../systems/CulturaSystem";
 import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
@@ -1197,8 +1197,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
 
     this.time.delayedCall(1000, () => {
-      const allIds = Object.keys(CULTURAS) as CulturaId[];
-      const options = (Phaser.Utils.Array.Shuffle([...allIds]) as CulturaId[]).slice(0, 3);
+      const options = (Phaser.Utils.Array.Shuffle(selectableCulturaIds()) as CulturaId[]).slice(
+        0,
+        3,
+      );
       this.scene.pause();
       this.scene.launch("CulturaSelectScene", { caller: "OpenSpaceV2Scene", options });
     });
