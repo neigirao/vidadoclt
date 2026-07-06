@@ -72,7 +72,8 @@ export class Phase2Scene extends BasePhaseScene {
     this.reunioes = this.physics.add.group({ runChildUpdate: false });
     this.coordenadores = this.physics.add.group({ runChildUpdate: false });
 
-    [260, 400, 540, 680, 820].forEach((x) => {
+    // Encontros por seed: mesma CONTAGEM, posições/densidade variam por run.
+    this.pickPositions([200, 300, 400, 500, 600, 700, 820], 5).forEach((x) => {
       const e = new TelemarketerZumbi(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 10);
@@ -100,7 +101,7 @@ export class Phase2Scene extends BasePhaseScene {
       this.nuvens.add(e);
     });
 
-    [940, 1130, 1340].forEach((x) => {
+    this.pickPositions([900, 1030, 1130, 1240, 1340], 3).forEach((x) => {
       const r = new ReuniaoCorportiva(this, x, FLOOR_Y - 60);
       r.target = this.player;
       r.onAura = () => {

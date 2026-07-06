@@ -77,7 +77,8 @@ export class Phase5Scene extends BasePhaseScene {
 
     this.enemyCount = 0;
 
-    [250, 420, 590].forEach((x) => {
+    // Encontros por seed: contagem fixa, posições variam por run.
+    this.pickPositions([220, 340, 460, 590], 3).forEach((x) => {
       const e = new CarimbadorAutomatico(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onStamp = (sx, sy) => {
@@ -118,7 +119,7 @@ export class Phase5Scene extends BasePhaseScene {
       this.enemyCount++;
     });
 
-    [620, 1100, 1380].forEach((x) => {
+    this.pickPositions([600, 760, 1000, 1240, 1380], 3).forEach((x) => {
       const e = new BateriaSocial(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onDeath = () => {

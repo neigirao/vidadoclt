@@ -70,14 +70,15 @@ export class Phase3Scene extends BasePhaseScene {
     this.impressorasV = this.physics.add.group({ runChildUpdate: false });
     this.seniors = this.physics.add.group({ runChildUpdate: false });
 
-    [240, 420, 600, 780].forEach((x) => {
+    // Encontros por seed: contagem fixa, posições variam por run.
+    this.pickPositions([200, 320, 440, 560, 680, 800], 4).forEach((x) => {
       const e = new EvangelistaCorporativo(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 12, 0xff6600, 190);
       this.evangelistas.add(e);
     });
 
-    [550, 950, 1350].forEach((x) => {
+    this.pickPositions([480, 650, 950, 1200, 1350], 3).forEach((x) => {
       const e = new ColetorDeDados(this, x, FLOOR_Y - 160);
       e.target = this.player;
       e.onStealVR = () => {

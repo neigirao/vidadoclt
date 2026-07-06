@@ -44,7 +44,19 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected levelWidth = LEVEL_WIDTH;
   protected enemyGroups: EnemyGroupDef[] = [];
   protected combatFx!: CombatFx;
+  /** RNG semeado por (seed, fase) — usado p/ variar encontros por run. */
+  protected rng!: Phaser.Math.RandomDataGenerator;
   private _layoutVariant = 0;
+
+  /**
+   * Seleção determinística de `count` posições de um pool de candidatos, por
+   * seed. Mantém a CONTAGEM fixa (não desregula o LevelValidator) mas varia
+   * QUAIS posições/densidade a cada run. Retorna ordenado.
+   */
+  protected pickPositions(candidates: number[], count: number): number[] {
+    const shuffled = this.rng.shuffle([...candidates]);
+    return shuffled.slice(0, count).sort((a, b) => a - b);
+  }
 
   // --- Abstract methods ---
   protected abstract getBgKey(): string;
@@ -237,6 +249,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.startTimeMs = this.time.now;
     this.bossDefeated = false;
     this.enemyGroups = [];
+    this.rng = new Phaser.Math.RandomDataGenerator([run.seed ?? "CLT", this.scene.key]);
     Music.start("office");
 
     // 1. World bounds, camera, background

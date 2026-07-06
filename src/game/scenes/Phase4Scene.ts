@@ -75,7 +75,8 @@ export class Phase4Scene extends BasePhaseScene {
     this.impressorasF = this.physics.add.group({ runChildUpdate: false });
     this.evangelistasA = this.physics.add.group({ runChildUpdate: false });
 
-    [260, 420, 580].forEach((x) => {
+    // Encontros por seed: contagem fixa, posições variam por run.
+    this.pickPositions([220, 340, 460, 580], 3).forEach((x) => {
       const e = new CaboDeRede(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onCable = () => {
@@ -87,7 +88,7 @@ export class Phase4Scene extends BasePhaseScene {
       this.cabos.add(e);
     });
 
-    [720, 880, 1040].forEach((x) => {
+    this.pickPositions([700, 820, 940, 1060], 3).forEach((x) => {
       const e = new TiSuporte(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onSpawnError = (ex, ey) => {
