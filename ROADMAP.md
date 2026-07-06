@@ -43,9 +43,9 @@ itens de engenharia do `CLAUDE.md`.
 
 ### Conteúdo de jogo (GDD — lacunas reais)
 
-- **Ramificação de rotas**: bifurcação após Fase 1 (2A Comercial / 2B Atendimento) e Fase 2 (3A Produto / 3B Tecnologia).
+- **Ramificação de rotas**: 🟢 _fundação feita_ — `RouteSelectScene` após a Fase 1 (2A Comercial / 2B Atendimento) grava `run.route` e aplica um modificador de run (Comercial +20% VR / Atendimento +25 Sanidade máx). Falta a 2ª bifurcação (Fase 2 → 3A/3B) e as fases divergentes de verdade.
 - **Bosses únicos das Fases 2–5** (Caçador de Metas, Coordenador de Escala, Product Owner, Arquiteto, RH Predador, Diretor) — hoje enemy-classes com HP inflado. _Depende de arte nova (a arte-fonte de `_sources/` foi removida)._
-- **Salas opcionais**: Reunião (horda), TI (armas), RH (roleta de eventos), Financeiro (VR + armadilhas), Banheiro (+sanidade). Só a Copa existe.
+- **Salas opcionais**: 🟢 _fundação + 1 tipo feita_ — `SalaReuniaoScene` (horda de 3 ondas por 40 VR) acessível pela Copa, 1×/run via `run.optionalRoomsCleared`. Faltam TI (armas), RH (roleta), Financeiro (VR + armadilhas), Banheiro (+sanidade).
 - **NPCs / narrativa**: Estagiário Conspiracionista, Analista LinkedIn (lojista), Veterano (atalhos), eventos de RH/Cultura.
 - **New Game+ "Quinta-feira"**.
 

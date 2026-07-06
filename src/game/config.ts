@@ -6,6 +6,7 @@ import { ClassSelectScene } from "./scenes/ClassSelectScene";
 import { SpriteLabScene } from "./scenes/SpriteLabScene";
 import { OpenSpaceV2Scene } from "./scenes/OpenSpaceV2Scene";
 import { CopaScene } from "./scenes/CopaScene";
+import { SalaReuniaoScene } from "./scenes/SalaReuniaoScene";
 import { GameOverScene } from "./scenes/GameOverScene";
 import { Phase2Scene } from "./scenes/Phase2Scene";
 import { Phase3Scene } from "./scenes/Phase3Scene";
@@ -16,6 +17,7 @@ import { VitoriaScene } from "./scenes/VitoriaScene";
 import { RankingScene } from "./scenes/RankingScene";
 import { PauseScene } from "./scenes/PauseScene";
 import { CulturaSelectScene } from "./scenes/CulturaSelectScene";
+import { RouteSelectScene } from "./scenes/RouteSelectScene";
 import { BestiaryScene } from "./scenes/BestiaryScene";
 import { ReconhecimentoScene } from "./scenes/ReconhecimentoScene";
 import { HoraExtraScene } from "./scenes/HoraExtraScene";
@@ -76,6 +78,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       ClassSelectScene,
       OpenSpaceV2Scene,
       CopaScene,
+      SalaReuniaoScene,
       Phase2Scene,
       Phase3Scene,
       Phase4Scene,
@@ -86,6 +89,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       RankingScene,
       PauseScene,
       CulturaSelectScene,
+      RouteSelectScene,
       BestiaryScene,
       ReconhecimentoScene,
       HoraExtraScene,

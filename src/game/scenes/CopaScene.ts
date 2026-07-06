@@ -325,6 +325,12 @@ export class CopaScene extends Phaser.Scene {
       const dest = r.nextScene ?? "OpenSpaceV2Scene";
       r.cameFrom = "copa"; // preserve energy/sanity on the next phase
       r.nextScene = undefined;
+      // Ramificação de rotas (#1): a 1ª vez que se sai da Copa rumo à Fase 2,
+      // passa pela escolha de departamento (2A Comercial / 2B Atendimento).
+      if (dest === "Phase2Scene" && !r.route) {
+        this.scene.start("RouteSelectScene", { nextScene: dest });
+        return;
+      }
       this.scene.start(dest);
     };
 
@@ -344,6 +350,34 @@ export class CopaScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(1000);
+
+    // ── Sala opcional (#3): porta da SALA DE REUNIÃO (horda por recompensa) ──
+    // Aparece 1× por run enquanto não tiver sido limpa.
+    const reuniaoCleared = (run.optionalRoomsCleared ?? []).includes("reuniao");
+    if (!reuniaoCleared) {
+      const salaDoor = this.add.image(LEVEL_WIDTH / 2, FLOOR_Y - 30, "tex-door").setTint(0xffaa55);
+      this.add
+        .text(LEVEL_WIDTH / 2, FLOOR_Y - 72, "SALA DE\nREUNIÃO", {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: "#ffbb66",
+          align: "center",
+        })
+        .setOrigin(0.5);
+      const salaZone = this.add.zone(LEVEL_WIDTH / 2, FLOOR_Y - 30, 44, 64);
+      this.physics.add.existing(salaZone, true);
+      this.physics.add.overlap(this.player, salaZone, () => {
+        if (
+          Phaser.Input.Keyboard.JustDown(this.interactKey) ||
+          this.player.gamepadInteractJustPressed
+        ) {
+          this.persist();
+          getRun(this).cameFrom = "copa";
+          this.scene.start("SalaReuniaoScene");
+        }
+        salaDoor.setTint(0xffdd99);
+      });
+    }
 
     // Door back trigger — returns to the phase the player came from
     const doorBackZone = this.add.zone(40, FLOOR_Y - 30, 40, 60);

@@ -30,6 +30,11 @@ export type RunState = {
   shopPerks?: PerkId[];
   openSpaceCleared?: boolean;
   lastDeathCause?: "burnout" | "energy";
+  // Ramificação de rotas (#1): escolha pós-Fase 1. Persiste na run e aplica um
+  // modificador leve no buildPlayer (fundação — as fases divergem no futuro).
+  route?: "comercial" | "atendimento";
+  // Salas opcionais (#3): ids de salas-bônus já limpas nesta run (não repetir).
+  optionalRoomsCleared?: string[];
   // Upgrade mods (applied once at run start by ReconhecimentoSystem)
   upgMaxEnergy?: number;
   upgMaxSanity?: number;

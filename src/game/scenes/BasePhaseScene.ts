@@ -136,6 +136,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.player.vr = run.vr;
     reapplyAllPerks(this.player, run);
     reapplyAllCulturas(this.player, run);
+    // Ramificação de rotas (#1): modificador leve da rota escolhida pós-Fase 1.
+    if (run.route === "comercial") this.player.vrDropMult *= 1.2;
+    else if (run.route === "atendimento") this.player.maxSanity += 25;
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.furnitureBodies);
