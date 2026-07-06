@@ -476,33 +476,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     });
 
     // 16b. Player → cafezinhos (restaura Sanidade — contra-jogo do Burnout)
-    this.physics.add.overlap(this.player, this.sanityDrops, (_p, dObj) => {
-      const spr = dObj as Phaser.Physics.Arcade.Sprite;
-      if (!spr.active) return;
-      const amount = (spr.getData("sanity") as number) ?? 15;
-      const before = this.player.sanity;
-      this.player.sanity = Math.min(this.player.maxSanity, this.player.sanity + amount);
-      const gained = Math.round(this.player.sanity - before);
-      spr.destroy();
-      const t = this.add
-        .text(this.player.x, this.player.y - 46, `+${gained} Sanidade`, {
-          fontFamily: "monospace",
-          fontSize: "12px",
-          fontStyle: "bold",
-          color: "#44ddaa",
-          stroke: "#000000",
-          strokeThickness: 3,
-        })
-        .setOrigin(0.5)
-        .setDepth(500);
-      this.tweens.add({
-        targets: t,
-        y: t.y - 26,
-        alpha: 0,
-        duration: 800,
-        onComplete: () => t.destroy(),
-      });
-    });
+    this.wireSanityDropPickup();
 
     // 17. ESC → PauseScene
     this.setupPauseKey();
@@ -1010,6 +984,40 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       body.setBounce(0.4);
       body.setDrag(120, 0);
     }
+  }
+
+  /**
+   * Overlap player → cafezinho de Sanidade. Extraído para a Fase 1 (que tem
+   * create() próprio) poder reusar exatamente o mesmo comportamento.
+   */
+  protected wireSanityDropPickup() {
+    this.physics.add.overlap(this.player, this.sanityDrops, (_p, dObj) => {
+      const spr = dObj as Phaser.Physics.Arcade.Sprite;
+      if (!spr.active) return;
+      const amount = (spr.getData("sanity") as number) ?? 15;
+      const before = this.player.sanity;
+      this.player.sanity = Math.min(this.player.maxSanity, this.player.sanity + amount);
+      const gained = Math.round(this.player.sanity - before);
+      spr.destroy();
+      const t = this.add
+        .text(this.player.x, this.player.y - 46, `+${gained} Sanidade`, {
+          fontFamily: "monospace",
+          fontSize: "12px",
+          fontStyle: "bold",
+          color: "#44ddaa",
+          stroke: "#000000",
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
+        .setDepth(500);
+      this.tweens.add({
+        targets: t,
+        y: t.y - 26,
+        alpha: 0,
+        duration: 800,
+        onComplete: () => t.destroy(),
+      });
+    });
   }
 
   /** Cria um cafezinho que restaura `amount` de Sanidade ao ser coletado. */

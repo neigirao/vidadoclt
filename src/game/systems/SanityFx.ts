@@ -3,6 +3,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { sanityBand } from "./PlayerState";
 import { generateNotifSubject, noise2d } from "./CorporateAI";
 import { Sfx } from "./AudioSystem";
+import { loadSettings } from "./Settings";
 
 // Static fallback pool — shown alongside procedurally-generated subjects
 const STATIC_NOTIFS = [
@@ -41,7 +42,17 @@ export class SanityFx {
   private scanlines: Phaser.GameObjects.Graphics;
   private scanlinesBuilt = false;
 
+  /**
+   * Acessibilidade: quando ligado, corta os efeitos que distorcem/piscam a tela
+   * (barrel, cromática, tremor, chiado, scanlines). Mantém uma vinheta e a
+   * dessaturação suaves — o jogador ainda "sente" o estresse sem gatilho
+   * fotossensível. Lido 1× na construção (a cena é recriada a cada fase).
+   */
+  private reduce: boolean;
+  private nextSettingCheck = 0;
+
   constructor(private scene: Phaser.Scene) {
+    this.reduce = loadSettings().reduceSanityFx;
     // WebGL filters only — Canvas renderer falls back to vignette-less mode
     this.useFilters = scene.game.renderer.type === Phaser.WEBGL;
 
@@ -85,6 +96,13 @@ export class SanityFx {
   }
 
   update(time: number, sanity: number) {
+    // Reaplica o setting em tempo real (toggle no Pause) sem ler localStorage
+    // todo frame — checa a cada 500ms.
+    if (time >= this.nextSettingCheck) {
+      this.nextSettingCheck = time + 500;
+      this.reduce = loadSettings().reduceSanityFx;
+    }
+
     const band = sanityBand(sanity);
     // Sanity audio drone on band change — throttled to prevent audio spam
     if (band !== this.currentBand) {
@@ -98,19 +116,21 @@ export class SanityFx {
 
     if (this.useFilters) this.updateFilters(stress);
 
-    // CRT scanlines — fade in starting at anxious, full at burnout
-    if (stress > 0.6) {
+    // CRT scanlines — fade in starting at anxious, full at burnout.
+    // Desligadas no modo de acessibilidade (padrão pisca-pisca).
+    if (!this.reduce && stress > 0.6) {
       this.buildScanlines();
-      const scanAlpha = Math.min(1, (stress - 0.6) / 0.4) * 0.35;
+      const scanAlpha = Math.min(1, (stress - 0.6) / 0.4) * 0.3;
       this.scanlines.setAlpha(scanAlpha);
     } else {
       this.scanlines.setAlpha(0);
     }
 
-    // Periodic camera shake + pixel static
-    if (band === "anxious" || band === "burnout") {
+    // Periodic camera shake + pixel static — pulados no modo de acessibilidade.
+    if (!this.reduce && (band === "anxious" || band === "burnout")) {
       if (time >= this.nextShakeAt) {
-        const intensity = band === "burnout" ? 0.005 : 0.0022;
+        // Intensidade suavizada (antes 0.005/0.0022) para parecer menos "glitch".
+        const intensity = band === "burnout" ? 0.0035 : 0.0016;
         const duration = band === "burnout" ? 180 : 120;
         const interval =
           band === "burnout" ? Phaser.Math.Between(350, 600) : Phaser.Math.Between(700, 1200);
@@ -177,21 +197,20 @@ export class SanityFx {
     }
 
     // ── Barrel distortion (pincushion at anxious+) ──────────────────────────
-    // Increased range: starts earlier (0.5 stress) and goes deeper (→ 0.88)
-    if (stress > 0.5) {
+    // Desligada no modo de acessibilidade (é o efeito que "entorta as formas").
+    if (!this.reduce && stress > 0.5) {
       const t = (stress - 0.5) / 0.5; // 0 → 1 over upper half
-      // Warp reduzido (antes 0.88): 12% de pincushion desalinhava a mira do
-      // combate na borda da tela. 7% mantém a "visão estressada" sem quebrar o
-      // acerto (a hitbox mais generosa cobre o resto).
-      this.barrel.amount = 1.0 - t * 0.07; // 1.0 → 0.93
+      // Warp suave: 5% de pincushion (antes 7%). Mantém a "visão estressada"
+      // sem desalinhar a mira do combate na borda.
+      this.barrel.amount = 1.0 - t * 0.05; // 1.0 → 0.95
     } else {
       this.barrel.amount = 1.0;
     }
 
-    // ── Color temperature shift (warm→cold as stress rises) ──────────────────
-    // Boost chromatic aberration alpha proportional to stress
-    if (stress > 0.3) {
-      const chromaAmt = ((stress - 0.3) / 0.7) * 0.07;
+    // ── Chromatic aberration (warm→cold as stress rises) ─────────────────────
+    // Pulada no modo de acessibilidade (franjas piscando nas bordas).
+    if (!this.reduce && stress > 0.3) {
+      const chromaAmt = ((stress - 0.3) / 0.7) * 0.05; // suavizado (antes 0.07)
       this.chromaRed.setAlpha(chromaAmt);
       this.chromaCyan.setAlpha(chromaAmt * 0.75);
     } else {

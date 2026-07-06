@@ -405,6 +405,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.coffeeDrops = this.physics.add.group();
     this.inkProjectiles = this.physics.add.group();
     this.drops = this.physics.add.group();
+    // Contra-jogo do Burnout: a Fase 1 tem create() próprio, então cria o grupo
+    // de cafezinhos de Sanidade aqui (a Base cria no seu próprio create()).
+    this.sanityDrops = this.physics.add.group();
 
     // Registro no array herdado enemyGroups: BasePhaseScene.update() usa isso p/
     // o homing do projétil (a Fase 1 mantém seus próprios colliders/overlaps no
@@ -587,6 +590,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
               this.player.energy + this.player.healOnKill,
             );
           this.player.onKill?.();
+          this.rollSanityDrop(enemy.x, enemy.y);
           enemy.destroy();
         }
         if (!piercing) ink.destroy();
@@ -597,6 +601,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       this.player.addVR(1);
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
+
+    // Cafezinhos de Sanidade (contra-jogo do Burnout) — mesmo comportamento da Base.
+    this.physics.add.collider(this.sanityDrops, this.platforms);
+    this.wireSanityDropPickup();
 
     // Feature 5: Coffee pickup
     this.physics.add.collider(this.coffeeDrops, this.platforms);
@@ -1719,7 +1727,12 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       { id: "normal", name: "", desc: "", color: "#ffffff", apply: () => {} },
     ];
     const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
-    const idx = (seedNum + run.loopCount) % EVENTS.length;
+    // Primeira run (loopCount === 0): sala NORMAL sempre. Um novato não deve
+    // cair de cara no APAGÃO (tela escura) ou na FISCALIZAÇÃO (inimigo extra) —
+    // isso é o "às vezes começa diferente". A variedade de eventos entra da 2ª
+    // run em diante, quando o jogador já conhece a fase base.
+    const normalIdx = EVENTS.findIndex((e) => e.id === "normal");
+    const idx = run.loopCount === 0 ? normalIdx : (seedNum + run.loopCount) % EVENTS.length;
     const ev = EVENTS[idx];
     if (!ev.name) return; // sala normal, sem banner
     ev.apply();

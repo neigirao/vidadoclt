@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
+import { loadSettings, toggleReduceSanityFx } from "../systems/Settings";
 
 const F = "monospace";
 
@@ -31,7 +32,7 @@ export class PauseScene extends Phaser.Scene {
 
     // Panel
     const panW = 420;
-    const panH = 60 + CONTROLS.length * 30 + 52;
+    const panH = 60 + CONTROLS.length * 30 + 52 + 40;
     const px = Math.round((GAME_WIDTH - panW) / 2);
     const py = Math.round((GAME_HEIGHT - panH) / 2);
 
@@ -87,6 +88,33 @@ export class PauseScene extends Phaser.Scene {
         })
         .setOrigin(1, 0);
     });
+
+    // ── Acessibilidade: toggle "Reduzir efeitos de Sanidade" ──────────────────
+    const accY = py + panH - 42 - 40;
+    const accLabel = this.add
+      .text(px + 22, accY + 4, "[O]  Reduzir efeitos de Sanidade", {
+        fontFamily: F,
+        fontSize: "11px",
+        color: "#8899bb",
+      })
+      .setInteractive({ useHandCursor: true });
+    const stateT = this.add
+      .text(px + panW - 22, accY + 4, "", { fontFamily: F, fontSize: "11px", fontStyle: "bold" })
+      .setOrigin(1, 0);
+    const renderState = () => {
+      const on = loadSettings().reduceSanityFx;
+      stateT.setText(on ? "LIGADO" : "desligado").setColor(on ? "#44ddaa" : "#667088");
+    };
+    renderState();
+    const flip = () => {
+      toggleReduceSanityFx();
+      renderState();
+      // A SanityFx relê o setting a cada 500ms → aplica ao vivo ao retomar.
+    };
+    accLabel.on("pointerdown", flip);
+    accLabel.on("pointerover", () => accLabel.setColor("#ffffff"));
+    accLabel.on("pointerout", () => accLabel.setColor("#8899bb"));
+    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.O).on("down", flip);
 
     // Resume button
     const btnY = py + panH - 42;
