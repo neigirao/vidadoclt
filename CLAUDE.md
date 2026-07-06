@@ -74,6 +74,9 @@ src/
       ReconhecimentoSystem.ts# Upgrades permanentes comprados com Reconhecimento
       Shop.ts                # Loja da Copa
       SanityFx.ts            # Efeitos visuais por faixa de sanidade
+      sanity.ts              # sanityBand() puro (faixas), testável
+      ProductivityMeter.ts   # Medidor de Produtividade da Fase 1 (streak → mult VR)
+      Apagao.ts              # Evento APAGÃO (lanterna radial) da Fase 1
       CombatFx.ts            # Juice de combate (hitStop, shake, flash, finisher)
       MeleeCombat.ts         # resolveMeleeAttack() canônico (host pattern)
       CorporateAI.ts         # Helpers de IA (windup, telegraph, dashes)

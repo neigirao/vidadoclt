@@ -29,6 +29,8 @@ import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
 import { Music } from "../systems/MusicSystem";
 import { MeleeHost } from "../systems/MeleeCombat";
+import { ProductivityMeter } from "../systems/ProductivityMeter";
+import { Apagao } from "../systems/Apagao";
 import { BasePhaseScene } from "./BasePhaseScene";
 
 const LEVEL_WIDTH = 1920;
@@ -57,7 +59,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   // casts repetidos (this.boss herdado é o supertipo BossEntity).
   private gerente?: GerenteMicrogestor;
   // Evento APAGÃO + segredo do extintor
-  private apagaoDark?: Phaser.GameObjects.Image;
   private extintorLooted = false;
   private shadowG!: Phaser.GameObjects.Graphics;
   private reuniaoUsed = false;
@@ -91,12 +92,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     p.fire(tx, ty);
   };
 
-  // Item 1 — Produtividade (combo de kills encadeados)
-  private prodStreak = 0;
-  private prodLastKillAt = -9999;
-  private prodMeter!: Phaser.GameObjects.Graphics;
-  private prodLabel!: Phaser.GameObjects.Text;
-  private static readonly PROD_WINDOW_MS = 4000;
+  // Item 1 — Produtividade (combo de kills) e evento APAGÃO: sistemas dedicados.
+  private prod!: ProductivityMeter;
+  private apagao!: Apagao;
 
   // Item 2 — Evento aleatório da sala
   private eventVrMult = 1;
@@ -577,7 +575,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         const dmg = (ink.getData("damage") as number) ?? 10;
         const piercing = (ink.getData("piercing") as boolean) ?? false;
         if (enemy.hit(Math.round(dmg * this.player.damageMult), 0)) {
-          const prodMult = this.registerKill(enemy.x, enemy.y);
+          const prodMult = this.prod.registerKill(enemy.x, enemy.y);
           this.dropVR(
             enemy.x,
             enemy.y,
@@ -671,19 +669,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE  [v2]");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
 
-    // Item 1 — medidor de Produtividade (fixo na câmera)
-    this.prodMeter = this.add.graphics().setScrollFactor(0).setDepth(908);
-    this.prodLabel = this.add
-      .text(GAME_WIDTH / 2, 64, "", {
-        fontFamily: "monospace",
-        fontSize: "9px",
-        color: "#aaffaa",
-        stroke: "#000000",
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(908);
+    // Item 1 — medidor de Produtividade + Item 2 — evento APAGÃO (sistemas)
+    this.prod = new ProductivityMeter(this);
+    this.apagao = new Apagao(this);
 
     // Item 2 — modificador da sala (depende do seed + loop)
     this.rollRoomEvent(run);
@@ -1025,10 +1013,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       Music.start("boss");
       // Acende as luzes p/ a luta: o apagão + e-mails/adds no escuro era
       // variância de dificuldade injusta. O bônus de VR do evento permanece.
-      if (this.apagaoDark) {
-        this.apagaoDark.destroy();
-        this.apagaoDark = undefined;
-      }
+      this.apagao.disable();
     };
     boss.onHpChange = (hp) => this.hud.updateBoss(hp);
     boss.onShoot = (fx, fy, tx, ty) => {
@@ -1277,7 +1262,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         dropVR: (x, y, n) => this.dropVR(x, y, n),
         // O GerenteMicrogestor dispara handleBossDefeat via onDied próprio.
         onBossDied: () => {},
-        killVrMult: (x, y) => this.registerKill(x, y) * this.eventVrMult,
+        killVrMult: (x, y) => this.prod.registerKill(x, y) * this.eventVrMult,
         onSwingStart: (hb) => this.checkExtintorSecret(hb),
       };
     }
@@ -1631,34 +1616,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   // Máscaras de geometria são Canvas-only no Phaser 4 (o jogo roda WebGL), então
   // a lanterna é uma textura 2x maior que a tela, escura com um furo radial no
   // centro (recorte via destination-out), centralizada no player a cada frame.
-  private enableApagao(): void {
-    const key = "apagao-tex";
-    if (!this.textures.exists(key)) {
-      const tw = GAME_WIDTH * 2,
-        th = GAME_HEIGHT * 2;
-      const cnv = this.textures.createCanvas(key, tw, th);
-      if (!cnv) return;
-      const ctx = cnv.getContext();
-      ctx.fillStyle = "rgba(4,6,11,0.92)";
-      ctx.fillRect(0, 0, tw, th);
-      const R = 170;
-      const grad = ctx.createRadialGradient(tw / 2, th / 2, R * 0.35, tw / 2, th / 2, R);
-      grad.addColorStop(0, "rgba(0,0,0,1)");
-      grad.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(tw / 2, th / 2, R, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalCompositeOperation = "source-over";
-      cnv.refresh();
-    }
-    this.apagaoDark = this.add
-      .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, key)
-      .setScrollFactor(0)
-      .setDepth(950);
-  }
-
   // ── Evento FISCALIZAÇÃO: um Sênior extra ronda o meio da sala ───────────────
   private spawnFiscal(): void {
     const sr = new AnalistaSeniorExausto(this, 1050, FLOOR_Y - 60);
@@ -1692,60 +1649,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       duration: 1200,
       onComplete: () => t.destroy(),
     });
-  }
-
-  // Item 1 — registra um kill no medidor de Produtividade e devolve o multiplicador de VR.
-  private registerKill(x: number, y: number): number {
-    const now = this.time.now;
-    if (now - this.prodLastKillAt > OpenSpaceV2Scene.PROD_WINDOW_MS) this.prodStreak = 0;
-    this.prodStreak++;
-    this.prodLastKillAt = now;
-    const mult = 1 + Math.min(this.prodStreak * 0.2, 1.0); // 2x já no streak 5 (alcançável)
-    if (this.prodStreak >= 2) {
-      const t = this.add
-        .text(x, y - 34, `x${this.prodStreak} PRODUTIVIDADE`, {
-          fontFamily: "monospace",
-          fontSize: this.prodStreak >= 5 ? "13px" : "10px",
-          color: this.prodStreak >= 5 ? "#ffcc22" : "#aaffaa",
-          stroke: "#000000",
-          strokeThickness: 2,
-        })
-        .setOrigin(0.5)
-        .setDepth(610);
-      this.tweens.add({
-        targets: t,
-        y: t.y - 22,
-        alpha: 0,
-        duration: 700,
-        onComplete: () => t.destroy(),
-      });
-    }
-    return mult;
-  }
-
-  private drawProdMeter(time: number): void {
-    const active =
-      time - this.prodLastKillAt <= OpenSpaceV2Scene.PROD_WINDOW_MS && this.prodStreak >= 2;
-    this.prodMeter.clear();
-    if (!active) {
-      this.prodLabel.setText("");
-      return;
-    }
-    const ratio = Math.max(0, 1 - (time - this.prodLastKillAt) / OpenSpaceV2Scene.PROD_WINDOW_MS);
-    const w = 120,
-      h = 6,
-      x = GAME_WIDTH / 2 - w / 2,
-      y = 74;
-    this.prodMeter.fillStyle(0x000000, 0.5);
-    this.prodMeter.fillRect(x - 1, y - 1, w + 2, h + 2);
-    const col = this.prodStreak >= 5 ? 0xffcc22 : 0x66dd88;
-    this.prodMeter.fillStyle(col, 0.9);
-    this.prodMeter.fillRect(x, y, w * ratio, h);
-    this.prodLabel
-      .setText(
-        `PRODUTIVIDADE x${this.prodStreak}  (+${Math.round(Math.min(this.prodStreak * 0.2, 1.0) * 100)}% VR)`,
-      )
-      .setColor(this.prodStreak >= 5 ? "#ffcc22" : "#aaffaa");
   }
 
   // Item 2 — sorteia um modificador da sala a partir do seed + loop e aplica seus efeitos.
@@ -1797,7 +1700,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         color: "#aa88ff",
         apply: () => {
           this.eventVrMult = 1.6;
-          this.enableApagao();
+          this.apagao.enable();
         },
       },
       {
@@ -1933,14 +1836,11 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   }
 
   protected onPhaseUpdate(time: number, _delta: number): void {
-    this.drawProdMeter(time);
+    this.prod.draw(time);
     this.updateHealerMarkers(time);
 
     // APAGÃO: centraliza o furo da escuridão no player (coords de tela).
-    if (this.apagaoDark) {
-      const cam = this.cameras.main;
-      this.apagaoDark.setPosition(this.player.x - cam.scrollX, this.player.y - cam.scrollY);
-    }
+    this.apagao.reposition(this.player.x, this.player.y);
 
     // Physics body sleep: disable body for enemies far off-screen to save CPU
     const camBounds = this.cameras.main.worldView;
