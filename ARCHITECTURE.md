@@ -140,18 +140,22 @@ Quando sprites reais forem adicionados:
 3. Remover o `makeRect("tex-player", ...)` correspondente
 4. Ativar `pixelArt: true` já está no config — funciona sem mudança
 
-### 9. Persistência (não implementado ainda)
+### 9. Persistência (`systems/PlayerState.ts`)
 
-Para Reconhecimento e progresso entre runs, usar `localStorage`:
+O estado da run vive no `scene.registry` (chave `"run"`, tipo `RunState`).
+`getRun(scene)` lê/cria; `savePersisted(reconhecimento, fgts, loopCount)` grava a
+**meta-progressão** em `localStorage`. Testes unitários cobrem a lógica pura
+(faixas de sanidade, culturas, perks, upgrades).
 
 ```ts
-// salvar
-localStorage.setItem("ce-reconhecimento", String(total));
-// carregar
-const saved = Number(localStorage.getItem("ce-reconhecimento") ?? "0");
+const run = getRun(this); // RunState no registry
+savePersisted(run.reconhecimento, run.fgts, run.loopCount); // meta em localStorage
 ```
 
-Criar um módulo `src/game/systems/SaveData.ts` com funções `load()` e `save()` para centralizar.
+Regra de testabilidade: sistemas de lógica pura (`CulturaSystem`, `PerkSystem`)
+importam `Player`/`RunState` como `import type` para não puxar Phaser no runtime
+(que não importa no `bun:test`); funções puras isoláveis vão para módulos sem
+Phaser (ex.: `sanity.ts`).
 
 ## Decisões de design técnico
 
@@ -165,40 +169,45 @@ Criar um módulo `src/game/systems/SaveData.ts` com funções `load()` e `save()
 | Hitboxes manuais no combate           | Controle de frame preciso, sem latência do sistema de física                                      |
 | Sem server functions no jogo          | Phaser não é compatível com SSR; todo estado de jogo é client-only                                |
 
-## Adicionando uma nova fase
+## Adicionando uma nova fase (2–5)
 
-1. Criar `src/game/scenes/NomeDaFaseScene.ts`
-2. Registrar em `config.ts` → `buildGameConfig()` → array `scene`
-3. Adicionar transição ao final da fase anterior:
-   ```ts
-   this.scene.start("NomeDaFaseScene", { vr: this.player.vr, sanity: this.player.sanity });
-   ```
-4. No `create(data)` da nova cena, restaurar os atributos do jogador a partir de `data`
-5. Criar entidades e layout próprios da fase
+As Fases 2–5 estendem `BasePhaseScene`, que centraliza create/update, combate,
+colliders, boss wiring, validador e HUD. Uma nova fase implementa só os métodos
+abstratos:
 
-## Estrutura de dados futura (meta-progressão)
+1. Criar `src/game/scenes/NomeDaFaseScene.ts` estendendo `BasePhaseScene`.
+2. Implementar: `getBgKey`, `getPhaseTitle`, `getPhaseNumber`, `getInitialObjective`,
+   `getPlatformLayout`, `getDoorConfig`, `getBossName`, `setupEnemiesAndGroups`
+   (cria os grupos, popula `this.enemyGroups` e `this.boss`).
+3. Registrar em `config.ts` → `buildGameConfig()` → array `scene`.
+4. O estado do jogador vem do `run` (registry) via `buildPlayer` — não passar
+   dados por `scene.start`. A transição entre fases passa pela Copa (`cameFrom`).
+
+A Fase 1 (`OpenSpaceV2Scene`) também estende `BasePhaseScene`, mas mantém
+`create()` próprio (mecânicas exclusivas) reusando os helpers da base.
+
+## Estado da run (`RunState` em `PlayerState.ts`)
+
+O tipo real que persiste no registry (resumo dos campos principais):
 
 ```ts
-// src/game/systems/SaveData.ts
-interface SaveData {
-  reconhecimento: number; // meta-moeda permanente
-  fgts: number; // acumulado entre runs
-  loopsCount: number; // para diálogos do Faxineiro
-  unlockedClasses: string[];
-  unlockedWeapons: string[];
-  unlockedPerks: string[];
-}
-
-// src/game/systems/RunData.ts
-interface RunData {
-  class: "estagiario" | "analista" | "terceirizado";
-  currentWeapon: string;
-  activePerks: string[];
-  corporateCulture: string;
-  vr: number;
+type RunState = {
+  characterClass?: ClassId; // classe escolhida
+  weaponId?: WeaponId; // arma atual
+  perks?: PerkId[]; // perks ativos
+  culturas?: CulturaId[]; // culturas da run
+  vr: number; // moeda in-run
   energy: number;
   sanity: number;
-  currentPhase: number;
-  checkpointPhase: number;
-}
+  reconhecimento: number; // meta-moeda (persistida)
+  fgts: number; // acumulado entre runs (persistido)
+  loopCount: number; // nº de loops (persistido; gate de onboarding)
+  cameFrom?: string; // origem da cena atual (ex.: "copa")
+  nextScene?: string; // próxima fase após a Copa
+  openSpaceCleared?: boolean; // marco: Fase 1 concluída
+  seed?: string; // seed determinística da run
+  extraLives?: number;
+  // + upgrades de Reconhecimento (upgMaxEnergy, upgVrDropMult, ...)
+};
 ```
+

@@ -1,256 +1,67 @@
-# ROADMAP — Corporate Escape
+# ROADMAP — Corporate Escape (A Vida do CLT)
 
-Baseado no GDD v2.0. Cada sprint adiciona uma camada jogável e completa sobre a anterior.
-
----
-
-## Sprint 1 — Núcleo jogável ✅ CONCLUÍDO
-
-**Entregável:** protótipo jogável no navegador, Área 1 do Open Space.
-
-- [x] Player controller: andar, pular (coyote time 0,1s + jump buffer), dash (i-frames 150ms, cooldown 1,5s)
-- [x] Combo de 3 hits melee com knockback no 3º hit
-- [x] Energia e Sanidade (barras no HUD, sem efeitos de Sanidade ainda)
-- [x] Drop de VR ao derrotar inimigos
-- [x] Estagiário Desesperado (patrulha simples, contato = 15 dano, 1 HP)
-- [x] Analista Júnior (state machine: walk → telegraph 400ms → swing → recover)
-- [x] Área 1 hardcoded: chão + 6 plataformas + decoração "baias"
-- [x] HUD: barra Energia, barra Sanidade, contador VR, relógio cosmético
-- [x] Morte → "Rescisão da tentativa" → conversão VR → Reconhecimento → restart
+**Fonte única e verídica do estado do jogo.** Reconciliado com o código real
+(o roadmap antigo por sprints tinha a tabela travada no Sprint 1, mas o jogo já
+está por volta do fim do Sprint 6). Absorve o plano do Lovable
+(`.lovable/plan.md`, que segue como plano de trabalho ativo de onboarding) e os
+itens de engenharia do `CLAUDE.md`.
 
 ---
 
-## Sprint 2 — Loop de run
+## Status por camada (GDD original)
 
-**Entregável:** run com início, área segura, checkpoint e fail state alternativo de Burnout.
+| Camada / Sprint             | Status       | Observação                                                              |
+| --------------------------- | ------------ | ---------------------------------------------------------------------- |
+| 1 — Núcleo jogável          | ✅ Concluído | Player, combo, HUD, VR, morte→Reconhecimento                           |
+| 2 — Loop de run             | ✅ Concluído | Sanidade/faixas, Copa, Ponto Eletrônico, Reconhecimento, FGTS          |
+| 3 — Fase 1 completa         | ✅ Concluído | Áreas 2/4, Gerente Microgestor (6 ataques), Autonomia, boss bar        |
+| 4 — Rogue-lite              | 🟢 ~90%      | 3 classes, 12 armas, perks, 12 Culturas. **Falta ramificação de rotas** |
+| 5 — Fases 2–3               | 🟡 Parcial   | Fases existem mas **lineares**; bosses são enemy-classes, não os únicos |
+| 6 — Fases 4–5 + CEO         | ✅ Concluído | Fases 4/5, CEO, tela de vitória                                        |
+| 7 — NPCs / eventos          | 🟡 Parcial   | Faxineiro + eventos de sala; falta o resto dos NPCs e eventos          |
+| 8 — Áudio / acessibilidade  | 🟡 Parcial   | Áudio procedural ✅; **acessibilidade quase toda pendente**             |
 
-- [ ] **Sistema de Sanidade por faixas**
-  - 75–51%: notificações falsas na HUD (ruído visual)
-  - 50–26%: sons fantasmas (Teams/Outlook), inimigos ilusórios ocasionais
-  - 25–11%: inimigos ilusórios frequentes, distorção leve de tela
-  - 10–1%: distorção forte, input lag leve
-  - 0%: **BURNOUT** — run termina, mantém 50% VR convertido com bônus
-- [ ] **Persistência de Reconhecimento** entre runs (`localStorage`)
-- [ ] **Copa Corporativa** (Área 3 do Open Space)
-  - Área segura: sem inimigos
-  - NPC Faxineiro: cura +10 Sanidade, diálogo que muda a cada loop
-  - Café disponível para compra (+20 Energia)
-- [ ] **Ponto Eletrônico** entre fases
-  - Checkpoint: salva progresso da run
-  - Loja básica (Analista LinkedIn): 3 itens aleatórios à venda
-  - Passar correndo sem bater o ponto = pular a loja (speedrun trade-off)
-- [ ] **FGTS**
-  - Cresce passivamente a cada run (+10 por run completa, independente de vitória)
-  - Opção "Pedir para ser demitido" no menu de pausa
-  - Ao usar: encerra run imediatamente, converte todo FGTS em Reconhecimento × 1,5
+### Extras entregues (fora do GDD original)
+
+- Sistema de **Burnout** (penalidades por faixa + telegrafo do tremor + HUD de sintomas) — Lovable.
+- **Qualidade**: `tsc` strict + ESLint 0 erros, **37 testes unitários** (bun:test), **CI** (GitHub Actions).
+- **Encontros por seed** (Fase 1 varia tipos; Fases 2–5 variam posições).
+- **Arquitetura**: Fase 1 migrada p/ `BasePhaseScene`; God-scene decomposto (`ProductivityMeter`, `Apagao`).
 
 ---
 
-## Sprint 3 — Fase 1 completa
+## Backlog ativo (priorizado)
 
-**Entregável:** Fase 1 (Open Space) jogável do início ao fim, com todos os inimigos e chefe.
+### 🔴 Bugs / correções
 
-- [ ] **Área 2** — Corredor das Reuniões
-  - Armadilha: Convites de Reunião (pop-ups flutuantes, toque = lentidão 2s + −10 sanidade)
-  - Inimigos: Facilitador de Workshop, Scrum Master Caótico
-- [ ] **Área 4** — Ala da Gestão
-  - Inimigos: Coordenador de Sinergia (buffa outros), Analista Sênior Exausto (lento, resistente, forte)
-- [ ] **Chefe: Gerente Microgestor**
-  - Frase de entrada: _"Antes de você sair precisamos alinhar algumas coisas."_
-  - Ataques:
-    - Follow-Up: projétil teleguiado (e-mail)
-    - Alinhamento: puxa jogador ao centro da arena
-    - Atualização Rápida: 3 investidas em sequência
-    - Reunião Emergencial: invoca 2 Estagiários Desesperados
-    - Você Tem 5 Minutos?: congela jogador 5s reais (esquivável atrás de baia)
-    - Deadline Inadiável (fase 2, <30% HP): arena encolhe + relógio acelera
-  - Recompensa: perk Autonomia + VR extra
-- [ ] **Perk Autonomia** funcional: −50% efeitos de lentidão/controle
-- [ ] **Transição de fase**: acesso ao Ponto Eletrônico após derrotar o chefe
-- [ ] **Resolução visual de UI de chefe**: barra de HP do boss no HUD
+- **Spawn das Fases 2–5**: nascem em x≈1800 (em cima do boss/saída, trash atrás). Fix: spawn à esquerda + reajuste dos pools de borda.
 
----
+### Onboarding + Burnout (plano do Lovable — em andamento)
 
-## Sprint 4 — Rogue-lite completo
+- Terminar 1ª run: `padrao_clt` (cultura no-op), auto-skip Class/Cultura, unlock de classe por marco (`openSpaceCleared`), 3 dicas contextuais.
+- **Contra-jogo do Burnout**: drops de sanidade em fase + consumível de sanidade.
 
-**Entregável:** meta-progressão, múltiplas classes, armas e modificadores de run.
+### Conteúdo de jogo (GDD — lacunas reais)
 
-### Classes (3)
+- **Ramificação de rotas**: bifurcação após Fase 1 (2A Comercial / 2B Atendimento) e Fase 2 (3A Produto / 3B Tecnologia).
+- **Bosses únicos das Fases 2–5** (Caçador de Metas, Coordenador de Escala, Product Owner, Arquiteto, RH Predador, Diretor) — hoje enemy-classes com HP inflado. _Depende de arte nova (a arte-fonte de `_sources/` foi removida)._
+- **Salas opcionais**: Reunião (horda), TI (armas), RH (roleta de eventos), Financeiro (VR + armadilhas), Banheiro (+sanidade). Só a Copa existe.
+- **NPCs / narrativa**: Estagiário Conspiracionista, Analista LinkedIn (lojista), Veterano (atalhos), eventos de RH/Cultura.
+- **New Game+ "Quinta-feira"**.
 
-- [ ] **Estagiário**: 80 Energia, 120 Sanidade, Caneta Bic Tática, +20% velocidade
-- [ ] **Analista Pleno**: 100/100, Grampeador Tático, +10% VR coletado
-- [ ] **Terceirizado**: 130 Energia, 70 Sanidade, Régua Metálica, +15% dano / lojas +20%
-- [ ] Tela de seleção de classe antes de cada run
+### Balanceamento (decisões)
 
-### Armas (12, divididas em 3 raridades)
+- **Economia de VR**: run rende ~57–120 VR e a Copa inteira custa ~40–50 → sem tensão de escolha na 1ª Copa.
+- **Ataques especiais próprios** para os bosses das Fases 2–4.
 
-**Comuns:**
+### Acessibilidade (Sprint 8 — quase intocado)
 
-- [ ] Grampeador Tático: melee, 3º hit "grampeia" no chão 1s
-- [ ] Caneta Bic Tática: ranged rápido e fraco, recarga "mordendo a tampa"
-- [ ] Régua Metálica: melee alcance longo, knockback forte
-- [ ] Mouse Sem Fio: bumerangue arremessável, 10% chance de "perder sinal"
-
-**Raras:**
-
-- [ ] Impressora Multifuncional: cadência alta, 15% chance de atolar papel (1,5s travada)
-- [ ] Caneca de Café Escaldante: arremesso AoE + recupera 5 Sanidade ao acertar
-- [ ] Telefone Corporativo: invoca "ligação em espera" que persegue inimigo por 4s
-- [ ] Projetor Laser: feixe contínuo consome Sanidade enquanto dispara
-
-**Épicas:**
-
-- [ ] PowerPoint Devastador: hipnotiza inimigos no alcance por 3s (dormem na apresentação)
-- [ ] Planilha da Morte: AoE, inimigos ficam congelados "analisando dados" por 2s
-- [ ] VPN Corporativa: invisibilidade 4s, mas tudo (inclusive jogador) fica lento
-- [ ] Cadeira Gamer Executiva: investida giratória, dano cresce com combo
-
-### Perks (8)
-
-- [ ] Autonomia: −50% efeitos de lentidão (drop do Gerente Microgestor)
-- [ ] Terapia no Convênio: +1 Sanidade a cada 5s
-- [ ] Banco de Horas: acumula horas → desacelera o tempo 3s
-- [ ] Home Office: teleporta à Copa mais próxima (1×/fase)
-- [ ] Coffee Break: Cafés curam +50%
-- [ ] Inbox Zero: imune a notificações falsas (faixa 75–51%)
-- [ ] Cara do Networking: lojas −15%
-- [ ] Pelo Menos é CLT: sobrevive 1× com 1 Energia (1×/run)
-
-### Cultura Corporativa (5 modificadores de run)
-
-- [ ] Startup: +20% velocidade, épicas mais cedo mas 10% quebram
-- [ ] Banco: chefes ganham Compliance Check (bloqueia dash 3s), +1 inimigo/sala, mais VR
-- [ ] Consultoria: mini-chefes extras, lojas mais raras
-- [ ] Telecom: portas/elevadores falham aleatoriamente, +50% eventos aleatórios
-- [ ] Big Tech: inimigo exclusivo Algoritmo de Performance (drone que buffa vizinhos)
-
-### Ramificação
-
-- [ ] Bifurcação após Fase 1: escolha entre Fase 2A (Comercial) ou Fase 2B (Atendimento)
-- [ ] Bifurcação após Fase 2: Fase 3A (Produto) ou Fase 3B (Tecnologia)
+- Opção "reduzir efeitos de Sanidade" (fotossensibilidade), desativar input-lag, remap de teclas, modo daltônico p/ telegraphs, texto escalável.
 
 ---
 
-## Sprint 5 — Fases 2 e 3
+## Como este roadmap se relaciona com os outros docs
 
-**Entregável:** dois caminhos completos com chefes.
-
-### Fase 2A — Comercial
-
-- [ ] Cenário: metas, gongos de venda, dashboards
-- [ ] Chefe: Caçador de Metas — a cada 20s bate meta e ganha buff; gongo destruível remove buff
-
-### Fase 2B — Atendimento
-
-- [ ] Cenário: headsets, filas, painéis de chamados
-- [ ] Chefe: Coordenador de Escala — invoca filas de "clientes insatisfeitos"; "Sua ligação é muito importante" prende em espera
-
-### Fase 3A — Produto
-
-- [ ] Cenário: post-its, roadmaps, Kanban
-- [ ] Chefe: Product Owner Obcecado — reordena a arena movendo plataformas; copia último movimento do jogador
-
-### Fase 3B — Tecnologia
-
-- [ ] Cenário: servidores, cabos, logs
-- [ ] Chefe: Arquiteto Supremo — constrói torres de defesa (microsserviços) que devem ser derrubadas antes de expô-lo
-
-### Salas opcionais (em todas as fases)
-
-- [ ] Copa (área segura já implementada em Sprint 2)
-- [ ] Sala de Reunião: horda por recompensa maior
-- [ ] TI: armas/upgrades (mini-puzzle "abrir chamado")
-- [ ] RH: eventos aleatórios (roleta)
-- [ ] Financeiro: muito VR, armadilhas letais
-- [ ] Banheiro: +15 Sanidade, risco de flagra pelo chefe
-
----
-
-## Sprint 6 — Fases 4 e 5 + CEO
-
-**Entregável:** jogo completo do início ao fim.
-
-### Fase 4 — RH & Compliance
-
-- [ ] Cenário: crachás, formulários, câmeras
-- [ ] Luta dupla: RH Predador + Guardiã da Ordem
-  - RH Predador: "convoca para conversinha" (hitkill telegrafado)
-  - Guardiã: cria zonas de conformidade que limitam onde pisar
-
-### Fase 5 — Diretoria
-
-- [ ] Cenário: carpete, vidro, troféus
-- [ ] Mini-boss: Diretor de Resultados
-- [ ] Transição para área do CEO
-
-### Chefe Final — CEO (Chief Everything Officer)
-
-- [ ] Visual monstruoso; rosto nunca aparece por completo
-- [ ] Ataques:
-  - Transformação Digital: cenário vira "versão beta" com bugs (plataformas piscam)
-  - Mudança Estratégica: inverte controles por 4s
-  - Reorganização Global: embaralha posições de jogador e inimigos
-  - Corte de Custos: remove curas da arena e drena VR
-- [ ] Fase final: invoca versões-sombra dos chefes anteriores
-- [ ] Tela de vitória: "Você chegou em casa." → fade → despertador → corte para preto
-- [ ] New Game+ desbloqueado: "Quinta-feira" (mesma dificuldade, porém pior)
-
----
-
-## Sprint 7 — NPCs, Eventos e Narrativa
-
-- [ ] **Faxineiro**: diálogos diferentes por número de loops (contador persistido)
-- [ ] **Estagiário Conspiracionista**: teorias sobre o CEO que evoluem a cada run
-- [ ] **Analista LinkedIn**: lojista com falas em jargão corporativo
-- [ ] **Veterano (35 anos de casa)**: desbloqueia atalhos mediante favores
-- [ ] Eventos aleatórios (sala de RH / Cultura Telecom):
-  - Happy Hour Obrigatório: horda festiva 60s, VR dobrado
-  - Amigo Secreto: item aleatório
-  - Colega do Peixe no Micro-ondas: nuvem de dano de Sanidade na Copa
-  - Pesquisa de Clima: 3 perguntas; resposta "errada" invoca RH Predador mais cedo
-  - Sextou: sextas-feiras reais +10% VR + música especial
-
----
-
-## Sprint 8 — Áudio e Acessibilidade
-
-### Áudio
-
-- [ ] Trilha: elevator music corrompida que degrada com a Sanidade
-- [ ] Variação temática por departamento (Comercial = motivacional agressiva; TI = synth glitch)
-- [ ] SFX de inimigos com sons reais de notificação (Teams, Outlook, Slack) como telegraphs
-- [ ] Vozes de chefes com reverb de sala de reunião
-- [ ] Estado de Burnout: áudio abafa + zumbido + despertador ao reiniciar
-
-### Acessibilidade
-
-- [ ] Opção "Reduzir efeitos de Sanidade" (remove distorção e flashes — fotossensibilidade)
-- [ ] Opção de desativar input lag do estado de Sanidade baixa
-- [ ] Remapeamento de teclas
-- [ ] Modo daltônico para telegraphs de ataque
-- [ ] Texto escalável nos diálogos
-
----
-
-## Pós-lançamento
-
-- [ ] Fases adicionais (pós-MVP)
-- [ ] Classes extras: Gerente Rebaixado, PJ
-- [ ] Armas lendárias: RH Supremo, Contrato Vitalício, PowerPoint Dourado
-- [ ] Bosses sazonais
-- [ ] Mobile (stretch goal)
-
----
-
-## Resumo de progresso
-
-| Sprint   | Status       | Entregável                        |
-| -------- | ------------ | --------------------------------- |
-| Sprint 1 | ✅ Concluído | Protótipo jogável (Área 1)        |
-| Sprint 2 | ⬜ Pendente  | Sistema de Sanidade + loop de run |
-| Sprint 3 | ⬜ Pendente  | Fase 1 completa com chefe         |
-| Sprint 4 | ⬜ Pendente  | Meta-progressão rogue-lite        |
-| Sprint 5 | ⬜ Pendente  | Fases 2 e 3                       |
-| Sprint 6 | ⬜ Pendente  | Fases 4 e 5 + CEO + vitória       |
-| Sprint 7 | ⬜ Pendente  | NPCs, narrativa, eventos          |
-| Sprint 8 | ⬜ Pendente  | Áudio e acessibilidade            |
+- **`.lovable/plan.md`** — plano de trabalho ativo do Lovable (onboarding + burnout). Este ROADMAP absorve o status; o plano detalha a execução.
+- **`CLAUDE.md` → "Pendente / em aberto"** — recorte de engenharia/level-design (mesmos itens, mais detalhe técnico).
+- **`ARCHITECTURE.md`** — como o código está montado (não é roadmap).
