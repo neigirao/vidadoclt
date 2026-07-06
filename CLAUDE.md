@@ -148,7 +148,7 @@ PreloadScene → BootScene → MenuScene ─┬─ JOGAR ──→ ClassSelectSc
 
 - **PreloadScene** mostra splash AMI BIOS enquanto o atlas carrega; encadeia BootScene → MenuScene.
 - **MenuScene** roteia para todas as sub-telas listadas acima.
-- **ClassSelectScene → CulturaSelectScene** aplicam upgrades/modificadores no `run` e iniciam `OpenSpaceV2Scene`.
+- **ClassSelectScene → CulturaSelectScene** aplicam upgrades/modificadores no `run` e iniciam `OpenSpaceV2Scene`. A `CulturaSelectScene` tem **dois modos**: cheia (`scene.start` com `nextScene` — antes da Fase 1) e overlay (`scene.launch` com `caller` — oferecida de novo após cada boss, pausa/retoma a fase).
 - Após derrotar o boss da fase, a porta da **Copa** desbloqueia (tecla E).
 - **PauseScene** entra via `scene.launch` (overlay) — não substitui a cena ativa.
 - Morte do jogador → `scene.start("GameOverScene", { vr, cause })`.
@@ -210,7 +210,7 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 
 ### Eventos de sala (Fase 1) e segredo
 
-`rollRoomEvent` tem 6 eventos + sala normal; os **mecânicos** são APAGÃO (escuridão com lanterna no player — textura 2× da tela com furo radial, pois GeometryMask é Canvas-only no Phaser 4) e FISCALIZAÇÃO (Sênior extra). Segredo: bater no extintor (x≈1793) derruba +3 VR, 1× por run (`checkExtintorSecret`).
+`rollRoomEvent` tem 6 eventos + sala normal, com um **badge fixo** do evento ativo (nome + efeito) no canto durante toda a fase. Os **mecânicos** são APAGÃO (sistema `Apagao`: escuridão com lanterna no player — textura 2× da tela com furo radial, pois GeometryMask é Canvas-only no Phaser 4; **acende quando o boss ativa**) e FISCALIZAÇÃO (Sênior extra). O medidor de Produtividade (streak de kills → mult de VR) é o sistema `ProductivityMeter`. Segredo: bater no extintor (x≈1793) derruba +3 VR, 1× por run (`checkExtintorSecret`).
 
 ### Band-aids de sprite ativos
 
@@ -242,10 +242,16 @@ Nenhum band-aid ativo no momento.
 - Persistência de Reconhecimento/FGTS/Loops em `localStorage` (PlayerState)
 - Copa: cura de sanidade + loja (Faxineiro), checkpoint
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
+- **Encontros por seed**: Fase 1 varia o TIPO de inimigo por zona (`spawnEnemyOfType`); Fases 2–5 variam POSIÇÃO/densidade (`pickPositions` em `BasePhaseScene`) — contagem fixa p/ o validador
+- **Qualidade**: `tsc` strict + ESLint 0 erros; **testes unitários** (bun:test) de EnemyCatalog, WeaponSystem, ReconhecimentoSystem, **CulturaSystem, PerkSystem, sanityBand** (37 testes); **CI** (GitHub Actions: tsc + lint + test) em `.github/workflows/ci.yml`
 
 ### Pendente / em aberto
 
-- **Etapa 4 do roadmap de catálogo**: `BossCatalog` para os 7 bosses cuja arte existe em `_sources/` mas ainda não estão no jogo (arquiteto, cacador-metas, coordenador, diretor, guardiao-ordem, product-owner, rh-predador, vice-presidente). Ver `.lovable/plan.md`.
+- **🔴 Bug (decisão pendente) — spawn das Fases 2–5**: `BasePhaseScene.buildPlayer` usa `run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80`. Como a Copa seta `cameFrom="copa"`, as Fases 2–5 nascem em **x ≈ 1800 (direita)** — em cima do boss e a 60px da saída (x=1860), com todo o trash (x 200–1550) atrás, nunca enfrentado. Provável fix: `LEVEL_WIDTH - 120` → **`120`** (nascer na esquerda, atravessar até o boss). Exige empurrar os pools da borda esquerda das 4 fases (spawn-seguro) → reformula o ritmo. **Aguarda confirmação antes de reformular.**
+- **Ataques especiais dos bosses 2–4**: hoje são classes de inimigo (Coordenador @Fase2, Sênior @Fase3, Scrum @Fase4) com HP inflado, sem repertório telegrafado próprio (diferente do Gerente/CEO). Aditivo.
+- **Economia de VR (decisão de balanceamento)**: uma run rende ~57–120 VR e a loja da Copa inteira custa ~40–50 VR (consumíveis 4–6, armas 8–20, perks 10–18) → sem tensão de escolha na 1ª Copa. Opções: subir preços da Copa e/ou limitar o empilhamento de multiplicadores (produtividade × evento × vrDropMult). O excedente vira Reconhecimento (VR×0.25), então não é desperdiçado — é falta de pressão de decisão in-run.
+- **Fase 5 falha no `LevelValidator`?** — RESOLVIDO (evangelista movida p/ fora do raio de spawn).
+- **Etapa 4 (BossCatalog dos 7 bosses)** — OBSOLETO: a arte-fonte em `_sources/` foi removida; só entra com arte nova.
 
 ## Padrões e convenções
 
@@ -308,6 +314,7 @@ O HUD (`Hud.ts`) usa `setScrollFactor(0)` para fixar à câmera. Instanciar `new
 bun dev                      # servidor de desenvolvimento
 bun run build                # build de produção (vite build)
 bun lint                     # ESLint
+bun test src/game            # testes unitários (bun:test) — mesma checagem do CI
 bun format                   # Prettier
 node scripts/gen-sprites.mjs # (re)gera sprites procedurais (post-it, café, copo)
 node scripts/pack-atlas.mjs  # re-empacota o atlas a partir de public/assets/sprites/
@@ -324,3 +331,5 @@ node scripts/pack-atlas.mjs  # re-empacota o atlas a partir de public/assets/spr
 - **Hitboxes manuais no resolveAttack**: o ataque usa `Phaser.Geom.Intersects.RectangleToRectangle` com hitbox calculada pelo Player, não `physics.add.overlap`. Mantém controle preciso do timing do combo.
 - **Combate melee ÚNICO em `systems/MeleeCombat.ts`**: `resolveMeleeAttack(host, hb, step, swingId, firstFrame)` é a implementação canônica (dedup por swingId da janela ativa, juice 1×/golpe, sparks, slow, healOnKill). OpenSpaceV2, BasePhaseScene (Fases 2–5) e CeoScene delegam via um `MeleeHost` (hooks: `killVrMult` p/ produtividade×evento, `onSwingStart` p/ segredo do extintor, `onBossDied`). **Não** reimplementar resolveAttack em cena nova — montar um host. (CopaScene mantém uma mini-versão própria de sandbox, com gate de 1º frame.)
 - **OpenSpaceV2Scene estende `BasePhaseScene`**: a Fase 1 herda os helpers compartilhados (`buildPlayer`, `persist`, `spawnProjectile`, `spawnEnemyProjectile`, `resolveAttack`, `handleSpecial`) e implementa os métodos abstratos (`getBgKey`/`getPhaseTitle`/`getDoorConfig`/etc.). Ainda mantém `create()` próprio (não chama `super.create()`) por conta das mecânicas exclusivas (4 variantes de layout, eventos de sala, apagão, medidor de produtividade, healers, café, memo) — mas reusa os **blocos idênticos** de Base via helpers (`setupWorldAndCamera`, `wireParryReclamar`, `setupPauseKey`, `installLevelDebug`). O `super.create()` monolítico **não** é usado de propósito: a Base tem escalonamento de HP por loop (+15%) que colidiria com o da Fase 1 (+20% com inimigos "TRAVADOS"), além de colliders de móveis/postits/café que a Base não conhece — usá-lo dobraria o balanceamento. Overrides da Fase 1: `buildFloor`/`buildPlatform` (mesas desenhadas vs. tiles de PLAT_DEFS), `dropVR` (tint dourado + hover), `getMeleeHost` (hooks `killVrMult`/`onSwingStart`). O boss é um `GerenteMicrogestor` guardado em `this.gerente` (ref tipada) além do `this.boss` herdado (supertipo `BossEntity`); a derrota é `handleGerenteDefeat` (renomeado p/ não colidir com `handleBossDefeat` da base). O **`update()` já foi unificado**: a Fase 1 não tem mais `update()` próprio — implementa `onPhaseUpdate()` (prod meter, healers, apagão, body-sleep, hitboxes de golpe dos inimigos/Gerente, tutorial, entrada do boss, sombras) e o hook `sanityDrainEnabled()` (evento HOME OFFICE), enquanto `BasePhaseScene.update()` cuida de player.update, tickPassive gated, homing ink (por isso a Fase 1 popula `this.enemyGroups`), contato+HUD do boss, sanity fx, near-door e hud.update. O `create()` compartilha os blocos idênticos com Base via helpers (acima); o restante permanece próprio por divergência real de gameplay (escalonamento por loop, colliders, eventos).
+- **Testes com `bun:test`**: o `import "phaser"` quebra no bun:test (precisa de globals de browser). Sistemas de **lógica pura** (`CulturaSystem`, `PerkSystem`) importam `Player`/`RunState` como `import type` — o tipo some do runtime, o Phaser não é carregado e o módulo fica testável. Funções puras que valem isolar (ex.: `sanityBand`) ficam em módulos sem Phaser (`sanity.ts`) e são re-exportadas de onde eram usadas. Não instanciar `Player` nos testes — passar um objeto fake tipado `as unknown as Player` (as funções só mutam campos simples).
+- **CI contorna o registry privado**: `bun.lock` aponta tarballs para o cache do Lovable (`europe-westN-npm.pkg.dev`), inacessível fora do sandbox. O workflow (`.github/workflows/ci.yml`) reescreve esses URLs para o npm público (mesmo pacote/hash) via `sed` antes do `bun install`.
