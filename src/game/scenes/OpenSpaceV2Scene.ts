@@ -73,6 +73,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     e.setData("nextHop", now + 500);
   };
   private tutorialShown = false;
+  private parryTaught = false;
 
   // Item 1 — Produtividade (combo de kills encadeados)
   private prodStreak = 0;
@@ -2016,6 +2017,49 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
           bg.destroy();
         },
       });
+    }
+
+    // Teaching de parry por demonstração: quando o 1º estagiário chega perto
+    // (o contato dele é parryável), um prompt ensina "aperte F para RECLAMAR".
+    // A zona 1 tem 3 estagiários, então há chances repetidas de tentar.
+    if (!this.parryTaught && getRun(this).loopCount === 0) {
+      let nearEnemy = false;
+      this.estagiarios.getChildren().forEach((c) => {
+        const e = c as Phaser.Physics.Arcade.Sprite;
+        if (e.active && Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y) < 130)
+          nearEnemy = true;
+      });
+      if (nearEnemy) {
+        this.parryTaught = true;
+        const p = this.add
+          .text(GAME_WIDTH / 2, HUD_TOP_H + 54, "⚠ APERTE  [ F ]  PARA RECLAMAR (parry)!", {
+            fontFamily: "monospace",
+            fontSize: "13px",
+            fontStyle: "bold",
+            color: "#ffdd44",
+            stroke: "#000000",
+            strokeThickness: 4,
+          })
+          .setOrigin(0.5)
+          .setScrollFactor(0)
+          .setDepth(985);
+        this.tweens.add({
+          targets: p,
+          scaleX: 1.08,
+          scaleY: 1.08,
+          duration: 420,
+          yoyo: true,
+          repeat: 4,
+          ease: "Sine.easeInOut",
+        });
+        this.tweens.add({
+          targets: p,
+          alpha: 0,
+          duration: 700,
+          delay: 4200,
+          onComplete: () => p.destroy(),
+        });
+      }
     }
 
     // Item 8 — Boss room dramatic entry: trigger when player crosses x=1580
