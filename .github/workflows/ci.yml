@@ -1,0 +1,38 @@
+name: CI
+
+# Portão de qualidade: typecheck + lint + testes em cada push no main e em PRs.
+# O bun.lock aponta os tarballs para o cache privado do Lovable
+# (europe-westN-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache), inacessível
+# fora do sandbox. O passo "Neutralizar registry privado" reescreve esses URLs
+# para o npm público (mesmo pacote/versão) antes do install.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Neutralizar registry privado no lockfile (usa npm público na CI)
+        run: |
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/sandbox-npm-cache/#https://registry.npmjs.org/#g' bun.lock
+
+      - name: Instalar dependências
+        run: bun install
+
+      - name: Typecheck (tsc)
+        run: bunx tsc --noEmit
+
+      - name: Lint (eslint)
+        run: bun lint
+
+      - name: Testes (bun:test)
+        run: bun test src/game
