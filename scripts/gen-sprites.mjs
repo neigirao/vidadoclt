@@ -423,8 +423,67 @@ function bateria() {
   return c.save("enemy-bateria.png");
 }
 
+// ── Analista Novo: frame walk3 (64x64) ───────────────────────────────────────
+// O walk3 original veio corrompido da extração de IA (era uma "explosão"
+// amarela, fora do personagem). Os vizinhos (walk0/1/2/4) são o analista de
+// óculos com pasta. Aqui redesenhamos a pose de meio-passo em código, casando
+// a paleta amostrada dos frames bons. Side view, virado p/ a direita; pés na
+// base (~y49), como os demais frames deste inimigo.
+const AN_SKIN = [200, 150, 120],
+  AN_SKIN_D = [160, 115, 90],
+  AN_HAIR = [70, 45, 30],
+  AN_HAIR_D = [48, 30, 20],
+  AN_SHIRT = [228, 226, 218],
+  AN_SHIRT_D = [178, 176, 170],
+  AN_TIE = [42, 92, 112],
+  AN_PANTS = [44, 46, 74],
+  AN_PANTS_D = [28, 28, 52],
+  AN_SHOE = [30, 24, 24],
+  AN_CASE = [110, 70, 42],
+  AN_CASE_D = [70, 45, 25],
+  AN_OUT = [18, 14, 12];
+function analistaNovoWalk3() {
+  const W = 64,
+    H = 64,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  // ── pernas em meio-passo (perna dir. à frente, esq. atrás) ──
+  R(27, 38, 6, 9, AN_PANTS_D); // coxa de trás
+  R(26, 45, 7, 3, AN_PANTS); // canela de trás (recuada)
+  R(24, 47, 8, 3, AN_SHOE); // sapato de trás
+  R(33, 38, 7, 8, AN_PANTS); // coxa da frente
+  R(35, 44, 6, 4, AN_PANTS); // canela da frente (avançada)
+  R(35, 47, 9, 3, AN_SHOE); // sapato da frente
+  // ── torso / camisa ──
+  R(25, 22, 17, 17, AN_SHIRT);
+  R(25, 22, 3, 17, AN_SHIRT_D); // sombra lateral esq.
+  R(39, 22, 3, 17, AN_SHIRT_D); // sombra lateral dir.
+  R(32, 23, 2, 13, AN_TIE); // gravata
+  R(31, 35, 4, 2, AN_TIE);
+  // ── braços: de trás recuado, da frente à frente segurando pasta ──
+  R(23, 24, 4, 11, AN_SHIRT_D); // braço de trás
+  R(22, 34, 4, 3, AN_SKIN_D); // mão de trás
+  R(40, 24, 4, 10, AN_SHIRT); // braço da frente
+  R(41, 33, 4, 3, AN_SKIN); // mão da frente
+  // pasta na mão da frente
+  R(40, 36, 12, 9, AN_CASE);
+  R(40, 36, 12, 2, AN_CASE_D);
+  R(45, 34, 3, 2, AN_CASE_D); // alça
+  // ── cabeça ──
+  R(27, 8, 13, 14, AN_SKIN); // rosto
+  R(27, 8, 13, 4, AN_HAIR); // cabelo (topo)
+  R(26, 8, 3, 9, AN_HAIR); // cabelo (nuca)
+  R(37, 9, 3, 3, AN_HAIR_D); // franja lateral
+  R(29, 15, 9, 3, AN_SHIRT); // óculos (armação clara)
+  R(30, 16, 3, 1, AN_OUT); // lente esq.
+  R(34, 16, 3, 1, AN_OUT); // lente dir.
+  R(38, 18, 2, 3, AN_SKIN_D); // sombra do queixo
+  return c.save("enemy-analista-novo-walk3.png");
+}
+
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
+  ["analista-novo", analistaNovoWalk3],
   ["postit", () => postit(0)],
   ["postit", () => postit(1)],
   ["postit", () => postit(2)],
