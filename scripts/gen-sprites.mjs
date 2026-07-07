@@ -478,7 +478,27 @@ function analistaNovoWalk3() {
   R(30, 16, 3, 1, AN_OUT); // lente esq.
   R(34, 16, 3, 1, AN_OUT); // lente dir.
   R(38, 18, 2, 3, AN_SKIN_D); // sombra do queixo
+  // contorno preto de 1px (keyline) — casa o estilo "sticker" dos frames
+  // vizinhos (todo sprite de personagem tem esse contorno).
+  addOutline(c, AN_OUT);
   return c.save("enemy-analista-novo-walk3.png");
+}
+
+// Pinta um contorno de 1px na COR dada em todo pixel transparente que encosta
+// (8-vizinhança) num pixel opaco. Usa o alpha atual como silhueta.
+function addOutline(c, col) {
+  const { d, w, h } = c;
+  const isOpaque = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 20;
+  const toPaint = [];
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] > 20) continue; // já opaco
+      let border = false;
+      for (let dx = -1; dx <= 1 && !border; dx++)
+        for (let dy = -1; dy <= 1; dy++) if ((dx || dy) && isOpaque(x + dx, y + dy)) border = true;
+      if (border) toPaint.push([x, y]);
+    }
+  for (const [x, y] of toPaint) c.px(x, y, col);
 }
 
 // Registro: [nome-para-filtro, função]
