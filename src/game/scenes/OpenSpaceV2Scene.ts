@@ -1444,12 +1444,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   }
 
   private spawnReuniao(nx: number, run: import("../systems/PlayerState").RunState): void {
-    // "?" NPC that offers 2 random free perks to choose from
-    const npcG = this.add.graphics().setDepth(9);
-    npcG.fillStyle(0xf2a800, 1);
-    npcG.fillRect(nx - 12, FLOOR_Y - 48, 24, 40);
-    npcG.fillStyle(0xe8d0b0, 1);
-    npcG.fillEllipse(nx, FLOOR_Y - 52, 20, 20);
+    // "?" NPC que oferece 2 perks grátis. Era desenhado como PLACEHOLDER (um
+    // retângulo dourado + cabeça oval) e parecia "inimigo sem sprite / bloco
+    // amarelo". Agora usa um sprite de personagem corporativo (tintado dourado
+    // p/ sinalizar NPC especial).
+    const npcSpr = addImage(this, nx, FLOOR_Y - 30, "tex-rh-idle0")
+      .setDepth(9)
+      .setDisplaySize(48, 60)
+      .setTint(0xffdd88);
     const npcLabel = this.add
       .text(nx, FLOOR_Y - 72, "?", {
         fontFamily: "monospace",
@@ -1480,14 +1482,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         this.player.gamepadInteractJustPressed
       ) {
         this.reuniaoUsed = true;
-        this.showPerkChoice(run, npcG, npcLabel);
+        this.showPerkChoice(run, npcSpr, npcLabel);
       }
     });
   }
 
   private showPerkChoice(
     run: import("../systems/PlayerState").RunState,
-    npcG: Phaser.GameObjects.Graphics,
+    npcG: Phaser.GameObjects.Image,
     npcLabel: Phaser.GameObjects.Text,
   ): void {
     const allPerkIds = Object.keys(PERKS) as PerkId[];

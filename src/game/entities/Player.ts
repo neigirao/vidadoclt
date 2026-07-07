@@ -782,7 +782,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } else if (speed > 60) {
       key = `tex-player-walk${Math.floor(now / 100) % 8}`; // ciclo de caminhada (8)
     } else {
-      key = `tex-player-idle${1 + (Math.floor(now / 250) % 4)}`; // idle1..idle4
+      // idle SÓ usa idle1/idle2 (poses paradas de respiração). idle3/idle4 são
+      // poses de passada (extração ruim, quase iguais ao walk) e faziam o parado
+      // "correr no lugar". Cadência lenta (450ms) = respiração calma.
+      key = `tex-player-idle${1 + (Math.floor(now / 450) % 2)}`; // idle1↔idle2
     }
 
     applyTexture(this, key);
