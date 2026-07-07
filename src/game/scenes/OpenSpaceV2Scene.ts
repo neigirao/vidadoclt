@@ -80,6 +80,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     e.setData("nextHop", now + 500);
   };
   private tutorialShown = false;
+  private arenaGate?: Phaser.GameObjects.Rectangle;
   private parryTaught = false;
 
   // Disparo de post-it compartilhado por Onboarding e Facilitador (ranged).
@@ -428,6 +429,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     ];
 
     // Recompensa de exploração vertical: cache de VR na plataforma mais alta.
+    this.spawnZoneTints();
     this.spawnVerticalReward();
     this.spawnMidBreather();
 
@@ -997,7 +999,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     [1230, 1340, 1420, 1520].forEach((x, i) => this.spawnEnemyOfType(z4[i], x, rng));
 
     // Zona 5 — Scrum Master Caótico (elite, perto do boss) — âncora fixa
-    const scrum = new ScrumMasterCaotico(this, 1620, FLOOR_Y - 60);
+    const scrum = new ScrumMasterCaotico(this, 1590, FLOOR_Y - 60);
     scrum.target = this.player;
     scrum.onShout = (fromX) => {
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, fromX, this.player.y) < 260) {
@@ -1015,9 +1017,24 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.tagHealer(coord);
 
     // Zona 5 — Analista Sênior Exausto (tanky)
-    const sr = new AnalistaSeniorExausto(this, 1760, FLOOR_Y - 60);
+    const sr = new AnalistaSeniorExausto(this, 1780, FLOOR_Y - 60);
     sr.target = this.player;
     this.seniors.add(sr);
+
+    // GD C — atirador na plataforma alta: dá MOTIVO DE COMBATE pra subir (além
+    // do loot). Fustiga do alto; o jeito limpo de calá-lo é ir até ele pelo pulo
+    // encadeado. Determinístico (mesma plataforma-topo do cache vertical).
+    this.spawnHighHarasser();
+
+    // GD B — porta da arena: parede INVISÍVEL só-para-inimigos em x≈1580, ligada
+    // quando o boss ativa. Impede que o trash das zonas 1-4 forme uma "conga
+    // line" atrás do jogador e polua o clímax. O player atravessa livremente
+    // (sem collider com ele); só os grupos de trash colidem. Elites (zona 5) já
+    // estão na arena e não são travados.
+    const gate = this.add.rectangle(1580, GAME_HEIGHT / 2, 12, GAME_HEIGHT, 0x000000, 0);
+    this.physics.add.existing(gate, true);
+    (gate.body as Phaser.Physics.Arcade.StaticBody).enable = false;
+    this.arenaGate = gate;
 
     const boss = new GerenteMicrogestor(this, 1820, FLOOR_Y - 60);
     boss.target = this.player;
@@ -1029,6 +1046,19 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       // Acende as luzes p/ a luta: o apagão + e-mails/adds no escuro era
       // variância de dificuldade injusta. O bônus de VR do evento permanece.
       this.apagao.disable();
+      // Fecha a porta da arena: trash das zonas 1-4 não persegue pra dentro.
+      const g = this.arenaGate;
+      if (g) {
+        (g.body as Phaser.Physics.Arcade.StaticBody).enable = true;
+        [
+          this.estagiarios,
+          this.sobrecarregados,
+          this.analistas,
+          this.onboardings,
+          this.facilitadores,
+          this.rhs,
+        ].forEach((grp) => this.physics.add.collider(grp, g));
+      }
     };
     boss.onHpChange = (hp) => this.hud.updateBoss(hp);
     boss.onShoot = (fx, fy, tx, ty) => {
@@ -1627,6 +1657,51 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   // ranged/elite (4-5), um bebedouro largado como cafezinho de Sanidade + uma
   // placa de lore. Cria o ritmo tensão→alívio→pico sem alterar contagem de
   // inimigos (o validador continua estável).
+  // GD D — tint por zona: bandas de luz coloridas dão "sense of place" a cada
+  // trecho do corredor (mesmo cenário) — frio na zona de perseguição, âmbar na
+  // de ranged, avermelhado rumo ao boss. Sutil (alpha baixo), blend aditivo.
+  private spawnZoneTints(): void {
+    const top = HUD_TOP_H;
+    const h = FLOOR_Y - top + 32;
+    const bands: Array<[number, number, number]> = [
+      // [xStart, xEnd, cor]
+      [1000, 1220, 0x225577], // zona 3 — perseguição (frio)
+      [1220, 1560, 0x7a5a1a], // zona 4 — ranged (âmbar)
+      [1560, 1920, 0x772222], // zona 5 + boss (perigo/vermelho)
+    ];
+    bands.forEach(([x0, x1, color]) => {
+      this.add
+        .rectangle(x0, top, x1 - x0, h, color, 0.08)
+        .setOrigin(0, 0)
+        .setDepth(1)
+        .setBlendMode(Phaser.BlendModes.ADD);
+    });
+  }
+
+  // GD C — coloca um Facilitador (ranged) na plataforma mais alta, junto do
+  // cache vertical: o alto passa a ter valor tático (calar o atirador), não só loot.
+  private spawnHighHarasser(): void {
+    let bestTop = Infinity;
+    let best: Phaser.Physics.Arcade.StaticBody | undefined;
+    this.platforms.getChildren().forEach((p) => {
+      const b = (p as Phaser.GameObjects.GameObject & { body?: Phaser.Physics.Arcade.StaticBody })
+        .body;
+      if (!b) return;
+      // Só plataformas altas e longe do boss (não empilhar na arena).
+      if (b.y < FLOOR_Y - 45 && b.x + b.width / 2 < 1500 && b.y < bestTop) {
+        bestTop = b.y;
+        best = b;
+      }
+    });
+    if (!best) return;
+    const cx = best.x + best.width / 2;
+    const f = new FacilitadorDeWorkshop(this, cx, best.y - 40);
+    f.target = this.player;
+    f.onShoot = this.rangedShoot;
+    this.facilitadores.add(f);
+    this.physics.add.collider(f, this.platforms);
+  }
+
   private spawnMidBreather(): void {
     const x = 1050;
     // Cafezinho de Sanidade parado no chão (não some) — alívio deliberado.

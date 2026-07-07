@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
-import { generateCorporateSpeak } from "../systems/CorporateAI";
+import { pickCorporatePhrase } from "../systems/CorporateAI";
 import { fxGlow } from "./Enemies";
 
 // ─── Email projectile (Follow-Up attack) ────────────────────────────────────
@@ -175,7 +175,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private showIntroText() {
-    const speak = generateCorporateSpeak();
+    const speak = pickCorporatePhrase();
     // Clampa X e usa wordWrap: o corporate-speak pode ser longo e o boss fica
     // encostado na parede direita — sem isso o balão transbordava a tela.
     const worldW = this.scene.physics.world.bounds.width || 1920;

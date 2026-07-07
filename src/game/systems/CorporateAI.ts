@@ -66,6 +66,15 @@ export function generateCorporateSpeak(): string {
 }
 
 /**
+ * Frase corporativa LIMPA (direto do corpus, sem o Markov). Usada onde a
+ * legibilidade importa — ex.: a fala de entrada do boss, que com o gerador
+ * saía embolada ("SINTRESCAO RE NOVO") e parecia bug.
+ */
+export function pickCorporatePhrase(): string {
+  return CORPUS[Math.floor(Math.random() * CORPUS.length)];
+}
+
+/**
  * Returns a fake corporate notification subject line using generated speak.
  */
 export function generateNotifSubject(): string {
