@@ -1044,7 +1044,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     boss.target = this.player;
     boss.onActivate = () => {
       this.hud.showBoss("Gerente Microgestor", boss.maxHp);
-      this.hud.setObjective("Derrote o Gerente Microgestor!");
+      this.hud.setObjective("Derrote o Gerente! (sala limpa = bônus Expediente)");
       Sfx.bossAppear();
       Music.start("boss");
       // Acende as luzes p/ a luta: o apagão + e-mails/adds no escuro era
@@ -1187,6 +1187,51 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     for (let i = 0; i < 18; i++) {
       this.time.delayedCall(i * 60, () => {
         this.dropVR(boss.x + Phaser.Math.Between(-70, 70), boss.y - 20, dropsPerTick);
+      });
+    }
+
+    // Incentivo de combate (carrot): "EXPEDIENTE CUMPRIDO" — se o jogador chegou
+    // ao boss com a sala praticamente limpa (não fez rush), ganha bônus de VR +
+    // Sanidade. Não pune quem corre (rush segue válido); só premia quem enfrenta.
+    const trashLeft = [
+      this.estagiarios,
+      this.sobrecarregados,
+      this.analistas,
+      this.onboardings,
+      this.facilitadores,
+      this.scrums,
+      this.coordenadores,
+      this.seniors,
+      this.rhs,
+    ].reduce((n, g) => n + (g?.countActive?.() ?? 0), 0);
+    if (trashLeft <= 2) {
+      this.player.addVR(30);
+      this.player.sanity = Math.min(this.player.maxSanity, this.player.sanity + 25);
+      const bonus = this.add
+        .text(
+          GAME_WIDTH / 2,
+          GAME_HEIGHT / 2 - 140,
+          "EXPEDIENTE CUMPRIDO!  +30 VR  •  +25 Sanidade",
+          {
+            fontFamily: "monospace",
+            fontSize: "16px",
+            fontStyle: "bold",
+            color: "#66ff99",
+            align: "center",
+            stroke: "#000000",
+            strokeThickness: 4,
+          },
+        )
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(999);
+      this.tweens.add({
+        targets: bonus,
+        y: bonus.y - 24,
+        alpha: 0,
+        duration: 2200,
+        delay: 800,
+        onComplete: () => bonus.destroy(),
       });
     }
 
