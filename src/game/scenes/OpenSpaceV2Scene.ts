@@ -159,6 +159,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     const seedVariant = seedNum % 4; // 0–3: 4 variantes de layout
     this.startTimeMs = this.time.now;
     this.bossDefeated = false;
+    // A Fase 1 tem create() próprio (não chama super.create()) → precisa semear
+    // o this.rng ela mesma. Sem isso, rollSanityDrop() (drop de café por kill)
+    // quebrava com "this.rng is undefined" a CADA inimigo morto.
+    this.rng = new Phaser.Math.RandomDataGenerator([run.seed ?? "CLT", this.scene.key]);
     Music.start("office");
 
     this.setupWorldAndCamera();
