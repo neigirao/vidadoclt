@@ -43,20 +43,21 @@ itens de engenharia do `CLAUDE.md`.
 
 ### Conteúdo de jogo (GDD — lacunas reais)
 
-- **Ramificação de rotas**: 🟢 _fundação feita_ — `RouteSelectScene` após a Fase 1 (2A Comercial / 2B Atendimento) grava `run.route` e aplica um modificador de run (Comercial +20% VR / Atendimento +25 Sanidade máx). Falta a 2ª bifurcação (Fase 2 → 3A/3B) e as fases divergentes de verdade.
-- **Bosses únicos das Fases 2–5** (Caçador de Metas, Coordenador de Escala, Product Owner, Arquiteto, RH Predador, Diretor) — hoje enemy-classes com HP inflado. _Depende de arte nova (a arte-fonte de `_sources/` foi removida)._
-- **Salas opcionais**: 🟢 _fundação + 1 tipo feita_ — `SalaReuniaoScene` (horda de 3 ondas por 40 VR) acessível pela Copa, 1×/run via `run.optionalRoomsCleared`. Faltam TI (armas), RH (roleta), Financeiro (VR + armadilhas), Banheiro (+sanidade).
-- **NPCs / narrativa**: Estagiário Conspiracionista, Analista LinkedIn (lojista), Veterano (atalhos), eventos de RH/Cultura.
-- **New Game+ "Quinta-feira"**.
+- **Ramificação de rotas**: 🟢 _feita (fundação das duas bifurcações)_ — `RouteSelectScene` após a Fase 1 (2A Comercial / 2B Atendimento → `run.route`) **e** após a Fase 2 (3A Produto / 3B Tecnologia → `run.route2`), cada rota com um modificador de run. Falta só as **fases divergentes de verdade** (conteúdo distinto por rota, dependente de arte/level design).
+- **Bosses únicos das Fases 2–5** (Caçador de Metas, Coordenador de Escala, Product Owner, Arquiteto, RH Predador, Diretor) — 🟡 _parcial_: ganharam **ataques especiais telegrafados** próprios (dirigidos pela cena). O visual/identidade única ainda **depende de arte nova** (a arte-fonte de `_sources/` foi removida).
+- **Salas opcionais**: ✅ _feito_ — `SalaReuniaoScene` (horda) + `SalaBonusScene` (Banheiro/TI/RH/Financeiro). A porta lateral da Copa sorteia uma sala não-limpa por visita (roguelite), 1×/run cada via `run.optionalRoomsCleared`.
+- **NPCs / narrativa**: 🟢 _2 feitos_ — Estagiário Conspiracionista (teorias por loop) e Analista LinkedIn (jargão) na Copa. Faltam Veterano (atalhos) e eventos de RH/Cultura.
+- **New Game+ "Quinta-feira"**: ✅ _feito_ — desbloqueado na 1ª vitória; `run.ngPlus` dá +40% HP aos inimigos. Botão na Vitória + entrada 🌩 no menu.
 
 ### Balanceamento (decisões)
 
-- **Economia de VR**: run rende ~57–120 VR e a Copa inteira custa ~40–50 → sem tensão de escolha na 1ª Copa.
-- **Ataques especiais próprios** para os bosses das Fases 2–4.
+- **Economia de VR**: ✅ _feito_ — cap do empilhamento evento×produtividade em 2.5× + preços da Copa mais altos (Café 6, Pausa 9).
+- **Ataques especiais próprios** para os bosses das Fases 2–4: ✅ _feito_ (Fase 4 já tinha; Fases 2 e 3 agora têm especiais telegrafados).
 
-### Acessibilidade (Sprint 8 — quase intocado)
+### Acessibilidade (Sprint 8)
 
-- Opção "reduzir efeitos de Sanidade" (fotossensibilidade), desativar input-lag, remap de teclas, modo daltônico p/ telegraphs, texto escalável.
+- ✅ Opção "reduzir efeitos de Sanidade" (fotossensibilidade) — toggle no Pause.
+- Pendente: desativar input-lag, remap de teclas, modo daltônico p/ telegraphs, texto escalável.
 
 ---
 
