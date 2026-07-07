@@ -30,7 +30,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Autonomia",
     description: "Congelamentos e ralentamentos duram 50% menos.",
     flavor: "Você não precisa de permissão pra sair cedo.",
-    shopCost: 10,
+    shopCost: 16,
     icon: "⚡",
   },
   hora_extra: {
@@ -38,7 +38,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Hora Extra",
     description: "+20% de dano em todos os ataques.",
     flavor: "Sem adicional. Como sempre.",
-    shopCost: 12,
+    shopCost: 19,
     icon: "💢",
   },
   vale_transporte: {
@@ -46,7 +46,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Vale Transporte",
     description: "+15% de velocidade de movimento.",
     flavor: "Só funciona de segunda a sexta, claro.",
-    shopCost: 10,
+    shopCost: 16,
     icon: "🚌",
   },
   seguro_de_vida: {
@@ -54,7 +54,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Seguro de Vida",
     description: "Revive uma vez por run com 30 de Energia.",
     flavor: "A franquia é a alma da sua autoestima.",
-    shopCost: 18,
+    shopCost: 29,
     icon: "❤️",
   },
   plr: {
@@ -62,7 +62,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "PLR",
     description: "Inimigos dropam 25% mais VR.",
     flavor: "Meta batida. Pagamento: parcialmente.",
-    shopCost: 12,
+    shopCost: 19,
     icon: "💰",
   },
   cafe_forte: {
@@ -70,7 +70,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Café Forte",
     description: "Consumíveis de Energia e Sanidade curam 50% mais.",
     flavor: "A torneira da copa vive entupida mas esse daí funciona.",
-    shopCost: 10,
+    shopCost: 16,
     icon: "☕",
   },
   piso_de_vidro: {
@@ -78,7 +78,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Piso de Vidro",
     description: "Permite um segundo pulo no ar.",
     flavor: "Voar é mais fácil que pedir aumento.",
-    shopCost: 15,
+    shopCost: 24,
     icon: "🪟",
   },
   sindrome_impostor: {
@@ -86,7 +86,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Síndrome do Impostor",
     description: "Primeiro golpe de cada área causa +50% de dano.",
     flavor: "Na dúvida, chega primeiro. Pergunte depois.",
-    shopCost: 10,
+    shopCost: 16,
     icon: "👤",
   },
   reuniao_cancelada: {
@@ -94,7 +94,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Reunião Cancelada",
     description: "Dash recarrega 40% mais rápido.",
     flavor: "A melhor reunião é a que não acontece.",
-    shopCost: 12,
+    shopCost: 19,
     icon: "📅",
   },
   clt_flexivel: {
@@ -102,7 +102,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "CLT Flexível",
     description: "Cooldown do especial 40% menor.",
     flavor: "Flexível pra empresa. Nunca pro funcionário.",
-    shopCost: 10,
+    shopCost: 16,
     icon: "🕐",
   },
   banco_de_horas: {
@@ -110,7 +110,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Banco de Horas",
     description: "Cada inimigo morto restaura 1 de Energia.",
     flavor: "Acumulou tanto que até virou cura.",
-    shopCost: 14,
+    shopCost: 22,
     icon: "🏦",
   },
   plano_de_saude: {
@@ -118,7 +118,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     name: "Plano de Saúde",
     description: "Sanidade nunca cai abaixo de 25.",
     flavor: "Carência de 90 dias. Mas pelo menos existe.",
-    shopCost: 16,
+    shopCost: 26,
     icon: "🏥",
   },
 };

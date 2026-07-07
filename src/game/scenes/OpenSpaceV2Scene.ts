@@ -429,6 +429,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     // Recompensa de exploração vertical: cache de VR na plataforma mais alta.
     this.spawnVerticalReward();
+    this.spawnMidBreather();
 
     // Pre-populate projectile pools
     for (let i = 0; i < 8; i++) {
@@ -1592,18 +1593,61 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
     if (!best) return;
     const cx = best.x + best.width / 2;
-    for (let i = 0; i < 5; i++) {
+    // Recompensa vertical com PROPÓSITO (GD P3): cache maior (7 VR) + um café,
+    // e um facho pulsante que seduz o olhar pra cima desde o chão.
+    for (let i = 0; i < 7; i++) {
       const d = this.drops.create(
-        cx + (i - 2) * 12,
+        cx + (i - 3) * 12,
         best.y - 16,
         "tex-vr",
       ) as Phaser.Physics.Arcade.Sprite;
       d.setDepth(9);
     }
+    this.spawnCoffeeDrop(cx, best.y - 20);
     this.add
-      .text(cx, best.y - 34, "💰", { fontSize: "14px" })
+      .text(cx, best.y - 34, "💰", { fontSize: "16px" })
       .setOrigin(0.5)
       .setDepth(9);
+    // Facho vertical: coluna luminosa do cache até o chão, pulsando — sinaliza
+    // "vale subir aqui" sem texto. setScrollFactor(1) para acompanhar o mundo.
+    const beam = this.add
+      .rectangle(cx, (best.y + FLOOR_Y) / 2, 10, FLOOR_Y - best.y, 0xffdd66, 0.12)
+      .setDepth(2);
+    this.tweens.add({
+      targets: beam,
+      alpha: 0.28,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+  }
+
+  // GD P1 — batida de respiro: no vão entre as zonas de melee (1-2) e as de
+  // ranged/elite (4-5), um bebedouro largado como cafezinho de Sanidade + uma
+  // placa de lore. Cria o ritmo tensão→alívio→pico sem alterar contagem de
+  // inimigos (o validador continua estável).
+  private spawnMidBreather(): void {
+    const x = 1050;
+    // Cafezinho de Sanidade parado no chão (não some) — alívio deliberado.
+    const d = this.sanityDrops.create(x, FLOOR_Y - 30, ...resolveSprite("tex-coffee")) as
+      | Phaser.Physics.Arcade.Sprite
+      | undefined;
+    if (d) {
+      d.setDepth(8).setDisplaySize(20, 20).setData("sanity", 15).setTint(0x66ffdd);
+      (d.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+      this.tweens.add({ targets: d, y: d.y - 6, duration: 900, yoyo: true, repeat: -1 });
+    }
+    this.add
+      .text(x, FLOOR_Y - 66, "🚰 METADE DO EXPEDIENTE", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#8899aa",
+        stroke: "#000000",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5)
+      .setDepth(6);
   }
 
   private spawnCoffeeDrop(x: number, y: number): void {
@@ -1677,6 +1721,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         id: "reuniao",
         name: "REUNIÃO OBRIGATÓRIA",
         desc: "Inimigos mais resistentes, mas +50% VR",
+        tip: "Use o combo até o 3º hit — o VR extra paga o esforço.",
         color: "#ff8844",
         apply: () => {
           this.eventVrMult = 1.5;
@@ -1687,6 +1732,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         id: "homeoffice",
         name: "HOME OFFICE",
         desc: "Sua sanidade não cai nesta sala",
+        tip: "Sem pressa: explore o alto e pegue tudo com calma.",
         color: "#66ddff",
         apply: () => {
           this.eventNoSanityDrain = true;
@@ -1696,6 +1742,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         id: "sextou",
         name: "SEXTOU",
         desc: "+25% velocidade e dash mais rápido",
+        tip: "Abuse do dash: encadeie kills pra manter a produtividade.",
         color: "#ffdd44",
         apply: () => {
           this.player.walkSpeed *= 1.25;
@@ -1706,6 +1753,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         id: "deadline",
         name: "DEADLINE INADIÁVEL",
         desc: "Inimigos mais rápidos, mas +40% VR",
+        tip: "Fique em movimento e use plataformas pra quebrar a perseguição.",
         color: "#ff5566",
         apply: () => {
           this.eventVrMult = 1.4;
@@ -1716,6 +1764,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         id: "apagao",
         name: "APAGÃO",
         desc: "Só se vê perto de você. +60% VR",
+        tip: "Mate rápido e agrupado — o VR alto premia agressividade.",
         color: "#aa88ff",
         apply: () => {
           this.eventVrMult = 1.6;
@@ -1726,13 +1775,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         id: "fiscal",
         name: "FISCALIZAÇÃO",
         desc: "Um Sênior extra ronda a sala. +50% VR",
+        tip: "Isole o Sênior num canto antes de limpar o resto.",
         color: "#ffaa33",
         apply: () => {
           this.eventVrMult = 1.5;
           this.spawnFiscal();
         },
       },
-      { id: "normal", name: "", desc: "", color: "#ffffff", apply: () => {} },
+      { id: "normal", name: "", desc: "", tip: "", color: "#ffffff", apply: () => {} },
     ];
     const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
     // Primeira run (loopCount === 0): sala NORMAL sempre. Um novato não deve
@@ -1749,13 +1799,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // o jogador sem saber por que a sala mudou — ex.: escuridão do APAGÃO). Fica
     // no canto durante toda a fase; depth 972 > 950 da escuridão do apagão.
     const badge = this.add
-      .text(12, HUD_TOP_H + 10, `◉ ${ev.name}\n${ev.desc}`, {
+      .text(12, HUD_TOP_H + 10, `◉ ${ev.name}\n${ev.desc}\n→ ${ev.tip}`, {
         fontFamily: "monospace",
         fontSize: "9px",
         color: ev.color,
         stroke: "#000000",
         strokeThickness: 3,
         lineSpacing: 2,
+        wordWrap: { width: 250 },
       })
       .setOrigin(0, 0)
       .setScrollFactor(0)

@@ -129,7 +129,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Varredura Ampla",
     specialCooldown: 4000,
     specialType: "wide_sweep",
-    shopCost: 8,
+    shopCost: 13,
   },
   furador: {
     id: "furador",
@@ -150,7 +150,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Lançamento Vertical",
     specialCooldown: 4000,
     specialType: "aerial_spike",
-    shopCost: 8,
+    shopCost: 13,
   },
   mouse: {
     id: "mouse",
@@ -171,7 +171,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Chuva de Cliques",
     specialCooldown: 5000,
     specialType: "burst_ranged",
-    shopCost: 12,
+    shopCost: 19,
   },
   teclado: {
     id: "teclado",
@@ -192,7 +192,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Arremesso de Teclado",
     specialCooldown: 5000,
     specialType: "throw_weapon",
-    shopCost: 12,
+    shopCost: 19,
   },
   caneca: {
     id: "caneca",
@@ -213,7 +213,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Arremesso em Parábola",
     specialCooldown: 4500,
     specialType: "caneca_arc",
-    shopCost: 10,
+    shopCost: 16,
   },
   impressora: {
     id: "impressora",
@@ -234,7 +234,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Papel em 3 Vias",
     specialCooldown: 5000,
     specialType: "paper_spread",
-    shopCost: 12,
+    shopCost: 19,
   },
   notebook: {
     id: "notebook",
@@ -255,7 +255,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Pulso EMP",
     specialCooldown: 7000,
     specialType: "emp_pulse",
-    shopCost: 15,
+    shopCost: 24,
   },
   projetor: {
     id: "projetor",
@@ -276,7 +276,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Feixe Total",
     specialCooldown: 6000,
     specialType: "wide_beam",
-    shopCost: 20,
+    shopCost: 32,
   },
   extintor: {
     id: "extintor",
@@ -297,7 +297,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     specialName: "Jato de CO₂",
     specialCooldown: 6000,
     specialType: "spray_knockback",
-    shopCost: 20,
+    shopCost: 32,
   },
   grampeador_eletrico: {
     id: "grampeador_eletrico",
