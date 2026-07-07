@@ -46,7 +46,7 @@ itens de engenharia do `CLAUDE.md`.
 - **Ramificação de rotas**: 🟢 _feita (fundação das duas bifurcações)_ — `RouteSelectScene` após a Fase 1 (2A Comercial / 2B Atendimento → `run.route`) **e** após a Fase 2 (3A Produto / 3B Tecnologia → `run.route2`), cada rota com um modificador de run. Falta só as **fases divergentes de verdade** (conteúdo distinto por rota, dependente de arte/level design).
 - **Bosses únicos das Fases 2–5** (Caçador de Metas, Coordenador de Escala, Product Owner, Arquiteto, RH Predador, Diretor) — 🟡 _parcial_: ganharam **ataques especiais telegrafados** próprios (dirigidos pela cena). O visual/identidade única ainda **depende de arte nova** (a arte-fonte de `_sources/` foi removida).
 - **Salas opcionais**: ✅ _feito_ — `SalaReuniaoScene` (horda) + `SalaBonusScene` (Banheiro/TI/RH/Financeiro). A porta lateral da Copa sorteia uma sala não-limpa por visita (roguelite), 1×/run cada via `run.optionalRoomsCleared`.
-- **NPCs / narrativa**: 🟢 _2 feitos_ — Estagiário Conspiracionista (teorias por loop) e Analista LinkedIn (jargão) na Copa. Faltam Veterano (atalhos) e eventos de RH/Cultura.
+- **NPCs / narrativa**: ✅ _feito_ — Estagiário Conspiracionista (teorias por loop), Analista LinkedIn (jargão) e **Veterano** (favor por 20 VR → +1 vida) na Copa; + **eventos de RH/Cultura** aleatórios ao entrar na Copa (Amigo Secreto, Happy Hour, Peixe no Micro-ondas).
 - **New Game+ "Quinta-feira"**: ✅ _feito_ — desbloqueado na 1ª vitória; `run.ngPlus` dá +40% HP aos inimigos. Botão na Vitória + entrada 🌩 no menu.
 
 ### Balanceamento (decisões)

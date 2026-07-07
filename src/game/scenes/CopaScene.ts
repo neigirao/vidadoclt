@@ -11,6 +11,7 @@ import { Hud } from "../systems/Hud";
 import { Music } from "../systems/MusicSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { resolveSprite } from "../systems/SpriteLibrary";
+import { Sfx } from "../systems/AudioSystem";
 
 const LEVEL_WIDTH = 1280;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -36,6 +37,7 @@ export class CopaScene extends Phaser.Scene {
     lines: string[];
     idx: number;
     bubble?: Phaser.GameObjects.Text;
+    action?: () => string; // se presente, E executa a ação e mostra o texto retornado
   }> = [];
 
   constructor() {
@@ -224,6 +226,9 @@ export class CopaScene extends Phaser.Scene {
 
     // ── NPCs de narrativa (#25) — falas por proximidade + E ───────────────────
     this.setupNpcs(loopCount);
+
+    // ── Eventos de RH/Cultura (#26) — evento aleatório na Copa (exceto a 1ª) ───
+    if (run.cameFrom !== "openspace") this.rollCopaEvent();
 
     // FX + HUD + Shop
     this.combatFx = new CombatFx(this);
@@ -482,11 +487,106 @@ export class CopaScene extends Phaser.Scene {
     };
     mk(700, "tex-estagiario-idle0", 0x88ccff, conspira, "?");
     mk(1050, "tex-analista-idle0", 0xffcc88, linkedin, "in");
+
+    // Veterano (35 anos de casa) — desbloqueia um "atalho" mediante favor (VR).
+    const vetLines =
+      loopCount <= 3
+        ? [
+            "35 anos de casa. Já vi esse loop mil vezes.",
+            "Me faz um favor e eu te ensino um atalho.",
+          ]
+        : ["Você aprende rápido, moleque.", "Um favor pelo outro. É assim que sobrevive aqui."];
+    const vetSpr = this.add
+      .image(420, FLOOR_Y - 30, ...resolveSprite("tex-rh-idle0"))
+      .setTint(0xccaa88);
+    vetSpr.setDepth(9);
+    this.add
+      .text(420, FLOOR_Y - 78, "VETERANO", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#ccaa88",
+        align: "center",
+      })
+      .setOrigin(0.5);
+    this.npcs.push({
+      x: 420,
+      lines: vetLines,
+      idx: 0,
+      action: () => this.veteranoFavor(),
+    });
+  }
+
+  private copaHazard?: Phaser.GameObjects.Rectangle;
+  private lastHazardAt = 0;
+
+  // Evento de RH/Cultura sorteado ao entrar na Copa. 3 tipos autocontidos.
+  private rollCopaEvent() {
+    if (Math.random() > 0.45) return;
+    const roll = Phaser.Math.Between(0, 2);
+    let name = "";
+    let desc = "";
+    if (roll === 0) {
+      // Amigo Secreto — ganha um café grátis (consumível).
+      name = "AMIGO SECRETO";
+      desc = "Alguém deixou um café na sua mesa. +Consumível.";
+      this.player.consumivel = "cafe";
+      this.player.consumivelUses = 2;
+    } else if (roll === 1) {
+      // Happy Hour Obrigatório — +20 VR (a firma pagou... com seu tempo).
+      name = "HAPPY HOUR OBRIGATÓRIO";
+      desc = "Confraternização forçada. +20 VR de 'networking'.";
+      this.player.addVR(20);
+    } else {
+      // Colega esquentou peixe no micro-ondas — nuvem de dano de Sanidade.
+      name = "PEIXE NO MICRO-ONDAS";
+      desc = "O cheiro é uma arma química. Evite a nuvem.";
+      this.copaHazard = this.add
+        .rectangle(640, FLOOR_Y - 30, 160, 90, 0x88aa44, 0.22)
+        .setDepth(180);
+    }
+    const banner = this.add
+      .text(GAME_WIDTH / 2, 130, `EVENTO: ${name}\n${desc}`, {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: "#ffcc66",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(960);
+    this.tweens.add({
+      targets: banner,
+      alpha: 0,
+      delay: 3200,
+      duration: 700,
+      onComplete: () => banner.destroy(),
+    });
+  }
+
+  private veteranoFavor(): string {
+    const run = getRun(this);
+    if (run.veteranoFavor) return "Já te dei o atalho hoje. Amanhã tem mais.";
+    const COST = 20;
+    if (this.player.vr < COST) return `O favor custa ${COST} VR. Volta quando tiver.`;
+    this.player.vr -= COST;
+    run.veteranoFavor = true;
+    run.extraLives = (run.extraLives ?? 0) + 1;
+    Sfx.buy();
+    return "Atalho pela burocracia: +1 vida. Não conta pra ninguém.";
   }
 
   private talkTo(npc: (typeof this.npcs)[number]) {
     npc.bubble?.destroy();
-    const line = npc.lines[npc.idx % npc.lines.length];
+    // NPC transacional (Veterano): 1ª fala é diálogo; as próximas executam a ação.
+    let line: string;
+    if (npc.action && npc.idx > 0) {
+      line = npc.action();
+    } else {
+      line = npc.lines[npc.idx % npc.lines.length];
+    }
     npc.idx++;
     npc.bubble = this.add
       .text(npc.x, FLOOR_Y - 110, line, {
@@ -636,6 +736,19 @@ export class CopaScene extends Phaser.Scene {
       Phaser.Math.Distance.Between(this.player.x, this.player.y, this.coffee.x, this.coffee.y) < 40;
     const nearPonto =
       Phaser.Math.Distance.Between(this.player.x, this.player.y, this.ponto.x, this.ponto.y) < 40;
+
+    // Nuvem do micro-ondas (evento): drena Sanidade enquanto o player está nela.
+    if (this.copaHazard && time - this.lastHazardAt > 700) {
+      if (
+        Phaser.Geom.Intersects.RectangleToRectangle(
+          this.copaHazard.getBounds(),
+          this.player.getBounds(),
+        )
+      ) {
+        this.lastHazardAt = time;
+        this.player.sanity = Math.max(0, this.player.sanity - 5);
+      }
+    }
 
     const nearNpc = this.npcs.find(
       (n) => Math.abs(this.player.x - n.x) < 44 && Math.abs(this.player.y - (FLOOR_Y - 30)) < 80,

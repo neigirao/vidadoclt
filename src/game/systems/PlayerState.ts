@@ -39,6 +39,8 @@ export type RunState = {
   // New Game+ "Quinta-feira": run mais difícil (inimigos +40% HP). Persistência
   // do desbloqueio fica no localStorage (ngPlusUnlocked), não na run.
   ngPlus?: boolean;
+  // NPC Veterano (#26): favor de atalho já usado nesta run.
+  veteranoFavor?: boolean;
   // Upgrade mods (applied once at run start by ReconhecimentoSystem)
   upgMaxEnergy?: number;
   upgMaxSanity?: number;
