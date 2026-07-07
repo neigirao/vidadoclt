@@ -139,6 +139,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // Ramificação de rotas (#1): modificador leve da rota escolhida pós-Fase 1.
     if (run.route === "comercial") this.player.vrDropMult *= 1.2;
     else if (run.route === "atendimento") this.player.maxSanity += 25;
+    // 2ª bifurcação (pós-Fase 2): Produto (dano) / Tecnologia (dash).
+    if (run.route2 === "produto") this.player.damageMult *= 1.15;
+    else if (run.route2 === "tecnologia") this.player.dashCooldownBonus += 250;
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.furnitureBodies);

@@ -10,6 +10,7 @@ import { ShopUI } from "../systems/Shop";
 import { Hud } from "../systems/Hud";
 import { Music } from "../systems/MusicSystem";
 import { CombatFx } from "../systems/CombatFx";
+import { resolveSprite } from "../systems/SpriteLibrary";
 
 const LEVEL_WIDTH = 1280;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -30,6 +31,12 @@ export class CopaScene extends Phaser.Scene {
   private hintText!: Phaser.GameObjects.Text;
   private startTimeMs = 0;
   private lastHealAt = 0;
+  private npcs: Array<{
+    x: number;
+    lines: string[];
+    idx: number;
+    bubble?: Phaser.GameObjects.Text;
+  }> = [];
 
   constructor() {
     super("CopaScene");
@@ -215,6 +222,9 @@ export class CopaScene extends Phaser.Scene {
       (dObj as Phaser.Physics.Arcade.Sprite).destroy();
     });
 
+    // ── NPCs de narrativa (#25) — falas por proximidade + E ───────────────────
+    this.setupNpcs(loopCount);
+
     // FX + HUD + Shop
     this.combatFx = new CombatFx(this);
     this.fx = new SanityFx(this);
@@ -328,7 +338,12 @@ export class CopaScene extends Phaser.Scene {
       // Ramificação de rotas (#1): a 1ª vez que se sai da Copa rumo à Fase 2,
       // passa pela escolha de departamento (2A Comercial / 2B Atendimento).
       if (dest === "Phase2Scene" && !r.route) {
-        this.scene.start("RouteSelectScene", { nextScene: dest });
+        this.scene.start("RouteSelectScene", { nextScene: dest, stage: "dept" });
+        return;
+      }
+      // 2ª bifurcação: ao sair rumo à Fase 3, escolhe a área (3A Produto / 3B Tec).
+      if (dest === "Phase3Scene" && !r.route2) {
+        this.scene.start("RouteSelectScene", { nextScene: dest, stage: "area" });
         return;
       }
       this.scene.start(dest);
@@ -351,13 +366,25 @@ export class CopaScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(1000);
 
-    // ── Sala opcional (#3): porta da SALA DE REUNIÃO (horda por recompensa) ──
-    // Aparece 1× por run enquanto não tiver sido limpa.
-    const reuniaoCleared = (run.optionalRoomsCleared ?? []).includes("reuniao");
-    if (!reuniaoCleared) {
+    // ── Salas opcionais (#3): a porta lateral oferece UMA sala-bônus aleatória
+    // ainda não limpa nesta run (roguelite). Reunião → horda; as demais →
+    // SalaBonusScene. Determinístico pela seed + nº de salas já limpas.
+    const ALL_ROOMS = ["reuniao", "banheiro", "ti", "rh", "financeiro"] as const;
+    const cleared = new Set(run.optionalRoomsCleared ?? []);
+    const available = ALL_ROOMS.filter((r) => !cleared.has(r));
+    if (available.length > 0) {
+      const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 6) || "0", 10) : 0;
+      const pick = available[(seedNum + cleared.size) % available.length];
+      const LABELS: Record<string, string> = {
+        reuniao: "SALA DE\nREUNIÃO",
+        banheiro: "BANHEIRO",
+        ti: "TI\n(CHAMADO)",
+        rh: "RH\n(ROLETA)",
+        financeiro: "FINANCEIRO",
+      };
       const salaDoor = this.add.image(LEVEL_WIDTH / 2, FLOOR_Y - 30, "tex-door").setTint(0xffaa55);
       this.add
-        .text(LEVEL_WIDTH / 2, FLOOR_Y - 72, "SALA DE\nREUNIÃO", {
+        .text(LEVEL_WIDTH / 2, FLOOR_Y - 72, LABELS[pick], {
           fontFamily: "monospace",
           fontSize: "9px",
           color: "#ffbb66",
@@ -373,7 +400,8 @@ export class CopaScene extends Phaser.Scene {
         ) {
           this.persist();
           getRun(this).cameFrom = "copa";
-          this.scene.start("SalaReuniaoScene");
+          if (pick === "reuniao") this.scene.start("SalaReuniaoScene");
+          else this.scene.start("SalaBonusScene", { type: pick });
         }
         salaDoor.setTint(0xffdd99);
       });
@@ -411,6 +439,74 @@ export class CopaScene extends Phaser.Scene {
       duration: 800,
       delay: 2000,
       onComplete: () => title.destroy(),
+    });
+  }
+
+  private setupNpcs(loopCount: number) {
+    this.npcs = [];
+    // Estagiário Conspiracionista — teorias sobre o CEO que evoluem por loop.
+    const conspira =
+      loopCount <= 2
+        ? [
+            "Psiu... você já reparou que o relógio nunca passa das 18h?",
+            "Dizem que o CEO não tem rosto. Ninguém nunca viu.",
+          ]
+        : loopCount <= 6
+          ? [
+              "Eu contei: são sempre os mesmos inimigos. É um LOOP, cara.",
+              "O 'CEO' é o loop. A gente é o produto. Pensa nisso.",
+            ]
+          : [
+              "Já morri tantas vezes que decorei o carpete da diretoria.",
+              "Talvez sair não seja vencer o CEO. Talvez seja parar de tentar.",
+            ];
+    // Analista LinkedIn — jargão corporativo (lojista de vaidade).
+    const linkedin = [
+      "Fechei mais um ciclo de aprendizados hoje! #blessed #hustle",
+      "Não é burnout, é 'entrega com paixão'. Bora ressignificar!",
+      "Networking é tudo. Aceita meu convite? A gente sinergiza.",
+    ];
+
+    const mk = (x: number, texKey: string, tint: number, lines: string[], label: string) => {
+      const spr = this.add.image(x, FLOOR_Y - 30, ...resolveSprite(texKey)).setTint(tint);
+      spr.setDepth(9);
+      this.add
+        .text(x, FLOOR_Y - 78, label, {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: "#99bbcc",
+          align: "center",
+        })
+        .setOrigin(0.5);
+      this.npcs.push({ x, lines, idx: 0 });
+    };
+    mk(700, "tex-estagiario-idle0", 0x88ccff, conspira, "?");
+    mk(1050, "tex-analista-idle0", 0xffcc88, linkedin, "in");
+  }
+
+  private talkTo(npc: (typeof this.npcs)[number]) {
+    npc.bubble?.destroy();
+    const line = npc.lines[npc.idx % npc.lines.length];
+    npc.idx++;
+    npc.bubble = this.add
+      .text(npc.x, FLOOR_Y - 110, line, {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#e8f0ff",
+        backgroundColor: "#12202a",
+        padding: { x: 6, y: 4 },
+        wordWrap: { width: 220 },
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setDepth(600);
+    const b = npc.bubble;
+    this.tweens.add({
+      targets: b,
+      alpha: 0,
+      delay: 3200,
+      duration: 500,
+      onComplete: () => b.destroy(),
     });
   }
 
@@ -541,11 +637,17 @@ export class CopaScene extends Phaser.Scene {
     const nearPonto =
       Phaser.Math.Distance.Between(this.player.x, this.player.y, this.ponto.x, this.ponto.y) < 40;
 
+    const nearNpc = this.npcs.find(
+      (n) => Math.abs(this.player.x - n.x) < 44 && Math.abs(this.player.y - (FLOOR_Y - 30)) < 80,
+    );
+
     if (
       Phaser.Input.Keyboard.JustDown(this.interactKey) ||
       this.player.gamepadInteractJustPressed
     ) {
-      if (nearCoffee && time >= this.coffeeReadyAt && this.player.vr >= 2) {
+      if (nearNpc) {
+        this.talkTo(nearNpc);
+      } else if (nearCoffee && time >= this.coffeeReadyAt && this.player.vr >= 2) {
         this.player.vr -= 2;
         this.player.energy = Math.min(100, this.player.energy + 25);
         this.player.sanity = Math.max(0, this.player.sanity - 5);

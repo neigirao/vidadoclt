@@ -157,7 +157,47 @@ export class Phase3Scene extends BasePhaseScene {
     );
   }
 
+  private nextSpecialAt = 0;
+
+  // Especial telegrafado do boss (#23): "RELATÓRIO ATRASADO" — a cada ~7s com o
+  // Sênior engajado, três colunas de pressão caem em posições próximas ao player.
+  private seniorSpecial(time: number) {
+    const boss = this.boss;
+    if (!boss || !boss.active) return;
+    if (Math.abs(this.player.x - boss.x) > 540) return;
+    if (this.nextSpecialAt === 0) this.nextSpecialAt = time + 4500;
+    if (time < this.nextSpecialAt) return;
+    this.nextSpecialAt = time + 7000;
+
+    const targets = [this.player.x - 90, this.player.x, this.player.x + 90];
+    targets.forEach((tx) => {
+      const warn = this.add.rectangle(tx, FLOOR_Y - 80, 22, 160, 0xffaa33, 0.25).setDepth(180);
+      this.time.delayedCall(560, () => {
+        warn.destroy();
+        const col = this.add.rectangle(tx, FLOOR_Y - 80, 22, 160, 0xff5566, 0.6).setDepth(200);
+        this.tweens.add({ targets: col, alpha: 0, duration: 420, onComplete: () => col.destroy() });
+        if (!this.player.isInvulnerable(this.time.now) && Math.abs(this.player.x - tx) < 20) {
+          this.player.takeDamage(14, 6, tx);
+        }
+      });
+    });
+    const label = this.add
+      .text(boss.x, boss.y - 70, "RELATÓRIO ATRASADO!", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: "#ff8866",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(400);
+    this.time.delayedCall(900, () => label.destroy());
+  }
+
   protected onPhaseUpdate(time: number, _delta: number) {
+    this.seniorSpecial(time);
+
     // ColetorDeDados steals nearby VR drops each frame
     this.coletores.getChildren().forEach((c) => {
       const col = c as ColetorDeDados;

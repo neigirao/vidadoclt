@@ -1,3 +1,4 @@
+import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { CoordenadorDeSinergia } from "../entities/Enemies";
 import {
@@ -129,5 +130,60 @@ export class Phase2Scene extends BasePhaseScene {
       { group: this.reunioes, vrDrop: 5 },
       { group: this.coordenadores, vrDrop: 4 },
     );
+  }
+
+  // Especial telegrafado do boss (#23), dirigido pela cena (a classe de inimigo
+  // não tem repertório próprio). "REUNIÃO DE ALINHAMENTO": a cada ~7s com o boss
+  // engajado, telegrafa uma onda de choque ao redor do Coordenador; após 600ms
+  // puxa e fere quem estiver no raio (+freeze).
+  private nextSpecialAt = 0;
+
+  protected onPhaseUpdate(time: number, _delta: number) {
+    const boss = this.boss;
+    if (!boss || !boss.active) return;
+    const dist = Math.abs(this.player.x - boss.x);
+    if (dist > 520) return; // só engajado
+    if (this.nextSpecialAt === 0) this.nextSpecialAt = time + 4000;
+    if (time < this.nextSpecialAt) return;
+    this.nextSpecialAt = time + 7000;
+    this.coordenadorSpecial(boss.x, boss.y);
+  }
+
+  private coordenadorSpecial(bx: number, by: number) {
+    const range = 200;
+    const warn = this.add.circle(bx, by, range, 0xffaa33, 0.16).setDepth(180);
+    const ring = this.add.circle(bx, by, 20, 0x000000, 0).setStrokeStyle(3, 0xffcc44).setDepth(181);
+    this.tweens.add({ targets: ring, radius: range, duration: 560 });
+    const label = this.add
+      .text(bx, by - 70, "REUNIÃO DE ALINHAMENTO!", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: "#ffcc44",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(400);
+    this.time.delayedCall(600, () => {
+      warn.destroy();
+      ring.destroy();
+      label.destroy();
+      this.cameras.main.shake(200, 0.012);
+      const shock = this.add.circle(bx, by, range, 0xaa66ff, 0.4).setDepth(180);
+      this.tweens.add({
+        targets: shock,
+        alpha: 0,
+        duration: 400,
+        onComplete: () => shock.destroy(),
+      });
+      if (
+        !this.player.isInvulnerable(this.time.now) &&
+        Phaser.Math.Distance.Between(this.player.x, this.player.y, bx, by) < range
+      ) {
+        this.player.takeDamage(16, 12, bx);
+        this.player.applyFreeze(700);
+      }
+    });
   }
 }

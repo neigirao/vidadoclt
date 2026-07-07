@@ -33,6 +33,7 @@ export type RunState = {
   // Ramificação de rotas (#1): escolha pós-Fase 1. Persiste na run e aplica um
   // modificador leve no buildPlayer (fundação — as fases divergem no futuro).
   route?: "comercial" | "atendimento";
+  route2?: "produto" | "tecnologia";
   // Salas opcionais (#3): ids de salas-bônus já limpas nesta run (não repetir).
   optionalRoomsCleared?: string[];
   // New Game+ "Quinta-feira": run mais difícil (inimigos +40% HP). Persistência

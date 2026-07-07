@@ -3,11 +3,12 @@ import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { getRun } from "../systems/PlayerState";
 import { Sfx } from "../systems/AudioSystem";
 
-type RouteId = "comercial" | "atendimento";
+type RouteId = "comercial" | "atendimento" | "produto" | "tecnologia";
+type RouteStage = "dept" | "area";
 
 interface RouteDef {
   id: RouteId;
-  tag: string; // "2A" / "2B"
+  tag: string; // "2A"/"2B" ou "3A"/"3B"
   name: string;
   desc: string;
   perk: string; // modificador legível (aplicado no buildPlayer)
@@ -19,7 +20,7 @@ interface RouteDef {
 // modificador de run distinto (via buildPlayer) e grava `run.route` — quando as
 // fases divergentes (2A/2B com bosses próprios) forem criadas, é só rotear por
 // `run.route`.
-export const ROUTES: Record<RouteId, RouteDef> = {
+const ROUTE_DEFS: Record<RouteId, RouteDef> = {
   comercial: {
     id: "comercial",
     tag: "2A",
@@ -36,17 +37,45 @@ export const ROUTES: Record<RouteId, RouteDef> = {
     perk: "+25 Sanidade máxima",
     color: 0x44aaff,
   },
+  produto: {
+    id: "produto",
+    tag: "3A",
+    name: "PRODUTO",
+    desc: "Post-its, roadmaps e Kanban. Foco no que entrega valor.",
+    perk: "+15% de dano",
+    color: 0x66cc88,
+  },
+  tecnologia: {
+    id: "tecnologia",
+    tag: "3B",
+    name: "TECNOLOGIA",
+    desc: "Servidores, cabos e logs. Reação rápida a incidentes.",
+    perk: "Dash recarrega mais rápido",
+    color: 0x9977ee,
+  },
 };
+
+const STAGE_OPTIONS: Record<RouteStage, RouteId[]> = {
+  dept: ["comercial", "atendimento"],
+  area: ["produto", "tecnologia"],
+};
+
+// Compat: alguns imports antigos referenciam ROUTES.
+export const ROUTES = ROUTE_DEFS;
 
 export class RouteSelectScene extends Phaser.Scene {
   constructor() {
     super("RouteSelectScene");
   }
 
-  // `scene.start` com { nextScene } → ao escolher, grava run.route e inicia nextScene.
-  create(data: { nextScene: string }) {
+  // `scene.start` com { nextScene, stage } → grava a rota do estágio e inicia nextScene.
+  //  • stage "dept" (pós-Fase 1): 2A Comercial / 2B Atendimento → run.route
+  //  • stage "area" (pós-Fase 2): 3A Produto / 3B Tecnologia   → run.route2
+  create(data: { nextScene: string; stage?: RouteStage }) {
     const run = getRun(this);
     const nextScene = data?.nextScene ?? "Phase2Scene";
+    const stage: RouteStage = data?.stage ?? "dept";
+    const optionIds = STAGE_OPTIONS[stage];
 
     this.cameras.main.setBackgroundColor(0x0b0d12);
     this.add
@@ -64,14 +93,17 @@ export class RouteSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.add
-      .text(GAME_WIDTH / 2, 100, "Para onde te realocam depois do Open Space?", {
-        fontFamily: "monospace",
-        fontSize: "11px",
-        color: "#aaaacc",
-      })
+      .text(
+        GAME_WIDTH / 2,
+        100,
+        stage === "dept"
+          ? "Para onde te realocam depois do Open Space?"
+          : "Depois do Comercial/Atendimento, qual squad te absorve?",
+        { fontFamily: "monospace", fontSize: "11px", color: "#aaaacc" },
+      )
       .setOrigin(0.5);
 
-    const options = Object.values(ROUTES);
+    const options = optionIds.map((id) => ROUTE_DEFS[id]);
     const cardW = 300;
     const cardH = 260;
     const gap = 60;
@@ -86,7 +118,7 @@ export class RouteSelectScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       card.on("pointerover", () => card.setFillStyle(0x1c2130, 1));
       card.on("pointerout", () => card.setFillStyle(0x14171f, 1));
-      card.on("pointerdown", () => this.select(def.id, nextScene, run));
+      card.on("pointerdown", () => this.select(def.id, nextScene, stage, run));
 
       // Header stripe
       this.add.rectangle(cx, cardY - cardH / 2 + 20, cardW, 40, def.color, 0.9);
@@ -141,15 +173,21 @@ export class RouteSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const kb = this.input.keyboard!;
-    kb.once("keydown-ONE", () => this.select(options[0].id, nextScene, run));
-    kb.once("keydown-TWO", () => this.select(options[1].id, nextScene, run));
+    kb.once("keydown-ONE", () => this.select(options[0].id, nextScene, stage, run));
+    kb.once("keydown-TWO", () => this.select(options[1].id, nextScene, stage, run));
 
     this.cameras.main.fadeIn(280, 0, 0, 0);
   }
 
-  private select(id: RouteId, nextScene: string, run: ReturnType<typeof getRun>) {
+  private select(
+    id: RouteId,
+    nextScene: string,
+    stage: RouteStage,
+    run: ReturnType<typeof getRun>,
+  ) {
     Sfx.culturaSelect();
-    run.route = id;
+    if (stage === "dept") run.route = id as "comercial" | "atendimento";
+    else run.route2 = id as "produto" | "tecnologia";
     this.cameras.main.fadeOut(260, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => this.scene.start(nextScene));
   }

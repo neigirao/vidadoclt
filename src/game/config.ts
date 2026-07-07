@@ -7,6 +7,7 @@ import { SpriteLabScene } from "./scenes/SpriteLabScene";
 import { OpenSpaceV2Scene } from "./scenes/OpenSpaceV2Scene";
 import { CopaScene } from "./scenes/CopaScene";
 import { SalaReuniaoScene } from "./scenes/SalaReuniaoScene";
+import { SalaBonusScene } from "./scenes/SalaBonusScene";
 import { GameOverScene } from "./scenes/GameOverScene";
 import { Phase2Scene } from "./scenes/Phase2Scene";
 import { Phase3Scene } from "./scenes/Phase3Scene";
@@ -79,6 +80,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       OpenSpaceV2Scene,
       CopaScene,
       SalaReuniaoScene,
+      SalaBonusScene,
       Phase2Scene,
       Phase3Scene,
       Phase4Scene,

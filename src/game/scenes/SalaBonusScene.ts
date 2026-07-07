@@ -1,0 +1,348 @@
+import Phaser from "phaser";
+import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
+import { HUD_BOT_Y } from "../systems/Hud";
+import { Player } from "../entities/Player";
+import { getRun } from "../systems/PlayerState";
+import { CLASSES, ClassId, WEAPONS, WeaponId } from "../systems/WeaponSystem";
+import { SanityFx } from "../systems/SanityFx";
+import { Hud } from "../systems/Hud";
+import { Music } from "../systems/MusicSystem";
+import { Sfx } from "../systems/AudioSystem";
+
+const LEVEL_WIDTH = 960;
+const FLOOR_Y = HUD_BOT_Y - 32;
+
+export type BonusRoomType = "banheiro" | "ti" | "rh" | "financeiro";
+
+interface RoomMeta {
+  title: string;
+  bg: number;
+  hint: string;
+}
+
+const ROOMS: Record<BonusRoomType, RoomMeta> = {
+  banheiro: { title: "BANHEIRO — RESPIRO", bg: 0x18242a, hint: "Um instante de paz. +Sanidade." },
+  ti: { title: "TI — ABRIR CHAMADO", bg: 0x1a1622, hint: "Pegue um equipamento novo." },
+  rh: {
+    title: "RH — ROLETA DA CULTURA",
+    bg: 0x221a1a,
+    hint: "Gire a roleta. Pode dar bom... ou não.",
+  },
+  financeiro: {
+    title: "FINANCEIRO — COFRE",
+    bg: 0x14200f,
+    hint: "Pegue o VR. Cuidado com as armadilhas.",
+  },
+};
+
+/**
+ * Salas opcionais #3 (restantes): Banheiro (+sanidade), TI (arma grátis), RH
+ * (roleta de evento) e Financeiro (VR + armadilhas). Parametrizada por `type`.
+ * Autocontida (padrão leve, sem inimigos exceto armadilhas do Financeiro).
+ * Marca `run.optionalRoomsCleared` ao concluir.
+ */
+export class SalaBonusScene extends Phaser.Scene {
+  private player!: Player;
+  private platforms!: Phaser.Physics.Arcade.StaticGroup;
+  private drops!: Phaser.Physics.Arcade.Group;
+  private fx!: SanityFx;
+  private hud!: Hud;
+  private interactKey!: Phaser.Input.Keyboard.Key;
+  private type: BonusRoomType = "banheiro";
+  private used = false;
+  private exitDoor?: Phaser.GameObjects.Image;
+  private pedestal?: Phaser.GameObjects.Rectangle;
+  private startTimeMs = 0;
+  private traps: Phaser.GameObjects.Rectangle[] = [];
+
+  constructor() {
+    super("SalaBonusScene");
+  }
+
+  create(data: { type?: BonusRoomType }) {
+    const run = getRun(this);
+    this.type = data?.type ?? "banheiro";
+    this.used = false;
+    this.traps = [];
+    this.startTimeMs = this.time.now;
+    const meta = ROOMS[this.type];
+    Music.start("copa");
+
+    this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
+    this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
+    this.cameras.main.setBackgroundColor(meta.bg);
+
+    const bg = this.add.graphics().setDepth(0);
+    bg.fillStyle(meta.bg + 0x060606, 1);
+    bg.fillRect(0, 40, LEVEL_WIDTH, GAME_HEIGHT - 72);
+
+    // Chão
+    this.platforms = this.physics.add.staticGroup();
+    const floor = this.add.rectangle(
+      LEVEL_WIDTH / 2,
+      FLOOR_Y + 16,
+      LEVEL_WIDTH,
+      32,
+      COLORS.copaFloor,
+    );
+    this.physics.add.existing(floor, true);
+    this.platforms.add(floor);
+
+    // Player
+    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
+    this.player = new Player(this, 80, FLOOR_Y - 60);
+    this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
+    this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
+    this.player.energy = run.energy;
+    this.player.sanity = run.sanity;
+    this.player.vr = run.vr;
+    this.physics.add.collider(this.player, this.platforms);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+    this.player.onDeath = (cause) => {
+      this.persist();
+      this.scene.start("GameOverScene", { vr: this.player.vr, cause });
+    };
+
+    this.drops = this.physics.add.group();
+    this.physics.add.collider(this.drops, this.platforms);
+    this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
+      this.player.addVR(1);
+      (dObj as Phaser.Physics.Arcade.Sprite).destroy();
+    });
+
+    this.fx = new SanityFx(this);
+    this.hud = new Hud(this, LEVEL_WIDTH);
+    this.hud.setPhaseTitle(meta.title);
+    this.hud.setObjective(meta.hint);
+
+    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
+      this.scene.pause();
+      this.scene.launch("PauseScene", { caller: "SalaBonusScene" });
+    });
+    this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+    if (this.type === "financeiro") this.setupFinanceiro();
+    else this.setupPedestal();
+
+    const title = this.add
+      .text(GAME_WIDTH / 2, 90, meta.title + "\n" + meta.hint, {
+        fontFamily: "monospace",
+        fontSize: "14px",
+        color: "#ffd98a",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(900);
+    this.tweens.add({
+      targets: title,
+      alpha: 0,
+      delay: 2200,
+      duration: 700,
+      onComplete: () => title.destroy(),
+    });
+
+    this.cameras.main.fadeIn(280, 0, 0, 0);
+  }
+
+  // Banheiro / TI / RH: pedestal central; E aplica o efeito 1×.
+  private setupPedestal() {
+    this.pedestal = this.add
+      .rectangle(LEVEL_WIDTH / 2, FLOOR_Y - 24, 40, 48, 0xffcc66, 0.9)
+      .setStrokeStyle(2, 0xffee99);
+    this.add
+      .text(LEVEL_WIDTH / 2, FLOOR_Y - 70, "[ E ]", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#ffee99",
+      })
+      .setOrigin(0.5);
+  }
+
+  private setupFinanceiro() {
+    // VR espalhado
+    for (let i = 0; i < 8; i++) {
+      const x = 240 + i * 80;
+      const d = this.drops.create(x, FLOOR_Y - 120, "tex-vr") as Phaser.Physics.Arcade.Sprite;
+      d.setDepth(8);
+      const body = d.body as Phaser.Physics.Arcade.Body;
+      body.setBounce(0.3);
+    }
+    // Armadilhas (zonas de dano no chão)
+    [360, 620].forEach((x) => {
+      const trap = this.add.rectangle(x, FLOOR_Y - 4, 60, 10, 0xff3333, 0.6).setDepth(6);
+      this.traps.push(trap);
+    });
+    // Sai a qualquer momento (porta já aberta)
+    this.spawnExit();
+  }
+
+  private applyPedestalEffect() {
+    if (this.used) return;
+    this.used = true;
+    const run = getRun(this);
+    let msg = "";
+    if (this.type === "banheiro") {
+      this.player.sanity = Math.min(this.player.maxSanity, this.player.sanity + 40);
+      msg = "+40 SANIDADE";
+    } else if (this.type === "ti") {
+      const wid = this.rollWeapon(run.weaponId as WeaponId | undefined);
+      run.weaponId = wid;
+      msg = `NOVO: ${WEAPONS[wid].name}`;
+    } else if (this.type === "rh") {
+      msg = this.spinRoulette(run);
+    }
+    Sfx.buy();
+    const t = this.add
+      .text(this.player.x, this.player.y - 50, msg, {
+        fontFamily: "monospace",
+        fontSize: "14px",
+        fontStyle: "bold",
+        color: "#ffe08a",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(500);
+    this.tweens.add({
+      targets: t,
+      y: t.y - 30,
+      alpha: 0,
+      duration: 1100,
+      onComplete: () => t.destroy(),
+    });
+    this.pedestal?.setFillStyle(0x445544, 0.6);
+    this.spawnExit();
+  }
+
+  private rollWeapon(current?: WeaponId): WeaponId {
+    const pool = (Object.entries(WEAPONS) as [WeaponId, (typeof WEAPONS)[WeaponId]][])
+      .filter(([id, def]) => def.shopCost > 0 && id !== current)
+      .map(([id]) => id);
+    return pool[Phaser.Math.Between(0, pool.length - 1)] ?? "regua";
+  }
+
+  private spinRoulette(run: ReturnType<typeof getRun>): string {
+    const roll = Phaser.Math.Between(0, 3);
+    switch (roll) {
+      case 0:
+        this.player.addVR(20);
+        return "SORTE: +20 VR";
+      case 1:
+        this.player.sanity = Math.min(this.player.maxSanity, this.player.sanity + 25);
+        return "CLIMA OK: +25 SANIDADE";
+      case 2:
+        run.extraLives = (run.extraLives ?? 0) + 1;
+        return "ESTABILIDADE: +1 VIDA";
+      default:
+        this.player.energy = Math.max(10, this.player.energy - 20);
+        return "AZAR: -20 ENERGIA";
+    }
+  }
+
+  private spawnExit() {
+    if (this.exitDoor) return;
+    const run = getRun(this);
+    if (!(run.optionalRoomsCleared ?? []).includes(this.type)) {
+      run.optionalRoomsCleared = [...(run.optionalRoomsCleared ?? []), this.type];
+    }
+    this.exitDoor = this.add.image(LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door").setDepth(6);
+    this.add
+      .text(LEVEL_WIDTH - 60, FLOOR_Y - 70, "COPA", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#c9a36a",
+      })
+      .setOrigin(0.5);
+  }
+
+  private persist() {
+    const r = getRun(this);
+    r.energy = this.player.energy;
+    r.sanity = this.player.sanity;
+    r.vr = this.player.vr;
+  }
+
+  private returnToCopa() {
+    this.persist();
+    getRun(this).cameFrom = "bonus";
+    this.cameras.main.fadeOut(260, 0, 0, 0);
+    this.cameras.main.once("camerafadeoutcomplete", () => this.scene.start("CopaScene"));
+  }
+
+  update(time: number, delta: number) {
+    this.player.update(time, delta);
+    this.player.tickPassive(time);
+
+    const interact =
+      Phaser.Input.Keyboard.JustDown(this.interactKey) || this.player.gamepadInteractJustPressed;
+
+    // Armadilhas do Financeiro
+    if (this.type === "financeiro" && !this.player.isInvulnerable(time)) {
+      for (const trap of this.traps) {
+        if (
+          Phaser.Geom.Intersects.RectangleToRectangle(trap.getBounds(), this.player.getBounds())
+        ) {
+          this.player.takeDamage(10, 6, trap.x);
+        }
+      }
+    }
+
+    // Pedestal (banheiro/ti/rh)
+    if (this.pedestal && !this.used && interact) {
+      if (
+        Phaser.Math.Distance.Between(
+          this.player.x,
+          this.player.y,
+          this.pedestal.x,
+          this.pedestal.y,
+        ) < 60
+      ) {
+        this.applyPedestalEffect();
+      }
+    }
+
+    // Saída
+    if (this.exitDoor && interact) {
+      if (
+        Phaser.Math.Distance.Between(
+          this.player.x,
+          this.player.y,
+          this.exitDoor.x,
+          this.exitDoor.y,
+        ) < 48
+      ) {
+        this.returnToCopa();
+      }
+    }
+
+    this.fx.update(time, this.player.sanity);
+    const run = getRun(this);
+    this.hud.update({
+      energy: Math.ceil(this.player.energy),
+      maxEnergy: this.player.maxEnergy,
+      sanity: Math.ceil(this.player.sanity),
+      maxSanity: this.player.maxSanity,
+      vr: this.player.vr,
+      reconhecimento: run.reconhecimento,
+      time,
+      startTime: this.startTimeMs,
+      playerX: this.player.x,
+      interactHint:
+        this.exitDoor &&
+        Phaser.Math.Distance.Between(
+          this.player.x,
+          this.player.y,
+          this.exitDoor.x,
+          this.exitDoor.y,
+        ) < 48
+          ? "[ E ]  Voltar à Copa"
+          : undefined,
+      burnoutMods: this.player.getBurnoutMods(),
+      tremoring: this.player.isTremoring(time),
+      tremorWarnMs: this.player.getTremorWarnMs(time),
+    });
+  }
+}
