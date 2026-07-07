@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from "../constants";
-import { getRun } from "../systems/PlayerState";
+import { getRun, isNgPlusUnlocked } from "../systems/PlayerState";
 import { Music } from "../systems/MusicSystem";
 import { WEAPONS } from "../systems/WeaponSystem";
 import { PERKS } from "../systems/PerkSystem";
@@ -52,7 +52,11 @@ export class MenuScene extends Phaser.Scene {
     // paralysis by analysis. Sub-telas destravam a partir do 2º loop.
     const run = getRun(this);
     this.MENU_ITEMS =
-      run.loopCount === 0 ? ALL_MENU_ITEMS.filter((it) => it.firstRun) : ALL_MENU_ITEMS;
+      run.loopCount === 0 ? ALL_MENU_ITEMS.filter((it) => it.firstRun) : [...ALL_MENU_ITEMS];
+    // New Game+ "Quinta-feira": só aparece depois da 1ª vitória.
+    if (isNgPlusUnlocked() && run.loopCount > 0) {
+      this.MENU_ITEMS.splice(1, 0, { label: "QUINTA-FEIRA", icon: "🌩" });
+    }
     // Full-screen reference art background (loaded from assets)
     this.add
       .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, "bg-menu")
@@ -371,7 +375,9 @@ export class MenuScene extends Phaser.Scene {
 
   private confirm() {
     const item = this.MENU_ITEMS[this.selectedIndex];
-    if (item.label === "JOGAR") {
+    if (item.label === "JOGAR" || item.label === "QUINTA-FEIRA") {
+      // Quinta-feira = New Game+: liga o modificador na run atual antes de começar.
+      getRun(this).ngPlus = item.label === "QUINTA-FEIRA";
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("ClassSelectScene");

@@ -35,6 +35,9 @@ export type RunState = {
   route?: "comercial" | "atendimento";
   // Salas opcionais (#3): ids de salas-bônus já limpas nesta run (não repetir).
   optionalRoomsCleared?: string[];
+  // New Game+ "Quinta-feira": run mais difícil (inimigos +40% HP). Persistência
+  // do desbloqueio fica no localStorage (ngPlusUnlocked), não na run.
+  ngPlus?: boolean;
   // Upgrade mods (applied once at run start by ReconhecimentoSystem)
   upgMaxEnergy?: number;
   upgMaxSanity?: number;
@@ -78,6 +81,18 @@ export function savePersisted(reconhecimento: number, fgts: number, loopCount: n
   lsSet(LS_RECNH, reconhecimento);
   lsSet(LS_FGTS, fgts);
   lsSet(LS_LOOPS, loopCount);
+}
+
+const LS_NGPLUS = "vidaclt:ngPlusUnlocked";
+
+/** Marca o New Game+ "Quinta-feira" como desbloqueado (após a 1ª vitória). */
+export function unlockNgPlus() {
+  lsSet(LS_NGPLUS, 1);
+}
+
+/** True se o jogador já venceu ao menos uma vez (Quinta-feira disponível). */
+export function isNgPlusUnlocked(): boolean {
+  return lsGet(LS_NGPLUS) === 1;
 }
 
 export function getRun(scene: Phaser.Scene): RunState {

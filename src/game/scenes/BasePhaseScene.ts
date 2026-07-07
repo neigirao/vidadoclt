@@ -333,10 +333,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 8. Subclass populates this.enemyGroups and this.boss
     this.setupEnemiesAndGroups();
 
-    // 8a. Loop HP scaling — each completed loop adds 15% HP to all enemies
+    // 8a. Loop HP scaling — each completed loop adds 15% HP to all enemies.
+    // New Game+ "Quinta-feira" (run.ngPlus): +40% de HP por cima de tudo.
     const loopCount = run.loopCount ?? 0;
-    if (loopCount > 0) {
-      const mult = 1 + loopCount * 0.15;
+    const ngMult = run.ngPlus ? 1.4 : 1;
+    if (loopCount > 0 || run.ngPlus) {
+      const mult = (1 + loopCount * 0.15) * ngMult;
       for (const def of this.enemyGroups) {
         def.group.getChildren().forEach((obj) => {
           const e = obj as GameEnemy;

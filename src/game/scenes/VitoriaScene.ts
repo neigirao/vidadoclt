@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
-import { getRun, savePersisted } from "../systems/PlayerState";
+import { getRun, savePersisted, unlockNgPlus } from "../systems/PlayerState";
 import { Sfx } from "../systems/AudioSystem";
 
 export class VitoriaScene extends Phaser.Scene {
@@ -14,6 +14,8 @@ export class VitoriaScene extends Phaser.Scene {
     const loopCount = data.loopCount ?? run.loopCount ?? 1;
 
     Sfx.victory();
+    // Desbloqueia o New Game+ "Quinta-feira" (disponível no menu e no botão abaixo).
+    unlockNgPlus();
     this.cameras.main.setBackgroundColor("#0a0c10");
 
     // Gold shimmer
@@ -109,7 +111,7 @@ export class VitoriaScene extends Phaser.Scene {
     const btnY = 480;
 
     const btnAgain = this.add
-      .text(GAME_WIDTH / 2 - 120, btnY, "[ R ]  Novo loop", {
+      .text(GAME_WIDTH / 2 - 120, btnY, "[ R ]  Quinta-feira (NG+)", {
         fontFamily: "monospace",
         fontSize: "14px",
         color: "#f2c14e",
@@ -165,6 +167,8 @@ export class VitoriaScene extends Phaser.Scene {
     freshRun.reconhecimento = reconhecimento;
     freshRun.fgts = fgts;
     freshRun.loopCount = loopCount;
+    // Venceu → o próximo loop é a "Quinta-feira" (New Game+): mais difícil.
+    freshRun.ngPlus = true;
     savePersisted(reconhecimento, fgts, loopCount);
 
     this.scene.start("ClassSelectScene");

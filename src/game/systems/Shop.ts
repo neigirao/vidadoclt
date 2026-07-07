@@ -21,7 +21,7 @@ export const CONSUMABLES: Record<ConsumableId, ConsumableDef> = {
   cafe_triplo: {
     id: "cafe_triplo",
     label: "Café Triplo",
-    basePrice: 4,
+    basePrice: 6, // era 4 — economia de VR: mais tensão de escolha na 1ª Copa
     healAmount: 30,
     healAmountWithPerk: 45,
     statHealed: "energy",
@@ -29,7 +29,7 @@ export const CONSUMABLES: Record<ConsumableId, ConsumableDef> = {
   pausa_5min: {
     id: "pausa_5min",
     label: "Pausa de 5min",
-    basePrice: 6,
+    basePrice: 9, // era 6
     healAmount: 40,
     healAmountWithPerk: 60,
     statHealed: "sanity",

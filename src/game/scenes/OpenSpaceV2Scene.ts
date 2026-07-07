@@ -36,6 +36,9 @@ import { BasePhaseScene } from "./BasePhaseScene";
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
 
+// Teto do empilhamento evento×produtividade no drop de VR (economia de VR).
+const VR_COMBO_CAP = 2.5;
+
 // Tipos de inimigo componíveis por seed nas zonas 1-4 (ver spawnEnemyOfType).
 type F1EnemyType = "estagiario" | "sobrecarregado" | "junior" | "rh" | "onboarding" | "facilitador";
 
@@ -579,10 +582,13 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         const piercing = (ink.getData("piercing") as boolean) ?? false;
         if (enemy.hit(Math.round(dmg * this.player.damageMult), 0)) {
           const prodMult = this.prod.registerKill(enemy.x, enemy.y);
+          // Cap do empilhamento evento×produtividade (economia de VR): evita
+          // combos de ~5x que zeravam a tensão de escolha na 1ª Copa.
+          const combo = Math.min(this.eventVrMult * prodMult, VR_COMBO_CAP);
           this.dropVR(
             enemy.x,
             enemy.y,
-            Math.max(1, Math.round(vrDrop * this.player.vrDropMult * this.eventVrMult * prodMult)),
+            Math.max(1, Math.round(vrDrop * this.player.vrDropMult * combo)),
           );
           if (this.player.healOnKill > 0)
             this.player.energy = Math.min(
@@ -1076,8 +1082,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     const runNow = getRun(this);
     const loop = runNow.loopCount ?? 0;
     const heatDef = HEAT_LEVELS[runNow.heatLevel ?? 0] ?? HEAT_LEVELS[0];
-    if (loop > 0 || heatDef.hpMult > 1) {
-      const hpMult = (1 + loop * 0.2) * heatDef.hpMult; // +20% per loop + heat mult
+    const ngMult = runNow.ngPlus ? 1.4 : 1; // New Game+ "Quinta-feira"
+    if (loop > 0 || heatDef.hpMult > 1 || runNow.ngPlus) {
+      const hpMult = (1 + loop * 0.2) * heatDef.hpMult * ngMult; // +20%/loop + heat + NG+
       const allEnemyGroups = [
         this.estagiarios,
         this.sobrecarregados,
@@ -1272,7 +1279,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         dropVR: (x, y, n) => this.dropVR(x, y, n),
         // O GerenteMicrogestor dispara handleBossDefeat via onDied próprio.
         onBossDied: () => {},
-        killVrMult: (x, y) => this.prod.registerKill(x, y) * this.eventVrMult,
+        killVrMult: (x, y) =>
+          Math.min(this.prod.registerKill(x, y) * this.eventVrMult, VR_COMBO_CAP),
         onSwingStart: (hb) => this.checkExtintorSecret(hb),
         onEnemyKilled: (e) => this.rollSanityDrop(e.x, e.y),
       };
