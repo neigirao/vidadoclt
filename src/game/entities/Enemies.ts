@@ -22,9 +22,11 @@ const WALK_FRAME_COUNTS: Record<string, number> = {
   rh: 4,
 };
 const IDLE_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 4,
-  analista: 4,
-  facilitador: 4,
+  // estagiario/analista/facilitador: idle3 é frame CORROMPIDO (personagem
+  // trocado/embaralhado da extração) → cicla só idle0-2 p/ não exibi-lo.
+  estagiario: 3,
+  analista: 3,
+  facilitador: 3,
   scrum: 4,
   coordenador: 4,
   senior: 4,
