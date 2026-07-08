@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { AnalistaSeniorExausto } from "../entities/Enemies";
+import { BrendaDoRH } from "../entities/BrendaBoss";
 import {
   EvangelistaCorporativo,
   ColetorDeDados,
@@ -8,12 +9,17 @@ import {
   ImpressoraVermelha,
 } from "../entities/PhaseEnemies";
 
+type ClimaZone = { x: number; w: number; until: number; gfx: Phaser.GameObjects.Rectangle };
+
 export class Phase3Scene extends BasePhaseScene {
   private evangelistas!: Phaser.Physics.Arcade.Group;
   private coletores!: Phaser.Physics.Arcade.Group;
   private planilhas!: Phaser.Physics.Arcade.Group;
   private impressorasV!: Phaser.Physics.Arcade.Group;
   private seniors!: Phaser.Physics.Arcade.Group;
+  private brenda?: BrendaDoRH;
+  private climaZones: ClimaZone[] = [];
+  private nextClimaDmgAt = 0;
 
   constructor() {
     super("Phase3Scene");
@@ -33,7 +39,7 @@ export class Phase3Scene extends BasePhaseScene {
     return "FASE 3 — RH / ENDOMARKETING";
   }
   protected getInitialObjective() {
-    return "Derrote o Analista Sênior e avance";
+    return "Derrote a Brenda do RH e avance";
   }
 
   protected getPlatformLayout(): Array<[number, number, number]> {
@@ -60,7 +66,7 @@ export class Phase3Scene extends BasePhaseScene {
   }
 
   protected getBossName() {
-    return "Analista Sênior Exausto";
+    return "Brenda do RH";
   }
 
   protected setupEnemiesAndGroups() {
@@ -140,12 +146,14 @@ export class Phase3Scene extends BasePhaseScene {
       this.impressorasV.add(iv);
     });
 
-    // Boss — stored in this.boss, NOT in seniors group (prevents double-damage)
-    const boss = new AnalistaSeniorExausto(this, 1750, FLOOR_Y - 60);
+    // Boss — Brenda do RH ("Clima Organizacional"). Guardada em this.brenda
+    // (ref tipada) e em this.boss (contrato da base). Substitui o Analista
+    // Sênior, que não combinava com o tema RH / Endomarketing da fase.
+    const boss = new BrendaDoRH(this, 1750, FLOOR_Y - 62);
     boss.target = this.player;
-    // Rebalance (playtest): 100 HP < Impressora Vermelha comum (480).
-    boss.hp = 450;
-    boss.maxHp = 450;
+    boss.onClima = (px) => this.pesquisaDeClima(px);
+    boss.onFeedback = (bx, by) => this.feedback360(bx, by);
+    this.brenda = boss;
     this.boss = boss;
 
     this.enemyGroups.push(
@@ -157,46 +165,79 @@ export class Phase3Scene extends BasePhaseScene {
     );
   }
 
-  private nextSpecialAt = 0;
-
-  // Especial telegrafado do boss (#23): "RELATÓRIO ATRASADO" — a cada ~7s com o
-  // Sênior engajado, três colunas de pressão caem em posições próximas ao player.
-  private seniorSpecial(time: number) {
-    const boss = this.boss;
-    if (!boss || !boss.active) return;
-    if (Math.abs(this.player.x - boss.x) > 540) return;
-    if (this.nextSpecialAt === 0) this.nextSpecialAt = time + 4500;
-    if (time < this.nextSpecialAt) return;
-    this.nextSpecialAt = time + 7000;
-
-    const targets = [this.player.x - 90, this.player.x, this.player.x + 90];
-    targets.forEach((tx) => {
-      const warn = this.add.rectangle(tx, FLOOR_Y - 80, 22, 160, 0xffaa33, 0.25).setDepth(180);
-      this.time.delayedCall(560, () => {
+  // "PESQUISA DE CLIMA": marca 2 zonas de piso "sorriso obrigatório" perto do
+  // player. Ficar PARADO numa zona fere — força movimento constante (a assinatura
+  // temática da Brenda). As zonas expiram sozinhas; o dano é checado no update.
+  private pesquisaDeClima(px: number) {
+    const spots = [px - 70, px + 70];
+    const now = this.time.now;
+    spots.forEach((zx) => {
+      const cx = Phaser.Math.Clamp(zx, 60, LEVEL_WIDTH - 60);
+      const w = 90;
+      // Telegrafa (aviso rosa) antes de ativar
+      const warn = this.add.rectangle(cx, FLOOR_Y - 6, w, 12, 0xff66aa, 0.2).setDepth(150);
+      this.time.delayedCall(500, () => {
         warn.destroy();
-        const col = this.add.rectangle(tx, FLOOR_Y - 80, 22, 160, 0xff5566, 0.6).setDepth(200);
-        this.tweens.add({ targets: col, alpha: 0, duration: 420, onComplete: () => col.destroy() });
-        if (!this.player.isInvulnerable(this.time.now) && Math.abs(this.player.x - tx) < 20) {
-          this.player.takeDamage(14, 6, tx);
-        }
+        const gfx = this.add.rectangle(cx, FLOOR_Y - 6, w, 12, 0xff3388, 0.4).setDepth(150);
+        this.add
+          .text(cx, FLOOR_Y - 26, "☺", {
+            fontFamily: "monospace",
+            fontSize: "16px",
+            color: "#ff99cc",
+          })
+          .setOrigin(0.5)
+          .setDepth(151)
+          .setData("climaIcon", true);
+        this.climaZones.push({ x: cx, w, until: this.time.now + 2600, gfx });
       });
     });
-    const label = this.add
-      .text(boss.x, boss.y - 70, "RELATÓRIO ATRASADO!", {
-        fontFamily: "monospace",
-        fontSize: "12px",
-        fontStyle: "bold",
-        color: "#ff8866",
-        stroke: "#000000",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5)
-      .setDepth(400);
-    this.time.delayedCall(900, () => label.destroy());
+    void now;
+  }
+
+  // "FEEDBACK 360": leque de 3 post-its de feedback dirigidos ao player.
+  private feedback360(bx: number, by: number) {
+    const base = Phaser.Math.Angle.Between(bx, by, this.player.x, this.player.y);
+    [-0.28, 0, 0.28].forEach((off, i) => {
+      this.time.delayedCall(i * 90, () => {
+        const ang = base + off;
+        const tx = bx + Math.cos(ang) * 300;
+        const ty = by + Math.sin(ang) * 300;
+        this.spawnEnemyProjectile(bx, by, tx, ty, 12, 0xffcc33, 240);
+      });
+    });
+  }
+
+  // Dano das zonas de clima: parado (|vx|<40) e no chão dentro de uma zona ativa.
+  private tickClimaZones(time: number) {
+    if (this.climaZones.length === 0) return;
+    this.climaZones = this.climaZones.filter((z) => {
+      if (time >= z.until) {
+        this.tweens.add({
+          targets: z.gfx,
+          alpha: 0,
+          duration: 250,
+          onComplete: () => z.gfx.destroy(),
+        });
+        return false;
+      }
+      return true;
+    });
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const nearlyStill = Math.abs(body.velocity.x) < 40;
+    if (!nearlyStill || time < this.nextClimaDmgAt) return;
+    for (const z of this.climaZones) {
+      if (Math.abs(this.player.x - z.x) < z.w / 2) {
+        if (!this.player.isInvulnerable(time)) {
+          this.player.takeDamage(9, 0);
+          this.nextClimaDmgAt = time + 700;
+        }
+        break;
+      }
+    }
   }
 
   protected onPhaseUpdate(time: number, _delta: number) {
-    this.seniorSpecial(time);
+    this.tickClimaZones(time);
 
     // ColetorDeDados steals nearby VR drops each frame
     this.coletores.getChildren().forEach((c) => {
@@ -226,18 +267,16 @@ export class Phase3Scene extends BasePhaseScene {
       }
     });
 
-    // Boss swing attack
-    if (this.boss?.active) {
-      const bossSr = this.boss as unknown as AnalistaSeniorExausto;
-      if (bossSr.swingActive && bossSr.swingHitbox) {
-        if (
-          !this.player.isInvulnerable(time) &&
-          Phaser.Geom.Intersects.RectangleToRectangle(bossSr.swingHitbox, this.player.getBounds())
-        ) {
-          this.player.takeDamage(bossSr.swingDamage, 3, bossSr.x);
-          bossSr.swingActive = false;
-          bossSr.swingHitbox = null;
-        }
+    // Boss swing attack (Brenda "Dinâmica de Grupo" — investida com contato)
+    const br = this.brenda;
+    if (br?.active && br.swingActive && br.swingHitbox) {
+      if (
+        !this.player.isInvulnerable(time) &&
+        Phaser.Geom.Intersects.RectangleToRectangle(br.swingHitbox, this.player.getBounds())
+      ) {
+        this.player.takeDamage(br.swingDamage, 3, br.x);
+        br.swingActive = false;
+        br.swingHitbox = null;
       }
     }
   }

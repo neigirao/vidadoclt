@@ -28,7 +28,8 @@ export type EnemyId =
   | "carimbador_automatico"
   | "arquivo_ambulante"
   | "bateria_social"
-  | "diretor_resultados";
+  | "diretor_resultados"
+  | "brenda_rh";
 
 export type EnemyArchetype =
   | "rusher"
@@ -564,6 +565,26 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     drops: { vr: [30, 40] },
     description: "Ergue a meta até estourar e te reestrutura pra fora da posição.",
     lore: "Nunca bateu uma meta que ele mesmo pudesse explicar. Reestrutura a área toda quinta-feira. Chama demissão de 'transição de carreira' e PDI de 'oportunidade de crescimento'. Assina o e-mail com 'abraços'.",
+  },
+  brenda_rh: {
+    id: "brenda_rh",
+    label: "Brenda do RH",
+    hp: 470,
+    speed: 95,
+    contactDamage: 12,
+    vrReward: 32,
+    phase: 3,
+    archetype: "charger",
+    spritePrefix: "rh",
+    bodySize: { w: 30, h: 52 },
+    attacks: [
+      { name: "pesquisa_de_clima", telegraphMs: 620, damage: 10, cooldownMs: 4000 },
+      { name: "feedback_360", telegraphMs: 540, damage: 12, cooldownMs: 3500 },
+      { name: "dinamica_de_grupo", telegraphMs: 460, damage: 22, cooldownMs: 3000 },
+    ],
+    drops: { vr: [24, 32] },
+    description: "Marca zonas de sorriso obrigatório e joga feedback que persegue.",
+    lore: "Organiza o Dia da Fruta e a Semana da Empatia. Chama layoff de 'movimento estratégico'. Já mandou 'ánimo!' num e-mail de rescisão. Tem uma caneca escrito 'ADORO SEGUNDA'.",
   },
 };
 
