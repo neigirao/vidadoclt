@@ -56,11 +56,12 @@ const WEAPON_FLAVOR: Partial<Record<WeaponId, string>> = {
   grampeador_eletrico: "Modificado pelo TI terceirizado. Provavelmente ilegal.",
 };
 
-function rollShopWeapon(currentWeaponId: string): WeaponId {
+function rollShopWeapon(currentWeaponId: string, exclude: WeaponId[] = []): WeaponId {
   const pool: Array<{ id: WeaponId; weight: number }> = [];
   for (const [id, def] of Object.entries(WEAPONS) as [WeaponId, WeaponDef][]) {
     if (def.shopCost === 0) continue; // not sold (starter / lendário)
     if (id === currentWeaponId) continue;
+    if (exclude.includes(id)) continue;
     let weight = 0;
     if (def.rarity === "raro") weight = 60;
     if (def.rarity === "epico") weight = 30;
@@ -78,11 +79,33 @@ function rollShopWeapon(currentWeaponId: string): WeaponId {
   return pool[pool.length - 1].id;
 }
 
-function rollShopPerk(ownedPerks: PerkId[]): PerkId | null {
+// Rola até `n` armas DISTINTAS. Oferecer mais de uma cria a escolha "qual arma"
+// e faz a prateleira da Copa custar mais que a carteira → tensão de decisão.
+function rollShopWeapons(currentWeaponId: string, n: number): WeaponId[] {
+  const out: WeaponId[] = [];
+  for (let i = 0; i < n; i++) {
+    const w = rollShopWeapon(currentWeaponId, out);
+    if (out.includes(w)) break; // pool esgotou
+    out.push(w);
+  }
+  return out;
+}
+
+function rollShopPerk(ownedPerks: PerkId[], exclude: PerkId[] = []): PerkId | null {
   const all = Object.keys(PERKS) as PerkId[];
-  const available = all.filter((p) => !ownedPerks.includes(p));
+  const available = all.filter((p) => !ownedPerks.includes(p) && !exclude.includes(p));
   if (available.length === 0) return null;
   return available[Math.floor(Math.random() * available.length)];
+}
+
+function rollShopPerks(ownedPerks: PerkId[], n: number): PerkId[] {
+  const out: PerkId[] = [];
+  for (let i = 0; i < n; i++) {
+    const p = rollShopPerk(ownedPerks, out);
+    if (!p) break;
+    out.push(p);
+  }
+  return out;
 }
 
 type DynamicItem = {
@@ -101,6 +124,7 @@ export class ShopUI {
   private keys: Phaser.Input.Keyboard.Key[] = [];
   private escKey?: Phaser.Input.Keyboard.Key;
   private prevDown: boolean[] = [];
+  private bought = new Set<string>(); // armas/perks já compradas nesta visita
   private items: DynamicItem[] = [];
   open = false;
   onAdvance?: () => void;
@@ -123,14 +147,13 @@ export class ShopUI {
     this.open = true;
     const run = getRun(this.scene);
 
-    // Roll shop inventory if not already rolled
+    // Roll shop inventory if not already rolled. Oferece 2 armas + 2 perks
+    // (prateleira > carteira) → o jogador precisa escolher, não compra tudo.
     if (run.shopWeapons === undefined) {
-      const wid = rollShopWeapon(run.weaponId ?? "grampeador");
-      run.shopWeapons = [wid];
+      run.shopWeapons = rollShopWeapons(run.weaponId ?? "grampeador", 2);
     }
     if (run.shopPerks === undefined) {
-      const pid = rollShopPerk(run.perks ?? []);
-      run.shopPerks = pid ? [pid] : [];
+      run.shopPerks = rollShopPerks(run.perks ?? [], 2);
     }
 
     // Build item list
@@ -165,9 +188,8 @@ export class ShopUI {
       },
     });
 
-    // Weapon slot
-    if (run.shopWeapons.length > 0) {
-      const wid = run.shopWeapons[0];
+    // Weapon slots (até 2 armas — escolha "qual arma"; comprar uma remove só ela)
+    (run.shopWeapons ?? []).forEach((wid) => {
       const wdef = WEAPONS[wid];
       this.items.push({
         key: `weapon_${wid}`,
@@ -178,15 +200,14 @@ export class ShopUI {
         rarityColor: RARITY_COLORS[wdef.rarity],
         apply: (r, shop) => {
           r.weaponId = wid;
-          run.shopWeapons = [];
+          run.shopWeapons = (run.shopWeapons ?? []).filter((w) => w !== wid);
           shop.onWeaponChange?.(wid);
         },
       });
-    }
+    });
 
-    // Perk slot
-    if (run.shopPerks && run.shopPerks.length > 0) {
-      const pid = run.shopPerks[0];
+    // Perk slots (até 2 perks — perks empilham; comprar um remove só ele)
+    (run.shopPerks ?? []).forEach((pid) => {
       const pdef = PERKS[pid];
       this.items.push({
         key: `perk_${pid}`,
@@ -197,10 +218,10 @@ export class ShopUI {
         rarityColor: "#44cc88",
         apply: (r, shop) => {
           if (shop.player) applyPerk(pid, shop.player, r);
-          run.shopPerks = [];
+          run.shopPerks = (run.shopPerks ?? []).filter((pp) => pp !== pid);
         },
       });
-    }
+    });
 
     // Advance
     this.items.push({
@@ -287,13 +308,19 @@ export class ShopUI {
     this.container = c;
 
     const kb = this.scene.input.keyboard!;
-    this.keys = [
-      kb.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
-      kb.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
-      kb.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
-      kb.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR),
-      kb.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE),
+    // Uma tecla por item (a Copa agora oferece até 7: 2 consumíveis + 2 armas +
+    // 2 perks + avançar). Antes só ONE..FIVE — itens 6/7 ficavam inalcançáveis.
+    const NUM = [
+      Phaser.Input.Keyboard.KeyCodes.ONE,
+      Phaser.Input.Keyboard.KeyCodes.TWO,
+      Phaser.Input.Keyboard.KeyCodes.THREE,
+      Phaser.Input.Keyboard.KeyCodes.FOUR,
+      Phaser.Input.Keyboard.KeyCodes.FIVE,
+      Phaser.Input.Keyboard.KeyCodes.SIX,
+      Phaser.Input.Keyboard.KeyCodes.SEVEN,
+      Phaser.Input.Keyboard.KeyCodes.EIGHT,
     ];
+    this.keys = this.items.map((_, i) => kb.addKey(NUM[Math.min(i, NUM.length - 1)]));
     this.escKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.prevDown = new Array(this.items.length).fill(false);
   }
@@ -321,11 +348,18 @@ export class ShopUI {
 
   private buy(item: DynamicItem) {
     const run = getRun(this.scene);
+    // Armas/perks são compra única; café/pausa (consumíveis) repetem de propósito.
+    const oneShot = item.key.startsWith("weapon_") || item.key.startsWith("perk_");
+    if (oneShot && this.bought.has(item.key)) {
+      this.msg?.setText("Já comprado.");
+      return;
+    }
     if (run.vr < item.cost) {
       this.msg?.setText("VR insuficiente.");
       return;
     }
     run.vr -= item.cost;
+    if (oneShot) this.bought.add(item.key);
     Sfx.buy();
     const result = item.apply(run, this);
     if (result === "next") {
