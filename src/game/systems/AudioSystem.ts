@@ -19,13 +19,39 @@ function ctx(): AudioContext | null {
   return _ctx;
 }
 
+// Ganho-mestre PERSISTENTE dos SFX. Antes master() criava um GainNode NOVO a
+// cada som → não havia ponto único p/ controlar volume. Agora todos os SFX
+// roteiam por _sfxGain, cujo ganho reflete volume × mudo.
+const SFX_BASE = 0.18;
+let _sfxGain: GainNode | null = null;
+let _sfxVolume = 1;
+let _muted = false;
+
+function applySfxGain() {
+  if (_sfxGain) _sfxGain.gain.value = _muted ? 0 : SFX_BASE * _sfxVolume;
+}
+
 function master(): GainNode | null {
   const c = ctx();
   if (!c) return null;
-  const g = c.createGain();
-  g.gain.value = 0.18;
-  g.connect(c.destination);
-  return g;
+  if (!_sfxGain) {
+    _sfxGain = c.createGain();
+    applySfxGain();
+    _sfxGain.connect(c.destination);
+  }
+  return _sfxGain;
+}
+
+/** Volume dos SFX em 0–1 (multiplica o ganho-base). */
+export function setSfxVolume(v: number) {
+  _sfxVolume = Math.max(0, Math.min(1, v));
+  applySfxGain();
+}
+
+/** Muta/desmuta apenas os SFX. */
+export function setSfxMuted(m: boolean) {
+  _muted = m;
+  applySfxGain();
 }
 
 /** Tom simples: onda, freq, duração, envelope. */

@@ -15,6 +15,7 @@ let _masterGain: GainNode | null = null;
 let _stopFn: (() => void) | null = null;
 let _currentTheme: string | null = null;
 let _volume = 0.28;
+let _muted = false;
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -278,7 +279,14 @@ export const Music = {
 
   setVolume(v: number) {
     _volume = Math.max(0, Math.min(1, v));
-    if (_masterGain) _masterGain.gain.setTargetAtTime(_volume, getCtx()?.currentTime ?? 0, 0.1);
+    const target = _muted ? 0 : _volume;
+    if (_masterGain) _masterGain.gain.setTargetAtTime(target, getCtx()?.currentTime ?? 0, 0.1);
+  },
+
+  setMuted(m: boolean) {
+    _muted = m;
+    if (_masterGain)
+      _masterGain.gain.setTargetAtTime(m ? 0 : _volume, getCtx()?.currentTime ?? 0, 0.1);
   },
 
   fadeOut(durationMs = 800) {

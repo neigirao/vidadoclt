@@ -7,6 +7,7 @@ import {
   applyBackgroundFilters,
 } from "../systems/TextureFactory";
 import { initSpriteLibrary } from "../systems/SpriteLibrary";
+import { applyAudioSettings } from "../systems/applyAudio";
 
 /**
  * Loads image assets and delegates runtime texture generation
@@ -40,6 +41,9 @@ export class BootScene extends Phaser.Scene {
     // Indexa o atlas para que entidades/cenas resolvam sprites a partir de
     // uma única textura compartilhada (fim do rebind por frame = fim do flicker).
     initSpriteLibrary(this);
+
+    // Aplica volumes/mudo salvos antes de qualquer áudio tocar.
+    applyAudioSettings();
 
     this.scene.start("MenuScene");
   }

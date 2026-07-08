@@ -11,11 +11,41 @@ export interface Settings {
    * Sanidade e suas penalidades sistêmicas continuam iguais.
    */
   reduceSanityFx: boolean;
+  /** Volume geral (0–1) — multiplica música e SFX. */
+  masterVolume: number;
+  /** Volume da música (0–1). */
+  musicVolume: number;
+  /** Volume dos efeitos sonoros (0–1). */
+  sfxVolume: number;
+  /** Mudo total (música + SFX). */
+  muted: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   reduceSanityFx: false,
+  masterVolume: 1,
+  musicVolume: 1,
+  sfxVolume: 1,
+  muted: false,
 };
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+/** Ajusta um volume, persiste e devolve o valor aplicado. */
+export function setVolume(which: "masterVolume" | "musicVolume" | "sfxVolume", v: number): number {
+  const s = loadSettings();
+  s[which] = clamp01(v);
+  saveSettings(s);
+  return s[which];
+}
+
+/** Alterna o mudo total, persiste e devolve o novo valor. */
+export function toggleMuted(): boolean {
+  const s = loadSettings();
+  s.muted = !s.muted;
+  saveSettings(s);
+  return s.muted;
+}
 
 export function loadSettings(): Settings {
   try {

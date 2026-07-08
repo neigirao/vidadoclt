@@ -21,7 +21,7 @@ describe("Settings", () => {
 
   it("saveSettings + loadSettings faz round-trip", () => {
     store.clear();
-    saveSettings({ reduceSanityFx: true });
+    saveSettings({ ...DEFAULT_SETTINGS, reduceSanityFx: true });
     expect(loadSettings().reduceSanityFx).toBe(true);
   });
 

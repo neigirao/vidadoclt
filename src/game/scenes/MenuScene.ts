@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from "../constants";
 import { getRun, isNgPlusUnlocked } from "../systems/PlayerState";
 import { Music } from "../systems/MusicSystem";
+import { loadSettings, setVolume, toggleMuted, toggleReduceSanityFx } from "../systems/Settings";
+import { applyAudioSettings } from "../systems/applyAudio";
 import { WEAPONS } from "../systems/WeaponSystem";
 import { PERKS } from "../systems/PerkSystem";
 
@@ -440,6 +442,19 @@ export class MenuScene extends Phaser.Scene {
     bg.strokeRect(0, 0, OW, OH);
     this.overlay.add(bg);
 
+    // Blocker: absorve cliques que caem no fundo do painel (não fecha o menu
+    // atrás). Adicionado ANTES do conteúdo p/ que os controles interativos da
+    // tela de Configurações fiquem POR CIMA e recebam clique.
+    const blocker = this.add
+      .rectangle(OX + OW / 2, OY + OH / 2, OW, OH, 0x000000, 0)
+      .setInteractive();
+    blocker.on(
+      "pointerdown",
+      (_p: Phaser.Input.Pointer, _lx: number, _ly: number, evt: Phaser.Types.Input.EventData) =>
+        evt.stopPropagation(),
+    );
+    this.overlay.add(blocker);
+
     if (type === "arsenal") {
       this.buildArsenalOverlay(OW, OH);
     } else if (type === "conquistas") {
@@ -457,18 +472,6 @@ export class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 1);
     this.overlay.add(closeT);
-
-    // Click outside to close
-    const blocker = this.add
-      .rectangle(OX + OW / 2, OY + OH / 2, OW, OH, 0x000000, 0)
-      .setInteractive();
-    blocker.on(
-      "pointerdown",
-      (_p: Phaser.Input.Pointer, _lx: number, _ly: number, evt: Phaser.Types.Input.EventData) => {
-        evt.stopPropagation();
-      },
-    );
-    this.overlay.add(blocker);
 
     const closeBtnBg = this.add.graphics();
     closeBtnBg.fillStyle(0x220000, 1);
@@ -696,38 +699,146 @@ export class MenuScene extends Phaser.Scene {
         .setOrigin(0.5, 0),
     );
 
-    const items = [
-      "Controles: Teclado (fixo)",
-      "Resolução: 960 × 540",
-      "Pixel Art: Ativado",
-      "Áudio: Em breve",
-      "Idioma: Português (BR)",
-    ];
+    const ov = this.overlay;
+    let iy = 56;
+    const rowH = 34;
 
-    items.forEach((txt, i) => {
-      const iy = 60 + i * 36;
-      const rowG = this.add.graphics();
-      rowG.fillStyle(i % 2 === 0 ? 0x141820 : 0x0f1218, 1);
-      rowG.fillRect(16, iy, OW - 32, 30);
-      this.overlay!.add(rowG);
-      this.overlay!.add(
-        this.add.text(28, iy + 9, txt, {
+    const rowBg = (y: number, i: number) => {
+      const g = this.add.graphics();
+      g.fillStyle(i % 2 === 0 ? 0x141820 : 0x0f1218, 1);
+      g.fillRect(16, y, OW - 32, rowH - 4);
+      ov.add(g);
+    };
+    const clickable = (t: Phaser.GameObjects.Text, onClick: () => void) => {
+      t.setInteractive({ useHandCursor: true })
+        .on("pointerover", () => t.setColor(TEXT_ACCENT))
+        .on("pointerout", () => t.setColor(TEXT_LIGHT))
+        .on("pointerdown", onClick);
+      ov.add(t);
+      return t;
+    };
+
+    // Linha de volume: rótulo + ◄ [barra 0–100%] ►
+    const volumeRow = (
+      label: string,
+      key: "masterVolume" | "musicVolume" | "sfxVolume",
+      y: number,
+      i: number,
+    ) => {
+      rowBg(y, i);
+      ov.add(
+        this.add.text(28, y + 10, label, {
           fontFamily: "monospace",
           fontSize: "11px",
           color: TEXT_LIGHT,
         }),
       );
-    });
-
-    this.overlay!.add(
-      this.add
-        .text(OW / 2, OH - 60, "Configurações completas\nchegarão em uma atualização futura.", {
+      const barX = OW - 200;
+      const barW = 120;
+      const draw = () => {
+        const v = loadSettings()[key];
+        pct.setText(`${Math.round(v * 100)}%`);
+        bar.clear();
+        bar.fillStyle(0x000000, 0.5);
+        bar.fillRect(barX, y + 11, barW, 8);
+        bar.fillStyle(ACCENT, 1);
+        bar.fillRect(barX, y + 11, barW * v, 8);
+      };
+      const bar = this.add.graphics();
+      ov.add(bar);
+      const pct = this.add.text(OW - 60, y + 10, "", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: TEXT_ACCENT,
+      });
+      ov.add(pct);
+      const step = (d: number) => {
+        setVolume(key, loadSettings()[key] + d);
+        applyAudioSettings();
+        draw();
+      };
+      clickable(
+        this.add.text(barX - 22, y + 8, "◄", {
           fontFamily: "monospace",
-          fontSize: "9px",
-          color: TEXT_DIM,
-          align: "center",
-        })
-        .setOrigin(0.5, 1),
+          fontSize: "14px",
+          color: TEXT_LIGHT,
+        }),
+        () => step(-0.1),
+      );
+      clickable(
+        this.add.text(barX + barW + 8, y + 8, "►", {
+          fontFamily: "monospace",
+          fontSize: "14px",
+          color: TEXT_LIGHT,
+        }),
+        () => step(0.1),
+      );
+      draw();
+    };
+
+    // Linha toggle: rótulo + [ LIGADO / DESLIGADO ]
+    const toggleRow = (
+      label: string,
+      get: () => boolean,
+      toggle: () => void,
+      y: number,
+      i: number,
+    ) => {
+      rowBg(y, i);
+      ov.add(
+        this.add.text(28, y + 10, label, {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: TEXT_LIGHT,
+        }),
+      );
+      const state = this.add.text(OW - 120, y + 10, "", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: TEXT_ACCENT,
+      });
+      const draw = () => {
+        const on = get();
+        state.setText(on ? "[ LIGADO ]" : "[ DESLIGADO ]");
+        state.setColor(on ? "#55dd77" : TEXT_DIM);
+      };
+      state.setInteractive({ useHandCursor: true }).on("pointerdown", () => {
+        toggle();
+        applyAudioSettings();
+        draw();
+      });
+      ov.add(state);
+      draw();
+    };
+
+    volumeRow("Volume Geral", "masterVolume", iy, 0);
+    iy += rowH;
+    volumeRow("Música", "musicVolume", iy, 1);
+    iy += rowH;
+    volumeRow("Efeitos (SFX)", "sfxVolume", iy, 2);
+    iy += rowH;
+    toggleRow("Mudo", () => loadSettings().muted, toggleMuted, iy, 3);
+    iy += rowH;
+    toggleRow(
+      "Reduzir efeitos de Sanidade",
+      () => loadSettings().reduceSanityFx,
+      toggleReduceSanityFx,
+      iy,
+      4,
+    );
+    iy += rowH + 8;
+
+    // Info estática (não ajustável) — mantida como referência.
+    ["Controles: Teclado (fixo)", "Resolução: 960 × 540", "Idioma: Português (BR)"].forEach(
+      (txt, k) => {
+        ov.add(
+          this.add.text(28, iy + k * 20, txt, {
+            fontFamily: "monospace",
+            fontSize: "10px",
+            color: TEXT_DIM,
+          }),
+        );
+      },
     );
   }
 }
