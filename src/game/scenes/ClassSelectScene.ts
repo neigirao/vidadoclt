@@ -39,15 +39,11 @@ export class ClassSelectScene extends Phaser.Scene {
     const run = getRun(this);
     applyRunSeed(run.seed);
 
-    // Primeira run: só o Analista destravado (classe MAIS AMIGÁVEL p/ novato —
-    // melee intuitivo, 100/100 de vida, +10% VR). Estagiário (ranged frágil,
-    // 80 de energia, exige kitar) e Terceirizado destravam ao completar a Fase 1.
-    // Antes forçava o Estagiário → o iniciante começava na classe mais difícil
-    // e morria de energia cedo (confirmado pela telemetria do playtest).
-    if (run.loopCount === 0) {
-      this.lockedClasses = new Set<ClassId>(["estagiario", "terceirizado"]);
-      this.selectedIndex = 1; // analista (índice em CLASS_IDS)
-    }
+    // Nenhuma classe travada: o novato pode escolher qualquer uma, mas o
+    // Analista (melee intuitivo, 100/100, +10% VR) vem SELECIONADO e marcado
+    // "Recomendado" — guia sem prender. Travar 2 das 3 na 1ª run matava a
+    // navegação (← → sem para onde ir) e confundia (playtest). selectedIndex=1
+    // (analista) já é o default do campo.
 
     // Background — match MenuScene palette
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, BG_PANEL);

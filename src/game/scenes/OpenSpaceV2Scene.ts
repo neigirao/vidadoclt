@@ -1409,7 +1409,11 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     if (available.length === 0) return;
     const options = Phaser.Utils.Array.Shuffle([...available]).slice(0, 2) as PerkId[];
 
-    this.scene.pause();
+    // Congela a FÍSICA (não a cena) durante a escolha: scene.pause() também
+    // desliga o input → nem teclado nem clique funcionavam (deadlock: os
+    // handlers que dariam resume nunca disparavam). physics.pause() para o
+    // mundo mas mantém update/input vivos.
+    this.physics.world.pause();
 
     const overlay = this.add.container(0, 0).setDepth(2000).setScrollFactor(0);
     const bg = this.add.graphics();
@@ -1495,7 +1499,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         overlay.destroy();
         npcG.destroy();
         npcLabel.destroy();
-        this.scene.resume();
+        this.physics.world.resume();
         this.hud.setPerks(run.perks ?? []);
         const msg = this.add
           .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, `PERK: ${perk.name}\n${perk.description}`, {
@@ -1535,7 +1539,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       npcLabel.destroy();
       k1.destroy();
       k2.destroy();
-      this.scene.resume();
+      this.physics.world.resume();
       this.hud.setPerks(run.perks ?? []);
       const msg = this.add
         .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, `PERK: ${perk.name}\n${perk.description}`, {
