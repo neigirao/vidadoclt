@@ -247,9 +247,9 @@ Nenhum band-aid ativo no momento.
 
 ### Pendente / em aberto
 
-- **🔴 Bug (decisão pendente) — spawn das Fases 2–5**: `BasePhaseScene.buildPlayer` usa `run.cameFrom === "copa" ? LEVEL_WIDTH - 120 : 80`. Como a Copa seta `cameFrom="copa"`, as Fases 2–5 nascem em **x ≈ 1800 (direita)** — em cima do boss e a 60px da saída (x=1860), com todo o trash (x 200–1550) atrás, nunca enfrentado. Provável fix: `LEVEL_WIDTH - 120` → **`120`** (nascer na esquerda, atravessar até o boss). Exige empurrar os pools da borda esquerda das 4 fases (spawn-seguro) → reformula o ritmo. **Aguarda confirmação antes de reformular.**
-- **Ataques especiais dos bosses 2–4**: hoje são classes de inimigo (Coordenador @Fase2, Sênior @Fase3, Scrum @Fase4) com HP inflado, sem repertório telegrafado próprio (diferente do Gerente/CEO). Aditivo.
-- **Economia de VR (decisão de balanceamento)**: uma run rende ~57–120 VR e a loja da Copa inteira custa ~40–50 VR (consumíveis 4–6, armas 8–20, perks 10–18) → sem tensão de escolha na 1ª Copa. Opções: subir preços da Copa e/ou limitar o empilhamento de multiplicadores (produtividade × evento × vrDropMult). O excedente vira Reconhecimento (VR×0.25), então não é desperdiçado — é falta de pressão de decisão in-run.
+- ✅ **Spawn das Fases 2–5** — RESOLVIDO: o jogador nasce na esquerda e atravessa até o boss (pools de borda ajustados p/ spawn-seguro).
+- ✅ **Ataques especiais dos bosses 2–4** — FEITO: os três têm repertório telegrafado próprio. Coordenador @Fase2 (especial dirigido pela cena), Sênior @Fase3 (`aiState` walk→telegraph→slam), Scrum @Fase4 (`onShout` + `onRetrospectiva` com swell/glow/telegraph antes do hit). Não são mais só HP inflado.
+- ✅ **Economia de VR** — RESOLVIDO: a Copa oferece 2 armas + 2 perks (prateleira > carteira → tensão de escolha), preços subidos (café 6/pausa 9, armas 13–32, perks 16–29) e `VR_COMBO_CAP` limita o empilhamento de multiplicadores.
 - **Fase 5 falha no `LevelValidator`?** — RESOLVIDO (evangelista movida p/ fora do raio de spawn).
 - **Etapa 4 (BossCatalog dos 7 bosses)** — OBSOLETO: a arte-fonte em `_sources/` foi removida; só entra com arte nova.
 
