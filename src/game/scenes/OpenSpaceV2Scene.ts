@@ -611,8 +611,11 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
 
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
+      const spr = dObj as Phaser.Physics.Arcade.Sprite;
+      if (!spr.active) return;
       this.player.addVR(1);
-      (dObj as Phaser.Physics.Arcade.Sprite).destroy();
+      Sfx.vrPickup();
+      spr.destroy();
     });
 
     // Cafezinhos de Sanidade (contra-jogo do Burnout) — mesmo comportamento da Base.

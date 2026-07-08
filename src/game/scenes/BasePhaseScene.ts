@@ -479,8 +479,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 16. Player → drops
     this.physics.add.overlap(this.player, this.drops, (_p, dObj) => {
+      const spr = dObj as Phaser.Physics.Arcade.Sprite;
+      if (!spr.active) return; // evita som/duplo-pickup no mesmo frame
       this.player.addVR(1);
-      (dObj as Phaser.Physics.Arcade.Sprite).destroy();
+      Sfx.vrPickup();
+      spr.destroy();
     });
 
     // 16b. Player → cafezinhos (restaura Sanidade — contra-jogo do Burnout)
@@ -500,6 +503,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         this.player.gamepadInteractJustPressed
       ) {
         this.persist();
+        Sfx.doorOpen();
         const r = getRun(this);
         r.cameFrom = doorCfg.cameFrom;
         if (doorCfg.nextScene) {
@@ -939,6 +943,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       fy,
       "tex-inkproj",
     ) as Phaser.Physics.Arcade.Sprite;
+    Sfx.inkShot();
     const body = proj.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     const angle = Phaser.Math.Angle.Between(fx, fy, tx, ty);

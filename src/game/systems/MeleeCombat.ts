@@ -128,6 +128,7 @@ export function resolveMeleeAttack(
       if (!e.active || typeof e.hit !== "function" || !tryHit(e) || !freshHit(e)) return;
       hitAnything = true;
       if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
+      Sfx.enemyHit();
       sparks(e.x, e.y - 10);
       CombatFx.flashSprite(e, 55);
       if (isFinisher) ParticleFactory.hitHeavy(scene, e.x, e.y - 20);
@@ -140,6 +141,7 @@ export function resolveMeleeAttack(
         isFinisher,
       );
       if (e.hit(damage, knockback)) {
+        Sfx.enemyDeath();
         ParticleFactory.enemyDeath(scene, e.x, e.y - 10);
         const mult = host.killVrMult?.(e.x, e.y) ?? 1;
         const burnoutVrMult = player.getBurnoutMods().vrDropMult;
@@ -169,6 +171,7 @@ export function resolveMeleeAttack(
   const boss = host.getBoss();
   if (boss && boss.active && tryHit(boss) && freshHit(boss)) {
     hitAnything = true;
+    Sfx.bossHit();
     sparks(boss.x, boss.y - 10);
     CombatFx.flashSprite(boss, 55);
     if (isFinisher) {
@@ -186,6 +189,7 @@ export function resolveMeleeAttack(
     );
     const died = boss.hit(damage, knockback);
     if (died) {
+      Sfx.bossDefeat();
       host.onBossDied();
       return;
     }

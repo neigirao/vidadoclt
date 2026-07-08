@@ -300,6 +300,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.energy = Math.max(0, this.energy - reducedAmount);
     if (sanityHit) this.sanity = Math.max(this.sanityFloor, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
+    Sfx.playerHit();
     CombatFx.flashSprite(this, 55);
     this.scene.time.delayedCall(55, () => this.setTint(0xff8888));
     this.scene.time.delayedCall(175, () => this.clearTint());
@@ -658,6 +659,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       const effectiveDashCooldown = Math.max(200, DASH_COOLDOWN_MS - this.dashCooldownBonus);
       this.dashUntil = time + DASH_MS;
       this.dashCooldownUntil = time + effectiveDashCooldown;
+      Sfx.dash();
       body.setVelocityY(0);
       this.setAlpha(0.6);
       this.scene.time.delayedCall(DASH_MS, () => this.setAlpha(1));
