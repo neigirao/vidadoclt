@@ -1686,10 +1686,16 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     for (let i = 0; i < 7; i++) {
       const d = this.drops.create(
         cx + (i - 3) * 12,
-        best.y - 16,
+        best.y - 12,
         "tex-vr",
       ) as Phaser.Physics.Arcade.Sprite;
       d.setDepth(9);
+      // Sem gravidade: as moedas FLUTUAM na borda da plataforma em vez de cair
+      // (e às vezes pousar em cima de um móvel inalcançável). Assim o jogador as
+      // coleta ao passar/pular por elas — o overlap pega no toque.
+      const body = d.body as Phaser.Physics.Arcade.Body;
+      body.setAllowGravity(false);
+      body.setVelocity(0, 0);
     }
     this.spawnCoffeeDrop(cx, best.y - 20);
     this.add

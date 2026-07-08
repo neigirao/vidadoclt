@@ -570,9 +570,55 @@ function reuniaoFrame(name) {
   return c.save(name);
 }
 
+// Bebedouro / garrafão (32x48): o sprite extraído era um borrão azul com texto
+// "CLARINHA" cravado. Redesenhado limpo — garrafão azul invertido sobre gabinete
+// branco com duas torneiras (quente/fria) e bandeja de pingo. Contorno preto.
+const WATER = [96, 156, 206],
+  WATER_L = [156, 200, 236],
+  WATER_D = [58, 108, 158],
+  CABINET = [222, 226, 230],
+  CAB_D = [168, 174, 182],
+  CAB_SH = [138, 144, 152],
+  BOTTLE_CAP = [70, 88, 108],
+  TAP_HOT = [204, 74, 62],
+  TAP_COLD = [72, 122, 202],
+  TRAY = [150, 156, 164];
+function bebedouro() {
+  const W = 32,
+    H = 48,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  // ── garrafão de água (invertido) ──
+  for (let r = 0; r < 18; r++) {
+    const round = r < 2 ? 2 - r : 0; // arredonda o topo
+    R(9 + round, 6 + r, 14 - round * 2, 1, WATER);
+  }
+  R(9, 6, 14, 3, WATER_L); // topo (linha do ar/água)
+  R(9, 6, 1, 18, WATER_D);
+  R(22, 6, 1, 18, WATER_D); // laterais escuras
+  R(11, 8, 2, 13, WATER_L); // brilho vertical
+  R(13, 23, 6, 3, BOTTLE_CAP); // gargalo entrando no gabinete
+  // ── gabinete (base branca) ──
+  R(8, 26, 16, 20, CABINET);
+  R(8, 26, 2, 20, CAB_D);
+  R(22, 26, 2, 20, CAB_D); // laterais
+  R(8, 44, 16, 2, CAB_SH); // sombra da base
+  R(15, 30, 1, 14, CAB_D); // fresta da portinha
+  // ── torneiras (fria/quente) + bicos ──
+  R(11, 33, 4, 2, TAP_COLD);
+  R(17, 33, 4, 2, TAP_HOT);
+  R(12, 35, 1, 2, [80, 80, 90]);
+  R(19, 35, 1, 2, [80, 80, 90]);
+  R(11, 39, 10, 2, TRAY); // bandeja de pingo
+  addOutline(c, OBJ_OUT);
+  c.save("obj-bebedouro.png");
+  return c.save("obj-bebedouro-idle.png");
+}
+
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
   ["analista-novo", analistaNovoWalk3],
+  ["bebedouro", bebedouro],
   ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe.png", 0)],
   ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe-walk0.png", 0)],
   ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe-walk1.png", 1)],

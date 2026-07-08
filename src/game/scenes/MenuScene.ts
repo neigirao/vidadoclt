@@ -44,6 +44,7 @@ export class MenuScene extends Phaser.Scene {
   private prevEnterDown = false;
   private overlay?: Phaser.GameObjects.Container;
   private MENU_ITEMS: MenuItem[] = ALL_MENU_ITEMS;
+  private itemH = 44; // altura de linha (adaptativa ao nº de itens)
 
   constructor() {
     super("MenuScene");
@@ -134,8 +135,15 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private drawMenuItems() {
-    const startY = 170;
-    const itemH = 44;
+    const startY = 148;
+    // Altura adaptativa: todos os itens (2 na 1ª run, até 10 com NG+) precisam
+    // caber ACIMA do painel de stats (y=430) — senão CONFIGURAÇÕES saía da tela.
+    const bottomLimit = 424;
+    const itemH = Math.max(
+      28,
+      Math.min(44, Math.floor((bottomLimit - startY) / this.MENU_ITEMS.length)),
+    );
+    this.itemH = itemH;
 
     this.menuButtons = [];
 
@@ -144,13 +152,14 @@ export class MenuScene extends Phaser.Scene {
       const container = this.add.container(14, y);
 
       const bg = this.add.graphics();
-      const label = this.add.text(42, 13, item.label, {
+      const ty = Math.round((itemH - 4) / 2) - 9; // centraliza o texto na linha
+      const label = this.add.text(42, ty, item.label, {
         fontFamily: "monospace",
         fontSize: "15px",
         fontStyle: "bold",
         color: TEXT_LIGHT,
       });
-      const icon = this.add.text(14, 13, item.icon, {
+      const icon = this.add.text(14, ty, item.icon, {
         fontFamily: "monospace",
         fontSize: "14px",
         color: TEXT_ACCENT,
@@ -161,7 +170,7 @@ export class MenuScene extends Phaser.Scene {
 
       // Click handler
       const hitArea = this.add
-        .rectangle(14 + 148, y + 18, 296, 38, 0x000000, 0)
+        .rectangle(14 + 148, y + itemH / 2, 296, itemH - 6, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hitArea.on("pointerdown", () => {
         this.selectedIndex = i;
@@ -178,7 +187,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private refreshMenu() {
-    const itemH = 44;
+    const itemH = this.itemH;
     this.MENU_ITEMS.forEach((_, i) => {
       const container = this.menuButtons[i];
       const bg = container.getAt(0) as Phaser.GameObjects.Graphics;

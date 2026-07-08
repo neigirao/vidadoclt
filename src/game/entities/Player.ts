@@ -159,7 +159,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private _swingStep = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-player-idle0"));
+    // idle1 (pose parada real). idle0 é o busto/portrait — usá-lo aqui mostrava
+    // um "boneco estranho" no 1º instante do spawn até o updateTexture corrigir.
+    super(scene, x, y, ...resolveSprite("tex-player-idle1"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
