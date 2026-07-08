@@ -243,7 +243,7 @@ export class PostIt extends Phaser.Physics.Arcade.Sprite {
 }
 
 export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
-  hp = 12;
+  hp = 10; // trash básico: 1 golpe (grampeador 10) — a Fase 1 deve empoderar
   contactDamage = 6; // rebalance: trash leve; a ameaça é o lunge telegrafado (15)
   speed = 200;
   dir: 1 | -1;
@@ -1033,7 +1033,7 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
 }
 
 export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
-  hp = 30;
+  hp = 16; // trash: 2 golpes (era 30 → 3-4 golpes, "não morria")
   contactDamage = 0;
   swingDamage = 20;
   speed = 80;
@@ -1162,7 +1162,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
 // Variante B do estagiário: carrega mais tarefas, persegue o player ativamente,
 // animação de 5 frames de walk.
 export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
-  hp = 22;
+  hp = 16; // trash: 2 golpes (era 22)
   contactDamage = 8;
   speed = 180;
   dir: 1 | -1 = -1;
@@ -1235,7 +1235,7 @@ export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
 // ─── AnalistaOnboarding ───────────────────────────────────────────────────────
 // Analista Novo: mantém distância, dispara PostIts nervosos, 5 frames de walk.
 export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
-  hp = 18;
+  hp = 14; // trash ranged: 2 golpes (era 18)
   contactDamage = 0;
   speed = 90;
   dir: 1 | -1 = -1;
