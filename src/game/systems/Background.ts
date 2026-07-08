@@ -12,9 +12,9 @@ const LEVEL_WIDTH = 1920;
 // escritório — props de escritório são intercambiáveis entre andares.
 const PHASE_PROP_KEYS: Record<number, string[]> = {
   1: ["tile-fase1-03", "tile-fase1-04"], // lixeira, arquivo
-  2: ["prop-fase2-04", "tile-fase2-02", "tile-fase2-05"], // mesa, servidor, torre
-  3: ["prop-fase4-02", "tile-fase1-04", "tile-fase5-03"], // mesa, arquivo, vaso (genéricos)
-  4: ["prop-fase4-02", "tile-fase4-04", "tile-fase1-04"], // mesa, caneca, arquivo
+  2: ["tile-fase2-02", "tile-fase2-05", "tile-fase1-03"], // servidor, torre, lixeira
+  3: ["tile-fase1-04", "tile-fase5-03", "tile-fase2-05"], // arquivo, vaso, torre
+  4: ["tile-fase4-04", "tile-fase1-04", "tile-fase5-03"], // caneca, arquivo, vaso
   5: ["tile-fase5-03", "tile-fase2-05", "tile-fase1-04"], // vaso, torre, arquivo
 };
 
