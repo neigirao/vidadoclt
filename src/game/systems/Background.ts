@@ -1,8 +1,92 @@
 import Phaser from "phaser";
 import { resolveSprite } from "./SpriteLibrary";
+import { GAME_WIDTH } from "../constants";
 
 // Full level width — the background spans the entire scrollable level.
 const LEVEL_WIDTH = 1920;
+
+/**
+ * Vida ambiente da cena (o cenário "respira"). Puramente visual, depth baixo,
+ * não interfere no gameplay. Duas camadas:
+ *  1. Poeira no ar — motes que flutuam de leve (camera-space, sempre visíveis).
+ *  2. Luzes fluorescentes falhando — glows que piscam de vez em quando
+ *     (world-space no scrollFactor do fundo, evoca escritório decadente).
+ * Chamar após addPhaseBackground/addPhaseDecor.
+ */
+export function addPhaseAmbience(
+  scene: Phaser.Scene,
+  topY: number,
+  floorY: number,
+  levelWidth = LEVEL_WIDTH,
+): void {
+  // ── 1. Poeira flutuante (camera-space) ──────────────────────────────────
+  const bandTop = topY + 6;
+  const bandH = floorY - topY - 12;
+  for (let i = 0; i < 26; i++) {
+    const x = Phaser.Math.Between(0, GAME_WIDTH);
+    const y = Phaser.Math.Between(bandTop, bandTop + bandH);
+    const r = Phaser.Math.FloatBetween(0.6, 1.8);
+    const mote = scene.add
+      .circle(x, y, r, 0xffffff, Phaser.Math.FloatBetween(0.04, 0.12))
+      .setScrollFactor(0)
+      .setDepth(2);
+    // deriva vertical suave + balanço horizontal, tempos aleatórios (yoyo)
+    scene.tweens.add({
+      targets: mote,
+      y: y + Phaser.Math.Between(-22, 22),
+      duration: Phaser.Math.Between(3200, 6400),
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+      delay: Phaser.Math.Between(0, 2000),
+    });
+    scene.tweens.add({
+      targets: mote,
+      x: x + Phaser.Math.Between(-14, 14),
+      duration: Phaser.Math.Between(4000, 7000),
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    scene.tweens.add({
+      targets: mote,
+      alpha: 0,
+      duration: Phaser.Math.Between(1800, 3600),
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+      delay: Phaser.Math.Between(0, 2500),
+    });
+  }
+
+  // ── 2. Luzes fluorescentes falhando (world-space, tracking o fundo) ─────
+  for (let lx = 300; lx < levelWidth; lx += Phaser.Math.Between(360, 520)) {
+    const glow = scene.add
+      .ellipse(lx, topY + 24, 120, 40, 0xfff4d0, 0.06)
+      .setScrollFactor(0.2, 0)
+      .setDepth(1)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const scheduleFlicker = () => {
+      scene.time.delayedCall(Phaser.Math.Between(2600, 8000), () => {
+        if (!glow.active) return;
+        // rajada curta de piscadas (lâmpada morrendo)
+        const blinks = Phaser.Math.Between(2, 5);
+        let n = 0;
+        const blink = () => {
+          if (!glow.active) return;
+          glow.setAlpha(n % 2 === 0 ? 0.01 : 0.06);
+          if (++n < blinks * 2) scene.time.delayedCall(Phaser.Math.Between(40, 110), blink);
+          else {
+            glow.setAlpha(0.06);
+            scheduleFlicker();
+          }
+        };
+        blink();
+      });
+    };
+    scheduleFlicker();
+  }
+}
 
 // Props por fase — CURADO. A extração do tileset trouxe muitas chaves que são
 // "folhas de contato" (tiras com vários itens + texto de label) ou personagens
