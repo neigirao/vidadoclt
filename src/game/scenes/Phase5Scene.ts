@@ -10,6 +10,7 @@ import {
   ImpressoraNecromorfa,
   EvangelistaMegaCorp,
 } from "../entities/PhaseEnemies";
+import { DiretorDeResultados } from "../entities/DiretorBoss";
 
 export class Phase5Scene extends BasePhaseScene {
   private carimbadores!: Phaser.Physics.Arcade.Group;
@@ -17,8 +18,7 @@ export class Phase5Scene extends BasePhaseScene {
   private baterias!: Phaser.Physics.Arcade.Group;
   private impressorasN!: Phaser.Physics.Arcade.Group;
   private evangelistasM!: Phaser.Physics.Arcade.Group;
-  private allDefeated = false;
-  private enemyCount = 8;
+  private diretor?: DiretorDeResultados;
 
   constructor() {
     super("Phase5Scene");
@@ -38,7 +38,7 @@ export class Phase5Scene extends BasePhaseScene {
     return "FASE 5 — DIRETORIA";
   }
   protected getInitialObjective() {
-    return `Derrote todos os inimigos (${this.enemyCount} restantes)`;
+    return "Derrote o Diretor de Resultados";
   }
 
   protected getPlatformLayout(): Array<[number, number, number]> {
@@ -65,7 +65,7 @@ export class Phase5Scene extends BasePhaseScene {
   }
 
   protected getBossName() {
-    return "";
+    return "Diretor de Resultados";
   }
 
   protected setupEnemiesAndGroups() {
@@ -74,8 +74,6 @@ export class Phase5Scene extends BasePhaseScene {
     this.baterias = this.physics.add.group({ runChildUpdate: false });
     this.impressorasN = this.physics.add.group({ runChildUpdate: false });
     this.evangelistasM = this.physics.add.group({ runChildUpdate: false });
-
-    this.enemyCount = 0;
 
     // Encontros por seed: contagem fixa, posições variam por run.
     this.pickPositions([300, 400, 500, 600], 3).forEach((x) => {
@@ -109,14 +107,12 @@ export class Phase5Scene extends BasePhaseScene {
         }
       };
       this.carimbadores.add(e);
-      this.enemyCount++;
     });
 
     [760, 960].forEach((x) => {
       const e = new ArquivoAmbulante(this, x, FLOOR_Y - 60);
       e.target = this.player;
       this.arquivos.add(e);
-      this.enemyCount++;
     });
 
     this.pickPositions([600, 760, 1000, 1240, 1380], 3).forEach((x) => {
@@ -157,7 +153,6 @@ export class Phase5Scene extends BasePhaseScene {
         });
       };
       this.baterias.add(e);
-      this.enemyCount++;
     });
 
     [1200, 1450].forEach((x) => {
@@ -180,7 +175,6 @@ export class Phase5Scene extends BasePhaseScene {
         }
       };
       this.impressorasN.add(imn);
-      this.enemyCount++;
     });
 
     // 1600 (era 1660) fica >140px do spawn vindo da Copa (x≈1800) → spawn-seguro.
@@ -203,11 +197,16 @@ export class Phase5Scene extends BasePhaseScene {
         );
       };
       this.evangelistasM.add(ev);
-      this.enemyCount++;
     });
 
-    // No boss for Phase5
-    this.boss = undefined;
+    // Boss — Diretor de Resultados. Guardado em this.diretor (ref tipada) e em
+    // this.boss (contrato da base: barra de HP, contato, ink→boss, defeat).
+    const diretor = new DiretorDeResultados(this, 1800, FLOOR_Y - 66);
+    diretor.target = this.player;
+    diretor.onMeta = (bx, by) => this.metaInalcancavel(bx, by);
+    diretor.onReestrutura = (fromX) => this.reestruturacao(fromX);
+    this.diretor = diretor;
+    this.boss = diretor;
 
     this.enemyGroups.push(
       { group: this.carimbadores, vrDrop: 4 },
@@ -216,78 +215,112 @@ export class Phase5Scene extends BasePhaseScene {
       { group: this.impressorasN, vrDrop: 16 },
       { group: this.evangelistasM, vrDrop: 9 },
     );
-
-    // Update objective now that we know enemyCount
-    this.hud.setObjective(`Derrote todos os inimigos (${this.enemyCount} restantes)`);
   }
 
-  protected onEnemyKilledByMelee(_e: GameEnemy) {
-    this.checkAllDefeated();
+  // ── "META INALCANÇÁVEL": barra que sobe sozinha; ao estourar, dispara uma
+  //    cobrança (projétil rápido dirigido). O Diretor fica exposto na subida. ──
+  private metaInalcancavel(bx: number, by: number) {
+    const w = 60;
+    const barBg = this.add.rectangle(bx, by - 84, w, 8, 0x220000, 0.85).setDepth(500);
+    const bar = this.add
+      .rectangle(bx - w / 2, by - 84, 2, 6, 0xff3322)
+      .setOrigin(0, 0.5)
+      .setDepth(501);
+    const label = this.add
+      .text(bx, by - 98, "META", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        fontStyle: "bold",
+        color: "#ffaa22",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(501);
+    this.tweens.add({
+      targets: bar,
+      width: w,
+      duration: 1300,
+      ease: "Sine.easeIn",
+      onComplete: () => {
+        barBg.destroy();
+        bar.destroy();
+        label.destroy();
+        // Cobrança: projétil rápido em direção ao player
+        this.spawnEnemyProjectile(bx, by - 12, this.player.x, this.player.y, 18, 0xff3322, 320);
+      },
+    });
   }
 
-  protected onEnemyKilledByProjectile(_e: GameEnemy) {
-    this.checkAllDefeated();
+  // ── "REESTRUTURAÇÃO": some e reaparece no lado oposto da arena, forçando o
+  //    player a reposicionar. Flash de feedback nos dois pontos. ──
+  private reestruturacao(fromX: number) {
+    const mid = LEVEL_WIDTH / 2;
+    const targetX = fromX < mid ? LEVEL_WIDTH - 240 : 240;
+    const y = FLOOR_Y - 66;
+    const flashOut = this.add.circle(fromX, y, 30, 0x9966ff, 0.6).setDepth(300);
+    this.tweens.add({
+      targets: flashOut,
+      scale: 2,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => flashOut.destroy(),
+    });
+    this.diretor?.teleportTo(targetX);
+    const flashIn = this.add.circle(targetX, y, 10, 0x9966ff, 0.7).setDepth(300);
+    this.tweens.add({
+      targets: flashIn,
+      scale: 3,
+      alpha: 0,
+      duration: 360,
+      onComplete: () => flashIn.destroy(),
+    });
   }
 
+  // Boss derrotado → porta do CEO liberada. Override da base (que fala "Copa").
   protected handleBossDefeat() {
-    // Phase5 has no boss — no-op
-  }
+    this.bossDefeated = true;
+    this.hud.hideBoss();
+    this.hud.setObjective("Acesso ao CEO liberado! Use [ E ] na porta.");
 
-  private checkAllDefeated() {
-    const remaining =
-      this.carimbadores.countActive() +
-      this.arquivos.countActive() +
-      this.baterias.countActive() +
-      this.impressorasN.countActive() +
-      this.evangelistasM.countActive();
-
-    this.hud.setObjective(
-      remaining > 0
-        ? `Derrote todos os inimigos (${remaining} restantes)`
-        : "Acesso ao CEO liberado! Use [ E ] na porta.",
-    );
-
-    if (remaining === 0 && !this.allDefeated) {
-      this.allDefeated = true;
-      this.bossDefeated = true; // enables door interaction in base class
-      this.hud.hideBoss();
-      savePersisted(getRun(this).reconhecimento, getRun(this).fgts, getRun(this).loopCount);
-      this.doorEl.clearTint();
-      this.doorLabel.setText("CEO").setColor("#c9a36a");
-
-      // Drop VR
-      for (let i = 0; i < 8; i++) {
+    if (this.boss?.active) {
+      for (let i = 0; i < 12; i++) {
         this.time.delayedCall(i * 60, () => {
-          this.dropVR(LEVEL_WIDTH - 60 + Phaser.Math.Between(-60, 60), FLOOR_Y - 60);
+          if (this.boss) this.dropVR(this.boss.x + Phaser.Math.Between(-60, 60), this.boss.y - 20);
         });
       }
-
-      const msg = this.add
-        .text(
-          GAME_WIDTH / 2,
-          GAME_HEIGHT / 2 - 30,
-          "DIRETORIA LIMPA!\n\nAcesso ao CEO desbloqueado ->",
-          {
-            fontFamily: "monospace",
-            fontSize: "15px",
-            color: "#f2c14e",
-            stroke: "#000000",
-            strokeThickness: 3,
-            align: "center",
-          },
-        )
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(999);
-      this.tweens.add({
-        targets: msg,
-        alpha: 0,
-        duration: 900,
-        delay: 3500,
-        onComplete: () => msg.destroy(),
-      });
-
-      this._launchCulturaSelect();
+      (this.boss as Phaser.Physics.Arcade.Sprite).destroy();
     }
+
+    savePersisted(getRun(this).reconhecimento, getRun(this).fgts, getRun(this).loopCount);
+    this.doorEl.clearTint();
+    this.doorLabel.setText("CEO").setColor("#c9a36a");
+
+    const msg = this.add
+      .text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2 - 30,
+        "DIRETOR DE RESULTADOS DERROTADO!\n\nAcesso ao CEO desbloqueado ->",
+        {
+          fontFamily: "monospace",
+          fontSize: "15px",
+          color: "#f2c14e",
+          stroke: "#000000",
+          strokeThickness: 3,
+          align: "center",
+        },
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(999);
+    this.tweens.add({
+      targets: msg,
+      alpha: 0,
+      duration: 900,
+      delay: 3500,
+      onComplete: () => msg.destroy(),
+    });
+
+    this._launchCulturaSelect();
   }
 }

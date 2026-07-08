@@ -27,7 +27,8 @@ export type EnemyId =
   | "seguranca_corporativa"
   | "carimbador_automatico"
   | "arquivo_ambulante"
-  | "bateria_social";
+  | "bateria_social"
+  | "diretor_resultados";
 
 export type EnemyArchetype =
   | "rusher"
@@ -543,6 +544,26 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     drops: { vr: [3, 6] },
     description: "Drena sua energia só de existir perto.",
     lore: "Chegou no happy hour uma vez. Ficou até o fim. No dia seguinte ninguém conseguiu trabalhar. O café não resolveu. A reunião de alinhamento piorou.",
+  },
+  diretor_resultados: {
+    id: "diretor_resultados",
+    label: "Diretor de Resultados",
+    hp: 620,
+    speed: 100,
+    contactDamage: 14,
+    vrReward: 40,
+    phase: 5,
+    archetype: "charger",
+    spritePrefix: "evangelista-boss",
+    bodySize: { w: 34, h: 56 },
+    attacks: [
+      { name: "meta_inalcancavel", telegraphMs: 620, damage: 18, cooldownMs: 4000 },
+      { name: "reestruturacao", telegraphMs: 560, damage: 0, cooldownMs: 6000 },
+      { name: "pdi_involuntario", telegraphMs: 460, damage: 26, cooldownMs: 3000 },
+    ],
+    drops: { vr: [30, 40] },
+    description: "Ergue a meta até estourar e te reestrutura pra fora da posição.",
+    lore: "Nunca bateu uma meta que ele mesmo pudesse explicar. Reestrutura a área toda quinta-feira. Chama demissão de 'transição de carreira' e PDI de 'oportunidade de crescimento'. Assina o e-mail com 'abraços'.",
   },
 };
 
