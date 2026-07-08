@@ -39,11 +39,14 @@ export class ClassSelectScene extends Phaser.Scene {
     const run = getRun(this);
     applyRunSeed(run.seed);
 
-    // Primeira run: só Estagiário destravado. Analista/Terceirizado destravam
-    // ao completar a Fase 1 pela primeira vez (via loopCount > 0).
+    // Primeira run: só o Analista destravado (classe MAIS AMIGÁVEL p/ novato —
+    // melee intuitivo, 100/100 de vida, +10% VR). Estagiário (ranged frágil,
+    // 80 de energia, exige kitar) e Terceirizado destravam ao completar a Fase 1.
+    // Antes forçava o Estagiário → o iniciante começava na classe mais difícil
+    // e morria de energia cedo (confirmado pela telemetria do playtest).
     if (run.loopCount === 0) {
-      this.lockedClasses = new Set<ClassId>(["analista", "terceirizado"]);
-      this.selectedIndex = 0;
+      this.lockedClasses = new Set<ClassId>(["estagiario", "terceirizado"]);
+      this.selectedIndex = 1; // analista (índice em CLASS_IDS)
     }
 
     // Background — match MenuScene palette
@@ -162,6 +165,22 @@ export class ClassSelectScene extends Phaser.Scene {
         })
         .setOrigin(0.5),
     );
+
+    // Badge "Recomendado para começar" — só no Analista (classe amigável p/ novato).
+    if (classId === "analista") {
+      container.add(
+        this.add
+          .text(0, -hh + 34, "★ RECOMENDADO P/ COMEÇAR", {
+            fontFamily: "monospace",
+            fontSize: "8px",
+            fontStyle: "bold",
+            color: "#ffe066",
+            backgroundColor: "#00000088",
+          })
+          .setOrigin(0.5, 0)
+          .setPadding(3, 2, 3, 2),
+      );
+    }
 
     // [3] Player sprite preview using real atlas sprite
     const classIdx = CLASS_IDS.indexOf(classId);
