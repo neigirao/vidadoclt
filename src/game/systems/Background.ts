@@ -4,14 +4,18 @@ import { resolveSprite } from "./SpriteLibrary";
 // Full level width — the background spans the entire scrollable level.
 const LEVEL_WIDTH = 1920;
 
-// Props per phase — keys match atlas frame names from the tileset extraction
+// Props por fase — CURADO. A extração do tileset trouxe muitas chaves que são
+// "folhas de contato" (tiras com vários itens + texto de label) ou personagens
+// mal catalogados como props; renderizadas como decor de chão viravam faixas
+// borradas/texto flutuante. Aqui ficam só OBJETOS ÚNICOS limpos (móveis).
+// Fases sem prop limpo próprio (ex.: Fase 3) reusam móveis genéricos de
+// escritório — props de escritório são intercambiáveis entre andares.
 const PHASE_PROP_KEYS: Record<number, string[]> = {
-  1: ["prop-fase1-00", "prop-fase1-02", "tile-fase1-03", "tile-fase1-04"],
-  2: ["prop-fase2-00", "prop-fase2-03", "prop-fase2-04", "tile-fase2-02", "tile-fase2-05"],
-  3: ["prop-fase3-00", "prop-fase3-02", "tile-fase3-04"],
-  4: ["prop-fase4-00", "prop-fase4-02", "prop-fase4-03", "tile-fase4-04", "tile-fase4-07"],
-  // tile-fase5-01 removido: frame vazio na extração (renderizava prop invisível).
-  5: ["prop-fase5-00", "prop-fase5-02", "tile-fase5-03", "tile-fase5-06"],
+  1: ["tile-fase1-03", "tile-fase1-04"], // lixeira, arquivo
+  2: ["prop-fase2-04", "tile-fase2-02", "tile-fase2-05"], // mesa, servidor, torre
+  3: ["prop-fase4-02", "tile-fase1-04", "tile-fase5-03"], // mesa, arquivo, vaso (genéricos)
+  4: ["prop-fase4-02", "tile-fase4-04", "tile-fase1-04"], // mesa, caneca, arquivo
+  5: ["tile-fase5-03", "tile-fase2-05", "tile-fase1-04"], // vaso, torre, arquivo
 };
 
 /**

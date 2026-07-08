@@ -302,19 +302,16 @@ function makeCaixaPapel(scene: Phaser.Scene) {
 
 /** Apply LINEAR filter to photo backgrounds so they don't appear blocky. */
 export function applyBackgroundFilters(scene: Phaser.Scene): void {
+  // Só as backgrounds realmente carregadas (load.image). As demais eram cópias
+  // byte-idênticas de bg-atendimento (openspace/rh/compliance/produto/
+  // presidencia/copa) — arquivos mortos removidos; a Copa é procedural.
   const keys = [
     "bg-menu",
-    "bg-openspace",
     "bg-atendimento",
     "bg-comercial",
-    "bg-produto",
     "bg-tecnologia",
-    "bg-rh",
-    "bg-compliance",
     "bg-diretoria",
-    "bg-presidencia",
     "bg-cobertura",
-    "bg-copa",
   ];
   keys.forEach((k) => {
     const tex = scene.textures.get(k);
