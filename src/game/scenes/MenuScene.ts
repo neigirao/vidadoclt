@@ -213,9 +213,14 @@ export class MenuScene extends Phaser.Scene {
     g.lineStyle(1, 0x333333, 1);
     g.lineBetween(0, 44, GAME_WIDTH, 44);
 
-    // Right side icon buttons
-    const icons = ["💬", "📊", "🏆", "⚙"];
-    icons.forEach((ic, i) => {
+    // Right side icon buttons — atalhos REAIS (antes eram botões mortos: tinham
+    // cursor/hover mas nenhum pointerdown → prometiam clique e não faziam nada).
+    const icons: { ic: string; action: () => void }[] = [
+      { ic: "⚙", action: () => this.showOverlay("config") },
+      { ic: "🏆", action: () => this.scene.start("RankingScene") },
+      { ic: "⭐", action: () => this.scene.start("ReconhecimentoScene") },
+    ];
+    icons.forEach(({ ic, action }, i) => {
       const x = GAME_WIDTH - 40 - i * 36;
       const btn = this.add
         .text(x, 8, ic, {
@@ -225,6 +230,7 @@ export class MenuScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       btn.on("pointerover", () => btn.setAlpha(0.7));
       btn.on("pointerout", () => btn.setAlpha(1));
+      btn.on("pointerdown", action);
     });
   }
 
