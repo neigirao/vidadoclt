@@ -4,6 +4,7 @@ import { getRun, isNgPlusUnlocked } from "../systems/PlayerState";
 import { Music } from "../systems/MusicSystem";
 import { loadSettings, setVolume, toggleMuted, toggleReduceSanityFx } from "../systems/Settings";
 import { applyAudioSettings } from "../systems/applyAudio";
+import { Telemetry } from "../systems/Telemetry";
 import { WEAPONS } from "../systems/WeaponSystem";
 import { PERKS } from "../systems/PerkSystem";
 
@@ -832,6 +833,32 @@ export class MenuScene extends Phaser.Scene {
       iy,
       4,
     );
+    iy += rowH + 8;
+
+    // Exportar telemetria — para playtesters mandarem os dados sem console.
+    rowBg(iy, 0);
+    ov.add(
+      this.add.text(28, iy + 10, "Exportar dados de teste", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: TEXT_LIGHT,
+      }),
+    );
+    const expState = this.add.text(OW - 150, iy + 10, "", {
+      fontFamily: "monospace",
+      fontSize: "11px",
+      color: TEXT_ACCENT,
+    });
+    const n = Telemetry.count();
+    expState.setText(n > 0 ? `[ BAIXAR (${n}) ]` : "[ sem dados ]");
+    expState.setColor(n > 0 ? "#55dd77" : TEXT_DIM);
+    if (n > 0) {
+      expState.setInteractive({ useHandCursor: true }).on("pointerdown", () => {
+        const ok = Telemetry.download();
+        expState.setText(ok ? "[ baixado ✓ ]" : "[ falhou ]");
+      });
+    }
+    ov.add(expState);
     iy += rowH + 8;
 
     // Info estática (não ajustável) — mantida como referência.

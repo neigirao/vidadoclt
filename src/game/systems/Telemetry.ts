@@ -153,6 +153,35 @@ export const Telemetry = {
     return JSON.stringify(_events);
   },
 
+  /** Quantos eventos há no buffer (para UI mostrar se há dados). */
+  count(): number {
+    return _events.length;
+  },
+
+  /**
+   * Baixa a telemetria como arquivo .json no navegador — para playtesters
+   * exportarem sem console/DEV. Funciona no build publicado. Devolve `false`
+   * se não houver dados ou o ambiente não suportar download.
+   */
+  download(): boolean {
+    if (typeof document === "undefined" || _events.length === 0) return false;
+    try {
+      const blob = new Blob([this.exportJSON()], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      a.href = url;
+      a.download = `vidaclt-telemetria-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   /** Zera o buffer local. */
   clear() {
     _events = [];
