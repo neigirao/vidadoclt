@@ -1198,8 +1198,10 @@ export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(40, 52);
-    body.setOffset(4, 8);
+    // hitbox cabia FORA do sprite (40x52 num sprite 32x48) → acertava o player
+    // de fora do corpo. Ajustado p/ caber no monitor+haste do sprite.
+    body.setSize(28, 40);
+    body.setOffset(2, 6);
     body.setCollideWorldBounds(true);
     this._startX = x;
     this._animOffset = (Math.random() * 2000) | 0;
