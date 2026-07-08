@@ -364,6 +364,7 @@ function carimbador() {
   c.rect(12, 49, 14, 1, [220, 80, 90]);
   c.rect(38, 30, 4, 4, ALERT); // luz de status
   for (let i = 0; i < 3; i++) c.rect(16 + i * 6, 60, 3, 2, [40, 42, 48]); // parafusos
+  addOutline(c, OBJ_OUT); // keyline preto p/ casar o estilo dos demais inimigos
   return c.save("enemy-carimbador.png");
 }
 
@@ -393,6 +394,7 @@ function arquivo() {
   c.rect(x0 + 3, y0 + 56 - y0, 6, 6, METAL_D); // pezinhos
   c.rect(x0 + w - 9, 56, 6, 6, METAL_D);
   c.rect(x0 + 3, 56, 6, 6, METAL_D);
+  addOutline(c, OBJ_OUT);
   return c.save("enemy-arquivo.png");
 }
 
@@ -420,6 +422,7 @@ function bateria() {
   }
   c.rect(x0 + 4, y0 + 2, 3, 3, [255, 255, 255]); // olhinhos cansados
   c.rect(x0 + 13, y0 + 2, 3, 3, [255, 255, 255]);
+  addOutline(c, OBJ_OUT);
   return c.save("enemy-bateria.png");
 }
 
@@ -501,9 +504,82 @@ function addOutline(c, col) {
   for (const [x, y] of toPaint) c.px(x, y, col);
 }
 
+// ── Objetos-monstro procedurais (Fase 2) ─────────────────────────────────────
+// reuniao/guardiao-cafe vinham de extração de IA embaralhada (sem silhueta
+// legível). Redesenhados como objetos-monstro simples e legíveis, no mesmo
+// estilo procedural + contorno preto dos objetos da Fase 5.
+const OBJ_OUT = [16, 14, 18];
+const MACH = [92, 96, 108],
+  MACH_D = [58, 62, 72],
+  MACH_L = [132, 138, 152],
+  STEEL = [150, 156, 168],
+  SCREEN = [34, 52, 48],
+  REYE = [255, 74, 62],
+  BREW = [74, 46, 26],
+  STEAMC = [220, 220, 220, 150];
+
+// Guardião do Café (32x48): máquina de café raivosa. `ph` varia pernas+vapor.
+function guardiaoCafeFrame(name, ph) {
+  const W = 32,
+    H = 48,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  const lp = ph % 2 ? 2 : 0; // passada
+  R(9, 42, 5, 5, MACH_D);
+  R(18, 42, 5, 5, MACH_D); // coxas
+  R(9 + lp, 45, 5, 3, [40, 42, 48]);
+  R(18 - lp, 45, 5, 3, [40, 42, 48]); // pés alternando
+  R(6, 12, 20, 30, MACH); // corpo
+  R(6, 12, 20, 3, MACH_L);
+  R(6, 12, 3, 30, MACH_D);
+  R(23, 12, 3, 30, MACH_D);
+  R(9, 6, 14, 7, STEEL); // reservatório topo
+  R(9, 6, 14, 2, MACH_L);
+  R(10, 17, 12, 8, SCREEN); // "tela"
+  R(12, 19, 3, 3, REYE);
+  R(18, 19, 3, 3, REYE); // olhos raivosos
+  R(12, 18, 3, 1, OBJ_OUT);
+  R(18, 18, 3, 1, OBJ_OUT); // sobrancelhas
+  R(14, 27, 4, 3, MACH_D); // bico
+  R(11, 31, 10, 2, BREW); // café escorrendo
+  const sy = ph % 2 ? 1 : 3;
+  R(15, sy, 1, 3, STEAMC);
+  R(16, sy + 1, 1, 2, STEAMC); // vapor
+  addOutline(c, OBJ_OUT);
+  return c.save(name);
+}
+
+// Reunião Corporativa (32x48): monitor-monstro de call, com alerta vermelho.
+function reuniaoFrame(name) {
+  const W = 32,
+    H = 48,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  R(4, 8, 24, 22, MACH_D); // moldura do monitor
+  R(6, 10, 20, 18, [232, 234, 240]); // tela
+  R(6, 10, 20, 4, REYE); // barra de "reunião agora"
+  for (let gx = 0; gx < 3; gx++)
+    for (let gy = 0; gy < 2; gy++) R(9 + gx * 6, 17 + gy * 6, 4, 4, [198, 204, 214]); // grade de participantes
+  R(11, 20, 3, 3, OBJ_OUT);
+  R(18, 20, 3, 3, OBJ_OUT); // olhos
+  R(1, 17, 4, 3, MACH);
+  R(27, 17, 4, 3, MACH); // bracinhos
+  R(14, 30, 4, 8, MACH); // haste
+  R(9, 38, 14, 4, MACH_D); // base
+  addOutline(c, OBJ_OUT);
+  return c.save(name);
+}
+
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
   ["analista-novo", analistaNovoWalk3],
+  ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe.png", 0)],
+  ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe-walk0.png", 0)],
+  ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe-walk1.png", 1)],
+  ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe-walk2.png", 2)],
+  ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe-walk3.png", 3)],
+  ["reuniao", () => reuniaoFrame("enemy-reuniao.png")],
+  ["reuniao", () => reuniaoFrame("enemy-reuniao-idle0.png")],
   ["postit", () => postit(0)],
   ["postit", () => postit(1)],
   ["postit", () => postit(2)],

@@ -197,7 +197,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
   private _dir: 1 | -1 = 1;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-faxineiro"));
+    super(scene, x, y, ...resolveSprite("tex-guardiao-cafe"));
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
@@ -205,7 +205,6 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     body.setSize(24, 38);
     body.setOffset(4, 10);
     body.setCollideWorldBounds(true);
-    this.setTint(0x884422);
     this._startX = x;
   }
 
@@ -231,7 +230,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
         return;
       }
     }
-    this.setTint(0x884422); // restore brown base tint when not charging
+    this.clearTint(); // cor natural da máquina (sprite já é metálico) fora da carga
 
     // patrol
     if (this.x < this._startX - 100) {
@@ -1272,6 +1271,7 @@ export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
+    this.setTint(0xff6644); // tier vermelha: vermelho quente
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(44, 40);
     body.setOffset(2, 16);
@@ -1311,7 +1311,7 @@ export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
-      if (this.active) this.clearTint();
+      if (this.active) this.setTint(0xff6644); // restaura o tint do tier após o flash
     });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("impressora_vermelha");
@@ -1348,6 +1348,8 @@ export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
+    this.setTint(0x88ddff); // tier fantasma: azul-espectral
+    this.setAlpha(0.78); // translúcido, "assombrado"
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(44, 40);
     body.setOffset(2, 16);
@@ -1388,7 +1390,7 @@ export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
-      if (this.active) this.clearTint();
+      if (this.active) this.setTint(0x88ddff); // restaura o tint do tier após o flash
     });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) markKilled("impressora_fantasma");
@@ -1425,6 +1427,7 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
+    this.setTint(0x99ff88); // tier necromorfa: verde-doente
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(44, 40);
     body.setOffset(2, 16);
@@ -1469,7 +1472,7 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
-      if (this.active) this.clearTint();
+      if (this.active) this.setTint(0x99ff88); // restaura o tint do tier após o flash
     });
     (this.body as Phaser.Physics.Arcade.Body).setVelocityX(knockback);
     if (this.hp <= 0) {
