@@ -110,8 +110,10 @@ function noise(duration: number, filterFreq: number, vol = 1) {
 export const Sfx = {
   /** Ataque de melee leve (passos do combo 1 e 2). */
   meleeLight() {
-    noise(0.06, 1800, 0.8);
-    tone("square", 320, 0.05, 0.002, 0.04, 0.4, 180);
+    // Grampeador: "clic-chunk" mecânico — clique agudo (mola) + baque do grampo.
+    noise(0.02, 5200, 0.45); // clique agudo do mecanismo
+    tone("square", 950, 0.015, 0.001, 0.012, 0.3); // "tec" metálico curto
+    tone("square", 150, 0.05, 0.002, 0.04, 0.5, 90); // "chunk" seco do grampo
   },
 
   /** Ataque de melee pesado (hit final do combo). */

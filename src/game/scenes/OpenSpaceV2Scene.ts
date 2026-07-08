@@ -1046,78 +1046,12 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     (gate.body as Phaser.Physics.Arcade.StaticBody).enable = false;
     this.arenaGate = gate;
 
-    const boss = new GerenteMicrogestor(this, 1820, FLOOR_Y - 60);
-    boss.target = this.player;
-    boss.onActivate = () => {
-      this.hud.showBoss("Gerente Microgestor", boss.maxHp);
-      this.hud.setObjective("Derrote o Gerente! (sala limpa = bônus Expediente)");
-      Sfx.bossAppear();
-      Music.start("boss");
-      // Acende as luzes p/ a luta: o apagão + e-mails/adds no escuro era
-      // variância de dificuldade injusta. O bônus de VR do evento permanece.
-      this.apagao.disable();
-      // Fecha a porta da arena: trash das zonas 1-4 não persegue pra dentro.
-      const g = this.arenaGate;
-      if (g) {
-        (g.body as Phaser.Physics.Arcade.StaticBody).enable = true;
-        [
-          this.estagiarios,
-          this.sobrecarregados,
-          this.analistas,
-          this.onboardings,
-          this.facilitadores,
-          this.rhs,
-        ].forEach((grp) => this.physics.add.collider(grp, g));
-      }
-    };
-    boss.onHpChange = (hp) => this.hud.updateBoss(hp);
-    boss.onShoot = (fx, fy, tx, ty) => {
-      let e = this.emails.getFirstDead(false) as EmailProjectil | null;
-      if (!e) {
-        e = new EmailProjectil(this, fx, fy);
-        this.emails.add(e);
-      } else {
-        e.setPosition(fx, fy).setActive(true).setVisible(true);
-        (e.body as Phaser.Physics.Arcade.Body).enable = true;
-      }
-      e.fire(tx, ty);
-    };
-    boss.onPull = (targetX) => {
-      const dir = targetX > this.player.x ? 1 : -1;
-      (this.player.body as Phaser.Physics.Arcade.Body).setVelocityX(dir * 360);
-    };
-    boss.onFreeze = (ms) => {
-      this.player.applyFreeze(ms);
-      // i-frames durante o congelamento: adds invocados/e-mails não podem
-      // castigar o jogador travado (fairness do CC do boss).
-      this.player.grantInvulnerability(ms);
-    };
-    boss.onSpawn = (x, y) => {
-      const e = new EstagiarioDesesperado(this, x, y, Math.random() > 0.5 ? 1 : -1);
-      this.estagiarios.add(e);
-      this.physics.add.collider(e, this.platforms);
-      this.physics.add.collider(e, this.furnitureBodies);
-    };
-    boss.onPhase2 = () => {
-      this.hud.setObjective("FASE 2 — Deadline Inadiavel!");
-      const flash = this.add
-        .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xff0000, 0.35)
-        .setScrollFactor(0)
-        .setDepth(990);
-      this.tweens.add({
-        targets: flash,
-        alpha: 0,
-        duration: 600,
-        onComplete: () => flash.destroy(),
-      });
-      // #4 Glow: reddish tint on boss in phase 2
-      boss.setTint(0xff7755);
-    };
-    boss.onDied = () => this.handleGerenteDefeat(boss);
-    this.gerente = boss;
-    this.boss = boss;
-    this.physics.add.collider(boss, this.platforms);
-    this.physics.add.collider(boss, this.furnitureBodies, this.hopOverFurniture);
+    // ── Sem boss na Fase 1 (decisão de design) ────────────────────────────
+    // A Fase 1 é onboarding: ensina o loop (andar/atacar/energia/sanidade/VR) e
+    // a Copa, SEM o muro de um chefe. O 1º boss de verdade é o Coordenador na
+    // Fase 2. O trio da zona 5 (Scrum/Coordenador/Sênior) acima é a "onda final"
+    // leve; a Copa destrava ao CHEGAR NA SAÍDA (ver handlePhase1Complete). O
+    // GerenteMicrogestor fica guardado p/ reaproveitar como boss/elite futuro.
 
     // Feature 3 + 7: Loop difficulty + Heat scaling
     const runNow = getRun(this);
@@ -1167,38 +1101,22 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       }
     }
 
-    this.physics.add.overlap(this.inkProjectiles, boss, (inkObj) => {
-      const ink = inkObj as Phaser.Physics.Arcade.Sprite;
-      if (!ink.active || !this.boss?.active) return;
-      const dmg = (ink.getData("damage") as number) ?? 10;
-      const piercing = (ink.getData("piercing") as boolean) ?? false;
-      this.boss.hit(Math.round(dmg * this.player.damageMult), 0);
-      if (!piercing) ink.destroy();
-    });
+    // (sem boss na Fase 1 → sem overlap ink×boss)
   }
 
-  private handleGerenteDefeat(boss: GerenteMicrogestor): void {
+  // Fase 1 sem boss: "concluída" ao CHEGAR NA SAÍDA (chamado no onPhaseUpdate).
+  // Libera a Copa e dá o mesmo bônus "Expediente Cumprido" se a sala foi limpa.
+  private handlePhase1Complete(): void {
     if (this.bossDefeated) return;
-    this.bossDefeated = true;
+    this.bossDefeated = true; // reusa o flag herdado como "fase liberada"
     Telemetry.bossDefeat(this.scene.key);
     getRun(this).openSpaceCleared = true;
     this.hud.hideBoss();
-    this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
-
-    // Death animation: flash white, shake camera, then shrink+fade
-    boss.setTint(0xffffff);
-    this.cameras.main.shake(350, 0.018);
+    this.hud.setObjective("Expediente encerrado! Copa liberada — [ E ] na porta.");
     this.cameras.main.flash(200, 255, 200, 50, false);
 
-    const dropsPerTick = Math.max(1, Math.round(this.player.vrDropMult));
-    for (let i = 0; i < 18; i++) {
-      this.time.delayedCall(i * 60, () => {
-        this.dropVR(boss.x + Phaser.Math.Between(-70, 70), boss.y - 20, dropsPerTick);
-      });
-    }
-
     // Incentivo de combate (carrot): "EXPEDIENTE CUMPRIDO" — se o jogador chegou
-    // ao boss com a sala praticamente limpa (não fez rush), ganha bônus de VR +
+    // à saída com a sala praticamente limpa (não fez rush), ganha bônus de VR +
     // Sanidade. Não pune quem corre (rush segue válido); só premia quem enfrenta.
     const trashLeft = [
       this.estagiarios,
@@ -1241,19 +1159,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         onComplete: () => bonus.destroy(),
       });
     }
-
-    // Delay destruction so player sees boss die
-    this.tweens.add({
-      targets: boss,
-      scaleY: 0.1,
-      scaleX: 1.4,
-      alpha: 0,
-      duration: 380,
-      ease: "Power2",
-      onComplete: () => {
-        if (boss.scene) boss.destroy();
-      },
-    });
 
     const run = getRun(this);
     run.autonomia = true;
@@ -2218,47 +2123,11 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     }
 
     // Item 8 — Boss room dramatic entry: trigger when player crosses x=1580
-    if (!this.bossEntryTriggered && !this.bossDefeated && this.player.x > 1580) {
-      this.bossEntryTriggered = true;
-      Sfx.bossEntry();
-      this.cameras.main.shake(400, 0.012);
-      this.cameras.main.flash(120, 180, 0, 0, false);
-      const titleCard = this.add
-        .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, "ZONA DE PERIGO", {
-          fontFamily: "monospace",
-          fontSize: "22px",
-          color: "#ff4444",
-          stroke: "#000000",
-          strokeThickness: 4,
-        })
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(995)
-        .setAlpha(0);
-      const sub = this.add
-        .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30, "O Gerente está perto...", {
-          fontFamily: "monospace",
-          fontSize: "13px",
-          color: "#cc3333",
-          stroke: "#000000",
-          strokeThickness: 3,
-        })
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(995)
-        .setAlpha(0);
-      this.tweens.add({ targets: titleCard, alpha: 1, duration: 300 });
-      this.tweens.add({ targets: sub, alpha: 1, duration: 300, delay: 200 });
-      this.tweens.add({
-        targets: [titleCard, sub],
-        alpha: 0,
-        duration: 700,
-        delay: 2200,
-        onComplete: () => {
-          titleCard.destroy();
-          sub.destroy();
-        },
-      });
+    // Fase 1 sem boss: ao ALCANÇAR A SAÍDA (depois da onda final da zona 5, cujo
+    // trio fica em x≈1590/1700/1780), a Copa é liberada. x>1800 = perto da porta.
+    if (!this.bossEntryTriggered && !this.bossDefeated && this.player.x > 1800) {
+      this.bossEntryTriggered = true; // one-shot
+      this.handlePhase1Complete();
     }
 
     // #8 Fake shadows: ellipses drawn just below each entity's feet
