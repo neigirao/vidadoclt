@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { Telemetry } from "../systems/Telemetry";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import { addPhaseBackground } from "../systems/Background";
@@ -43,6 +44,7 @@ export class CeoScene extends Phaser.Scene {
   }
 
   create() {
+    Telemetry.phaseEnter(this.scene.key);
     const run = getRun(this);
     this.platIdx = 0;
     this.startTimeMs = this.time.now;

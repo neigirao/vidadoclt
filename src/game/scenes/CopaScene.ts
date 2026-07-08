@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { Telemetry } from "../systems/Telemetry";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
@@ -45,6 +46,7 @@ export class CopaScene extends Phaser.Scene {
   }
 
   create() {
+    Telemetry.phaseEnter(this.scene.key);
     const run = getRun(this);
     this.startTimeMs = this.time.now;
     Music.start("copa");

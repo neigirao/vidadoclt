@@ -12,6 +12,7 @@ import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CulturaId, reapplyAllCulturas, selectableCulturaIds } from "../systems/CulturaSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
+import { Telemetry } from "../systems/Telemetry";
 import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
@@ -267,6 +268,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     const pn = this.getPhaseNumber();
     if (pn !== null) addPhaseDecor(this, pn, FLOOR_Y);
     addPhaseAmbience(this, HUD_TOP_H, FLOOR_Y); // poeira + luzes falhando
+    Telemetry.phaseEnter(this.scene.key);
 
     // 2. Platforms + furnitureBodies, floor, platform layout
     this.platforms = this.physics.add.staticGroup();
@@ -662,6 +664,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
   protected handleBossDefeat() {
     this.bossDefeated = true;
+    Telemetry.bossDefeat(this.scene.key);
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
 

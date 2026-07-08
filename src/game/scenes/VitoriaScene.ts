@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { Telemetry } from "../systems/Telemetry";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { getRun, savePersisted, unlockNgPlus } from "../systems/PlayerState";
 import { Sfx } from "../systems/AudioSystem";
@@ -12,6 +13,7 @@ export class VitoriaScene extends Phaser.Scene {
     const run = getRun(this);
     const reconhecimento = data.reconhecimento ?? run.reconhecimento;
     const loopCount = data.loopCount ?? run.loopCount ?? 1;
+    Telemetry.victory(data.vr ?? run.vr, loopCount);
 
     Sfx.victory();
     // Desbloqueia o New Game+ "Quinta-feira" (disponível no menu e no botão abaixo).

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { Telemetry } from "./Telemetry";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { getRun, RunState } from "./PlayerState";
 import { Sfx } from "./AudioSystem";
@@ -361,6 +362,7 @@ export class ShopUI {
     run.vr -= item.cost;
     if (oneShot) this.bought.add(item.key);
     Sfx.buy();
+    Telemetry.purchase(item.key, item.cost);
     const result = item.apply(run, this);
     if (result === "next") {
       this.close();

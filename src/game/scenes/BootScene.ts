@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { Telemetry } from "../systems/Telemetry";
 import {
   makeFurnitureTextures,
   makeOfficeBackgrounds,
@@ -44,6 +45,7 @@ export class BootScene extends Phaser.Scene {
 
     // Aplica volumes/mudo salvos antes de qualquer áudio tocar.
     applyAudioSettings();
+    Telemetry.newSession();
 
     this.scene.start("MenuScene");
   }

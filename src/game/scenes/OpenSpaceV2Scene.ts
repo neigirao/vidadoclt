@@ -27,6 +27,7 @@ import { HEAT_LEVELS } from "./HoraExtraScene";
 import { CulturaId, selectableCulturaIds } from "../systems/CulturaSystem";
 import { addImage, resolveSprite } from "../systems/SpriteLibrary";
 import { Sfx } from "../systems/AudioSystem";
+import { Telemetry } from "../systems/Telemetry";
 import { Music } from "../systems/MusicSystem";
 import { MeleeHost } from "../systems/MeleeCombat";
 import { ProductivityMeter } from "../systems/ProductivityMeter";
@@ -168,6 +169,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.setupWorldAndCamera();
 
     addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
+    if (run.cameFrom !== "copa") Telemetry.runStart(run.characterClass, run.culturas);
+    Telemetry.phaseEnter(this.scene.key);
     this.spawnDustParticles();
     this.buildClockOverlays();
 
@@ -1177,6 +1180,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   private handleGerenteDefeat(boss: GerenteMicrogestor): void {
     if (this.bossDefeated) return;
     this.bossDefeated = true;
+    Telemetry.bossDefeat(this.scene.key);
     getRun(this).openSpaceCleared = true;
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");

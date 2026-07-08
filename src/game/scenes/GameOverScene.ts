@@ -5,6 +5,7 @@ import { submitScore, phaseLabel } from "../systems/Ranking";
 import { Sfx } from "../systems/AudioSystem";
 import { PERKS, SYNERGIES, PerkId, SynergyId } from "../systems/PerkSystem";
 import { CULTURAS, CulturaId } from "../systems/CulturaSystem";
+import { Telemetry } from "../systems/Telemetry";
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -16,6 +17,9 @@ export class GameOverScene extends Phaser.Scene {
     const cause = data?.cause ?? "energy";
     const reachedScene = data?.reachedScene ?? "OpenSpaceV2Scene";
     const earned = Math.floor(vr * 0.25);
+    // A cena da morte já é a "cena atual" fixada pelo phaseEnter da fase. Não
+    // sobrescrever com reachedScene (que os call sites não passam).
+    Telemetry.death(cause, vr);
     const run = getRun(this);
     run.reconhecimento += earned;
     run.loopCount += 1;
