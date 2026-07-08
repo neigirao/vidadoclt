@@ -118,7 +118,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     return "pxbg-openspace";
   }
   protected getPhaseTitle(): string {
-    return "FASE 1 — OPEN SPACE  [v2]";
+    return "FASE 1 — OPEN SPACE";
   }
   protected getPhaseNumber(): 1 {
     return 1;
@@ -687,7 +687,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       this.cameras.main.flash(60, 255, 20, 20, false);
       this.fx.triggerChromaticHit();
     };
-    this.hud.setPhaseTitle("FASE 1 — OPEN SPACE  [v2]");
+    this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
     this.hud.setObjective("Derrote o Gerente e acesse a Copa");
 
     // Item 1 — medidor de Produtividade + Item 2 — evento APAGÃO (sistemas)

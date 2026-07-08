@@ -271,24 +271,18 @@ export class MenuScene extends Phaser.Scene {
       })
       .setInteractive({ useHandCursor: true });
 
-    // Right: Social + copyright
-    this.add
-      .text(
-        GAME_WIDTH - 20,
-        GAME_HEIGHT - 44,
-        "© 2025 Vida do CLT Inc. / Todos os direitos explorados.",
-        {
-          fontFamily: "monospace",
-          fontSize: "8px",
-          color: TEXT_DIM,
-        },
-      )
-      .setOrigin(1, 0);
+    // Right: Social + copyright — empilhados p/ não sobrepor (o copyright é
+    // largo e alinhado à direita; antes ficava em cima do "Siga-nos:").
+    this.add.text(GAME_WIDTH - 195, GAME_HEIGHT - 52, "Siga-nos:", {
+      fontFamily: "monospace",
+      fontSize: "8px",
+      color: TEXT_DIM,
+    });
 
     const socials = ["𝕏", "TK", "▶", "in"];
     socials.forEach((s, i) => {
       this.add
-        .text(GAME_WIDTH - 180 + i * 30, GAME_HEIGHT - 25, s, {
+        .text(GAME_WIDTH - 180 + i * 30, GAME_HEIGHT - 40, s, {
           fontFamily: "monospace",
           fontSize: "12px",
           color: TEXT_DIM,
@@ -298,11 +292,18 @@ export class MenuScene extends Phaser.Scene {
         .on("pointerout", (obj: Phaser.GameObjects.Text) => obj.setColor(TEXT_DIM));
     });
 
-    this.add.text(GAME_WIDTH - 195, GAME_HEIGHT - 42, "Siga-nos:", {
-      fontFamily: "monospace",
-      fontSize: "8px",
-      color: TEXT_DIM,
-    });
+    this.add
+      .text(
+        GAME_WIDTH - 20,
+        GAME_HEIGHT - 16,
+        "© 2025 Vida do CLT Inc. / Todos os direitos explorados.",
+        {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        },
+      )
+      .setOrigin(1, 0);
   }
 
   update(_time: number, _delta: number) {
