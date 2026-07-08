@@ -149,13 +149,13 @@ export class Phase2Scene extends BasePhaseScene {
     this.coordenadorSpecial(boss.x, boss.y);
   }
 
+  // "REUNIÃO DE ALINHAMENTO": convoca 2 balões de fala que orbitam o Coordenador
+  // durante o telegraph e depois disparam em CRUZ (4 direções). Personalidade:
+  // a reunião sem pauta que ninguém pediu, atirando pautas para todo lado. O
+  // player fura o padrão batendo no Coordenador (ou saindo das linhas de tiro).
   private coordenadorSpecial(bx: number, by: number) {
-    const range = 200;
-    const warn = this.add.circle(bx, by, range, 0xffaa33, 0.16).setDepth(180);
-    const ring = this.add.circle(bx, by, 20, 0x000000, 0).setStrokeStyle(3, 0xffcc44).setDepth(181);
-    this.tweens.add({ targets: ring, radius: range, duration: 560 });
     const label = this.add
-      .text(bx, by - 70, "REUNIÃO DE ALINHAMENTO!", {
+      .text(bx, by - 74, "REUNIÃO DE ALINHAMENTO!", {
         fontFamily: "monospace",
         fontSize: "12px",
         fontStyle: "bold",
@@ -165,25 +165,60 @@ export class Phase2Scene extends BasePhaseScene {
       })
       .setOrigin(0.5)
       .setDepth(400);
-    this.time.delayedCall(600, () => {
-      warn.destroy();
-      ring.destroy();
+
+    // 2 balões orbitando (satélites de "pauta")
+    const balloons = [0, Math.PI].map((phase0) => {
+      const b = this.add
+        .text(bx, by, "💬", { fontFamily: "monospace", fontSize: "20px" })
+        .setOrigin(0.5)
+        .setDepth(401)
+        .setData("phase0", phase0);
+      return b;
+    });
+
+    const orbitR = 54;
+    const start = this.time.now;
+    const orbitEvt = this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        const boss = this.boss;
+        const cx = boss?.active ? boss.x : bx;
+        const cy = boss?.active ? boss.y : by;
+        const el = (this.time.now - start) / 1000;
+        balloons.forEach((b) => {
+          if (!b.active) return;
+          const ang = (b.getData("phase0") as number) + el * 4;
+          b.setPosition(cx + Math.cos(ang) * orbitR, cy + Math.sin(ang) * orbitR);
+        });
+      },
+    });
+
+    // após o telegraph: dispara em cruz de cada balão e limpa
+    this.time.delayedCall(900, () => {
+      orbitEvt.remove();
       label.destroy();
-      this.cameras.main.shake(200, 0.012);
-      const shock = this.add.circle(bx, by, range, 0xaa66ff, 0.4).setDepth(180);
-      this.tweens.add({
-        targets: shock,
-        alpha: 0,
-        duration: 400,
-        onComplete: () => shock.destroy(),
+      const dirs: Array<[number, number]> = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ];
+      balloons.forEach((b) => {
+        if (!b.active) return;
+        const px = b.x;
+        const py = b.y;
+        dirs.forEach(([dx, dy]) => {
+          this.spawnEnemyProjectile(px, py, px + dx * 260, py + dy * 260, 12, 0xffcc44, 260);
+        });
+        this.tweens.add({
+          targets: b,
+          scale: 1.6,
+          alpha: 0,
+          duration: 220,
+          onComplete: () => b.destroy(),
+        });
       });
-      if (
-        !this.player.isInvulnerable(this.time.now) &&
-        Phaser.Math.Distance.Between(this.player.x, this.player.y, bx, by) < range
-      ) {
-        this.player.takeDamage(16, 12, bx);
-        this.player.applyFreeze(700);
-      }
     });
   }
 }

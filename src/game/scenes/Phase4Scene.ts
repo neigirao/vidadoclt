@@ -227,6 +227,84 @@ export class Phase4Scene extends BasePhaseScene {
     );
   }
 
+  private nextSprintAt = 0;
+
+  // "SPRINT REVIEW": a cada ~8s com o Scrum engajado, sobem 2 grades de firewall
+  // que dividem a arena. Telegrafadas (aviso ciano) antes de fechar; ficar na
+  // coluna quando ela sela → dano + freeze (deploy travado). Personalidade de TI:
+  // o firewall que separa você do objetivo bem na hora errada.
+  private sprintReview(time: number) {
+    const boss = this.boss;
+    if (!boss || !boss.active) return;
+    if (Math.abs(this.player.x - boss.x) > 560) return;
+    if (this.nextSprintAt === 0) this.nextSprintAt = time + 5000;
+    if (time < this.nextSprintAt) return;
+    this.nextSprintAt = time + 8000;
+
+    // 2 grades entre o player e o boss (posições fixas relativas à arena)
+    const cols = [boss.x - 360, boss.x - 180].map((x) =>
+      Phaser.Math.Clamp(x, 200, LEVEL_WIDTH - 200),
+    );
+    const label = this.add
+      .text(boss.x, boss.y - 74, "SPRINT REVIEW!", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: "#33ddff",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(400);
+    this.time.delayedCall(900, () => label.destroy());
+
+    cols.forEach((cx) => {
+      const h = 190;
+      const warn = this.add.rectangle(cx, FLOOR_Y - h / 2, 14, h, 0x33ddff, 0.18).setDepth(180);
+      this.time.delayedCall(620, () => {
+        warn.destroy();
+        // grade "firewall" fecha por 900ms
+        const wall = this.add.rectangle(cx, FLOOR_Y - h / 2, 14, h, 0x33ddff, 0.55).setDepth(200);
+        const grid = this.add
+          .text(cx, FLOOR_Y - h / 2, "▦\n▦\n▦\n▦", {
+            fontFamily: "monospace",
+            fontSize: "13px",
+            color: "#66eeff",
+          })
+          .setOrigin(0.5)
+          .setDepth(201);
+        const sealedUntil = this.time.now + 900;
+        const dmgEvt = this.time.addEvent({
+          delay: 60,
+          loop: true,
+          callback: () => {
+            if (this.time.now >= sealedUntil) {
+              dmgEvt.remove();
+              this.tweens.add({
+                targets: [wall, grid],
+                alpha: 0,
+                duration: 200,
+                onComplete: () => {
+                  wall.destroy();
+                  grid.destroy();
+                },
+              });
+              return;
+            }
+            if (!this.player.isInvulnerable(this.time.now) && Math.abs(this.player.x - cx) < 18) {
+              this.player.takeDamage(12, this.player.x < cx ? -10 : 10, cx);
+              this.player.applyFreeze(400);
+            }
+          },
+        });
+      });
+    });
+  }
+
+  protected onPhaseUpdate(time: number, _delta: number) {
+    this.sprintReview(time);
+  }
+
   protected onEnemyKilledByMelee(e: GameEnemy) {
     this.tweens.add({
       targets: e,
