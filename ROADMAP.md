@@ -43,6 +43,8 @@ itens de engenharia do `CLAUDE.md`.
 
 ### Conteúdo de jogo (GDD — lacunas reais)
 
+- **Fundos de alta-res das Fases 3/4/5** — 🟡 _em andamento (arte externa)_: Fases 1 e 2 têm fundos ricos (~1.5 MB); Fases 3/4/5 usam PNGs baixa-res (32–40 KB, `bg-comercial`/`bg-tecnologia`/`bg-diretoria`). O dono está **gerando fundos novos** com o prompt de referência (estilo Fase 1/2). **Fase 3 (RH) já gerada** — falta o dono subir como `public/assets/bg-comercial.png` no repo (a chave já é carregada; troca sem código). Depois: Fase 4 → `bg-tecnologia.png`, Fase 5 → `bg-diretoria.png`. Ao receber, validar render + enquadramento no bot.
+
 - **Ramificação de rotas**: 🟢 _feita (fundação das duas bifurcações)_ — `RouteSelectScene` após a Fase 1 (2A Comercial / 2B Atendimento → `run.route`) **e** após a Fase 2 (3A Produto / 3B Tecnologia → `run.route2`), cada rota com um modificador de run. Falta só as **fases divergentes de verdade** (conteúdo distinto por rota, dependente de arte/level design).
 - **Bosses únicos das Fases 2–5** — 🟢 _mecânica pronta_: cada fase tem um chefão temático com repertório telegrafado — Coordenador de Sinergia (F2: balões orbitando + tiro em cruz), Brenda do RH (F3: zonas de sorriso obrigatório + feedback dirigido), Scrum Master Caótico (F4: firewall dividindo a arena + Daily/Retro), Diretor de Resultados (F5: meta que estoura + reestruturação). CEO é a cena final.
   - **PENDENTE — "cara de chefão" (arte):** os 5 bosses ainda **reusam sprite de inimigo comum** (evangelista/rh/scrum/coordenador). Falta identidade de chefe: **escala maior, silhueta única e tint/paleta próprios** (idealmente sprite dedicado; no mínimo upscale + aura + variação de cor). **Buraco visual nº 1** do jogo.
