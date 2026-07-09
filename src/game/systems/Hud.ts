@@ -91,6 +91,7 @@ export class Hud {
 
   // Section 2 graphics
   private weaponNameT!: Phaser.GameObjects.Text;
+  private secondaryWeaponT!: Phaser.GameObjects.Text;
   private specialNameT!: Phaser.GameObjects.Text;
   private dashCooldownG!: Phaser.GameObjects.Graphics;
   private parryLabelT!: Phaser.GameObjects.Text;
@@ -584,6 +585,16 @@ export class Hud {
     );
     this.botContainer.add(this.specialNameT);
 
+    // Arma secundária (troca com Q) — só aparece quando há uma 2ª arma.
+    this.secondaryWeaponT = this.scene.add
+      .text(S2_X + 6, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 24, "", {
+        fontFamily: F,
+        fontSize: "9px",
+        color: "#88bbff",
+      })
+      .setVisible(false);
+    this.botContainer.add(this.secondaryWeaponT);
+
     // Dash cooldown overlay graphics (draw over slot index 2, i.e. 3rd slot — SHIFT/DASH)
     this.dashCooldownG = this.scene.add.graphics();
     this.botContainer.add(this.dashCooldownG);
@@ -1042,6 +1053,15 @@ export class Hud {
 
   setSpecial(name: string) {
     this.specialNameT.setText(name.toUpperCase());
+  }
+
+  /** Mostra/oculta a 2ª arma (label já formatado, ex.: "[Q] 📎"). null = oculta. */
+  setSecondaryWeapon(label: string | null) {
+    if (!label) {
+      this.secondaryWeaponT.setVisible(false);
+      return;
+    }
+    this.secondaryWeaponT.setText(label).setVisible(true);
   }
 
   setObjective(text: string) {

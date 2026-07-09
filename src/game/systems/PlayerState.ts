@@ -22,6 +22,7 @@ export type RunState = {
   nextScene?: string;
   characterClass?: string;
   weaponId?: string;
+  secondaryWeaponId?: string | null; // 2ª arma carregada (troca com Q)
   perks?: PerkId[];
   culturas?: CulturaId[];
   extraLives?: number;

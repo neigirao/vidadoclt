@@ -48,6 +48,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected inkProjectiles!: Phaser.Physics.Arcade.Group;
   protected enemyProjectiles!: Phaser.Physics.Arcade.Group;
   protected drops!: Phaser.Physics.Arcade.Group;
+  /** Armas largadas no chão — pegar com E (troca/adiciona ao slot secundário). */
+  protected weaponPickups: { weaponId: WeaponId; obj: Phaser.GameObjects.Container }[] = [];
+  private nearestPickup?: { weaponId: WeaponId; obj: Phaser.GameObjects.Container };
   /** Cafezinhos — pickup que restaura Sanidade (contra-jogo do Burnout). */
   protected sanityDrops!: Phaser.Physics.Arcade.Group;
   protected boss?: BossEntity;
@@ -139,6 +142,18 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.player.parryEnergyRestore = run.upgParryEnergyRestore ?? 0;
     this.player.parryVrDrop = run.upgParryVrDrop ?? 0;
     if ((run.upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
+
+    // 2ª arma (slot secundário, troca com Q). onSecondarySwap refaz os stats
+    // do jogador para a arma agora ativa e persiste no run.
+    this.player.secondaryWeaponId = run.secondaryWeaponId ?? null;
+    this.player.onSecondarySwap = () => {
+      this.applyWeaponStats(this.player.weaponId as WeaponId);
+      const r = getRun(this);
+      r.weaponId = this.player.weaponId;
+      r.secondaryWeaponId = this.player.secondaryWeaponId;
+      this.updateSecondaryHud();
+      Sfx.buy();
+    };
 
     if (run.cameFrom === "copa") {
       this.player.energy = run.energy;
@@ -357,6 +372,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       const wdef = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
       this.hud.setWeapon(`${WEAPON_ICONS[wdef.id]} ${wdef.name}`);
       this.hud.setSpecial(wdef.specialName);
+      this.updateSecondaryHud();
     }
 
     // 8. Subclass populates this.enemyGroups and this.boss
@@ -479,6 +495,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         if (died) {
           this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
           this.rollSanityDrop(enemy.x, enemy.y);
+          this.rollWeaponDrop(enemy.x, enemy.y);
           enemy.destroy();
           this.onEnemyKilledByProjectile(enemy);
         }
@@ -641,7 +658,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 5. Sanity FX
     this.fx.update(time, this.player.sanity);
 
-    // 6. Near-door check
+    // 6. Weapon pickups (proximidade + E) + near-door check
+    this.updateWeaponPickups();
     const nearDoor =
       this.bossDefeated &&
       Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorEl.x, this.doorEl.y) < 40;
@@ -658,7 +676,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       time,
       startTime: this.startTimeMs,
       playerX: this.player.x,
-      interactHint: nearDoor ? `[ E ]  ${this.getDoorConfig().nearLabel}` : undefined,
+      interactHint: nearDoor
+        ? `[ E ]  ${this.getDoorConfig().nearLabel}`
+        : this.nearestPickup
+          ? `[ E ]  Pegar ${WEAPONS[this.nearestPickup.weaponId].name}`
+          : undefined,
       dashCooldown: this.player.getDashCooldownRatio(time),
       perks: run.perks,
       burnoutMods: this.player.getBurnoutMods(),
@@ -674,12 +696,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
 
     if (this.boss?.active) {
+      const bx = this.boss.x;
       for (let i = 0; i < 12; i++) {
         this.time.delayedCall(i * 60, () => {
           if (this.boss) this.dropVR(this.boss.x + Phaser.Math.Between(-60, 60), this.boss.y - 20);
         });
       }
       (this.boss as Phaser.Physics.Arcade.Sprite).destroy();
+      this.dropBossWeapon(bx); // recompensa garantida: arma do chefão
     }
 
     savePersisted(getRun(this).reconhecimento, getRun(this).fgts, getRun(this).loopCount);
@@ -736,6 +760,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         onBossDied: () => this.handleBossDefeat(),
         onEnemyKilled: (e) => {
           this.rollSanityDrop(e.x, e.y);
+          this.rollWeaponDrop(e.x, e.y);
           this.onEnemyKilledByMelee(e);
         },
       };
@@ -1116,6 +1141,157 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     4: "O deploy é sexta. A culpa também.",
     5: "O andar da diretoria. O ar é mais rarefeito aqui.",
   };
+
+  // ── Armas largadas no chão (pickup no meio da fase) ─────────────────────────
+  private static RARITY_COLOR: Record<string, number> = {
+    comum: 0xaaaaaa,
+    raro: 0x4a90d0,
+    epico: 0xa060d0,
+    lendario: 0xf2c14e,
+  };
+
+  /** Aplica os stats de uma arma ao player e reflete no HUD (usado no pickup/swap). */
+  protected applyWeaponStats(weaponId: WeaponId) {
+    const w = WEAPONS[weaponId] ?? WEAPONS.grampeador;
+    this.player.weaponId = weaponId;
+    this.player.attackRange = w.attackRange;
+    this.player.specialCooldown = w.specialCooldown;
+    this.player.specialType = w.specialType;
+    this.player.hitAutoRanged = w.hitAutoRanged;
+    this.player.isRangedPrimary = w.type === "ranged";
+    this.player.comboHits = w.type === "melee" && w.hitDamages[2] === 0 ? 2 : 3;
+    if ((getRun(this).upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
+    this.player.attackIntervalMs = Math.round(220 / (w.attackSpeedMult ?? 1));
+    this.hud?.setWeapon(`${WEAPON_ICONS[weaponId]} ${w.name}`);
+    this.hud?.setSpecial(w.specialName);
+  }
+
+  private updateSecondaryHud() {
+    const sec = this.player.secondaryWeaponId as WeaponId | null;
+    this.hud?.setSecondaryWeapon(sec ? `[Q] ${WEAPON_ICONS[sec]} ${WEAPONS[sec].name}` : null);
+  }
+
+  /** Larga uma arma no chão como pickup flutuante (peg com E). */
+  protected dropWeapon(x: number, weaponId: WeaponId) {
+    const w = WEAPONS[weaponId];
+    if (!w) return;
+    const px = Phaser.Math.Clamp(x, 40, LEVEL_WIDTH - 40);
+    const py = FLOOR_Y - 18;
+    const color = BasePhaseScene.RARITY_COLOR[w.rarity] ?? 0xffffff;
+    const glow = this.add.circle(0, 0, 15, color, 0.35).setBlendMode(Phaser.BlendModes.ADD);
+    const ring = this.add.circle(0, 0, 15, 0x000000, 0).setStrokeStyle(2, color, 0.9);
+    const icon = this.add
+      .text(0, 0, WEAPON_ICONS[weaponId], { fontFamily: "monospace", fontSize: "20px" })
+      .setOrigin(0.5);
+    const c = this.add.container(px, py, [glow, ring, icon]).setDepth(60);
+    this.tweens.add({
+      targets: c,
+      y: py - 8,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    this.tweens.add({
+      targets: [glow, ring],
+      alpha: 0.15,
+      scaleX: 1.25,
+      scaleY: 1.25,
+      duration: 700,
+      yoyo: true,
+      repeat: -1,
+    });
+    this.weaponPickups.push({ weaponId, obj: c });
+  }
+
+  /** Recompensa garantida do chefão: larga uma arma (viés p/ upgrade). */
+  protected dropBossWeapon(x: number) {
+    const wid = this.rollUpgradeWeapon(this.player.weaponId as WeaponId);
+    if (wid) this.dropWeapon(x, wid);
+  }
+
+  /** Chance rara de largar uma arma ao matar um inimigo (variedade dentro da run). */
+  protected rollWeaponDrop(x: number, _y: number) {
+    if (Math.random() > 0.045) return; // ~4.5% por kill
+    const wid = this.rollUpgradeWeapon(this.player.weaponId as WeaponId);
+    if (wid) this.dropWeapon(x, wid);
+  }
+
+  /** Sorteia uma arma diferente da atual, com viés para tier igual/superior. */
+  private rollUpgradeWeapon(currentId: WeaponId): WeaponId | null {
+    const cur = WEAPONS[currentId];
+    const pool = (Object.keys(WEAPONS) as WeaponId[]).filter(
+      (id) => id !== currentId && WEAPONS[id].shopCost > 0, // exclui iniciais/lendária-drop-only
+    );
+    if (!pool.length) return null;
+    const better = pool.filter((id) => WEAPONS[id].shopCost >= (cur?.shopCost ?? 0));
+    const chosen = better.length && Math.random() < 0.7 ? better : pool;
+    return chosen[Math.floor(Math.random() * chosen.length)];
+  }
+
+  /** Checa proximidade do player com pickups e equipa ao apertar E. */
+  protected updateWeaponPickups() {
+    let nearest: { weaponId: WeaponId; obj: Phaser.GameObjects.Container } | undefined;
+    // Raio generoso: o item fica no chão e o player flutua ~42px acima dele,
+    // então mesmo em cima a distância de centro já passa de 40.
+    let best = 66;
+    for (const p of this.weaponPickups) {
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, p.obj.x, p.obj.y);
+      if (d < best) {
+        best = d;
+        nearest = p;
+      }
+    }
+    this.nearestPickup = nearest;
+    if (nearest && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      this.equipPickup(nearest);
+    }
+  }
+
+  private equipPickup(p: { weaponId: WeaponId; obj: Phaser.GameObjects.Container }) {
+    const newId = p.weaponId;
+    const oldPrimary = this.player.weaponId as WeaponId;
+    if (newId !== oldPrimary) {
+      const oldSecondary = this.player.secondaryWeaponId as WeaponId | null;
+      // nova vira primária; a primária atual vai para o slot secundário
+      this.player.secondaryWeaponId = oldPrimary;
+      this.applyWeaponStats(newId);
+      const r = getRun(this);
+      r.weaponId = newId;
+      r.secondaryWeaponId = this.player.secondaryWeaponId;
+      // se já havia uma 2ª arma, ela cai de volta no chão (não se perde)
+      if (oldSecondary && oldSecondary !== newId) this.dropWeapon(this.player.x + 44, oldSecondary);
+      this.updateSecondaryHud();
+      Sfx.buy();
+      this.showPickupToast(`Equipado: ${WEAPONS[newId].name}   ([Q] troca)`);
+    }
+    p.obj.destroy();
+    this.weaponPickups = this.weaponPickups.filter((w) => w !== p);
+    this.nearestPickup = undefined;
+  }
+
+  private showPickupToast(text: string) {
+    const t = this.add
+      .text(GAME_WIDTH / 2, 150, text, {
+        fontFamily: "monospace",
+        fontSize: "13px",
+        color: "#88bbff",
+        stroke: "#000000",
+        strokeThickness: 3,
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(999);
+    this.tweens.add({
+      targets: t,
+      alpha: 0,
+      y: 130,
+      duration: 900,
+      delay: 1400,
+      onComplete: () => t.destroy(),
+    });
+  }
 
   /** Cartão de abertura da fase: relógio (loop até 18h) + título + flavor. */
   protected showPhaseIntroCard() {

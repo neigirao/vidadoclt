@@ -289,12 +289,14 @@ export class Phase5Scene extends BasePhaseScene {
     this.hud.setObjective("Acesso ao CEO liberado! Use [ E ] na porta.");
 
     if (this.boss?.active) {
+      const bx = this.boss.x;
       for (let i = 0; i < 12; i++) {
         this.time.delayedCall(i * 60, () => {
           if (this.boss) this.dropVR(this.boss.x + Phaser.Math.Between(-60, 60), this.boss.y - 20);
         });
       }
       (this.boss as Phaser.Physics.Arcade.Sprite).destroy();
+      this.dropBossWeapon(bx);
     }
 
     savePersisted(getRun(this).reconhecimento, getRun(this).fgts, getRun(this).loopCount);
