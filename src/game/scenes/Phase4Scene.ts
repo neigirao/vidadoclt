@@ -40,14 +40,18 @@ export class Phase4Scene extends BasePhaseScene {
     return "Derrote o Scrum Master e avance";
   }
 
+  // Identidade "Torres de Servidor": pares empilhados (degrau baixo + topo alto)
+  // separados por vãos largos — pilares de rack no data center. O firewall do
+  // Scrum ("Sprint Review") corta o chão entre as torres.
   protected getPlatformLayout(): Array<[number, number, number]> {
     return [
-      [180, FLOOR_Y - 30, 5],
-      [450, FLOOR_Y - 72, 4],
-      [750, FLOOR_Y - 30, 6],
-      [1080, FLOOR_Y - 72, 5],
-      [1380, FLOOR_Y - 30, 6],
-      [1660, FLOOR_Y - 72, 4],
+      [220, FLOOR_Y - 42, 3],
+      [360, FLOOR_Y - 82, 3],
+      [720, FLOOR_Y - 42, 3],
+      [860, FLOOR_Y - 82, 3],
+      [1160, FLOOR_Y - 42, 3],
+      [1300, FLOOR_Y - 82, 3],
+      [1600, FLOOR_Y - 48, 4],
     ];
   }
 

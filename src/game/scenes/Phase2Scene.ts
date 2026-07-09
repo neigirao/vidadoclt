@@ -38,14 +38,19 @@ export class Phase2Scene extends BasePhaseScene {
     return "Derrote o Coordenador e avance";
   }
 
+  // Identidade "Baias": muitas plataformas BAIXAS e CURTAS bem próximas — o chão
+  // de call center apertado, cheio de divisórias de cubículo. Pulinhos rápidos e
+  // encadeados em vez de grandes saltos.
   protected getPlatformLayout(): Array<[number, number, number]> {
     return [
-      [200, FLOOR_Y - 30, 5],
-      [460, FLOOR_Y - 72, 4],
-      [700, FLOOR_Y - 30, 5],
-      [1000, FLOOR_Y - 72, 6],
-      [1350, FLOOR_Y - 30, 5],
-      [1620, FLOOR_Y - 72, 4],
+      [180, FLOOR_Y - 34, 3],
+      [380, FLOOR_Y - 52, 3],
+      [580, FLOOR_Y - 34, 3],
+      [800, FLOOR_Y - 52, 3],
+      [1000, FLOOR_Y - 34, 3],
+      [1220, FLOOR_Y - 52, 3],
+      [1420, FLOOR_Y - 34, 3],
+      [1620, FLOOR_Y - 52, 3],
     ];
   }
 

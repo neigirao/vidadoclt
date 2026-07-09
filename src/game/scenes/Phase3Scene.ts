@@ -42,14 +42,17 @@ export class Phase3Scene extends BasePhaseScene {
     return "Derrote a Brenda do RH e avance";
   }
 
+  // Identidade "Escada da Carreira": plataformas que SOBEM da esquerda para a
+  // direita — o discurso de RH de "crescer na empresa". Premia subir; os aéreos
+  // (Coletor) pressionam quem fica no alto.
   protected getPlatformLayout(): Array<[number, number, number]> {
     return [
-      [220, FLOOR_Y - 30, 5],
-      [500, FLOOR_Y - 72, 4],
-      [760, FLOOR_Y - 30, 6],
-      [1050, FLOOR_Y - 72, 5],
-      [1320, FLOOR_Y - 30, 6],
-      [1600, FLOOR_Y - 72, 4],
+      [220, FLOOR_Y - 30, 4],
+      [470, FLOOR_Y - 44, 4],
+      [720, FLOOR_Y - 58, 4],
+      [980, FLOOR_Y - 70, 4],
+      [1240, FLOOR_Y - 82, 4],
+      [1520, FLOOR_Y - 84, 5],
     ];
   }
 

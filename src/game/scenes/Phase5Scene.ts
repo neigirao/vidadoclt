@@ -41,14 +41,15 @@ export class Phase5Scene extends BasePhaseScene {
     return "Derrote o Diretor de Resultados";
   }
 
+  // Identidade "Átrio Executivo": poucas plataformas GRANDES com vãos LARGOS —
+  // o mezanino aberto e luxuoso da diretoria. Cruzar a rota alta exige dash. A
+  // "Reestruturação" do Diretor troca os lados desse átrio.
   protected getPlatformLayout(): Array<[number, number, number]> {
     return [
-      [200, FLOOR_Y - 30, 5],
-      [520, FLOOR_Y - 72, 4],
-      [820, FLOOR_Y - 30, 6],
-      [1120, FLOOR_Y - 72, 5],
-      [1400, FLOOR_Y - 30, 6],
-      [1700, FLOOR_Y - 72, 4],
+      [240, FLOOR_Y - 40, 6],
+      [660, FLOOR_Y - 70, 5],
+      [1080, FLOOR_Y - 70, 5],
+      [1500, FLOOR_Y - 44, 6],
     ];
   }
 
