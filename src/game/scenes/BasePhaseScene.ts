@@ -5,6 +5,7 @@ import {
   addPhaseAmbience,
   addPhaseBackground,
   addPhaseDecor,
+  addPhaseParticles,
   addThemedFloorDecor,
 } from "../systems/Background";
 import { resolveSprite } from "../systems/SpriteLibrary";
@@ -276,6 +277,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       addThemedFloorDecor(this, pn, FLOOR_Y); // prop de chão próprio da fase
     }
     addPhaseAmbience(this, HUD_TOP_H, FLOOR_Y); // poeira + luzes falhando
+    if (pn !== null) addPhaseParticles(this, pn, HUD_TOP_H, FLOOR_Y); // partículas da fase
     Telemetry.phaseEnter(this.scene.key);
 
     // 2. Platforms + furnitureBodies, floor, platform layout

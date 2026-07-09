@@ -118,6 +118,99 @@ export function addPhaseDecor(scene: Phaser.Scene, phase: 1 | 2 | 3 | 4 | 5, flo
   });
 }
 
+// Partículas ambientes TEMÁTICAS por fase — camada leve camera-space que
+// complementa a poeira branca genérica com cor + movimento próprios da fase.
+type PhaseFx = {
+  color: number;
+  count: number;
+  dir: "fall" | "rise" | "drift"; // sentido dominante da deriva
+  size: [number, number];
+  alpha: [number, number];
+  square?: boolean; // partícula quadrada (papel/confete) vs. redonda (faísca)
+};
+const PHASE_FX: Record<number, PhaseFx> = {
+  // Call center: papéis/roteiros à deriva no ar.
+  2: {
+    color: 0xe8e0c8,
+    count: 14,
+    dir: "drift",
+    size: [1.4, 2.6],
+    alpha: [0.06, 0.16],
+    square: true,
+  },
+  // RH/Endomarketing: confete de "campanha motivacional" caindo devagar.
+  3: { color: 0xff88bb, count: 18, dir: "fall", size: [1.5, 3], alpha: [0.1, 0.24], square: true },
+  // TI: faíscas elétricas subindo (equipamento estressado).
+  4: { color: 0x66ddff, count: 16, dir: "rise", size: [0.8, 1.8], alpha: [0.12, 0.3] },
+  // Diretoria: poeira dourada de luxo pairando.
+  5: { color: 0xe8cf95, count: 14, dir: "drift", size: [1, 2.2], alpha: [0.08, 0.2] },
+};
+
+/**
+ * Adiciona a camada de partículas temáticas da fase (camera-space, depth 2).
+ * Cor e sentido de movimento variam por fase. Puramente decorativo.
+ */
+export function addPhaseParticles(
+  scene: Phaser.Scene,
+  phase: 1 | 2 | 3 | 4 | 5,
+  topY: number,
+  floorY: number,
+): void {
+  const fx = PHASE_FX[phase];
+  if (!fx) return;
+  const bandTop = topY + 6;
+  const bandH = floorY - topY - 12;
+  for (let i = 0; i < fx.count; i++) {
+    const x = Phaser.Math.Between(0, GAME_WIDTH);
+    const y = Phaser.Math.Between(bandTop, bandTop + bandH);
+    const s = Phaser.Math.FloatBetween(fx.size[0], fx.size[1]);
+    const a = Phaser.Math.FloatBetween(fx.alpha[0], fx.alpha[1]);
+    const p = fx.square
+      ? scene.add.rectangle(x, y, s * 2, s * 2, fx.color, a)
+      : scene.add.circle(x, y, s, fx.color, a);
+    p.setScrollFactor(0).setDepth(2);
+    if (fx.dir !== "drift") p.setBlendMode(Phaser.BlendModes.ADD);
+    // deriva vertical dominante (queda/subida) OU vai-e-vem (drift)
+    const vy = fx.dir === "fall" ? bandH + 20 : fx.dir === "rise" ? -(bandH + 20) : 0;
+    if (vy !== 0) {
+      const travel = () => {
+        p.y = fx.dir === "fall" ? bandTop - 10 : bandTop + bandH + 10;
+        p.x = Phaser.Math.Between(0, GAME_WIDTH);
+        scene.tweens.add({
+          targets: p,
+          y: p.y + vy,
+          x: p.x + Phaser.Math.Between(-30, 30),
+          duration: Phaser.Math.Between(4200, 8000),
+          ease: "Sine.easeInOut",
+          onComplete: travel,
+        });
+      };
+      scene.time.delayedCall(Phaser.Math.Between(0, 4000), travel);
+    } else {
+      scene.tweens.add({
+        targets: p,
+        y: y + Phaser.Math.Between(-24, 24),
+        x: x + Phaser.Math.Between(-18, 18),
+        duration: Phaser.Math.Between(3600, 7000),
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+        delay: Phaser.Math.Between(0, 2500),
+      });
+    }
+    // cintila
+    scene.tweens.add({
+      targets: p,
+      alpha: 0,
+      duration: Phaser.Math.Between(1800, 3600),
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+      delay: Phaser.Math.Between(0, 2500),
+    });
+  }
+}
+
 // Prop de chão TEMÁTICO por fase (desenhado no TextureFactory). Reforça a
 // identidade visual junto com a superfície de plataforma. Puramente decorativo.
 const PHASE_THEMED_DECOR: Record<number, { key: string; xs: number[] }> = {
