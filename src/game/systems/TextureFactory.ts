@@ -157,6 +157,124 @@ export function makeObjectTextures(scene: Phaser.Scene): void {
   makeExtintor(scene);
   // tex-quadro-motivacional, tex-pilha-docs, tex-caixa-papel,
   // tex-planta-deco, tex-bebedouro-deco now loaded from PNG sprites in BootScene
+
+  // Props de chão TEMÁTICOS por fase (decor puramente visual):
+  makeHeadsetDecor(scene); // Fase 2 — call center
+  makeStandeeDecor(scene); // Fase 3 — banner motivacional de RH
+  makeCablesDecor(scene); // Fase 4 — rolo de cabos de rede
+  makeTrofeuDecor(scene); // Fase 5 — troféu dourado
+}
+
+// Fase 2 (call center): headset abandonado no chão.
+function makeHeadsetDecor(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // arco do headband
+  gr.fillStyle(0x1c1c22, 1);
+  gr.fillRect(4, 2, 16, 3);
+  gr.fillRect(3, 4, 2, 8);
+  gr.fillRect(19, 4, 2, 8);
+  gr.fillStyle(0x3a3a44, 1);
+  gr.fillRect(5, 3, 14, 1); // brilho
+  // conchas
+  gr.fillStyle(0x2a2a32, 1);
+  gr.fillRect(1, 10, 6, 7);
+  gr.fillRect(17, 10, 6, 7);
+  gr.fillStyle(0x4a90d0, 1);
+  gr.fillRect(2, 11, 4, 2); // espuma azul
+  gr.fillRect(18, 11, 4, 2);
+  // microfone
+  gr.fillStyle(0x1c1c22, 1);
+  gr.fillRect(7, 15, 8, 1);
+  gr.fillRect(14, 15, 1, 4);
+  gr.fillStyle(0xff5030, 1);
+  gr.fillRect(13, 18, 3, 2); // bola do mic
+  outline(gr, 24, 20);
+  gr.generateTexture("tex-decor-headset", 24, 20);
+  gr.destroy();
+}
+
+// Fase 3 (RH): standee/placa motivacional de chão com seta pra cima.
+function makeStandeeDecor(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // pé/base
+  gr.fillStyle(0x2a2a2a, 1);
+  gr.fillRect(11, 34, 6, 6);
+  gr.fillRect(6, 39, 16, 2);
+  // placa
+  gr.fillStyle(0xf0e6cf, 1);
+  gr.fillRect(2, 0, 24, 34);
+  gr.fillStyle(0xffffff, 1);
+  gr.fillRect(3, 1, 22, 2); // topo iluminado
+  // moldura bordô (tema RH)
+  gr.fillStyle(0x7a2e3a, 1);
+  gr.fillRect(2, 0, 24, 2);
+  gr.fillRect(2, 32, 24, 2);
+  gr.fillRect(2, 0, 2, 34);
+  gr.fillRect(24, 0, 2, 34);
+  // seta verde "crescer" (gráfico de meta)
+  gr.fillStyle(0x2f9e44, 1);
+  gr.fillRect(6, 24, 3, 3);
+  gr.fillRect(10, 20, 3, 3);
+  gr.fillRect(14, 15, 3, 3);
+  gr.fillRect(18, 9, 3, 3);
+  gr.fillStyle(0x40c060, 1);
+  gr.fillRect(17, 6, 6, 2); // ponta da seta
+  gr.fillRect(21, 6, 2, 6);
+  outline(gr, 28, 41);
+  gr.generateTexture("tex-decor-standee", 28, 41);
+  gr.destroy();
+}
+
+// Fase 4 (TI): rolo de cabos de rede com conectores coloridos.
+function makeCablesDecor(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // rolo de cabo (elipse achatada)
+  gr.fillStyle(0x1a1e22, 1);
+  gr.fillRect(2, 6, 24, 9);
+  gr.fillRect(4, 4, 20, 12);
+  gr.fillStyle(0x2c3238, 1);
+  gr.fillRect(6, 6, 16, 3); // brilho do topo do rolo
+  // voltas do cabo
+  gr.fillStyle(0x0e1013, 1);
+  gr.fillRect(6, 10, 16, 1);
+  gr.fillRect(5, 12, 18, 1);
+  // conectores RJ45 saindo
+  gr.fillStyle(0x2f9e44, 1);
+  gr.fillRect(0, 13, 4, 3); // conector verde
+  gr.fillStyle(0x1c74d0, 1);
+  gr.fillRect(24, 12, 4, 3); // conector azul
+  gr.fillStyle(0xffb020, 1);
+  gr.fillRect(11, 2, 3, 3); // conector amarelo espetado
+  outline(gr, 28, 16);
+  gr.generateTexture("tex-decor-cabos", 28, 16);
+  gr.destroy();
+}
+
+// Fase 5 (Diretoria): troféu dourado sobre base.
+function makeTrofeuDecor(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  // base
+  gr.fillStyle(0x3a2a12, 1);
+  gr.fillRect(4, 28, 12, 6);
+  gr.fillStyle(0x5a4020, 1);
+  gr.fillRect(5, 28, 10, 2);
+  // haste
+  gr.fillStyle(0xc9a36a, 1);
+  gr.fillRect(9, 22, 2, 6);
+  // taça
+  gr.fillStyle(0xe8cf95, 1);
+  gr.fillRect(3, 4, 14, 10);
+  gr.fillStyle(0xc9a36a, 1);
+  gr.fillRect(3, 12, 14, 4); // fundo da taça (sombra)
+  gr.fillStyle(0xfff0c0, 1);
+  gr.fillRect(4, 5, 3, 7); // brilho vertical
+  // alças
+  gr.fillStyle(0xc9a36a, 1);
+  gr.fillRect(0, 5, 3, 6);
+  gr.fillRect(17, 5, 3, 6);
+  outline(gr, 20, 34);
+  gr.generateTexture("tex-decor-trofeu", 20, 34);
+  gr.destroy();
 }
 
 /** tex-quadro-motivacional (48×56): motivational poster on wall */

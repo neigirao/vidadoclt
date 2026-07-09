@@ -118,6 +118,31 @@ export function addPhaseDecor(scene: Phaser.Scene, phase: 1 | 2 | 3 | 4 | 5, flo
   });
 }
 
+// Prop de chão TEMÁTICO por fase (desenhado no TextureFactory). Reforça a
+// identidade visual junto com a superfície de plataforma. Puramente decorativo.
+const PHASE_THEMED_DECOR: Record<number, { key: string; xs: number[] }> = {
+  2: { key: "tex-decor-headset", xs: [520, 1080, 1500] },
+  3: { key: "tex-decor-standee", xs: [420, 900, 1360] },
+  4: { key: "tex-decor-cabos", xs: [560, 980, 1440] },
+  5: { key: "tex-decor-trofeu", xs: [440, 940, 1420] },
+};
+
+/**
+ * Espalha o prop de chão temático da fase ao longo do piso (depth 1, atrás do
+ * gameplay). Complementa addPhaseDecor com a arte procedural própria da fase.
+ */
+export function addThemedFloorDecor(
+  scene: Phaser.Scene,
+  phase: 1 | 2 | 3 | 4 | 5,
+  floorY: number,
+): void {
+  const def = PHASE_THEMED_DECOR[phase];
+  if (!def || !scene.textures.exists(def.key)) return;
+  def.xs.forEach((x) => {
+    scene.add.image(x, floorY, def.key).setOrigin(0.5, 1).setDepth(1).setAlpha(0.85);
+  });
+}
+
 /**
  * Displays a full-width phase background image.
  *

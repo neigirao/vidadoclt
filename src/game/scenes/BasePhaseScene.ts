@@ -1,7 +1,12 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H, Hud } from "../systems/Hud";
-import { addPhaseAmbience, addPhaseBackground, addPhaseDecor } from "../systems/Background";
+import {
+  addPhaseAmbience,
+  addPhaseBackground,
+  addPhaseDecor,
+  addThemedFloorDecor,
+} from "../systems/Background";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
@@ -266,7 +271,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.setupWorldAndCamera();
     addPhaseBackground(this, this.getBgKey(), HUD_TOP_H, FLOOR_Y);
     const pn = this.getPhaseNumber();
-    if (pn !== null) addPhaseDecor(this, pn, FLOOR_Y);
+    if (pn !== null) {
+      addPhaseDecor(this, pn, FLOOR_Y);
+      addThemedFloorDecor(this, pn, FLOOR_Y); // prop de chão próprio da fase
+    }
     addPhaseAmbience(this, HUD_TOP_H, FLOOR_Y); // poeira + luzes falhando
     Telemetry.phaseEnter(this.scene.key);
 
