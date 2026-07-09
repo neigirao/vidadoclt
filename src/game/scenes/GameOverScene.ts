@@ -117,7 +117,7 @@ export class GameOverScene extends Phaser.Scene {
     const msgs = NARRATORS[cause];
     const narratorMsg = msgs[run.loopCount % msgs.length];
     this.add
-      .text(GAME_WIDTH / 2, 274, narratorMsg, {
+      .text(GAME_WIDTH / 2, 258, narratorMsg, {
         fontFamily: "monospace",
         fontSize: "12px",
         color: "#555555",
@@ -130,7 +130,7 @@ export class GameOverScene extends Phaser.Scene {
     this.add
       .text(
         GAME_WIDTH / 2,
-        336,
+        300,
         [
           `VR coletado:          ${vr}`,
           `Reconhecimento:   +${earned}  (total ${run.reconhecimento})`,
@@ -147,7 +147,7 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // ── Build summary — a "história" desta run (perks + culturas + sinergias) ──
-    this.drawBuildSummary(run, 372);
+    this.drawBuildSummary(run, 342);
 
     // FGTS sacar option (only when there's enough)
     if (run.fgts >= 10) {
@@ -155,7 +155,7 @@ export class GameOverScene extends Phaser.Scene {
       const fgtsBtn = this.add
         .text(
           GAME_WIDTH / 2,
-          GAME_HEIGHT - 152,
+          GAME_HEIGHT - 96,
           `[ SACAR FGTS: ${run.fgts} pts  ->  +${bonus} Reconhecimento ]`,
           { fontFamily: "monospace", fontSize: "13px", color: "#44ff88" },
         )
@@ -182,7 +182,7 @@ export class GameOverScene extends Phaser.Scene {
 
     // Seed display
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 108, `SEED: ${run.seed}`, {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 74, `SEED: ${run.seed}`, {
         fontFamily: "monospace",
         fontSize: "11px",
         color: "#2a4a2a",
@@ -190,16 +190,16 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 93, "O despertador toca.\nE quarta-feira de novo.", {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 56, "O despertador toca.  E quarta-feira de novo.", {
         fontFamily: "monospace",
-        fontSize: "13px",
+        fontSize: "12px",
         color: "#444444",
         align: "center",
       })
       .setOrigin(0.5);
 
     const btn = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 54, "[ BATER O PONTO  —  ENTER ]", {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, "[ BATER O PONTO  —  ENTER ]", {
         fontFamily: "monospace",
         fontSize: "18px",
         color: "#f2c14e",
@@ -221,7 +221,7 @@ export class GameOverScene extends Phaser.Scene {
     reachedScene: string,
     characterClass?: string,
   ) {
-    const y = 310;
+    const y = 390;
     this.add
       .text(GAME_WIDTH / 2, y, "SALVAR NO RANKING", {
         fontFamily: "monospace",
