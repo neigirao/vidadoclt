@@ -1128,7 +1128,35 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     getRun(this).openSpaceCleared = true;
     this.hud.hideBoss();
     this.hud.setObjective("Expediente encerrado! Copa liberada — [ E ] na porta.");
-    this.cameras.main.flash(200, 255, 200, 50, false);
+
+    // ── Beat de fim de fase (juice): flash dourado + shake + slow-mo curto +
+    //    cortina radial + som de "clunk" da porta destravando. Faz o momento
+    //    parecer conquista, não só uma flag ligando.
+    this.cameras.main.flash(280, 255, 210, 90, false);
+    this.cameras.main.shake(220, 0.006);
+    // slow-mo (fake): reduz o timeScale global por 380ms
+    this.time.timeScale = 0.55;
+    this.tweens.add({
+      targets: this.time,
+      timeScale: 1,
+      duration: 380,
+      delay: 220,
+      ease: "Sine.easeOut",
+    });
+    // cortina radial dourada saindo do centro do player
+    const curtain = this.add
+      .circle(this.player.x, this.player.y, 10, 0xffd06a, 0.55)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(970);
+    this.tweens.add({
+      targets: curtain,
+      scale: 90,
+      alpha: 0,
+      duration: 700,
+      ease: "Cubic.easeOut",
+      onComplete: () => curtain.destroy(),
+    });
+    Sfx.bossAppear();
 
     // Incentivo de combate (carrot): "EXPEDIENTE CUMPRIDO" — se o jogador chegou
     // à saída com a sala praticamente limpa (não fez rush), ganha bônus de VR +
