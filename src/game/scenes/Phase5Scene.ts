@@ -287,6 +287,7 @@ export class Phase5Scene extends BasePhaseScene {
   // Boss derrotado → porta do CEO liberada. Override da base (que fala "Copa").
   protected handleBossDefeat() {
     this.bossDefeated = true;
+    this.playPhaseClearBeat();
     this.hud.hideBoss();
     this.hud.setObjective("Acesso ao CEO liberado! Use [ E ] na porta.");
 

@@ -692,9 +692,44 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * "Beat" de fim de fase (juice) — flash dourado + shake + slow-mo curto +
+   * cortina radial dourada saindo do player. Faz a vitória parecer conquista,
+   * não só uma flag ligando. Criado pelo Lovable na Fase 1; extraído aqui para
+   * TODOS os bosses (Fases 2–5 + Fase 1) reusarem.
+   */
+  protected playPhaseClearBeat() {
+    this.cameras.main.flash(280, 255, 210, 90, false);
+    this.cameras.main.shake(220, 0.006);
+    // slow-mo (fake): reduz o timeScale global por 380ms
+    this.time.timeScale = 0.55;
+    this.tweens.add({
+      targets: this.time,
+      timeScale: 1,
+      duration: 380,
+      delay: 220,
+      ease: "Sine.easeOut",
+    });
+    // cortina radial dourada saindo do centro do player
+    const curtain = this.add
+      .circle(this.player.x, this.player.y, 10, 0xffd06a, 0.55)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(970);
+    this.tweens.add({
+      targets: curtain,
+      scale: 90,
+      alpha: 0,
+      duration: 700,
+      ease: "Cubic.easeOut",
+      onComplete: () => curtain.destroy(),
+    });
+    Sfx.bossAppear();
+  }
+
   protected handleBossDefeat() {
     this.bossDefeated = true;
     Telemetry.bossDefeat(this.scene.key);
+    this.playPhaseClearBeat();
     this.hud.hideBoss();
     this.hud.setObjective("Copa desbloqueada! Use [ E ] na porta.");
 
