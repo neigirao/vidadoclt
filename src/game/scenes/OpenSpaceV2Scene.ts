@@ -116,7 +116,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   // A Fase 1 mantém create()/update() próprios (não chama super.create()), então
   // estes servem de fonte única de verdade e habilitam a futura unificação total.
   protected getBgKey(): string {
-    return "pxbg-openspace";
+    return "bg-openspace";
   }
   protected getPhaseTitle(): string {
     return "FASE 1 — OPEN SPACE";
@@ -168,7 +168,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     this.setupWorldAndCamera();
 
-    addPhaseBackground(this, "pxbg-openspace", HUD_TOP_H, FLOOR_Y);
+    addPhaseBackground(this, "bg-openspace", HUD_TOP_H, FLOOR_Y);
     if (run.cameFrom !== "copa") Telemetry.runStart(run.characterClass, run.culturas);
     Telemetry.phaseEnter(this.scene.key);
     this.spawnDustParticles();

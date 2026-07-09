@@ -34,6 +34,7 @@ export class PreloadScene extends Phaser.Scene {
   preload() {
     // Only what's needed before the menu — gameplay backgrounds load per-scene
     this.load.image("bg-menu", "/assets/bg-menu.png");
+    this.load.image("bg-openspace", "/assets/bg-openspace.png");
     this.load.image("tex-floor", "/assets/sprites/tile-floor.png");
     this.load.image("tex-vr", "/assets/sprites/item-vr-coin.png");
     this.load.image("tex-inkproj", "/assets/sprites/item-inkproj.png");
