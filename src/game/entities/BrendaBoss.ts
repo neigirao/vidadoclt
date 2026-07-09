@@ -20,8 +20,8 @@ type BrendaAttack = "clima" | "feedback" | "dinamica";
 const BOSS_HIT_INVULN_MS = 340;
 
 export class BrendaDoRH extends Phaser.Physics.Arcade.Sprite {
-  hp = 470;
-  maxHp = 470;
+  hp = 240;
+  maxHp = 240;
   contactDamage = 12;
   dir: 1 | -1 = -1;
 

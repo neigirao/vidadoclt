@@ -124,8 +124,8 @@ export class Phase3Scene extends BasePhaseScene {
       planilha.onSplit = (sx, sy) => {
         for (let i = 0; i < 2; i++) {
           const mini = new PlanilhaViva(this, sx + (i === 0 ? -40 : 40), sy);
-          mini.hp = 160;
-          mini.maxHp = 160;
+          mini.hp = 40;
+          mini.maxHp = 40;
           mini.target = this.player;
           this.planilhas.add(mini);
           this.physics.add.collider(mini, this.platforms);

@@ -21,8 +21,8 @@ type DiretorAttack = "meta" | "reestrutura" | "pdi";
 const BOSS_HIT_INVULN_MS = 340;
 
 export class DiretorDeResultados extends Phaser.Physics.Arcade.Sprite {
-  hp = 620;
-  maxHp = 620;
+  hp = 340;
+  maxHp = 340;
   contactDamage = 14;
   dir: 1 | -1 = -1;
 

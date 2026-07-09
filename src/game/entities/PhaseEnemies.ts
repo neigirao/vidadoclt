@@ -32,7 +32,7 @@ function animPhase(
 
 // ─── TelemarketerZumbi ────────────────────────────────────────────────────────
 export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
-  hp = 160;
+  hp = 42;
   speed = 70;
   contactDamage = 12;
   vrReward = 2;
@@ -117,7 +117,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
 
 // ─── ImpressoraAssombrada ─────────────────────────────────────────────────────
 export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
-  hp = 400;
+  hp = 95;
   contactDamage = 8;
   vrReward = 8;
 
@@ -183,7 +183,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
 
 // ─── GuardiaoDoCafe ───────────────────────────────────────────────────────────
 export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
-  hp = 280;
+  hp = 75;
   speed = 90;
   contactDamage = 20;
   vrReward = 4;
@@ -269,7 +269,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
 
 // ─── NuvemBoardSentinela ──────────────────────────────────────────────────────
 export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
-  hp = 250;
+  hp = 48;
   vrReward = 3;
 
   onFire?: (x: number, y: number) => void;
@@ -345,7 +345,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
 
 // ─── EvangelistaCorporativo ───────────────────────────────────────────────────
 export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
-  hp = 224;
+  hp = 60;
   speed = 60;
   contactDamage = 8;
   vrReward = 3;
@@ -450,7 +450,7 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
 
 // ─── ColetorDeDados ───────────────────────────────────────────────────────────
 export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
-  hp = 150;
+  hp = 50;
   speed = 130;
   vrReward = 1;
 
@@ -517,7 +517,7 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
 
 // ─── PlanilhaViva ─────────────────────────────────────────────────────────────
 export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
-  hp = 400;
+  hp = 90;
   maxHp = 400;
   speed = 40;
   contactDamage = 10;
@@ -602,7 +602,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
 
 // ─── CaboDeRede ───────────────────────────────────────────────────────────────
 export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
-  hp = 176;
+  hp = 70;
   speed = 80;
   contactDamage = 10;
   vrReward = 2;
@@ -696,7 +696,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
 
 // ─── TiSuporte ────────────────────────────────────────────────────────────────
 export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
-  hp = 300;
+  hp = 85;
   speed = 90;
   contactDamage = 12;
   vrReward = 3;
@@ -774,7 +774,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
 
 // ─── DroneDeVigilancia ────────────────────────────────────────────────────────
 export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
-  hp = 144;
+  hp = 60;
   vrReward = 3;
   private _floatY: number;
 
@@ -855,7 +855,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
 
 // ─── SegurancaCorporativa ─────────────────────────────────────────────────────
 export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
-  hp = 280;
+  hp = 95;
   speed = 120;
   contactDamage = 10;
   vrReward = 4;
@@ -960,7 +960,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
 
 // ─── CarimbadorAutomatico ─────────────────────────────────────────────────────
 export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
-  hp = 256;
+  hp = 90;
   speed = 50;
   contactDamage = 8;
   vrReward = 4;
@@ -1035,7 +1035,7 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
 export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
   // Rebalance (playtest): 800 HP era esponja (69 golpes base) e contato 35
   // tirava 1/3 da energia num toque — o pior do jogo, acima do CEO (18).
-  hp = 500;
+  hp = 130;
   speed = 30;
   contactDamage = 14;
   vrReward = 15;
@@ -1100,7 +1100,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
 
 // ─── BateriaSocial ────────────────────────────────────────────────────────────
 export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
-  hp = 200;
+  hp = 75;
   speed = 60;
   contactDamage = 8;
   vrReward = 4;
@@ -1176,7 +1176,7 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
 // Fase 2 — Anda devagar; quando player entra em range dispara "pauta infinita"
 // (callback onAura → cena aplica freeze/slow no player por 600ms).
 export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
-  hp = 320;
+  hp = 60;
   speed = 45;
   contactDamage = 0;
   vrReward = 5;
@@ -1255,7 +1255,7 @@ export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
 // ─── ImpressoraVermelha ────────────────────────────────────────────────────────
 // Fase 3 — Move-se lentamente, atira toner em cadência regular.
 export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
-  hp = 480;
+  hp = 110;
   contactDamage = 12;
   vrReward = 10;
 
@@ -1331,7 +1331,7 @@ export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
 // ─── ImpressoraFantasma ────────────────────────────────────────────────────────
 // Fase 4 — Burst de 2 tiros seguidos, depois pausa longa.
 export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
-  hp = 560;
+  hp = 130;
   contactDamage = 15;
   vrReward = 12;
 
@@ -1410,7 +1410,7 @@ export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
 // ─── ImpressoraNecromorfa ──────────────────────────────────────────────────────
 // Fase 5 — Mais rápida, dispara dobrado quando HP < 50%.
 export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
-  hp = 720;
+  hp = 170;
   contactDamage = 22;
   vrReward = 16;
 
@@ -1495,7 +1495,7 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
 // ─── EvangelistaAvancado ───────────────────────────────────────────────────────
 // Fase 4 — Mais agressivo; cura inimigos próximos via onHeal callback a cada 6s.
 export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
-  hp = 400;
+  hp = 110;
   speed = 80;
   contactDamage = 12;
   vrReward = 6;
@@ -1578,7 +1578,7 @@ export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
 // ─── EvangelistaMegaCorp ───────────────────────────────────────────────────────
 // Fase 5 — Forma final: dispara 3 PostIts em leque, cura inimigos a cada 4s.
 export class EvangelistaMegaCorp extends Phaser.Physics.Arcade.Sprite {
-  hp = 600;
+  hp = 150;
   speed = 100;
   contactDamage = 16;
   vrReward = 9;
