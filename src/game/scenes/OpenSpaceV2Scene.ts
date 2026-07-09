@@ -833,13 +833,16 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     const bodyH = FLOOR_Y - bodyTop;
     const bodyMidY = bodyTop + bodyH / 2;
 
+    const WOOD_HL = 0x9a6a3a; // brilho superior
     const WOOD_TOP = 0x7a4a22; // tampo claro
     const WOOD_EDGE = 0x5c3318; // borda frontal
     const WOOD_DARK = 0x3a2412; // pernas
+    const WOOD_GRAIN = 0x6b3d18; // veios
     const OUTLINE = 0x2e1a0c;
 
-    // Sombra no chão
-    this.add.rectangle(cx, FLOOR_Y + 3, w + 10, 7, 0x000000, 0.3).setDepth(5);
+    // Sombra difusa no chão (duas camadas p/ profundidade)
+    this.add.rectangle(cx, FLOOR_Y + 4, w + 14, 5, 0x000000, 0.18).setDepth(4);
+    this.add.rectangle(cx, FLOOR_Y + 3, w + 10, 7, 0x000000, 0.32).setDepth(5);
 
     // Pernas + painel da mesa
     const legs = this.add.graphics().setDepth(6);
@@ -847,21 +850,33 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     legs.fillStyle(WOOD_DARK, 1);
     legs.fillRect(x + 4, bodyTop, legW, bodyH);
     legs.fillRect(x + w - 12, bodyTop, legW, bodyH);
-    if (tiles >= 5) legs.fillRect(cx - legW / 2, bodyTop, legW, bodyH); // perna central
+    if (tiles >= 5) legs.fillRect(cx - legW / 2, bodyTop, legW, bodyH);
     // painel/modéstia recuado
     legs.fillStyle(WOOD_EDGE, 0.85);
     legs.fillRect(x + 14, bodyTop + 4, w - 28, bodyH - 10);
+    // veios verticais discretos no painel
+    legs.fillStyle(WOOD_GRAIN, 0.35);
+    for (let gx = x + 22; gx < x + w - 22; gx += 14) {
+      legs.fillRect(gx, bodyTop + 6, 1, bodyH - 14);
+    }
     legs.lineStyle(1, OUTLINE, 0.6);
     legs.strokeRect(x + 4, bodyTop, w - 8, bodyH);
 
-    // Tampo da mesa (com leve saliência)
+    // Tampo da mesa: highlight fino em cima + tampo + borda escura + veios curtos
     const top = this.add.graphics().setDepth(7);
+    top.fillStyle(WOOD_HL, 1);
+    top.fillRect(x - 3, surfY - 8, w + 6, 2); // highlight
     top.fillStyle(WOOD_TOP, 1);
-    top.fillRect(x - 3, surfY - 7, w + 6, 10);
+    top.fillRect(x - 3, surfY - 6, w + 6, 9);
     top.fillStyle(WOOD_EDGE, 1);
     top.fillRect(x - 3, surfY + 1, w + 6, 4);
+    // veios horizontais no tampo
+    top.fillStyle(WOOD_GRAIN, 0.4);
+    for (let gx = x + 6; gx < x + w - 6; gx += 20) {
+      top.fillRect(gx, surfY - 4, 10, 1);
+    }
     top.lineStyle(1, OUTLINE, 1);
-    top.strokeRect(x - 3, surfY - 7, w + 6, 14);
+    top.strokeRect(x - 3, surfY - 8, w + 6, 15);
 
     // Computador em cima da mesa (sprite limpo do monitor) + teclado
     addImage(this, cx, surfY - 16, "tex-monitor")
