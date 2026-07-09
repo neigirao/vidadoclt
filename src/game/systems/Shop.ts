@@ -326,6 +326,10 @@ export class ShopUI {
     this.prevDown = new Array(this.items.length).fill(false);
   }
 
+  isOpen() {
+    return this.open;
+  }
+
   close() {
     if (!this.open) return;
     this.open = false;

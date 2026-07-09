@@ -357,6 +357,11 @@ export class CopaScene extends Phaser.Scene {
     };
 
     this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
+      // Se a loja está aberta, ESC fecha a loja (não abre o pause por cima).
+      if (this.shop?.isOpen()) {
+        this.shop.close();
+        return;
+      }
       this.scene.pause();
       this.scene.launch("PauseScene", { caller: "CopaScene" });
     });
