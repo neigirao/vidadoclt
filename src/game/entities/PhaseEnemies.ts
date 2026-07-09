@@ -33,6 +33,7 @@ function animPhase(
 // ─── TelemarketerZumbi ────────────────────────────────────────────────────────
 export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
   hp = 42;
+  threatType = "ranged" as const;
   speed = 70;
   contactDamage = 12;
   vrReward = 2;
@@ -118,6 +119,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
 // ─── ImpressoraAssombrada ─────────────────────────────────────────────────────
 export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
   hp = 95;
+  threatType = "ranged" as const;
   contactDamage = 8;
   vrReward = 8;
 
@@ -184,6 +186,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
 // ─── GuardiaoDoCafe ───────────────────────────────────────────────────────────
 export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
   hp = 75;
+  threatType = "elite" as const;
   speed = 90;
   contactDamage = 20;
   vrReward = 4;
@@ -270,6 +273,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
 // ─── NuvemBoardSentinela ──────────────────────────────────────────────────────
 export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
   hp = 48;
+  threatType = "ranged" as const;
   vrReward = 3;
 
   onFire?: (x: number, y: number) => void;
@@ -346,6 +350,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
 // ─── EvangelistaCorporativo ───────────────────────────────────────────────────
 export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
   hp = 60;
+  threatType = "healer" as const;
   speed = 60;
   contactDamage = 8;
   vrReward = 3;
@@ -451,6 +456,7 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
 // ─── ColetorDeDados ───────────────────────────────────────────────────────────
 export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
   hp = 50;
+  threatType = "ranged" as const;
   speed = 130;
   vrReward = 1;
 
@@ -518,6 +524,7 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
 // ─── PlanilhaViva ─────────────────────────────────────────────────────────────
 export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
   hp = 90;
+  threatType = "elite" as const;
   maxHp = 400;
   speed = 40;
   contactDamage = 10;
@@ -603,6 +610,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
 // ─── CaboDeRede ───────────────────────────────────────────────────────────────
 export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
   hp = 70;
+  threatType = "elite" as const;
   speed = 80;
   contactDamage = 10;
   vrReward = 2;
@@ -697,6 +705,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
 // ─── TiSuporte ────────────────────────────────────────────────────────────────
 export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
   hp = 85;
+  threatType = "ranged" as const;
   speed = 90;
   contactDamage = 12;
   vrReward = 3;
@@ -775,6 +784,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
 // ─── DroneDeVigilancia ────────────────────────────────────────────────────────
 export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
   hp = 60;
+  threatType = "ranged" as const;
   vrReward = 3;
   private _floatY: number;
 
@@ -856,6 +866,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
 // ─── SegurancaCorporativa ─────────────────────────────────────────────────────
 export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
   hp = 95;
+  threatType = "elite" as const;
   speed = 120;
   contactDamage = 10;
   vrReward = 4;
@@ -961,6 +972,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
 // ─── CarimbadorAutomatico ─────────────────────────────────────────────────────
 export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
   hp = 90;
+  threatType = "elite" as const;
   speed = 50;
   contactDamage = 8;
   vrReward = 4;
@@ -1036,6 +1048,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
   // Rebalance (playtest): 800 HP era esponja (69 golpes base) e contato 35
   // tirava 1/3 da energia num toque — o pior do jogo, acima do CEO (18).
   hp = 130;
+  threatType = "elite" as const;
   speed = 30;
   contactDamage = 14;
   vrReward = 15;
@@ -1101,6 +1114,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
 // ─── BateriaSocial ────────────────────────────────────────────────────────────
 export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
   hp = 75;
+  threatType = "healer" as const;
   speed = 60;
   contactDamage = 8;
   vrReward = 4;
@@ -1177,6 +1191,7 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
 // (callback onAura → cena aplica freeze/slow no player por 600ms).
 export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
   hp = 60;
+  threatType = "elite" as const;
   speed = 45;
   contactDamage = 0;
   vrReward = 5;
@@ -1256,6 +1271,7 @@ export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
 // Fase 3 — Move-se lentamente, atira toner em cadência regular.
 export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
   hp = 110;
+  threatType = "ranged" as const;
   contactDamage = 12;
   vrReward = 10;
 
@@ -1332,6 +1348,7 @@ export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
 // Fase 4 — Burst de 2 tiros seguidos, depois pausa longa.
 export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
   hp = 130;
+  threatType = "ranged" as const;
   contactDamage = 15;
   vrReward = 12;
 
@@ -1411,6 +1428,7 @@ export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
 // Fase 5 — Mais rápida, dispara dobrado quando HP < 50%.
 export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
   hp = 170;
+  threatType = "ranged" as const;
   contactDamage = 22;
   vrReward = 16;
 
@@ -1496,6 +1514,7 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
 // Fase 4 — Mais agressivo; cura inimigos próximos via onHeal callback a cada 6s.
 export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
   hp = 110;
+  threatType = "healer" as const;
   speed = 80;
   contactDamage = 12;
   vrReward = 6;
@@ -1579,6 +1598,7 @@ export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
 // Fase 5 — Forma final: dispara 3 PostIts em leque, cura inimigos a cada 4s.
 export class EvangelistaMegaCorp extends Phaser.Physics.Arcade.Sprite {
   hp = 150;
+  threatType = "healer" as const;
   speed = 100;
   contactDamage = 16;
   vrReward = 9;

@@ -31,6 +31,7 @@ import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/Leve
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
 import { GameEnemy, BossEntity } from "../entities/types";
 import { BossPresence } from "../systems/BossPresence";
+import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -56,6 +57,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected sanityDrops!: Phaser.Physics.Arcade.Group;
   protected boss?: BossEntity;
   protected bossPresence?: BossPresence;
+  protected threatMarkers?: ThreatMarkers;
+  private _bossMaxHp = 0;
+  private _bossEnraged = false;
   protected bossDefeated = false;
   protected startTimeMs = 0;
   protected fx!: SanityFx;
@@ -380,6 +384,16 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 8. Subclass populates this.enemyGroups and this.boss
     this.setupEnemiesAndGroups();
 
+    // 8-marks. Marcadores de leitura de ameaça (!/♦/+) por arquétipo, acima dos
+    // inimigos que os declaram (threatType). Rushers básicos ficam sem marcador.
+    this.threatMarkers = new ThreatMarkers(this);
+    for (const def of this.enemyGroups) {
+      def.group.getChildren().forEach((obj) => {
+        const e = obj as Phaser.GameObjects.Sprite & { threatType?: ThreatType };
+        if (e.threatType) this.threatMarkers!.add(e, e.threatType);
+      });
+    }
+
     // 8a. Loop HP scaling — each completed loop adds 15% HP to all enemies.
     // New Game+ "Quinta-feira" (run.ngPlus): +40% de HP por cima de tudo.
     const loopCount = run.loopCount ?? 0;
@@ -415,6 +429,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 9. Boss wiring
     if (this.boss) {
       const bossMaxHp = this.boss.maxHp ?? this.boss.hp;
+      this._bossMaxHp = bossMaxHp;
       this.hud.showBoss(this.getBossName(), bossMaxHp);
       Sfx.bossAppear();
       Music.start("boss");
@@ -646,6 +661,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 4. Boss contact damage + HUD update
     if (this.boss?.active) {
       this.bossPresence?.update(delta);
+      // Momento de enrage: 1ª vez que o boss cai abaixo de 35% de HP → beat
+      // legível (aprendizado do Lovable). Genérico p/ todos os 5 bosses.
+      if (!this._bossEnraged && this._bossMaxHp > 0 && this.boss.hp <= this._bossMaxHp * 0.35) {
+        this._bossEnraged = true;
+        this.playBossEnrageMoment(this.boss.x, this.boss.y);
+      }
       if (
         !this.player.isInvulnerable(time) &&
         Phaser.Geom.Intersects.RectangleToRectangle(
@@ -661,7 +682,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 5. Sanity FX
     this.fx.update(time, this.player.sanity);
 
-    // 6. Weapon pickups (proximidade + E) + near-door check
+    // 6. Marcadores de ameaça + weapon pickups + near-door check
+    this.threatMarkers?.update();
     this.updateWeaponPickups();
     const nearDoor =
       this.bossDefeated &&
@@ -722,6 +744,51 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       duration: 700,
       ease: "Cubic.easeOut",
       onComplete: () => curtain.destroy(),
+    });
+    Sfx.bossAppear();
+  }
+
+  /**
+   * "Momento" de enrage do boss (aprendizado do Lovable) — quando o boss passa
+   * dos 35% de HP: flash vermelho + shake + grito flutuante + aura pulsante.
+   * Faz a virada parecer um beat, não só ataques um pouco mais rápidos.
+   */
+  protected playBossEnrageMoment(x: number, y: number) {
+    this.cameras.main.flash(240, 200, 20, 20, false);
+    this.cameras.main.shake(260, 0.01);
+    const shout = this.add
+      .text(x, y - 70, "PRAZO ESTOUROU!", {
+        fontFamily: "monospace",
+        fontSize: "16px",
+        fontStyle: "bold",
+        color: "#ff4433",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setDepth(999);
+    this.tweens.add({
+      targets: shout,
+      scaleX: 1.3,
+      scaleY: 1.3,
+      alpha: 0,
+      y: shout.y - 26,
+      duration: 1100,
+      ease: "Back.easeOut",
+      onComplete: () => shout.destroy(),
+    });
+    // aura vermelha que expande do boss
+    const aura = this.add
+      .circle(x, y, 20, 0xff2200, 0.5)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(180);
+    this.tweens.add({
+      targets: aura,
+      scale: 6,
+      alpha: 0,
+      duration: 520,
+      ease: "Cubic.easeOut",
+      onComplete: () => aura.destroy(),
     });
     Sfx.bossAppear();
   }
