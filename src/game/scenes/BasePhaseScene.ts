@@ -12,7 +12,14 @@ import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
-import { CLASSES, WEAPONS, WeaponId, ClassId, WeaponDef } from "../systems/WeaponSystem";
+import {
+  CLASSES,
+  WEAPONS,
+  WEAPON_ICONS,
+  WeaponId,
+  ClassId,
+  WeaponDef,
+} from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CulturaId, reapplyAllCulturas, selectableCulturaIds } from "../systems/CulturaSystem";
@@ -345,6 +352,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.fx = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.combatFx = new CombatFx(this);
+    // Reflete a arma/especial equipados no HUD (ícone + nome).
+    {
+      const wdef = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
+      this.hud.setWeapon(`${WEAPON_ICONS[wdef.id]} ${wdef.name}`);
+      this.hud.setSpecial(wdef.specialName);
+    }
 
     // 8. Subclass populates this.enemyGroups and this.boss
     this.setupEnemiesAndGroups();
@@ -548,26 +561,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.hud.setPhaseTitle(this.getPhaseTitle());
     this.hud.setObjective(this.getInitialObjective());
 
-    // 20. Phase title announcement
-    const title = this.add
-      .text(GAME_WIDTH / 2, 110, this.getPhaseTitle(), {
-        fontFamily: "monospace",
-        fontSize: "18px",
-        color: "#eaeaea",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(999);
-    this.tweens.add({
-      targets: title,
-      alpha: 0,
-      duration: 800,
-      delay: 2200,
-      onComplete: () => title.destroy(),
-    });
+    // 20. Cartão de transição / loop temporal — reforça a contagem até as 18h.
+    this.showPhaseIntroCard();
 
     // 21. Validação de fase (só DEV) + overlay com a tecla V.
     this.installLevelDebug(
@@ -1103,6 +1098,86 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     );
     this.physics.add.existing(floorPhys, true);
     this.platforms.add(floorPhys);
+  }
+
+  // Loop temporal: cada fase avança o relógio rumo às 18h (a fuga). Reforça a
+  // pressão do dia. CEO é cena à parte (17:55).
+  private static PHASE_CLOCK: Record<number, string> = {
+    1: "13:00",
+    2: "14:10",
+    3: "15:25",
+    4: "16:40",
+    5: "17:35",
+  };
+  private static PHASE_FLAVOR: Record<number, string> = {
+    1: "O dia mal começou. O relógio já é seu inimigo.",
+    2: "A reunião não tem pauta. Nem fim.",
+    3: "Sorria. O clima organizacional está sendo medido.",
+    4: "O deploy é sexta. A culpa também.",
+    5: "O andar da diretoria. O ar é mais rarefeito aqui.",
+  };
+
+  /** Cartão de abertura da fase: relógio (loop até 18h) + título + flavor. */
+  protected showPhaseIntroCard() {
+    const pn = this.getPhaseNumber();
+    const clock = pn ? BasePhaseScene.PHASE_CLOCK[pn] : null;
+    const flavor = pn ? BasePhaseScene.PHASE_FLAVOR[pn] : null;
+    const cx = GAME_WIDTH / 2;
+    const items: Phaser.GameObjects.GameObject[] = [];
+
+    if (clock) {
+      const clockT = this.add
+        .text(cx, 74, `⏰ ${clock}`, {
+          fontFamily: "monospace",
+          fontSize: "22px",
+          fontStyle: "bold",
+          color: "#f2c14e",
+          stroke: "#000000",
+          strokeThickness: 4,
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(999);
+      items.push(clockT);
+    }
+
+    const title = this.add
+      .text(cx, clock ? 106 : 96, this.getPhaseTitle(), {
+        fontFamily: "monospace",
+        fontSize: "18px",
+        color: "#eaeaea",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(999);
+    items.push(title);
+
+    if (flavor) {
+      const flavorT = this.add
+        .text(cx, 132, flavor, {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: "#999999",
+          align: "center",
+          stroke: "#000000",
+          strokeThickness: 2,
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(999);
+      items.push(flavorT);
+    }
+
+    this.tweens.add({
+      targets: items,
+      alpha: 0,
+      duration: 900,
+      delay: 2400,
+      onComplete: () => items.forEach((i) => i.destroy()),
+    });
   }
 
   /**

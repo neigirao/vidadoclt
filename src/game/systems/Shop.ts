@@ -3,7 +3,7 @@ import { Telemetry } from "./Telemetry";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { getRun, RunState } from "./PlayerState";
 import { Sfx } from "./AudioSystem";
-import { WEAPONS, WeaponId, WeaponDef } from "./WeaponSystem";
+import { WEAPONS, WEAPON_ICONS, WeaponId, WeaponDef } from "./WeaponSystem";
 import { PERKS, PerkId, applyPerk } from "./PerkSystem";
 import { Player } from "../entities/Player";
 
@@ -194,7 +194,7 @@ export class ShopUI {
       const wdef = WEAPONS[wid];
       this.items.push({
         key: `weapon_${wid}`,
-        label: wdef.name,
+        label: `${WEAPON_ICONS[wid]} ${wdef.name}`,
         description: `${wdef.type === "ranged" ? "Ranged" : "Melee"} — Dano: ${wdef.hitDamages[0]}/${wdef.hitDamages[1]}/${wdef.hitDamages[2] || "—"}`,
         flavor: WEAPON_FLAVOR[wid],
         cost: wdef.shopCost,

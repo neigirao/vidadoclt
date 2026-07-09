@@ -322,6 +322,23 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   },
 };
 
+// Ícone (emoji) de cada arma — usado no HUD e na loja da Copa para leitura
+// rápida (perks/culturas já têm ícone; as armas eram só texto).
+export const WEAPON_ICONS: Record<WeaponId, string> = {
+  grampeador: "📎",
+  caneta: "🖊️",
+  regua: "📏",
+  furador: "🕳️",
+  mouse: "🖱️",
+  teclado: "⌨️",
+  caneca: "☕",
+  impressora: "🖨️",
+  notebook: "💻",
+  projetor: "📽️",
+  extintor: "🧯",
+  grampeador_eletrico: "⚡",
+};
+
 export const CLASSES: Record<ClassId, ClassDef> = {
   estagiario: {
     id: "estagiario",
