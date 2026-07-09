@@ -30,6 +30,7 @@ import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
 import { GameEnemy, BossEntity } from "../entities/types";
+import { BossPresence } from "../systems/BossPresence";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -54,6 +55,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   /** Cafezinhos — pickup que restaura Sanidade (contra-jogo do Burnout). */
   protected sanityDrops!: Phaser.Physics.Arcade.Group;
   protected boss?: BossEntity;
+  protected bossPresence?: BossPresence;
   protected bossDefeated = false;
   protected startTimeMs = 0;
   protected fx!: SanityFx;
@@ -643,6 +645,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 4. Boss contact damage + HUD update
     if (this.boss?.active) {
+      this.bossPresence?.update(delta);
       if (
         !this.player.isInvulnerable(time) &&
         Phaser.Geom.Intersects.RectangleToRectangle(
@@ -703,6 +706,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         });
       }
       (this.boss as Phaser.Physics.Arcade.Sprite).destroy();
+      this.bossPresence?.destroy();
       this.dropBossWeapon(bx); // recompensa garantida: arma do chefão
     }
 

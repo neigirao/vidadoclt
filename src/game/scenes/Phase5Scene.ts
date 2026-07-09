@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
+import { BossPresence } from "../systems/BossPresence";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { GameEnemy } from "../entities/types";
@@ -212,6 +213,7 @@ export class Phase5Scene extends BasePhaseScene {
     diretor.onReestrutura = (fromX) => this.reestruturacao(fromX);
     this.diretor = diretor;
     this.boss = diretor;
+    this.bossPresence = new BossPresence(this, diretor, 0xffaa22);
 
     this.enemyGroups.push(
       { group: this.carimbadores, vrDrop: 4 },
@@ -296,6 +298,7 @@ export class Phase5Scene extends BasePhaseScene {
         });
       }
       (this.boss as Phaser.Physics.Arcade.Sprite).destroy();
+      this.bossPresence?.destroy();
       this.dropBossWeapon(bx);
     }
 

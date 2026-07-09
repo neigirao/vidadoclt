@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
+import { BossPresence } from "../systems/BossPresence";
 import { ScrumMasterCaotico } from "../entities/Enemies";
 import { GameEnemy } from "../entities/types";
 import {
@@ -224,6 +225,7 @@ export class Phase4Scene extends BasePhaseScene {
       }
     };
     this.boss = boss;
+    this.bossPresence = new BossPresence(this, boss, 0xaa66ff);
 
     this.enemyGroups.push(
       { group: this.cabos, vrDrop: 2 },

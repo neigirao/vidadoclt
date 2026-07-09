@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
+import { BossPresence } from "../systems/BossPresence";
 import { AnalistaSeniorExausto } from "../entities/Enemies";
 import { BrendaDoRH } from "../entities/BrendaBoss";
 import {
@@ -162,6 +163,7 @@ export class Phase3Scene extends BasePhaseScene {
     boss.onFeedback = (bx, by) => this.feedback360(bx, by);
     this.brenda = boss;
     this.boss = boss;
+    this.bossPresence = new BossPresence(this, boss, 0xff66aa);
 
     this.enemyGroups.push(
       { group: this.evangelistas, vrDrop: 3 },

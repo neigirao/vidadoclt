@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
+import { BossPresence } from "../systems/BossPresence";
 import { CoordenadorDeSinergia } from "../entities/Enemies";
 import {
   TelemarketerZumbi,
@@ -130,6 +131,7 @@ export class Phase2Scene extends BasePhaseScene {
     // fase (Impressora 400). Boss deve ser a maior luta da própria fase.
     boss.hp = 380;
     this.boss = boss;
+    this.bossPresence = new BossPresence(this, boss, 0x44ccff);
 
     this.enemyGroups.push(
       { group: this.telemarketers, vrDrop: 2 },
