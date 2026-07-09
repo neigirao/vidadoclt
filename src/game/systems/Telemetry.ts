@@ -19,6 +19,32 @@ const MAX_EVENTS = 3000; // ring buffer — descarta os mais antigos
 
 const hasLS = () => typeof localStorage !== "undefined";
 
+// ── Sink remoto (Supabase) ───────────────────────────────────────────────────
+// Além do buffer local, cada evento é enviado ao banco (tabela public.
+// playtest_events) no MESMO padrão fire-and-forget do Ranking: se o banco cair
+// ou a tabela não existir, o jogo não trava e a telemetria local segue intacta.
+// O import é DINÂMICO (só no browser) para o módulo continuar puro/testável em
+// bun:test. Sem PII — só id de sessão aleatório + eventos de game design.
+// Client tipado só conhece a tabela `scores` (types gerados). Afrouxamos a
+// tipagem localmente para inserir em `playtest_events` sem tocar no arquivo de
+// types gerado (que é sobrescrito pelo Lovable).
+type LooseInsert = { from: (t: string) => { insert: (v: unknown) => Promise<unknown> } };
+
+async function sendRemote(ev: TelemetryEvent) {
+  if (typeof window === "undefined") return;
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    await (supabase as unknown as LooseInsert).from("playtest_events").insert({
+      session_id: ev.sid,
+      type: ev.type,
+      scene: ev.scene ?? null,
+      payload: ev,
+    });
+  } catch {
+    /* offline / tabela ausente / RLS — ignora silenciosamente */
+  }
+}
+
 function randId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -48,9 +74,11 @@ let _currentScene = "";
 let _runActive = false;
 
 function push(type: string, props: Record<string, unknown> = {}) {
-  _events.push({ t: Date.now(), sid: _sid, type, scene: _currentScene, ...props });
+  const ev: TelemetryEvent = { t: Date.now(), sid: _sid, type, scene: _currentScene, ...props };
+  _events.push(ev);
   if (_events.length > MAX_EVENTS) _events.splice(0, _events.length - MAX_EVENTS);
   save();
+  void sendRemote(ev);
 }
 
 export type TelemetrySummary = {

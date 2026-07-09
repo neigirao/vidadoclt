@@ -21,7 +21,13 @@ pessoa sente/faz) com a **telemetria** já embutida (`window.__telemetry`).
 
 ### Coleta de dados (telemetria)
 
-Ao final de cada sessão, no console do navegador (modo dev):
+**Automática (banco):** cada evento (início de run, entrada de fase, morte, boss,
+compra, quit) é gravado no Supabase (tabela `public.playtest_events`) em tempo
+real, sem PII (só um id de sessão aleatório). Não precisa exportar nada — o
+testador só joga. Falha silenciosa: se o banco cair, o jogo não trava e a
+telemetria local segue intacta.
+
+**Manual (fallback offline):** ainda dá pra exportar por tester no console (dev):
 
 ```js
 window.__telemetry.summary(); // resumo agregado
@@ -30,6 +36,10 @@ window.__telemetry.clear(); // limpe antes do próximo tester
 ```
 
 Guarde um JSON por pessoa → depois some tudo para ver os padrões.
+
+> Análise agregada do banco (SQL): mortes por fase, funil de progressão etc.
+> ficam em `public.playtest_events`. Ex.: `select scene, count(*) from
+playtest_events where type='death' group by scene order by 2 desc;`
 
 ---
 
