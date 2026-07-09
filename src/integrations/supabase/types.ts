@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      playtest_events: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          scene: string | null
+          session_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          scene?: string | null
+          session_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          scene?: string | null
+          session_id?: string
+          type?: string
+        }
+        Relationships: []
+      }
       scores: {
         Row: {
           apelido: string
