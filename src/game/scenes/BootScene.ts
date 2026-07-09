@@ -23,6 +23,7 @@ export class BootScene extends Phaser.Scene {
     // BootScene is kept as fallback only — PreloadScene handles the real load.
     // If BootScene is ever started directly, load the same minimal set.
     this.load.image("bg-menu", "/assets/bg-menu.png");
+    this.load.image("bg-openspace", "/assets/bg-openspace.png");
     this.load.image("tex-floor", "/assets/sprites/tile-floor.png");
     this.load.image("tex-vr", "/assets/sprites/item-vr-coin.png");
     this.load.image("tex-inkproj", "/assets/sprites/item-inkproj.png");
