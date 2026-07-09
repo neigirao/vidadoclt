@@ -41,6 +41,10 @@ export class Phase5Scene extends BasePhaseScene {
     return "Derrote o Diretor de Resultados";
   }
 
+  protected getPlatSurface() {
+    return { surf: "tex-exec", body: "tex-exec-body" };
+  }
+
   // Identidade "Átrio Executivo": poucas plataformas GRANDES com vãos LARGOS —
   // o mezanino aberto e luxuoso da diretoria. Cruzar a rota alta exige dash. A
   // "Reestruturação" do Diretor troca os lados desse átrio.

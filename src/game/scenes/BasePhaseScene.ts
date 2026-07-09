@@ -1095,12 +1095,21 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.platforms.add(floorPhys);
   }
 
+  /**
+   * Superfície de plataforma temática da fase (identidade visual). null =
+   * usa o pool de móveis PLAT_DEFS por altura (default). Fases 2–5 sobrescrevem
+   * para dar cara própria (baia, rack de servidor, degrau de RH, mármore exec).
+   */
+  protected getPlatSurface(): { surf: string; body: string } | null {
+    return null;
+  }
+
   protected buildPlatform(x: number, y: number, tiles: number) {
     const platDefs = PLAT_DEFS;
     const heightFromFloor = FLOOR_Y - y;
     const matching = platDefs.filter((d) => Math.abs(d.height - heightFromFloor) <= 5);
     const pool = matching.length > 0 ? matching : platDefs;
-    const def = pool[this.platIdx % pool.length];
+    const def = this.getPlatSurface() ?? pool[this.platIdx % pool.length];
     this.platIdx++;
     const w = tiles * 32;
 

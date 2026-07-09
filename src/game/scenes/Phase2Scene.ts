@@ -38,6 +38,10 @@ export class Phase2Scene extends BasePhaseScene {
     return "Derrote o Coordenador e avance";
   }
 
+  protected getPlatSurface() {
+    return { surf: "tex-baia", body: "tex-baia-body" };
+  }
+
   // Identidade "Baias": muitas plataformas BAIXAS e CURTAS bem próximas — o chão
   // de call center apertado, cheio de divisórias de cubículo. Pulinhos rápidos e
   // encadeados em vez de grandes saltos.

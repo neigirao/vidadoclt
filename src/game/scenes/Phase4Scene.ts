@@ -40,6 +40,10 @@ export class Phase4Scene extends BasePhaseScene {
     return "Derrote o Scrum Master e avance";
   }
 
+  protected getPlatSurface() {
+    return { surf: "tex-rack", body: "tex-rack-body" };
+  }
+
   // Identidade "Torres de Servidor": pares empilhados (degrau baixo + topo alto)
   // separados por vãos largos — pilares de rack no data center. O firewall do
   // Scrum ("Sprint Review") corta o chão entre as torres.

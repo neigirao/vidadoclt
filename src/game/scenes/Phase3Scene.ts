@@ -42,6 +42,10 @@ export class Phase3Scene extends BasePhaseScene {
     return "Derrote a Brenda do RH e avance";
   }
 
+  protected getPlatSurface() {
+    return { surf: "tex-degrau-rh", body: "tex-degrau-rh-body" };
+  }
+
   // Identidade "Escada da Carreira": plataformas que SOBEM da esquerda para a
   // direita — o discurso de RH de "crescer na empresa". Premia subir; os aéreos
   // (Coletor) pressionam quem fica no alto.

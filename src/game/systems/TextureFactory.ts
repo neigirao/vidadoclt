@@ -126,6 +126,16 @@ export function makeFurnitureTextures(scene: Phaser.Scene): void {
   makeCaixaPapel(scene);
   // tex-planta-deco, tex-bebedouro-deco replaced by real sprites loaded in BootScene
   // tex-floor loaded from tile-floor.png in BootScene — do NOT regenerate here
+
+  // Superfícies de plataforma TEMÁTICAS por fase (identidade visual):
+  makeCubicleSurf(scene); // Fase 2 — divisória de baia
+  makeCubicleBody(scene);
+  makeCarpetStepSurf(scene); // Fase 3 — degrau atapetado (RH)
+  makeCarpetStepBody(scene);
+  makeServerRackSurf(scene); // Fase 4 — topo de rack de servidor
+  makeServerRackBody(scene);
+  makeExecSurf(scene); // Fase 5 — mármore/vidro executivo
+  makeExecBody(scene);
 }
 
 /** UI / debug textures. */
@@ -643,6 +653,185 @@ function makeVasoSurf(scene: Phaser.Scene) {
   gr.fillRect(9, 0, 14, 3);
   outline(gr, 32, 14);
   gr.generateTexture("tex-vaso", 32, 14);
+  gr.destroy();
+}
+
+// ─── Superfícies/corpos de plataforma temáticos (identidade por fase) ─────────
+
+// Fase 2 "Baia": topo de divisória de cubículo — tampo cinza + tecido azulado.
+function makeCubicleSurf(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x6b7280, 1);
+  gr.fillRect(0, 0, 32, 14);
+  gr.fillStyle(0x9aa3b0, 1);
+  gr.fillRect(0, 0, 32, 2); // top highlight (trilho de alumínio)
+  gr.fillStyle(0x556070, 1);
+  gr.fillRect(0, 2, 32, 3); // trilho sombra
+  gr.fillStyle(0x3f6a8a, 1);
+  gr.fillRect(0, 5, 32, 6); // tecido do painel
+  gr.fillStyle(0x4f7ea0, 1);
+  gr.fillRect(2, 6, 4, 1);
+  gr.fillRect(11, 7, 5, 1);
+  gr.fillRect(22, 6, 4, 1); // fiapos de tecido
+  gr.fillStyle(0x2c3440, 1);
+  gr.fillRect(0, 11, 32, 3); // sombra sob a borda
+  outline(gr, 32, 14);
+  gr.generateTexture("tex-baia", 32, 14);
+  gr.destroy();
+}
+function makeCubicleBody(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x3a6084, 1);
+  gr.fillRect(0, 0, 32, 14); // painel de tecido
+  gr.fillStyle(0x46708f, 1);
+  gr.fillRect(1, 0, 2, 14); // brilho esquerdo
+  gr.fillStyle(0x2a4560, 1);
+  gr.fillRect(29, 0, 2, 14); // sombra direita
+  gr.fillStyle(0x314c66, 1);
+  for (let i = 4; i < 32; i += 6) gr.fillRect(i, 2, 1, 10); // costura vertical do tecido
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(0, 0, 1, 14);
+  gr.fillRect(31, 0, 1, 14);
+  gr.fillRect(0, 13, 32, 1);
+  gr.generateTexture("tex-baia-body", 32, 14);
+  gr.destroy();
+}
+
+// Fase 3 "Escada da Carreira": degrau atapetado corporativo (RH) — carpete
+// bordô com fita antiderrapante metálica na quina.
+function makeCarpetStepSurf(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x7a2e3a, 1);
+  gr.fillRect(0, 0, 32, 14); // carpete
+  gr.fillStyle(0x9a4450, 1);
+  gr.fillRect(0, 0, 32, 2); // topo iluminado
+  gr.fillStyle(0x662530, 1);
+  gr.fillRect(0, 9, 32, 5); // sombra do degrau
+  // textura de fibra
+  gr.fillStyle(0x8a3844, 1);
+  for (let i = 2; i < 32; i += 5) gr.fillRect(i, 3, 1, 5);
+  gr.fillStyle(0x6a2028, 1);
+  for (let i = 4; i < 32; i += 5) gr.fillRect(i, 4, 1, 4);
+  // fita antiderrapante na quina
+  gr.fillStyle(0xc9a36a, 1);
+  gr.fillRect(0, 8, 32, 2);
+  gr.fillStyle(0xe6c98f, 1);
+  gr.fillRect(0, 8, 32, 1);
+  outline(gr, 32, 14);
+  gr.generateTexture("tex-degrau-rh", 32, 14);
+  gr.destroy();
+}
+function makeCarpetStepBody(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x5a2028, 1);
+  gr.fillRect(0, 0, 32, 14); // face bordô escura
+  gr.fillStyle(0x6c2a34, 1);
+  gr.fillRect(1, 0, 30, 2); // topo
+  gr.fillStyle(0x401419, 1);
+  gr.fillRect(0, 11, 32, 3); // base sombra
+  gr.fillStyle(0x7a343f, 1);
+  for (let i = 3; i < 32; i += 6) gr.fillRect(i, 3, 1, 8); // fibra
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(0, 0, 1, 14);
+  gr.fillRect(31, 0, 1, 14);
+  gr.fillRect(0, 13, 32, 1);
+  gr.generateTexture("tex-degrau-rh-body", 32, 14);
+  gr.destroy();
+}
+
+// Fase 4 "Torres de Servidor": topo de rack — chapa metálica com fresta de
+// ventilação e LEDs de status.
+function makeServerRackSurf(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x2a2e34, 1);
+  gr.fillRect(0, 0, 32, 14); // chapa escura
+  gr.fillStyle(0x484e56, 1);
+  gr.fillRect(0, 0, 32, 2); // topo iluminado
+  gr.fillStyle(0x1c2026, 1);
+  gr.fillRect(0, 10, 32, 4); // sombra
+  // fresta de ventilação
+  gr.fillStyle(0x0e1013, 1);
+  for (let i = 3; i < 30; i += 3) gr.fillRect(i, 4, 2, 4);
+  // LEDs de status
+  gr.fillStyle(0x00e070, 1);
+  gr.fillRect(2, 5, 2, 2);
+  gr.fillStyle(0x00b8ff, 1);
+  gr.fillRect(28, 5, 2, 2);
+  gr.fillStyle(0xffb020, 1);
+  gr.fillRect(16, 5, 1, 2);
+  outline(gr, 32, 14);
+  gr.generateTexture("tex-rack", 32, 14);
+  gr.destroy();
+}
+function makeServerRackBody(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x171a1f, 1);
+  gr.fillRect(0, 0, 32, 14); // gabinete preto
+  gr.fillStyle(0x24282e, 1);
+  gr.fillRect(1, 0, 30, 1); // topo
+  // slots de servidor empilhados (1U)
+  for (let y = 1; y < 14; y += 4) {
+    gr.fillStyle(0x2b3037, 1);
+    gr.fillRect(2, y, 28, 3); // face do módulo
+    gr.fillStyle(0x0a0c0f, 1);
+    gr.fillRect(2, y + 3, 28, 1); // vão entre módulos
+    // LEDs por módulo
+    gr.fillStyle(y % 8 === 1 ? 0x00e070 : 0x00b8ff, 1);
+    gr.fillRect(4, y + 1, 1, 1);
+    gr.fillStyle(0x334, 1);
+    gr.fillRect(24, y + 1, 4, 1); // slot de HD
+  }
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(0, 0, 1, 14);
+  gr.fillRect(31, 0, 1, 14);
+  gr.fillRect(0, 13, 32, 1);
+  gr.generateTexture("tex-rack-body", 32, 14);
+  gr.destroy();
+}
+
+// Fase 5 "Átrio Executivo": tampo de mármore com fita de latão dourado.
+function makeExecSurf(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x2b2f3a, 1);
+  gr.fillRect(0, 0, 32, 14); // mármore escuro
+  gr.fillStyle(0x3c4150, 1);
+  gr.fillRect(0, 2, 32, 5); // veio claro
+  // veios do mármore
+  gr.fillStyle(0x565c6e, 1);
+  gr.fillRect(3, 3, 8, 1);
+  gr.fillRect(14, 5, 10, 1);
+  gr.fillRect(22, 3, 6, 1);
+  gr.fillStyle(0x20232c, 1);
+  gr.fillRect(0, 10, 32, 4); // sombra
+  // fita de latão dourado (luxo)
+  gr.fillStyle(0xc9a36a, 1);
+  gr.fillRect(0, 0, 32, 2);
+  gr.fillStyle(0xe8cf95, 1);
+  gr.fillRect(0, 0, 32, 1);
+  outline(gr, 32, 14);
+  gr.generateTexture("tex-exec", 32, 14);
+  gr.destroy();
+}
+function makeExecBody(scene: Phaser.Scene) {
+  const gr = scene.add.graphics();
+  gr.fillStyle(0x22252e, 1);
+  gr.fillRect(0, 0, 32, 14); // painel escuro
+  gr.fillStyle(0x2c3039, 1);
+  gr.fillRect(1, 0, 30, 2);
+  gr.fillStyle(0x16181e, 1);
+  gr.fillRect(0, 11, 32, 3);
+  // colunas de latão nas quinas (pilastra executiva)
+  gr.fillStyle(0xc9a36a, 1);
+  gr.fillRect(2, 1, 2, 12);
+  gr.fillRect(28, 1, 2, 12);
+  gr.fillStyle(0xe8cf95, 1);
+  gr.fillRect(2, 1, 1, 12);
+  gr.fillRect(28, 1, 1, 12);
+  gr.fillStyle(OUTLINE, 1);
+  gr.fillRect(0, 0, 1, 14);
+  gr.fillRect(31, 0, 1, 14);
+  gr.fillRect(0, 13, 32, 1);
+  gr.generateTexture("tex-exec-body", 32, 14);
   gr.destroy();
 }
 
