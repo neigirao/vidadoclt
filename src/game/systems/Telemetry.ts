@@ -25,16 +25,14 @@ const hasLS = () => typeof localStorage !== "undefined";
 // ou a tabela não existir, o jogo não trava e a telemetria local segue intacta.
 // O import é DINÂMICO (só no browser) para o módulo continuar puro/testável em
 // bun:test. Sem PII — só id de sessão aleatório + eventos de game design.
-// Client tipado só conhece a tabela `scores` (types gerados). Afrouxamos a
-// tipagem localmente para inserir em `playtest_events` sem tocar no arquivo de
-// types gerado (que é sobrescrito pelo Lovable).
-type LooseInsert = { from: (t: string) => { insert: (v: unknown) => Promise<unknown> } };
-
 async function sendRemote(ev: TelemetryEvent) {
   if (typeof window === "undefined") return;
   try {
-    const { supabase } = await import("@/integrations/supabase/client");
-    await (supabase as unknown as LooseInsert).from("playtest_events").insert({
+    // Import dinâmico do client dedicado (só no browser → módulo puro/testável).
+    const { telemetryClient } = await import("./telemetryClient");
+    const sb = telemetryClient();
+    if (!sb) return;
+    await sb.from("playtest_events").insert({
       session_id: ev.sid,
       type: ev.type,
       scene: ev.scene ?? null,
