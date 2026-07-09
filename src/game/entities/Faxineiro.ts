@@ -10,6 +10,9 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
   swingDamage = 25;
   sanityDamage = 15;
   dir: 1 | -1 = -1;
+  /** Só ataca depois de ser atacado — a Copa é área segura; sem provocação ele
+   *  só patrulha e cura sanidade por proximidade. Antes ele matava na Copa. */
+  provoked = false;
   private aiState: "walk" | "telegraph" | "swing" | "recover" = "walk";
   private stateUntil = 0;
   swingHitbox: Phaser.Geom.Rectangle | null = null;
@@ -46,7 +49,7 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
     switch (this.aiState) {
       case "walk": {
         body.setVelocityX(this.dir * this.speed);
-        if (this.target && Math.abs(this.target.x - this.x) < 60) {
+        if (this.provoked && this.target && Math.abs(this.target.x - this.x) < 60) {
           this.aiState = "telegraph";
           this.stateUntil = t + 550;
           this.setTint(0xffdd66);
@@ -140,6 +143,7 @@ export class Faxineiro extends Phaser.Physics.Arcade.Sprite {
 
   hit(damage: number, knockback: number) {
     if (this._dying) return false;
+    this.provoked = true; // reage a partir de agora
     this.hp -= damage;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(knockback * 0.4);

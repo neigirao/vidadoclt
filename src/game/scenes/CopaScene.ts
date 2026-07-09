@@ -60,28 +60,52 @@ export class CopaScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.copaBg);
 
-    // Copa background: tiled wall + floor stripe + window light
+    // Copa background: copa aconchegante (tons quentes, azulejo, bancada, plantas).
+    const wallTop = 60;
+    const wallBot = GAME_HEIGHT - 64;
     const bg = this.add.graphics().setScrollFactor(0.6).setDepth(0);
-    // Wall base
-    bg.fillStyle(0x1e2a1e, 1);
-    bg.fillRect(0, 60, LEVEL_WIDTH, GAME_HEIGHT - 92);
-    // Horizontal baseboard
-    bg.fillStyle(0x2d4a2d, 1);
-    bg.fillRect(0, GAME_HEIGHT - 72, LEVEL_WIDTH, 8);
-    // Vertical wall tiles (every 96px)
-    bg.lineStyle(1, 0x2a402a, 0.6);
-    for (let x = 0; x <= LEVEL_WIDTH; x += 96) bg.lineBetween(x, 60, x, GAME_HEIGHT - 64);
-    for (let y = 60; y < GAME_HEIGHT - 64; y += 64) bg.lineBetween(0, y, LEVEL_WIDTH, y);
-    // Window patches (warm break-room light)
-    [200, 580, 960, 1160].forEach((wx) => {
-      bg.fillStyle(0x3a5c3a, 0.375);
-      bg.fillRect(wx, 70, 80, 120);
-      bg.fillStyle(0xfff0c0, 0.125);
-      bg.fillRect(wx + 8, 78, 64, 50);
+    // Parede — gradiente quente (bege/marrom) em faixas
+    for (let i = 0; i < 6; i++) {
+      const y = wallTop + ((wallBot - wallTop) / 6) * i;
+      const shade = 0x2c241c + i * 0x030302;
+      bg.fillStyle(shade, 1);
+      bg.fillRect(0, y, LEVEL_WIDTH, (wallBot - wallTop) / 6 + 1);
+    }
+    // Faixa de azulejo (parede da bancada) — creme com rejunte
+    const tileTop = wallBot - 96;
+    bg.fillStyle(0x6b5a3f, 1);
+    bg.fillRect(0, tileTop, LEVEL_WIDTH, 96);
+    bg.fillStyle(0x7d6a4c, 1);
+    bg.fillRect(0, tileTop, LEVEL_WIDTH, 4); // topo iluminado
+    bg.lineStyle(1, 0x4a3d2a, 0.7);
+    for (let x = 0; x <= LEVEL_WIDTH; x += 40) bg.lineBetween(x, tileTop, x, wallBot);
+    for (let y = tileTop; y <= wallBot; y += 32) bg.lineBetween(0, y, LEVEL_WIDTH, y);
+    // Rodapé
+    bg.fillStyle(0x3a2e20, 1);
+    bg.fillRect(0, wallBot, LEVEL_WIDTH, 6);
+    // Janelas com luz quente de fim de tarde
+    [220, 640, 1040, 1500].forEach((wx) => {
+      bg.fillStyle(0x1a2230, 1);
+      bg.fillRect(wx, 74, 96, 118); // vidro escuro
+      bg.fillStyle(0xf2b45a, 0.28);
+      bg.fillRect(wx + 6, 80, 84, 60); // brilho quente
+      bg.lineStyle(3, 0x2a2018, 1);
+      bg.strokeRect(wx, 74, 96, 118); // caixilho
+      bg.lineBetween(wx + 48, 74, wx + 48, 192);
+      bg.lineBetween(wx, 133, wx + 96, 133);
     });
-    // Ceiling strip lights
-    bg.fillStyle(0xd0f0d0, 0.25);
-    for (let x = 40; x < LEVEL_WIDTH; x += 200) bg.fillRect(x, 60, 120, 6);
+    // Luminárias do teto (glow quente)
+    bg.fillStyle(0xffe0a0, 0.22);
+    for (let x = 100; x < LEVEL_WIDTH; x += 260) bg.fillRect(x, wallTop, 140, 8);
+    // Plantinhas decorativas na base da parede
+    [120, 560, 900, 1400, 1780].forEach((px) => {
+      bg.fillStyle(0x2a1c10, 1);
+      bg.fillRect(px - 8, wallBot - 22, 16, 22); // vaso
+      bg.fillStyle(0x3a6a2e, 1);
+      bg.fillCircle(px, wallBot - 26, 11); // folhagem
+      bg.fillStyle(0x4e8a3c, 1);
+      bg.fillCircle(px - 4, wallBot - 30, 6);
+    });
 
     this.platforms = this.physics.add.staticGroup();
     const floor = this.add.rectangle(

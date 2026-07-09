@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
 import { loadSettings, toggleReduceSanityFx } from "../systems/Settings";
+import { Telemetry } from "../systems/Telemetry";
 
 const F = "monospace";
 
@@ -116,39 +117,52 @@ export class PauseScene extends Phaser.Scene {
     accLabel.on("pointerout", () => accLabel.setColor("#8899bb"));
     this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.O).on("down", flip);
 
-    // Resume button
-    const btnY = py + panH - 42;
-    const btnG = this.add
-      .graphics()
-      .fillStyle(0x1e2530, 1)
-      .fillRect(px + 60, btnY, panW - 120, 32);
-    btnG.lineStyle(1, 0x4455aa, 1);
-    btnG.strokeRect(px + 60, btnY, panW - 120, 32);
+    // ── Botões: Retomar (esq) + Sair para o menu (dir) ────────────────────────
+    const quit = () => {
+      Telemetry.markQuitIfActive();
+      if (caller) this.scene.stop(caller);
+      this.scene.start("MenuScene");
+    };
 
+    const btnY = py + panH - 42;
+    const gap = 8;
+    const halfW = (panW - 60 - gap) / 2;
+    const resumeX = px + 30;
+    const quitX = resumeX + halfW + gap;
+
+    const resumeG = this.add.graphics().fillStyle(0x1e2530, 1).fillRect(resumeX, btnY, halfW, 32);
+    resumeG.lineStyle(1, 0x4455aa, 1);
+    resumeG.strokeRect(resumeX, btnY, halfW, 32);
     const resumeT = this.add
-      .text(px + panW / 2, btnY + 16, "[ESC]  Retomar jogo", {
+      .text(resumeX + halfW / 2, btnY + 16, "[ESC] Retomar", {
         fontFamily: F,
         fontSize: "12px",
         color: "#aabbdd",
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-
-    // Pulse animation on resume hint
-    this.tweens.add({
-      targets: resumeT,
-      alpha: 0.5,
-      duration: 700,
-      yoyo: true,
-      repeat: -1,
-    });
-
+    this.tweens.add({ targets: resumeT, alpha: 0.5, duration: 700, yoyo: true, repeat: -1 });
     resumeT.on("pointerdown", resume);
     resumeT.on("pointerover", () => resumeT.setColor("#ffffff").setAlpha(1));
     resumeT.on("pointerout", () => resumeT.setColor("#aabbdd"));
 
-    // ESC key
-    const escKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-    escKey.once("down", resume);
+    const quitG = this.add.graphics().fillStyle(0x2a1a1e, 1).fillRect(quitX, btnY, halfW, 32);
+    quitG.lineStyle(1, 0xaa4455, 1);
+    quitG.strokeRect(quitX, btnY, halfW, 32);
+    const quitT = this.add
+      .text(quitX + halfW / 2, btnY + 16, "[M] Sair p/ o menu", {
+        fontFamily: F,
+        fontSize: "12px",
+        color: "#dd8899",
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    quitT.on("pointerdown", quit);
+    quitT.on("pointerover", () => quitT.setColor("#ffffff"));
+    quitT.on("pointerout", () => quitT.setColor("#dd8899"));
+
+    // Teclas
+    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).once("down", resume);
+    this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M).once("down", quit);
   }
 }

@@ -1225,7 +1225,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       .text(
         GAME_WIDTH / 2,
         GAME_HEIGHT / 2 - 30,
-        "GERENTE DERROTADO!\n\nPerk: AUTONOMIA ativado\n\nPorta da Copa desbloqueada ->",
+        "EXPEDIENTE ENCERRADO!\n\nPerk: AUTONOMIA ativado\n\nPorta da Copa desbloqueada ->",
         {
           fontFamily: "monospace",
           fontSize: "15px",
