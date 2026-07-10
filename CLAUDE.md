@@ -86,6 +86,11 @@ src/
       BestiarySystem.ts      # Persistência de kills + contagens (localStorage)
       Ranking.ts             # Submissão/leitura do leaderboard via Supabase
       LevelValidator.ts      # Validação de invariantes de fase + overlay DEV
+      ThreatMarkers.ts       # Ícones de ameaça por arquétipo (!/♦/+) acima dos inimigos
+      BossPresence.ts        # "Cara de chefão": escala + aura + sombra + coroa 👑
+      TutorialPrompts.ts     # Dicas contextuais de 1ª sessão (VR, Sanidade, Copa, loop)
+      Telemetry.ts           # Telemetria de playtest → Supabase dedicado (fire-and-forget)
+      telemetryClient.ts     # Cliente Supabase da telemetria (projeto consultável)
   integrations/supabase/     # Cliente + tipos auto-gerados (Lovable Cloud)
   routes/
     __root.tsx               # Layout raiz (QueryClient, error boundary)
@@ -244,6 +249,8 @@ Nenhum band-aid ativo no momento.
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 - **Encontros por seed**: Fase 1 varia o TIPO de inimigo por zona (`spawnEnemyOfType`); Fases 2–5 variam POSIÇÃO/densidade (`pickPositions` em `BasePhaseScene`) — contagem fixa p/ o validador
 - **Qualidade**: `tsc` strict + ESLint 0 erros; **testes unitários** (bun:test) de EnemyCatalog, WeaponSystem, ReconhecimentoSystem, **CulturaSystem, PerkSystem, sanityBand** (37 testes); **CI** (GitHub Actions: tsc + lint + test) em `.github/workflows/ci.yml`
+- **Legibilidade/onboarding**: marcadores de ameaça por arquétipo (`ThreatMarkers`), presença de chefão (`BossPresence`: escala+aura+coroa), momento de enrage do boss aos 35% HP (`playBossEnrageMoment` na base), beat de fim de fase (`playPhaseClearBeat`), e **dicas contextuais de 1ª sessão** (`TutorialPrompts`)
+- **Armas no meio da fase**: drop de arma por kill/boss (`dropWeapon`) + slot secundário com troca (Q); telemetria de playtest gravada no Supabase dedicado (`Telemetry` + `telemetryClient`)
 
 ### Pendente / em aberto
 
@@ -277,6 +284,12 @@ Nenhum band-aid ativo no momento.
 - Texturas geradas em runtime: `TextureFactory.ts`.
 - Assets simples quebrados: refazer em `scripts/gen-sprites.mjs` (pixel-art em código).
 - Após mexer em PNG de `sprites/`, rodar `node scripts/pack-atlas.mjs`. Valide no **LAB SPRITES**.
+
+### Onboarding de 1ª sessão (TutorialPrompts.ts)
+
+`TutorialPrompts.maybeShow(scene, id, text)` enfileira um banner de 1 linha (💡, topo-centro, `setScrollFactor(0)` depth 1200) que **some sozinho** em 4,5s ou ao 1º `keydown`. Cada `id` aparece **1× para sempre** (flag em `localStorage` `vidaclt:tut`); a fila é por-cena (2 dicas juntas → a 2ª espera). Zero impacto em gameplay — só legenda o SISTEMA no momento em que ele aparece. `reset()` limpa as flags (retestar), `seen(id)` checa antes.
+
+Gatilhos ligados (6): `goal` (objetivo da Fase 1), `vr` (1º VR pego — moeda), `sanity` (1ª piora de faixa — Burnout, em `SanityFx`), `threat` (1º marcador de ameaça, em `ThreatMarkers`), `copa` (entrada na Copa), `death` (1ª Rescisão — explica o loop/Reconhecimento persistente, em `GameOverScene`).
 
 ### Juice de combate (CombatFx.ts)
 

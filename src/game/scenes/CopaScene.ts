@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { Telemetry } from "../systems/Telemetry";
+import { TutorialPrompts } from "../systems/TutorialPrompts";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
@@ -261,6 +262,14 @@ export class CopaScene extends Phaser.Scene {
     this.fx = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.hud.setPhaseTitle("COPA — AREA DE DESCANSO");
+    // Dica 1ª sessão: como funciona a Copa.
+    this.time.delayedCall(1200, () =>
+      TutorialPrompts.maybeShow(
+        this,
+        "copa",
+        "Copa: descanse, compre no Ponto (1–7) e bata o ponto (E) pra avançar.",
+      ),
+    );
     this.hud.setObjective("Descanse, compre no Ponto e volte ao escritorio");
 
     // Item 7 — emergency low-sanity heal: if player arrives with < 25 sanity,

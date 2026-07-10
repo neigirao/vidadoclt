@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H, Hud } from "../systems/Hud";
+import { TutorialPrompts } from "../systems/TutorialPrompts";
 import {
   addPhaseAmbience,
   addPhaseBackground,
@@ -542,6 +543,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       const spr = dObj as Phaser.Physics.Arcade.Sprite;
       if (!spr.active) return; // evita som/duplo-pickup no mesmo frame
       this.player.addVR(1);
+      TutorialPrompts.maybeShow(
+        this,
+        "vr",
+        "VR (Vale Refeição) é sua moeda. Junte e gaste na Copa.",
+      );
       Sfx.vrPickup();
       spr.destroy();
     });

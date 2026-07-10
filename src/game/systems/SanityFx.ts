@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { sanityBand } from "./PlayerState";
+import { TutorialPrompts } from "./TutorialPrompts";
 import { generateNotifSubject, noise2d } from "./CorporateAI";
 import { Sfx } from "./AudioSystem";
 import { loadSettings } from "./Settings";
@@ -108,6 +109,14 @@ export class SanityFx {
     if (band !== this.currentBand) {
       const stress = Math.max(0, Math.min(1, (100 - sanity) / 100));
       if (stress > 0.25) Sfx.sanityDrone(stress);
+      // Dica 1ª sessão: explica a Sanidade quando ela piora pela 1ª vez.
+      if (band !== "ok") {
+        TutorialPrompts.maybeShow(
+          this.scene,
+          "sanity",
+          "Sanidade baixa vira Burnout: você fica lento e sem parry. Cuide dela.",
+        );
+      }
     }
     this.currentBand = band;
 

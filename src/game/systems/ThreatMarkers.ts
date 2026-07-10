@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { TutorialPrompts } from "./TutorialPrompts";
 
 /**
  * Marcadores de leitura de ameaça (aprendizado do Lovable): um ícone flutuante
@@ -27,6 +28,12 @@ export class ThreatMarkers {
   add(enemy: Phaser.GameObjects.Sprite, type: ThreatType) {
     const cfg = ICONS[type];
     if (!cfg) return;
+    // Dica 1ª sessão: legenda dos marcadores na 1ª vez que aparecem.
+    TutorialPrompts.maybeShow(
+      this.scene,
+      "threat",
+      "Ícones sobre inimigos: ! atira · ♦ elite/tanque · + cura aliados.",
+    );
     const mark = this.scene.add
       .text(enemy.x, enemy.y, cfg.char, {
         fontFamily: "monospace",

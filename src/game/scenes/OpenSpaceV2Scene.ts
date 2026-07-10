@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
+import { TutorialPrompts } from "../systems/TutorialPrompts";
 import { addPhaseBackground } from "../systems/Background";
 import {
   EstagiarioDesesperado,
@@ -617,6 +618,11 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       const spr = dObj as Phaser.Physics.Arcade.Sprite;
       if (!spr.active) return;
       this.player.addVR(1);
+      TutorialPrompts.maybeShow(
+        this,
+        "vr",
+        "VR (Vale Refeição) é sua moeda. Junte e gaste na Copa.",
+      );
       Sfx.vrPickup();
       spr.destroy();
     });
@@ -695,6 +701,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     };
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
     this.hud.setObjective("Sobreviva ao expediente e acesse a Copa");
+    // Dica 1 (só 1ª sessão): o objetivo/loop do jogo.
+    this.time.delayedCall(2600, () =>
+      TutorialPrompts.maybeShow(
+        this,
+        "goal",
+        "Escape do escritório antes das 18h. Cada dia recomeça — mais forte.",
+      ),
+    );
 
     // Item 1 — medidor de Produtividade + Item 2 — evento APAGÃO (sistemas)
     this.prod = new ProductivityMeter(this);

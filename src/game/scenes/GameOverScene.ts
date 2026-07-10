@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { getRun, resetRun, savePersisted } from "../systems/PlayerState";
+import { TutorialPrompts } from "../systems/TutorialPrompts";
 import { submitScore, phaseLabel } from "../systems/Ranking";
 import { Sfx } from "../systems/AudioSystem";
 import { PERKS, SYNERGIES, PerkId, SynergyId } from "../systems/PerkSystem";
@@ -25,6 +26,15 @@ export class GameOverScene extends Phaser.Scene {
     run.loopCount += 1;
     savePersisted(run.reconhecimento, run.fgts, run.loopCount);
     Sfx.gameOver();
+
+    // Dica 1ª morte: explica o loop roguelite (morrer fortalece pra sempre).
+    this.time.delayedCall(900, () =>
+      TutorialPrompts.maybeShow(
+        this,
+        "death",
+        `Você levou +${earned} Reconhecimento pra sempre. Cada tentativa te fortalece.`,
+      ),
+    );
 
     run.lastDeathCause = cause;
     const isBurnout = cause === "burnout";
