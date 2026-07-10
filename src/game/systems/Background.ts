@@ -29,15 +29,22 @@ type ParallaxCfg = {
   build: number; // silhueta dos prédios distantes
   win: number; // janelas acesas dos prédios
   buildH: number; // altura máx. dos prédios — MENOR = andar mais alto (mais céu)
+  sky: number; // cor do "vidro" (céu) quando a fase tem janela desenhada
 };
+// Janela DESENHADA (vidro+céu+skyline+caixilho) só nas fases de bg fraco/baixa-res
+// (3 RH, 4 TI) — melhora onde a arte é pobre. Fase 5 (bg já é céu) recebe só o
+// CAIXILHO por cima. Fases 1/2 (bg pintado rico) ficam intocadas, com o skyline
+// distante sutil atrás. Assim o parallax respeita a arte boa e reforça a fraca.
+const WINDOW_GLASS = new Set([3, 4]);
+const WINDOW_FRAME_ONLY = new Set([5]);
 // `buildH` decresce da Fase 1→5: quanto mais alto o andar, mais céu e prédios
 // menores/distantes lá fora — o jogador "sente" que subiu o prédio.
 const PARALLAX: Record<number, ParallaxCfg> = {
-  1: { silh: 0x161b26, lamp: 0xd0e4f8, beam: 0x10151e, glow: 0x88a0c8, build: 0x2a3550, win: 0x9fd0ff, buildH: 64 }, // prettier-ignore
-  2: { silh: 0x1a1510, lamp: 0xf0e0c8, beam: 0x140f0a, glow: 0x9a8878, build: 0x3a2f24, win: 0xffcf8a, buildH: 55 }, // prettier-ignore
-  3: { silh: 0x181c18, lamp: 0xffe0f0, beam: 0x101410, glow: 0xff88bb, build: 0x352838, win: 0xffb0e0, buildH: 47 }, // prettier-ignore
-  4: { silh: 0x101820, lamp: 0x9becff, beam: 0x0a1016, glow: 0x66ddff, build: 0x18303c, win: 0x7fffea, buildH: 39 }, // prettier-ignore
-  5: { silh: 0x1c160e, lamp: 0xffe8b0, beam: 0x140f08, glow: 0xe8cf95, build: 0x2e2740, win: 0xffd890, buildH: 30 }, // prettier-ignore
+  1: { silh: 0x161b26, lamp: 0xd0e4f8, beam: 0x10151e, glow: 0x88a0c8, build: 0x2a3550, win: 0x9fd0ff, buildH: 64, sky: 0x2c3e5a }, // prettier-ignore
+  2: { silh: 0x1a1510, lamp: 0xf0e0c8, beam: 0x140f0a, glow: 0x9a8878, build: 0x3a2f24, win: 0xffcf8a, buildH: 55, sky: 0x40342a }, // prettier-ignore
+  3: { silh: 0x181c18, lamp: 0xffe0f0, beam: 0x101410, glow: 0xff88bb, build: 0x352838, win: 0xffb0e0, buildH: 47, sky: 0x412a3e }, // prettier-ignore
+  4: { silh: 0x101820, lamp: 0x9becff, beam: 0x0a1016, glow: 0x66ddff, build: 0x18303c, win: 0x7fffea, buildH: 39, sky: 0x0e2130 }, // prettier-ignore
+  5: { silh: 0x1c160e, lamp: 0xffe8b0, beam: 0x140f08, glow: 0xe8cf95, build: 0x2e2740, win: 0xffd890, buildH: 30, sky: 0x2a2038 }, // prettier-ignore
 };
 
 export function addParallaxLayers(
@@ -53,24 +60,52 @@ export function addParallaxLayers(
   const band = floorY - topY;
   const midBand = topY + band * 0.42; // linha dos "ombros" das baias
 
-  // ── FAR: skyline distante lá fora (sf 0.12, depth 3) ────────────────────────
-  // Prédios em silhueta com janelas acesas, na altura da janela do escritório.
-  // Perspectiva atmosférica: alpha baixo + tinta de haze → "recua" no fundo.
+  // ── FAR: skyline distante (prédios + janelas acesas na linha do horizonte) ──
   const horizonY = topY + band * 0.36;
-  const sky = scene.add.graphics().setScrollFactor(0.12, 0).setDepth(3).setAlpha(0.55);
-  // linha de haze do horizonte
-  sky.fillStyle(cfg.glow, 0.1);
-  sky.fillRect(0, horizonY - 1, levelWidth, 2);
-  for (let x = -30; x < levelWidth + 60; x += rng.between(46, 84)) {
-    const w = rng.between(30, 58);
-    const h = rng.between(Math.round(cfg.buildH * 0.5), cfg.buildH);
-    sky.fillStyle(cfg.build, 1);
-    sky.fillRect(x, horizonY - h, w, h);
-    // janelas acesas (grade esparsa)
-    sky.fillStyle(cfg.win, 0.5);
-    for (let wy = horizonY - h + 4; wy < horizonY - 3; wy += 7)
-      for (let wx = x + 3; wx < x + w - 3; wx += 7)
-        if (rng.frac() < 0.45) sky.fillRect(wx, wy, 3, 4);
+  const drawSkyline = (g: Phaser.GameObjects.Graphics) => {
+    g.fillStyle(cfg.glow, 0.1);
+    g.fillRect(0, horizonY - 1, levelWidth, 2); // haze do horizonte
+    for (let x = -30; x < levelWidth + 60; x += rng.between(46, 84)) {
+      const w = rng.between(30, 58);
+      const h = rng.between(Math.round(cfg.buildH * 0.5), cfg.buildH);
+      g.fillStyle(cfg.build, 1);
+      g.fillRect(x, horizonY - h, w, h);
+      g.fillStyle(cfg.win, 0.85);
+      for (let wy = horizonY - h + 4; wy < horizonY - 3; wy += 7)
+        for (let wx = x + 3; wx < x + w - 3; wx += 7)
+          if (rng.frac() < 0.45) g.fillRect(wx, wy, 3, 4);
+    }
+  };
+  // Caixilho de janela (montantes + travessas + peitoril) — sf 0.2 p/ casar com
+  // o plano do bg; dá a leitura de "olhando pela janela".
+  const drawFrame = (winTop: number, winBot: number) => {
+    const fr = scene.add.graphics().setScrollFactor(0.2, 0).setDepth(4);
+    fr.fillStyle(cfg.beam, 1);
+    fr.fillRect(0, winTop - 5, levelWidth, 6); // travessa superior
+    fr.fillRect(0, winBot, levelWidth, 7); // peitoril
+    fr.fillRect(0, (winTop + winBot) / 2 - 2, levelWidth, 4); // travessa do meio
+    for (let x = 0; x <= levelWidth; x += 210)
+      fr.fillRect(x - 3, winTop - 5, 6, winBot - winTop + 12); // montantes
+  };
+
+  if (WINDOW_GLASS.has(phase)) {
+    // Janela DESENHADA (bg fraco/baixa-res): vidro (céu) cobre o topo + skyline
+    // + caixilho. Tudo em sf 0.2 (plano do bg) — vira uma janela limpa e coesa.
+    const winTop = topY + 6;
+    const winBot = topY + band * 0.44;
+    const glass = scene.add.graphics().setScrollFactor(0.2, 0).setDepth(2);
+    glass.fillStyle(cfg.sky, 1);
+    glass.fillRect(0, winTop, levelWidth, winBot - winTop);
+    glass.fillStyle(0x000000, 0.26); // topo do céu mais escuro (gradiente simples)
+    glass.fillRect(0, winTop, levelWidth, (winBot - winTop) * 0.35);
+    drawSkyline(glass);
+    drawFrame(winTop, winBot);
+  } else {
+    // Fases de bg pintado rico (1/2) e a Fase 5 (bg já é céu): skyline distante
+    // SUTIL atrás, sem cobrir a arte. A Fase 5 ainda ganha o caixilho por cima.
+    const sky = scene.add.graphics().setScrollFactor(0.12, 0).setDepth(3).setAlpha(0.55);
+    drawSkyline(sky);
+    if (WINDOW_FRAME_ONLY.has(phase)) drawFrame(topY + 6, topY + band * 0.44);
   }
 
   // ── NEAR-BACK: baias distantes entre bg e gameplay (sf 0.6, depth 5) ────────
