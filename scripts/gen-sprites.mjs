@@ -615,273 +615,63 @@ function bebedouro() {
   return c.save("obj-bebedouro-idle.png");
 }
 
-// ── Brenda do RH (boss da Fase 3) — sprite DEDICADO ───────────────────────────
-// Antes reusava o inimigo comum `enemy-rh`. Aqui ela ganha "cara de chefão":
-// silhueta frontal imponente, paleta magenta de RH, coque alto, óculos, crachá
-// e a PRANCHETA de feedback/PDI como arma-tema. 48×64, pés na base (~y61),
-// pose quase frontal (mirror-safe: a cena espelha por dir). addOutline dá o
-// contorno "sticker" que casa com os demais personagens.
-// Paleta amostrada do HERÓI (player-idle0) p/ coesão: contorno navy-escuro,
-// pele quente, cabelo marrom, camisa off-white fria, tudo dessaturado ~4 tons.
-// O magenta chapado da v2 vira um rosa-mauve DESSATURADO no mesmo mundo.
-const BR_OUT = [16, 16, 32]; // contorno navy do herói (não preto)
-const BR_SKIN = [192, 144, 112],
-  BR_SKIN_D = [144, 96, 80],
-  BR_SKIN_DD = [112, 72, 60],
-  BR_SKIN_L = [224, 192, 160];
-const BR_HAIR = [48, 32, 32],
-  BR_HAIR_D = [28, 20, 22],
-  BR_HAIR_MID = [72, 50, 42],
-  BR_HAIR_L = [100, 68, 52],
-  BR_HAIR_RIM = [140, 104, 78]; // luz de contorno quente (keyline da casa)
-const BR_SUIT = [150, 84, 104], // blazer rosa-mauve dessaturado
-  BR_SUIT_D = [104, 54, 72],
-  BR_SUIT_DD = [70, 34, 48],
-  BR_SUIT_L = [186, 120, 140];
-const BR_BLOUSE = [202, 206, 208], // blusa off-white fria (= camisa do herói)
-  BR_BLOUSE_D = [150, 152, 162];
-const BR_SKIRT = [62, 46, 54], // saia plum-marrom escura
-  BR_SKIRT_D = [40, 30, 36],
-  BR_SKIRT_L = [86, 66, 78];
-const BR_STOCK = [178, 140, 118],
-  BR_STOCK_D = [140, 104, 86];
-const BR_CLIP = [204, 208, 210],
-  BR_CLIP_D = [156, 158, 168],
-  BR_CLIP_DD = [112, 112, 124];
-const BR_SHOE = [40, 30, 30],
-  BR_SHOE_L = [84, 66, 58];
-const BR_RED = [176, 60, 60],
-  BR_GOLD = [200, 166, 80],
-  BR_GOLD_D = [150, 120, 50],
-  BR_GLASS = [38, 38, 52],
-  BR_GLASS_L = [120, 146, 166],
-  BR_LENS = [206, 216, 224],
-  BR_LIP = [160, 70, 84],
-  BR_BLUSH = [200, 120, 120, 120],
-  BR_PEN = [38, 38, 52];
+// ── Brenda do RH (boss da Fase 3) — DERIVADA do enemy-rh ──────────────────────
+// Máxima fidelidade: em vez de redesenhar em código (fica chapado), derivamos a
+// Brenda da ARTE pintada à mão do inimigo `enemy-rh` e só RECOLORIMOS o blazer
+// (vermelho → magenta) — herda cabelo/óculos/rosto/sombreamento/animação da casa.
+// O mob vermelho de RH só aparece na Fase 1/Copa, então não conflita com ela.
 
-// pose: { drop, tilt, step, arm:"rest"|"point"|"up", mouth:bool }
-// 80×80 (mesma grade do HERÓI), pés na base (~y78). Proporção "chibi" do
-// protagonista: cabeça+cabelo grandes (~1/3), corpo pequeno; sombreamento por
-// tom (luz na esq., sombra na dir. + AO), contorno navy, óculos redondos.
-// Mantém a identidade de RH: coque, blazer mauve, blusa, prancheta de feedback.
-function brendaFrame(name, pose = {}) {
-  const W = 80,
-    H = 80,
-    c = canvas(W, H);
-  const drop = pose.drop || 0;
-  const tilt = pose.tilt || 0;
-  const step = pose.step || 0;
-  const arm = pose.arm || "rest";
-  const R = (x, y, w, h, col) => c.rect(x, Math.round(y + drop), w, h, col);
-  const P = (x, y, col) => c.px(x, Math.round(y + drop), col);
-  // retângulo de cantos aparados (suaviza cabeça/ombros — evita o look "bloco")
-  const RR = (x, y, w, h, col, r = 0) => {
-    for (let j = 0; j < h; j++) {
-      let ins = 0;
-      if (j < r) ins = r - j;
-      else if (j >= h - r) ins = r - (h - 1 - j);
-      R(x + ins, y + j, w - 2 * ins, 1, col);
-    }
-  };
-
-  // ===== PERNAS + SALTOS (feet ~y78) =====
-  const legY = 63;
-  const lo = step < 0 ? 2 : 0,
-    ro = step > 0 ? 2 : 0;
-  R(35 + lo, legY, 5, 12, BR_STOCK);
-  R(35 + lo, legY, 2, 12, BR_STOCK_D);
-  R(34 + lo, legY + 12, 7, 3, BR_SHOE);
-  P(34 + lo, legY + 12, BR_SHOE_L);
-  R(42 - ro, legY, 5, 12, BR_STOCK);
-  R(45 - ro, legY, 2, 12, BR_STOCK_D);
-  R(41 - ro, legY + 12, 7, 3, BR_SHOE);
-  P(47 - ro, legY + 12, BR_SHOE_L);
-
-  // ===== SAIA LÁPIS =====
-  RR(29, 50, 22, 15, BR_SKIRT, 2);
-  R(29, 50, 4, 15, BR_SKIRT_D);
-  R(47, 50, 4, 15, BR_SKIRT_D);
-  R(39, 51, 2, 12, BR_SKIRT_L); // vinco (luz)
-  R(30, 62, 20, 2, BR_SKIRT_D); // barra
-
-  // ===== BLAZER / TORSO (ombros arredondados) =====
-  RR(28, 42, 24, 16, BR_SUIT, 3);
-  R(28, 42, 24, 2, BR_SUIT_L); // ombros (luz)
-  R(28, 43, 2, 11, BR_SUIT_L); // rim de luz na lateral esq.
-  R(49, 44, 3, 13, BR_SUIT_D); // sombra lateral dir.
-  R(50, 46, 2, 11, BR_SUIT_DD);
-  R(31, 47, 1, 9, BR_SUIT_DD); // vinco/dobra esq.
-  R(47, 47, 1, 9, BR_SUIT_DD); // vinco/dobra dir.
-  R(29, 55, 22, 3, BR_SUIT_DD); // AO inferior
-  // blusa em V + lapelas
-  R(36, 43, 8, 13, BR_BLOUSE);
-  R(36, 43, 8, 2, BR_BLOUSE_D);
-  R(33, 43, 4, 12, BR_SUIT_L);
-  R(43, 43, 4, 12, BR_SUIT_L);
-  R(33, 43, 1, 12, BR_SUIT_DD);
-  R(46, 43, 1, 12, BR_SUIT_DD);
-  // colar discreto + botões
-  P(37, 45, BR_GOLD);
-  P(39, 46, BR_GOLD);
-  P(41, 46, BR_GOLD);
-  P(43, 45, BR_GOLD);
-  P(40, 49, BR_GOLD);
-  P(40, 53, BR_GOLD);
-  // crachá/lanyard
-  R(45, 47, 5, 6, BR_CLIP);
-  R(45, 47, 5, 1, BR_GOLD_D);
-  R(46, 48, 3, 3, BR_SKIN_D);
-
-  // ===== BRAÇOS =====
-  if (arm === "point") {
-    R(52, 46, 14, 5, BR_SUIT);
-    R(52, 46, 14, 1, BR_SUIT_L);
-    R(52, 50, 14, 1, BR_SUIT_DD);
-    R(64, 46, 5, 5, BR_SKIN);
-    R(67, 47, 3, 2, BR_SKIN_D);
-    P(64, 46, BR_SKIN_L);
-    R(24, 48, 5, 10, BR_SUIT);
-    R(24, 48, 2, 10, BR_SUIT_D);
-    R(24, 57, 5, 3, BR_SKIN);
-  } else if (arm === "up") {
-    R(26, 30, 5, 14, BR_SUIT);
-    R(26, 30, 2, 14, BR_SUIT_D);
-    R(26, 26, 5, 5, BR_SKIN);
-    R(49, 30, 5, 14, BR_SUIT);
-    R(52, 30, 2, 14, BR_SUIT_D);
-    R(49, 26, 5, 5, BR_SKIN);
-  } else {
-    // braços mais cheios (6px) com rim de luz + punho + mão
-    R(24, 44, 6, 13, BR_SUIT);
-    R(24, 44, 2, 13, BR_SUIT_L); // rim (luz vem da esq.)
-    R(28, 45, 2, 12, BR_SUIT_D); // sombra interna
-    R(24, 54, 6, 2, BR_BLOUSE); // punho
-    R(25, 56, 5, 3, BR_SKIN);
-    P(26, 57, BR_GOLD); // anel
-    R(50, 44, 6, 13, BR_SUIT);
-    R(54, 44, 2, 13, BR_SUIT_D); // sombra
-    R(50, 44, 1, 12, BR_SUIT_DD);
-    R(50, 54, 6, 2, BR_BLOUSE);
-    R(51, 56, 5, 3, BR_SKIN);
-  }
-
-  // ===== PRANCHETA (arma-tema) =====
-  if (arm !== "up") {
-    const cy = arm === "point" ? 52 : 48;
-    RR(31, cy, 18, 16, BR_CLIP, 1);
-    R(31, cy, 18, 2, BR_CLIP_D);
-    R(31, cy, 2, 16, BR_CLIP_D);
-    R(47, cy, 2, 16, BR_CLIP_DD);
-    R(35, cy - 2, 9, 3, BR_RED); // clipe
-    R(35, cy - 2, 9, 1, [220, 120, 120]);
-    R(34, cy + 4, 12, 1, BR_CLIP_DD);
-    R(34, cy + 7, 12, 1, BR_CLIP_DD);
-    R(34, cy + 10, 8, 1, BR_CLIP_DD);
-    R(34, cy + 3, 2, 2, BR_CLIP_DD); // checkbox
-    P(34, cy + 4, BR_RED);
-    P(35, cy + 3, BR_RED);
-    R(45, cy - 3, 2, 9, BR_PEN); // caneta
-    R(45, cy - 4, 2, 2, BR_GOLD);
-  }
-
-  // ===== CABEÇA (grande, estilo herói) =====
-  const fx = 40 + tilt;
-  R(37, 40, 6, 4, BR_SKIN_D); // pescoço
-  R(37, 40, 2, 4, BR_SKIN_DD); // AO do pescoço
-  // ── cabelo de trás: silhueta escura + corpo + mechas (3 tons, não bloco) ──
-  RR(fx - 16, 5, 32, 35, BR_HAIR_D, 8);
-  RR(fx - 15, 6, 30, 32, BR_HAIR, 7);
-  R(fx - 12, 8, 3, 13, BR_HAIR_L); // mecha de brilho esq.
-  R(fx - 8, 7, 2, 9, BR_HAIR_L);
-  R(fx + 7, 9, 2, 11, BR_HAIR_MID); // mecha lateral dir.
-  R(fx + 11, 12, 2, 10, BR_HAIR_D);
-  // ── rosto (bochecha cheia, luz esq. / sombra dir.) ──
-  RR(fx - 11, 20, 22, 22, BR_SKIN, 4);
-  R(fx + 5, 22, 6, 18, BR_SKIN_D); // sombra lado dir.
-  R(fx + 8, 25, 3, 12, BR_SKIN_DD); // AO mais profundo
-  R(fx - 10, 21, 5, 3, BR_SKIN_L); // luz testa
-  R(fx - 10, 25, 2, 11, BR_SKIN_L); // rim de luz na bochecha esq.
-  P(fx - 8, 33, [232, 200, 170]); // brilho da bochecha
-  // nariz
-  R(fx - 1, 31, 2, 4, BR_SKIN_D);
-  P(fx - 1, 35, BR_SKIN_DD);
-  P(fx + 1, 34, BR_SKIN_DD);
-  // ── franja + costeletas sobre o rosto ──
-  RR(fx - 12, 13, 24, 11, BR_HAIR, 5);
-  R(fx - 12, 13, 11, 3, BR_HAIR_L); // brilho da franja
-  R(fx - 6, 14, 4, 2, BR_HAIR_MID);
-  R(fx - 12, 19, 3, 19, BR_HAIR); // costeleta esq.
-  R(fx + 9, 19, 3, 19, BR_HAIR); // costeleta dir.
-  R(fx + 10, 19, 2, 19, BR_HAIR_D);
-  R(fx - 12, 22, 1, 14, BR_HAIR_MID); // mecha na costeleta
-  // ── coque alto ──
-  RR(fx - 5, 0, 13, 9, BR_HAIR, 4);
-  R(fx - 3, 1, 6, 2, BR_HAIR_L);
-  R(fx - 5, 6, 13, 1, BR_HAIR_D); // base do coque (sombra)
-  R(fx - 6, 5, 2, 3, BR_HAIR_D); // presilha
-  // ── brincos (argola) ──
-  P(fx - 11, 33, BR_GOLD);
-  P(fx - 11, 35, BR_GOLD_D);
-  P(fx - 12, 34, BR_GOLD_D);
-  P(fx + 10, 33, BR_GOLD);
-  P(fx + 10, 35, BR_GOLD_D);
-  // ── sobrancelhas ──
-  R(fx - 7, 25, 4, 1, BR_HAIR_D);
-  R(fx + 3, 25, 4, 1, BR_HAIR_D);
-  // ── óculos REDONDOS (aro + lente + reflexo diagonal + olho) ──
-  const lens = (lx, ly) => {
-    RR(lx, ly, 7, 7, BR_GLASS, 2);
-    RR(lx + 1, ly + 1, 5, 5, BR_LENS, 1);
-    P(lx + 1, ly + 1, BR_GLASS_L); // reflexo (canto sup-esq.)
-    P(lx + 2, ly + 1, BR_GLASS_L);
-    R(lx + 3, ly + 3, 2, 2, BR_HAIR_D); // olho
-    P(lx + 3, ly + 3, [30, 24, 30]);
-  };
-  lens(fx - 8, 27);
-  lens(fx + 2, 27);
-  R(fx - 1, 29, 2, 1, BR_GLASS); // ponte
-  // ── blush + batom ──
-  R(fx - 8, 36, 3, 2, BR_BLUSH);
-  R(fx + 6, 36, 3, 2, BR_BLUSH);
-  if (pose.mouth) {
-    R(fx - 2, 38, 5, 3, [120, 40, 50]); // boca aberta
-    R(fx - 2, 38, 5, 1, BR_LIP);
-    P(fx - 1, 40, [90, 30, 38]);
-  } else {
-    R(fx - 2, 38, 5, 1, BR_LIP);
-    P(fx - 2, 39, BR_LIP);
-    P(fx + 2, 39, BR_LIP);
-  }
-  // ── RIM LIGHT quente no topo-esq. do cabelo (keyline da casa) ──
-  R(fx - 5, 0, 8, 1, BR_HAIR_RIM); // topo do coque
-  R(fx - 16, 6, 2, 4, BR_HAIR_RIM); // ombro-esq. do cabelo
-  P(fx - 15, 10, BR_HAIR_RIM);
-  P(fx - 14, 13, BR_HAIR_RIM);
-
-  addOutline(c, BR_OUT);
-  return c.save(name);
+// Recolore frames-fonte `enemy-${src}-*.png` p/ `enemy-${out}-*.png` trocando a
+// cor da roupa via remap(r,g,b,a) -> [r,g,b] | null (null = mantém o pixel).
+async function recolorFrames(src, out, frames, remap) {
+  await Promise.all(
+    frames.map(async (fr) => {
+      const { data, info } = await sharp(DIR + `enemy-${src}-${fr}.png`)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      for (let p = 0; p < data.length; p += 4) {
+        const o = remap(data[p], data[p + 1], data[p + 2], data[p + 3]);
+        if (o) {
+          data[p] = o[0];
+          data[p + 1] = o[1];
+          data[p + 2] = o[2];
+        }
+      }
+      await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })
+        .png()
+        .toFile(DIR + `enemy-${out}-${fr}.png`);
+    }),
+  );
 }
+// blazer vermelho → magenta (preserva luminância/sombreamento)
+const remapRedToMagenta = (r, g, b, a) =>
+  a >= 8 && r > 70 && r > g * 1.6 && r > b * 1.4
+    ? [
+        Math.min(255, Math.round(r * 0.96)),
+        Math.round(g * 0.75),
+        Math.min(255, Math.round(r * 0.66)),
+      ]
+    : null;
+const BRENDA_FRAMES = [
+  "idle0",
+  "idle1",
+  "idle2",
+  "walk0",
+  "walk1",
+  "walk2",
+  "walk3",
+  "attack0",
+  "attack1",
+  "hurt0",
+  "death0",
+  "death1",
+  "death2",
+];
 
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
-  ["brenda", () => brendaFrame("enemy-brenda-idle0.png", { drop: 0 })],
-  ["brenda", () => brendaFrame("enemy-brenda-idle1.png", { drop: 1 })],
-  ["brenda", () => brendaFrame("enemy-brenda-idle2.png", { drop: 0, tilt: 1 })],
-  ["brenda", () => brendaFrame("enemy-brenda-walk0.png", { step: 1 })],
-  ["brenda", () => brendaFrame("enemy-brenda-walk1.png", { step: 0, drop: 1 })],
-  ["brenda", () => brendaFrame("enemy-brenda-walk2.png", { step: -1 })],
-  ["brenda", () => brendaFrame("enemy-brenda-walk3.png", { step: 0, drop: 1 })],
-  ["brenda", () => brendaFrame("enemy-brenda-attack0.png", { arm: "point", mouth: true })],
-  ["brenda", () => brendaFrame("enemy-brenda-attack1.png", { arm: "point", mouth: true, tilt: 1 })],
-  [
-    "brenda",
-    () => brendaFrame("enemy-brenda-hurt0.png", { arm: "up", drop: 1, tilt: -1, mouth: true }),
-  ],
-  ["brenda", () => brendaFrame("enemy-brenda-death0.png", { arm: "up", drop: 4, mouth: true })],
-  ["brenda", () => brendaFrame("enemy-brenda-death1.png", { arm: "up", drop: 9 })],
-  ["brenda", () => brendaFrame("enemy-brenda-death2.png", { arm: "rest", drop: 14 })],
-
+  ["brenda", () => recolorFrames("rh", "brenda", BRENDA_FRAMES, remapRedToMagenta)],
   ["analista-novo", analistaNovoWalk3],
   ["bebedouro", bebedouro],
   ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe.png", 0)],

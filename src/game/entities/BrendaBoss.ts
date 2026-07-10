@@ -57,10 +57,10 @@ export class BrendaDoRH extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
-    this.setDisplaySize(56, 74); // ~1.15× o herói (48×64) — presença de chefe
+    this.setDisplaySize(60, 78); // derivada do enemy-rh (48×64) — presença de chefe
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(24, 46);
-    body.setOffset(28, 32); // sprite 80×80 (grade do herói), feet ~y78
+    body.setSize(30, 52);
+    body.setOffset(9, 12); // sprite 48×64 (frames-fonte do enemy-rh)
     body.setCollideWorldBounds(true);
   }
 
