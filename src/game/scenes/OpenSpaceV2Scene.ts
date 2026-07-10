@@ -1086,9 +1086,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       ["rh", "rh"],
       ["rh", "sobrecarregado"],
     ]) as F1EnemyType[];
-    [1180, 1310].forEach((x, i) => this.spawnEnemyOfType(z3[i], x, rng));
+    [1170, 1280].forEach((x, i) => this.spawnEnemyOfType(z3[i], x, rng));
 
-    // Zona 4 (ranged) — 4 slots: onboarding + facilitador
+    // Zona 4 (ranged) — 4 slots: onboarding + facilitador (antes do arena gate ~1580)
     const z4 = rng.shuffle(
       rng.pick([
         ["onboarding", "onboarding", "facilitador", "facilitador"],
@@ -1096,7 +1096,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         ["onboarding", "facilitador", "facilitador", "facilitador"],
       ]),
     ) as F1EnemyType[];
-    [1400, 1520, 1640, 1760].forEach((x, i) => this.spawnEnemyOfType(z4[i], x, rng));
+    [1360, 1440, 1500, 1560].forEach((x, i) => this.spawnEnemyOfType(z4[i], x, rng));
+
 
 
     // Zona 5 — Scrum Master Caótico (elite, perto do boss) — âncora fixa
