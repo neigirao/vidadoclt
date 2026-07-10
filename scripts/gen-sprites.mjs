@@ -621,45 +621,50 @@ function bebedouro() {
 // e a PRANCHETA de feedback/PDI como arma-tema. 48×64, pés na base (~y61),
 // pose quase frontal (mirror-safe: a cena espelha por dir). addOutline dá o
 // contorno "sticker" que casa com os demais personagens.
-const BR_SUIT = [198, 52, 120],
-  BR_SUIT_D = [150, 32, 88],
-  BR_SUIT_DD = [112, 20, 64],
-  BR_SUIT_L = [232, 104, 162],
-  BR_BLOUSE = [244, 238, 246],
-  BR_BLOUSE_D = [206, 196, 214],
-  BR_SKIRT = [72, 42, 68],
-  BR_SKIRT_D = [48, 26, 46],
-  BR_SKIRT_L = [98, 62, 92],
-  BR_SKIN = [232, 184, 154],
-  BR_SKIN_D = [192, 142, 116],
-  BR_SKIN_L = [248, 208, 178],
-  BR_STOCK = [206, 170, 156],
-  BR_STOCK_D = [176, 140, 128],
-  BR_HAIR = [70, 42, 52],
-  BR_HAIR_D = [44, 24, 34],
-  BR_HAIR_L = [104, 66, 78],
-  BR_CLIP = [240, 240, 232],
-  BR_CLIP_D = [190, 190, 180],
-  BR_CLIP_DD = [150, 150, 142],
-  BR_CLIPRED = [214, 62, 62],
-  BR_HEEL = [28, 22, 30],
-  BR_HEEL_L = [70, 56, 70],
-  BR_GLASS = [40, 40, 54],
-  BR_GLASS_L = [120, 150, 190],
-  BR_LIP = [190, 44, 74],
-  BR_BLUSH = [236, 150, 150, 140],
-  BR_GOLD = [244, 212, 84],
-  BR_GOLD_D = [196, 158, 40],
-  BR_PEN = [40, 44, 60],
-  BR_OUT = [22, 12, 20];
+// Paleta amostrada do HERÓI (player-idle0) p/ coesão: contorno navy-escuro,
+// pele quente, cabelo marrom, camisa off-white fria, tudo dessaturado ~4 tons.
+// O magenta chapado da v2 vira um rosa-mauve DESSATURADO no mesmo mundo.
+const BR_OUT = [16, 16, 32]; // contorno navy do herói (não preto)
+const BR_SKIN = [192, 144, 112],
+  BR_SKIN_D = [144, 96, 80],
+  BR_SKIN_DD = [112, 72, 60],
+  BR_SKIN_L = [224, 192, 160];
+const BR_HAIR = [48, 32, 32],
+  BR_HAIR_D = [28, 20, 22],
+  BR_HAIR_L = [100, 68, 52];
+const BR_SUIT = [150, 84, 104], // blazer rosa-mauve dessaturado
+  BR_SUIT_D = [104, 54, 72],
+  BR_SUIT_DD = [70, 34, 48],
+  BR_SUIT_L = [186, 120, 140];
+const BR_BLOUSE = [202, 206, 208], // blusa off-white fria (= camisa do herói)
+  BR_BLOUSE_D = [150, 152, 162];
+const BR_SKIRT = [62, 46, 54], // saia plum-marrom escura
+  BR_SKIRT_D = [40, 30, 36],
+  BR_SKIRT_L = [86, 66, 78];
+const BR_STOCK = [178, 140, 118],
+  BR_STOCK_D = [140, 104, 86];
+const BR_CLIP = [204, 208, 210],
+  BR_CLIP_D = [156, 158, 168],
+  BR_CLIP_DD = [112, 112, 124];
+const BR_SHOE = [40, 30, 30],
+  BR_SHOE_L = [84, 66, 58];
+const BR_RED = [176, 60, 60],
+  BR_GOLD = [200, 166, 80],
+  BR_GOLD_D = [150, 120, 50],
+  BR_GLASS = [38, 38, 52],
+  BR_GLASS_L = [120, 146, 166],
+  BR_LENS = [206, 216, 224],
+  BR_LIP = [160, 70, 84],
+  BR_BLUSH = [200, 120, 120, 120],
+  BR_PEN = [38, 38, 52];
 
 // pose: { drop, tilt, step, arm:"rest"|"point"|"up", mouth:bool }
-// 60×80, pés na base (~y79). Muito mais detalhe que a v1: sombreamento por
-// material (2–3 tons), lapelas com botões, blusa, colar de pérolas, brinco,
-// blush/batom, coque com mechas, crachá com mini-rosto, meia-calça, saltos com
-// brilho e prancheta com caneta + checkbox marcado. Mirror-safe (cena espelha).
+// 80×80 (mesma grade do HERÓI), pés na base (~y78). Proporção "chibi" do
+// protagonista: cabeça+cabelo grandes (~1/3), corpo pequeno; sombreamento por
+// tom (luz na esq., sombra na dir. + AO), contorno navy, óculos redondos.
+// Mantém a identidade de RH: coque, blazer mauve, blusa, prancheta de feedback.
 function brendaFrame(name, pose = {}) {
-  const W = 60,
+  const W = 80,
     H = 80,
     c = canvas(W, H);
   const drop = pose.drop || 0;
@@ -668,154 +673,159 @@ function brendaFrame(name, pose = {}) {
   const arm = pose.arm || "rest";
   const R = (x, y, w, h, col) => c.rect(x, Math.round(y + drop), w, h, col);
   const P = (x, y, col) => c.px(x, Math.round(y + drop), col);
+  // retângulo de cantos aparados (suaviza cabeça/ombros — evita o look "bloco")
+  const RR = (x, y, w, h, col, r = 0) => {
+    for (let j = 0; j < h; j++) {
+      let ins = 0;
+      if (j < r) ins = r - j;
+      else if (j >= h - r) ins = r - (h - 1 - j);
+      R(x + ins, y + j, w - 2 * ins, 1, col);
+    }
+  };
 
-  // ── pernas com meia-calça + saltos (sob a saia) ──
+  // ===== PERNAS + SALTOS (feet ~y78) =====
   const legY = 63;
   const lo = step < 0 ? 2 : 0,
     ro = step > 0 ? 2 : 0;
-  // perna esq.
-  R(23 + lo, legY, 5, 12, BR_STOCK);
-  R(23 + lo, legY, 2, 12, BR_STOCK_D);
-  R(22 + lo, legY + 12, 7, 3, BR_HEEL);
-  P(22 + lo, legY + 12, BR_HEEL_L);
-  // perna dir.
-  R(32 - ro, legY, 5, 12, BR_STOCK);
-  R(35 - ro, legY, 2, 12, BR_STOCK_D);
-  R(31 - ro, legY + 12, 7, 3, BR_HEEL);
-  P(37 - ro, legY + 12, BR_HEEL_L);
+  R(35 + lo, legY, 5, 12, BR_STOCK);
+  R(35 + lo, legY, 2, 12, BR_STOCK_D);
+  R(34 + lo, legY + 12, 7, 3, BR_SHOE);
+  P(34 + lo, legY + 12, BR_SHOE_L);
+  R(42 - ro, legY, 5, 12, BR_STOCK);
+  R(45 - ro, legY, 2, 12, BR_STOCK_D);
+  R(41 - ro, legY + 12, 7, 3, BR_SHOE);
+  P(47 - ro, legY + 12, BR_SHOE_L);
 
-  // ── saia lápis (cintura → joelho) ──
-  R(19, 47, 22, 17, BR_SKIRT);
-  R(19, 47, 3, 17, BR_SKIRT_D); // sombra lateral esq.
-  R(38, 47, 3, 17, BR_SKIRT_D); // sombra lateral dir.
-  R(29, 48, 2, 15, BR_SKIRT_L); // vinco central (luz)
-  R(19, 61, 22, 3, BR_SKIRT_D); // barra
-  R(19, 47, 22, 2, BR_SUIT_DD); // cinto (base do blazer)
+  // ===== SAIA LÁPIS =====
+  RR(29, 50, 22, 15, BR_SKIRT, 2);
+  R(29, 50, 4, 15, BR_SKIRT_D);
+  R(47, 50, 4, 15, BR_SKIRT_D);
+  R(39, 51, 2, 12, BR_SKIRT_L); // vinco (luz)
+  R(30, 62, 20, 2, BR_SKIRT_D); // barra
 
-  // ── blazer / torso ──
-  R(16, 26, 28, 22, BR_SUIT);
-  R(16, 26, 28, 2, BR_SUIT_L); // ombros (luz)
-  R(16, 26, 3, 22, BR_SUIT_D); // lateral esq.
-  R(41, 26, 3, 22, BR_SUIT_D); // lateral dir.
-  R(16, 45, 28, 3, BR_SUIT_DD); // sombra inferior
-  // blusa clara no decote + lapelas em V
-  R(26, 27, 8, 15, BR_BLOUSE);
-  R(26, 27, 8, 2, BR_BLOUSE_D);
-  R(24, 27, 3, 13, BR_SUIT_L); // lapela esq.
-  R(33, 27, 3, 13, BR_SUIT_L); // lapela dir.
-  R(24, 27, 1, 13, BR_SUIT_DD);
-  R(35, 27, 1, 13, BR_SUIT_DD);
-  // colar de pérolas
-  R(27, 30, 6, 1, BR_BLOUSE);
-  P(27, 30, BR_GOLD);
-  P(29, 31, BR_GOLD);
-  P(31, 30, BR_GOLD);
-  // botões do blazer
-  P(29, 35, BR_GOLD);
-  P(29, 39, BR_GOLD);
-  P(29, 43, BR_GOLD);
-  // crachá/lanyard com mini-rosto
-  R(35, 33, 5, 6, BR_CLIP);
-  R(35, 33, 5, 1, BR_GOLD_D); // presilha
-  R(36, 34, 3, 3, BR_SKIN_D); // "foto"
-  P(37, 35, BR_OUT);
-  R(36, 37, 3, 1, BR_SUIT_D);
+  // ===== BLAZER / TORSO (ombros arredondados) =====
+  RR(28, 42, 24, 16, BR_SUIT, 3);
+  R(28, 42, 24, 2, BR_SUIT_L); // ombros (luz)
+  R(28, 42, 3, 15, BR_SUIT_D); // lateral esq. (na verdade luz→sombra dir.)
+  R(49, 42, 3, 15, BR_SUIT_D);
+  R(29, 55, 22, 3, BR_SUIT_DD); // AO inferior
+  // blusa em V + lapelas
+  R(36, 43, 8, 13, BR_BLOUSE);
+  R(36, 43, 8, 2, BR_BLOUSE_D);
+  R(33, 43, 4, 12, BR_SUIT_L);
+  R(43, 43, 4, 12, BR_SUIT_L);
+  R(33, 43, 1, 12, BR_SUIT_DD);
+  R(46, 43, 1, 12, BR_SUIT_DD);
+  // colar discreto + botões
+  P(37, 45, BR_GOLD);
+  P(39, 46, BR_GOLD);
+  P(41, 46, BR_GOLD);
+  P(43, 45, BR_GOLD);
+  P(40, 49, BR_GOLD);
+  P(40, 53, BR_GOLD);
+  // crachá/lanyard
+  R(45, 47, 5, 6, BR_CLIP);
+  R(45, 47, 5, 1, BR_GOLD_D);
+  R(46, 48, 3, 3, BR_SKIN_D);
 
-  // ── braços ──
+  // ===== BRAÇOS =====
   if (arm === "point") {
-    // braço direito estendido apontando (ataque) — manga + punho + dedo
-    R(43, 30, 13, 5, BR_SUIT);
-    R(43, 30, 13, 1, BR_SUIT_L);
-    R(43, 34, 13, 1, BR_SUIT_DD);
-    R(54, 30, 4, 5, BR_SKIN);
-    R(57, 31, 3, 2, BR_SKIN_D); // dedo apontando
-    P(54, 30, BR_SKIN_L);
-    // braço esq. dobrado segurando a prancheta
-    R(13, 32, 5, 11, BR_SUIT);
-    R(13, 32, 2, 11, BR_SUIT_D);
-    R(13, 42, 5, 3, BR_SKIN);
+    R(52, 46, 14, 5, BR_SUIT);
+    R(52, 46, 14, 1, BR_SUIT_L);
+    R(52, 50, 14, 1, BR_SUIT_DD);
+    R(64, 46, 5, 5, BR_SKIN);
+    R(67, 47, 3, 2, BR_SKIN_D);
+    P(64, 46, BR_SKIN_L);
+    R(24, 48, 5, 10, BR_SUIT);
+    R(24, 48, 2, 10, BR_SUIT_D);
+    R(24, 57, 5, 3, BR_SKIN);
   } else if (arm === "up") {
-    // ambos os braços levantados (hurt / telegraph)
-    R(14, 16, 5, 12, BR_SUIT);
-    R(14, 16, 2, 12, BR_SUIT_D);
-    R(14, 13, 5, 4, BR_SKIN);
-    R(41, 16, 5, 12, BR_SUIT);
-    R(44, 16, 2, 12, BR_SUIT_D);
-    R(41, 13, 5, 4, BR_SKIN);
+    R(26, 30, 5, 14, BR_SUIT);
+    R(26, 30, 2, 14, BR_SUIT_D);
+    R(26, 26, 5, 5, BR_SKIN);
+    R(49, 30, 5, 14, BR_SUIT);
+    R(52, 30, 2, 14, BR_SUIT_D);
+    R(49, 26, 5, 5, BR_SKIN);
   } else {
-    // repouso: braços aos lados com punho de manga + mão + anel
-    R(14, 28, 5, 15, BR_SUIT);
-    R(14, 28, 2, 15, BR_SUIT_D);
-    R(14, 40, 5, 2, BR_BLOUSE); // punho da blusa
-    R(14, 42, 5, 3, BR_SKIN);
-    P(15, 43, BR_GOLD); // anel
-    R(41, 28, 5, 15, BR_SUIT);
-    R(44, 28, 2, 15, BR_SUIT_D);
-    R(41, 40, 5, 2, BR_BLOUSE);
-    R(41, 42, 5, 3, BR_SKIN);
+    R(25, 44, 5, 13, BR_SUIT);
+    R(25, 44, 2, 13, BR_SUIT_D);
+    R(25, 54, 5, 2, BR_BLOUSE); // punho
+    R(25, 56, 5, 3, BR_SKIN);
+    P(26, 57, BR_GOLD); // anel
+    R(50, 44, 5, 13, BR_SUIT);
+    R(53, 44, 2, 13, BR_SUIT_D);
+    R(50, 54, 5, 2, BR_BLOUSE);
+    R(50, 56, 5, 3, BR_SKIN);
   }
 
-  // ── prancheta (arma-tema) segurada à frente ──
+  // ===== PRANCHETA (arma-tema) =====
   if (arm !== "up") {
-    const cy = arm === "point" ? 44 : 40;
-    R(20, cy, 17, 16, BR_CLIP);
-    R(20, cy, 17, 2, BR_CLIP_D);
-    R(20, cy, 2, 16, BR_CLIP_D); // borda esq.
-    R(35, cy, 2, 16, BR_CLIP_DD); // borda dir. (sombra)
-    R(24, cy - 2, 8, 3, BR_CLIPRED); // clipe vermelho
-    R(24, cy - 2, 8, 1, [240, 120, 120]);
-    // formulário: linhas + checkbox marcado (feedback!)
-    R(23, cy + 4, 11, 1, BR_CLIP_DD);
-    R(23, cy + 7, 11, 1, BR_CLIP_DD);
-    R(23, cy + 10, 7, 1, BR_CLIP_DD);
-    R(23, cy + 3, 2, 2, BR_CLIP_DD); // caixa
-    P(23, cy + 4, BR_CLIPRED); // "X" vermelho
-    P(24, cy + 3, BR_CLIPRED);
-    // caneta atrás da prancheta
-    R(33, cy - 3, 2, 9, BR_PEN);
-    R(33, cy - 4, 2, 2, BR_GOLD);
+    const cy = arm === "point" ? 52 : 48;
+    RR(31, cy, 18, 16, BR_CLIP, 1);
+    R(31, cy, 18, 2, BR_CLIP_D);
+    R(31, cy, 2, 16, BR_CLIP_D);
+    R(47, cy, 2, 16, BR_CLIP_DD);
+    R(35, cy - 2, 9, 3, BR_RED); // clipe
+    R(35, cy - 2, 9, 1, [220, 120, 120]);
+    R(34, cy + 4, 12, 1, BR_CLIP_DD);
+    R(34, cy + 7, 12, 1, BR_CLIP_DD);
+    R(34, cy + 10, 8, 1, BR_CLIP_DD);
+    R(34, cy + 3, 2, 2, BR_CLIP_DD); // checkbox
+    P(34, cy + 4, BR_RED);
+    P(35, cy + 3, BR_RED);
+    R(45, cy - 3, 2, 9, BR_PEN); // caneta
+    R(45, cy - 4, 2, 2, BR_GOLD);
   }
 
-  // ── cabeça ──
-  const hx = 21 + tilt;
-  R(hx, 8, 17, 17, BR_SKIN); // rosto
-  R(hx + 13, 10, 4, 13, BR_SKIN_D); // sombra lateral do rosto
-  R(hx + 1, 9, 5, 3, BR_SKIN_L); // luz na testa
-  // cabelo: franja lateral + costeletas + coque alto
-  R(hx, 8, 17, 4, BR_HAIR);
-  R(hx, 8, 8, 3, BR_HAIR_L); // brilho do cabelo
-  R(hx - 1, 10, 3, 12, BR_HAIR); // lateral esq.
-  R(hx + 15, 10, 3, 12, BR_HAIR); // lateral dir.
-  P(hx - 1, 11, BR_HAIR_D);
-  R(hx + 5, 1, 8, 7, BR_HAIR); // coque
-  R(hx + 6, 0, 5, 2, BR_HAIR_D);
-  R(hx + 6, 2, 3, 2, BR_HAIR_L); // brilho do coque
-  R(hx + 4, 5, 2, 2, BR_HAIR_D); // presilha do coque
-  // brinco pendente
-  P(hx - 1, 18, BR_GOLD);
-  P(hx - 1, 20, BR_GOLD_D);
+  // ===== CABEÇA (grande, estilo herói) =====
+  const fx = 40 + tilt;
+  R(37, 40, 6, 4, BR_SKIN_D); // pescoço
+  // cabelo de trás (massa volumosa)
+  RR(fx - 16, 6, 32, 34, BR_HAIR, 7);
+  // rosto
+  RR(fx - 12, 20, 24, 22, BR_SKIN, 4);
+  R(fx + 6, 22, 6, 18, BR_SKIN_D); // sombra lado dir. (luz vem da esq.)
+  R(fx - 11, 21, 5, 3, BR_SKIN_L); // luz na testa
+  P(fx, 34, BR_SKIN_D); // nariz
+  P(fx - 1, 35, BR_SKIN_D);
+  // franja + laterais sobre o rosto
+  RR(fx - 13, 14, 26, 10, BR_HAIR, 5);
+  R(fx - 13, 14, 11, 4, BR_HAIR_L); // brilho (topo-esq.)
+  R(fx - 13, 20, 3, 18, BR_HAIR); // costeleta esq.
+  R(fx + 10, 20, 3, 18, BR_HAIR); // costeleta dir.
+  P(fx + 12, 22, BR_HAIR_D);
+  // coque alto
+  RR(fx - 6, 0, 14, 10, BR_HAIR, 4);
+  R(fx - 4, 1, 6, 3, BR_HAIR_L);
+  P(fx - 2, 5, BR_HAIR_D);
+  // brincos
+  P(fx - 12, 33, BR_GOLD);
+  P(fx - 12, 35, BR_GOLD_D);
+  P(fx + 11, 33, BR_GOLD);
   // sobrancelhas
-  R(hx + 3, 12, 4, 1, BR_HAIR_D);
-  R(hx + 10, 12, 4, 1, BR_HAIR_D);
-  // óculos cat-eye com reflexo
-  R(hx + 2, 13, 5, 4, BR_GLASS);
-  R(hx + 10, 13, 5, 4, BR_GLASS);
-  R(hx + 7, 14, 3, 1, BR_GLASS); // ponte
-  P(hx + 3, 14, BR_GLASS_L); // reflexo lente esq.
-  P(hx + 11, 14, BR_GLASS_L); // reflexo lente dir.
-  P(hx + 6, 13, BR_HAIR_D); // canto cat-eye esq.
-  P(hx + 15, 13, BR_HAIR_D); // canto cat-eye dir.
+  R(fx - 8, 26, 5, 1, BR_HAIR_D);
+  R(fx + 3, 26, 5, 1, BR_HAIR_D);
+  // óculos REDONDOS (como o herói) — aro + lente + reflexo + olho
+  const lens = (lx, ly) => {
+    RR(lx, ly, 7, 7, BR_GLASS, 2);
+    RR(lx + 1, ly + 1, 5, 5, BR_LENS, 1);
+    P(lx + 2, ly + 2, BR_GLASS_L); // reflexo
+    R(lx + 3, ly + 3, 2, 2, BR_HAIR_D); // olho
+  };
+  lens(fx - 9, 27);
+  lens(fx + 3, 27);
+  R(fx - 1, 30, 2, 1, BR_GLASS); // ponte
   // blush
-  R(hx + 1, 18, 3, 2, BR_BLUSH);
-  R(hx + 13, 18, 3, 2, BR_BLUSH);
+  R(fx - 9, 35, 3, 2, BR_BLUSH);
+  R(fx + 7, 35, 3, 2, BR_BLUSH);
   // boca / batom
   if (pose.mouth) {
-    R(hx + 6, 20, 5, 3, [120, 28, 40]); // boca aberta (gritando)
-    R(hx + 6, 20, 5, 1, BR_LIP);
+    R(fx - 2, 38, 5, 3, [120, 40, 50]);
+    R(fx - 2, 38, 5, 1, BR_LIP);
   } else {
-    R(hx + 6, 20, 5, 1, BR_LIP);
-    P(hx + 6, 21, BR_LIP);
-    P(hx + 10, 21, BR_LIP);
+    R(fx - 2, 38, 5, 1, BR_LIP);
+    P(fx - 2, 39, BR_LIP);
+    P(fx + 2, 39, BR_LIP);
   }
 
   addOutline(c, BR_OUT);
