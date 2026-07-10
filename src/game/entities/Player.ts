@@ -535,8 +535,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const dashDown = this.keys.dash.isDown || !!pad?.R1;
     const specialDown = this.keys.special.isDown || (pad?.Y ?? false);
     const parryDown = this.keys.parry.isDown || !!pad?.L1;
-    const consumivelDown = this.keys.consumivel.isDown;
-    const secondaryDown = this.keys.secondary.isDown;
+    // Gatilhos analógicos do pad p/ as duas ações que faltavam no controle:
+    // L2 = consumível (café), R2 = troca de arma (Q). Threshold 0.5 evita
+    // disparo por curso morto do gatilho.
+    const consumivelDown = this.keys.consumivel.isDown || (pad ? (pad.L2 ?? 0) > 0.5 : false);
+    const secondaryDown = this.keys.secondary.isDown || (pad ? (pad.R2 ?? 0) > 0.5 : false);
 
     const jumpPressed = jumpDown && !this.prevJumpDown;
     const attackPressed = attackDown && !this.prevAttackDown;

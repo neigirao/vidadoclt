@@ -88,6 +88,7 @@ export class Hud {
   private sec1SanityNumT!: Phaser.GameObjects.Text;
   private sec1VrT!: Phaser.GameObjects.Text;
   private sec1RecoT!: Phaser.GameObjects.Text;
+  private sec1SanityLabelT!: Phaser.GameObjects.Text;
 
   // Section 2 graphics
   private weaponNameT!: Phaser.GameObjects.Text;
@@ -440,14 +441,13 @@ export class Hud {
     });
     this.botContainer.add(this.sec1EnergyNumT);
 
-    // SANIDADE label
-    this.botContainer.add(
-      this.scene.add.text(statX, 24, "SANIDADE", {
-        fontFamily: F,
-        fontSize: "9px",
-        color: "#80a0ff",
-      }),
-    );
+    // SANIDADE label — prefixo de emoji muda conforme a faixa (🙂/😰/😱/🔥)
+    this.sec1SanityLabelT = this.scene.add.text(statX, 24, "🙂 SANIDADE", {
+      fontFamily: F,
+      fontSize: "9px",
+      color: "#80a0ff",
+    });
+    this.botContainer.add(this.sec1SanityLabelT);
     // SANIDADE bar graphics
     this.sec1SanityG = this.scene.add.graphics();
     this.botContainer.add(this.sec1SanityG);
@@ -459,8 +459,8 @@ export class Hud {
     });
     this.botContainer.add(this.sec1SanityNumT);
 
-    // VR gold text
-    this.sec1VrT = this.scene.add.text(statX, 42, "VR  R$ 0,00", {
+    // VR gold text (💰 = moeda do jogo)
+    this.sec1VrT = this.scene.add.text(statX, 42, "💰 VR  R$ 0,00", {
       fontFamily: F,
       fontSize: "9px",
       fontStyle: "bold",
@@ -846,7 +846,11 @@ export class Hud {
     this.drawBar(this.sec1SanityG, STAT_X, BAR_SANITY_Y, opts.sanity, opts.maxSanity, sanityColor);
     this.sec1EnergyNumT.setText(`${opts.energy}/${opts.maxEnergy}`);
     this.sec1SanityNumT.setText(`${opts.sanity}/${opts.maxSanity}`).setColor(sanityHex);
-    this.sec1VrT.setText(`VR  ${this.fmtVR(opts.vr)}`);
+    // Ícone de faixa da sanidade (mesmos limites da cor da barra)
+    const sanityIcon =
+      sanityPct > 0.5 ? "🙂" : sanityPct > 0.25 ? "😰" : sanityPct > 0 ? "😱" : "🔥";
+    this.sec1SanityLabelT.setText(`${sanityIcon} SANIDADE`);
+    this.sec1VrT.setText(`💰 VR  ${this.fmtVR(opts.vr)}`);
     this.sec1RecoT.setText(`RECO: ${opts.reconhecimento.toLocaleString("pt-BR")}`);
 
     // HUD tweens — VR pickup pulse

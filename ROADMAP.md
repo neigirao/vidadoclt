@@ -61,6 +61,8 @@ itens de engenharia do `CLAUDE.md`.
 ### Acessibilidade (Sprint 8)
 
 - ✅ Opção "reduzir efeitos de Sanidade" (fotossensibilidade) — toggle no Pause.
+- ✅ Gamepad completo: consumível em **L2** e troca de arma (Q) em **R2** — as duas ações que faltavam no controle.
+- ✅ Legibilidade de HUD: 💰 no contador de VR e ícone de faixa na Sanidade (🙂/😰/😱/🔥).
 - Pendente: desativar input-lag, remap de teclas, modo daltônico p/ telegraphs, texto escalável.
 
 ---
