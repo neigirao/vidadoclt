@@ -494,8 +494,13 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
   onShout?: (fromX: number, fromY: number) => void;
   onRetrospectiva?: (fromX: number, fromY: number) => void;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-scrum-idle0"));
+  /** "scrum-boss" (recolor roxo dedicado) p/ o boss da Fase 4, "scrum" p/ o trash. */
+  private texPrefix: string;
+
+  constructor(scene: Phaser.Scene, x: number, y: number, asBoss = false) {
+    const texPrefix = asBoss ? "scrum-boss" : "scrum";
+    super(scene, x, y, ...resolveSprite(`tex-${texPrefix}-idle0`));
+    this.texPrefix = texPrefix;
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
@@ -627,18 +632,18 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
     }
     // Animate texture
     if (t < this._hurtUntil) {
-      setEnemyTex(this, t, "scrum", "hurt");
+      setEnemyTex(this, t, this.texPrefix, "hurt");
     } else if (
       this.aiState === "charge" ||
       this.aiState === "shout" ||
       this.aiState === "retro_tele" ||
       this.aiState === "retro_slam"
     ) {
-      setEnemyTex(this, t, "scrum", "attack");
+      setEnemyTex(this, t, this.texPrefix, "attack");
     } else if (this.aiState === "walk") {
-      setEnemyTex(this, t, "scrum", "walk");
+      setEnemyTex(this, t, this.texPrefix, "walk");
     } else {
-      setEnemyTex(this, t, "scrum", "idle");
+      setEnemyTex(this, t, this.texPrefix, "idle");
     }
   }
 
@@ -681,9 +686,15 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
   onHpChange?: (hp: number, maxHp: number) => void;
   onCoffeeDrop?: (x: number, y: number) => void;
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
-    // Band-aid: usa sprites limpos do enemy-coordenador até ter arte nova do boss
-    super(scene, x, y, ...resolveSprite("tex-coordenador-idle0"));
+  /** Prefixo de textura: "coord-boss" (recolor teal dedicado) p/ o boss da Fase 2,
+   *  "coordenador" p/ o trash mob da Fase 1. */
+  private texPrefix: string;
+
+  constructor(scene: Phaser.Scene, x: number, y: number, asBoss = false) {
+    // Boss (F2) usa o recolor dedicado enemy-coord-boss; trash usa enemy-coordenador.
+    const texPrefix = asBoss ? "coord-boss" : "coordenador";
+    super(scene, x, y, ...resolveSprite(`tex-${texPrefix}-idle0`));
+    this.texPrefix = texPrefix;
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
@@ -732,11 +743,11 @@ export class CoordenadorDeSinergia extends Phaser.Physics.Arcade.Sprite {
     }
     // Animate texture (tint override during buff is fine — keeps aura signal)
     if (t < this._hurtUntil) {
-      setEnemyTex(this, t, "coordenador", "hurt");
+      setEnemyTex(this, t, this.texPrefix, "hurt");
     } else if (Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x) > 10) {
-      setEnemyTex(this, t, "coordenador", "walk");
+      setEnemyTex(this, t, this.texPrefix, "walk");
     } else {
-      setEnemyTex(this, t, "coordenador", "idle");
+      setEnemyTex(this, t, this.texPrefix, "idle");
     }
   }
 

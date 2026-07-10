@@ -125,7 +125,7 @@ export class Phase2Scene extends BasePhaseScene {
     });
 
     // Boss — stored in this.boss, NOT in coordenadores group (prevents double-damage)
-    const boss = new CoordenadorDeSinergia(this, 1800, FLOOR_Y - 60);
+    const boss = new CoordenadorDeSinergia(this, 1800, FLOOR_Y - 60, true);
     boss.target = this.player;
     // Rebalance v2 (telemetria: Fase 2 era paredão): trash caiu p/ 42-95, então
     // o boss desce junto p/ manter a proporção "maior luta da fase" sem paredão.

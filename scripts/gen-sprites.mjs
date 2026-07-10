@@ -669,9 +669,44 @@ const BRENDA_FRAMES = [
   "death2",
 ];
 
+// Tinge pixels médio-escuros (roupa/cabelo) por luminância p/ um alvo, preservando
+// pele/realces claros e o contorno. Deriva bosses de fontes de roupa ESCURA
+// (evangelista/coordenador/scrum), onde recolor por matiz não isola a roupa.
+const tintDark = (mr, mg, mb) => (r, g, b, a) => {
+  if (a < 8) return null;
+  const L = (r + g + b) / 3;
+  if (L < 20 || L > 120) return null; // contorno/preto e pele/realce: mantém
+  return [
+    Math.min(255, Math.round(L * mr)),
+    Math.min(255, Math.round(L * mg)),
+    Math.min(255, Math.round(L * mb)),
+  ];
+};
+// prettier-ignore
+const EVANG_FRAMES = ["attack0","attack1","attack2","death0","death1","death2","death3","hurt0","hurt1","idle0","idle1","walk0","walk1","walk2"];
+// prettier-ignore
+const COORD_FRAMES = ["attack0","attack1","attack2","death0","death1","death2","hurt0","idle0","idle1","idle2","idle3","walk0","walk1","walk2","walk3"];
+// prettier-ignore
+const SCRUM_FRAMES = ["attack0","attack1","attack2","death0","death1","death2","hurt0","idle0","idle1","idle2","idle3","walk0","walk1","walk2","walk3","walk4","walk5"];
+
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
   ["brenda", () => recolorFrames("rh", "brenda", BRENDA_FRAMES, remapRedToMagenta)],
+  // Diretor (F5): fonte evangelista-boss → aço/navy (executivo frio)
+  [
+    "diretor",
+    () => recolorFrames("evangelista-boss", "diretor", EVANG_FRAMES, tintDark(0.75, 0.9, 1.25)),
+  ],
+  // Coordenador boss (F2): fonte coordenador → teal (casa com a aura)
+  [
+    "coord-boss",
+    () => recolorFrames("coordenador", "coord-boss", COORD_FRAMES, tintDark(0.55, 1.05, 1.2)),
+  ],
+  // Scrum boss (F4): fonte scrum → roxo (casa com a aura)
+  [
+    "scrum-boss",
+    () => recolorFrames("scrum", "scrum-boss", SCRUM_FRAMES, tintDark(1.0, 0.6, 1.35)),
+  ],
   ["analista-novo", analistaNovoWalk3],
   ["bebedouro", bebedouro],
   ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe.png", 0)],

@@ -53,7 +53,7 @@ export class DiretorDeResultados extends Phaser.Physics.Arcade.Sprite {
   onReestrutura?: (fromX: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-evangelista-boss-idle0"));
+    super(scene, x, y, ...resolveSprite("tex-diretor-idle0"));
     this.homeX = x;
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -331,19 +331,19 @@ export class DiretorDeResultados extends Phaser.Physics.Arcade.Sprite {
     let key: string;
     if (this._dying) {
       const f = Math.floor(now / 200) % 4;
-      key = `tex-evangelista-boss-death${f}`;
+      key = `tex-diretor-death${f}`;
     } else if (now < this._hurtUntil) {
       const f = Math.floor(now / 110) % 2;
-      key = `tex-evangelista-boss-hurt${f}`;
+      key = `tex-diretor-hurt${f}`;
     } else if (this.bossState === "telegraph" || this.bossState === "attack") {
       const f = Math.floor(now / 130) % 3;
-      key = `tex-evangelista-boss-attack${f}`;
+      key = `tex-diretor-attack${f}`;
     } else if (this.bossState === "enter" || this.bossState === "recover") {
       const f = Math.floor(now / 150) % 3;
-      key = `tex-evangelista-boss-walk${f}`;
+      key = `tex-diretor-walk${f}`;
     } else {
       const f = Math.floor(now / 560) % 2;
-      key = `tex-evangelista-boss-idle${f}`;
+      key = `tex-diretor-idle${f}`;
     }
     applyTexture(this, key);
   }

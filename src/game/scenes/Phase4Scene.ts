@@ -190,7 +190,7 @@ export class Phase4Scene extends BasePhaseScene {
     });
 
     // Boss — stored in this.boss, NOT in scrums group (prevents double-damage)
-    const boss = new ScrumMasterCaotico(this, 1800, FLOOR_Y - 60);
+    const boss = new ScrumMasterCaotico(this, 1800, FLOOR_Y - 60, true);
     boss.target = this.player;
     // Rebalance v2 (rampa suave): trash da Fase 4 caiu p/ 60-130; boss desce junto.
     boss.hp = 280;
