@@ -3,6 +3,7 @@ import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H, Hud } from "../systems/Hud";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
 import {
+  addParallaxLayers,
   addPhaseAmbience,
   addPhaseBackground,
   addPhaseDecor,
@@ -302,6 +303,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     addPhaseBackground(this, this.getBgKey(), HUD_TOP_H, FLOOR_Y);
     const pn = this.getPhaseNumber();
     if (pn !== null) {
+      addParallaxLayers(this, pn, HUD_TOP_H, FLOOR_Y); // planos de profundidade
       addPhaseDecor(this, pn, FLOOR_Y);
       addThemedFloorDecor(this, pn, FLOOR_Y); // prop de chão próprio da fase
     }
