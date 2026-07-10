@@ -57,10 +57,10 @@ export class BrendaDoRH extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
-    this.setDisplaySize(52, 70);
+    this.setDisplaySize(58, 78);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(30, 52);
-    body.setOffset(9, 12); // sprite 48×64
+    body.setSize(32, 54);
+    body.setOffset(14, 24); // sprite 60×80 (feet ~y79)
     body.setCollideWorldBounds(true);
   }
 

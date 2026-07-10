@@ -623,114 +623,199 @@ function bebedouro() {
 // contorno "sticker" que casa com os demais personagens.
 const BR_SUIT = [198, 52, 120],
   BR_SUIT_D = [150, 32, 88],
-  BR_SUIT_L = [230, 100, 160],
-  BR_SKIRT = [70, 40, 66],
-  BR_SKIRT_D = [46, 26, 46],
-  BR_SKIN = [230, 182, 152],
-  BR_SKIN_D = [190, 142, 116],
-  BR_HAIR = [58, 38, 46],
-  BR_HAIR_D = [38, 22, 30],
-  BR_CLIP = [238, 238, 230],
-  BR_CLIP_D = [188, 188, 178],
+  BR_SUIT_DD = [112, 20, 64],
+  BR_SUIT_L = [232, 104, 162],
+  BR_BLOUSE = [244, 238, 246],
+  BR_BLOUSE_D = [206, 196, 214],
+  BR_SKIRT = [72, 42, 68],
+  BR_SKIRT_D = [48, 26, 46],
+  BR_SKIRT_L = [98, 62, 92],
+  BR_SKIN = [232, 184, 154],
+  BR_SKIN_D = [192, 142, 116],
+  BR_SKIN_L = [248, 208, 178],
+  BR_STOCK = [206, 170, 156],
+  BR_STOCK_D = [176, 140, 128],
+  BR_HAIR = [70, 42, 52],
+  BR_HAIR_D = [44, 24, 34],
+  BR_HAIR_L = [104, 66, 78],
+  BR_CLIP = [240, 240, 232],
+  BR_CLIP_D = [190, 190, 180],
+  BR_CLIP_DD = [150, 150, 142],
   BR_CLIPRED = [214, 62, 62],
-  BR_HEEL = [26, 20, 26],
-  BR_GLASS = [44, 44, 56],
-  BR_BADGE = [244, 212, 84],
-  BR_OUT = [20, 12, 18];
+  BR_HEEL = [28, 22, 30],
+  BR_HEEL_L = [70, 56, 70],
+  BR_GLASS = [40, 40, 54],
+  BR_GLASS_L = [120, 150, 190],
+  BR_LIP = [190, 44, 74],
+  BR_BLUSH = [236, 150, 150, 140],
+  BR_GOLD = [244, 212, 84],
+  BR_GOLD_D = [196, 158, 40],
+  BR_PEN = [40, 44, 60],
+  BR_OUT = [22, 12, 20];
 
 // pose: { drop, tilt, step, arm:"rest"|"point"|"up", mouth:bool }
+// 60×80, pés na base (~y79). Muito mais detalhe que a v1: sombreamento por
+// material (2–3 tons), lapelas com botões, blusa, colar de pérolas, brinco,
+// blush/batom, coque com mechas, crachá com mini-rosto, meia-calça, saltos com
+// brilho e prancheta com caneta + checkbox marcado. Mirror-safe (cena espelha).
 function brendaFrame(name, pose = {}) {
-  const W = 48,
-    H = 64,
+  const W = 60,
+    H = 80,
     c = canvas(W, H);
-  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
-  const drop = pose.drop || 0; // afunda o corpo (hurt/death)
-  const tilt = pose.tilt || 0; // desloca a cabeça em x
-  const step = pose.step || 0; // -1/0/1 passada (walk)
+  const drop = pose.drop || 0;
+  const tilt = pose.tilt || 0;
+  const step = pose.step || 0;
   const arm = pose.arm || "rest";
+  const R = (x, y, w, h, col) => c.rect(x, Math.round(y + drop), w, h, col);
+  const P = (x, y, col) => c.px(x, Math.round(y + drop), col);
 
-  // ── pernas + saltos (sob a saia) ──
-  const legY = 47 + drop;
+  // ── pernas com meia-calça + saltos (sob a saia) ──
+  const legY = 63;
   const lo = step < 0 ? 2 : 0,
     ro = step > 0 ? 2 : 0;
-  R(19 + lo, legY, 4, 11, BR_SKIN); // perna esq.
-  R(18 + lo, legY + 11, 6, 3, BR_HEEL); // salto esq.
-  R(25 - ro, legY, 4, 11, BR_SKIN); // perna dir.
-  R(25 - ro, legY + 11, 6, 3, BR_HEEL); // salto dir.
+  // perna esq.
+  R(23 + lo, legY, 5, 12, BR_STOCK);
+  R(23 + lo, legY, 2, 12, BR_STOCK_D);
+  R(22 + lo, legY + 12, 7, 3, BR_HEEL);
+  P(22 + lo, legY + 12, BR_HEEL_L);
+  // perna dir.
+  R(32 - ro, legY, 5, 12, BR_STOCK);
+  R(35 - ro, legY, 2, 12, BR_STOCK_D);
+  R(31 - ro, legY + 12, 7, 3, BR_HEEL);
+  P(37 - ro, legY + 12, BR_HEEL_L);
 
-  // ── saia lápis ──
-  R(16, 34 + drop, 16, 14, BR_SKIRT);
-  R(16, 34 + drop, 3, 14, BR_SKIRT_D); // sombra lateral esq.
-  R(29, 34 + drop, 3, 14, BR_SKIRT_D); // sombra lateral dir.
-  R(16, 45 + drop, 16, 2, BR_SKIRT_D); // barra
+  // ── saia lápis (cintura → joelho) ──
+  R(19, 47, 22, 17, BR_SKIRT);
+  R(19, 47, 3, 17, BR_SKIRT_D); // sombra lateral esq.
+  R(38, 47, 3, 17, BR_SKIRT_D); // sombra lateral dir.
+  R(29, 48, 2, 15, BR_SKIRT_L); // vinco central (luz)
+  R(19, 61, 22, 3, BR_SKIRT_D); // barra
+  R(19, 47, 22, 2, BR_SUIT_DD); // cinto (base do blazer)
 
   // ── blazer / torso ──
-  R(15, 19 + drop, 18, 16, BR_SUIT);
-  R(15, 19 + drop, 18, 2, BR_SUIT_L); // ombro (luz)
-  R(15, 19 + drop, 3, 16, BR_SUIT_D); // lateral esq.
-  R(30, 19 + drop, 3, 16, BR_SUIT_D); // lateral dir.
-  // lapelas em V + blusa clara no meio
-  R(22, 20 + drop, 4, 12, BR_CLIP);
-  R(21, 20 + drop, 1, 8, BR_SUIT_D);
-  R(26, 20 + drop, 1, 8, BR_SUIT_D);
-  R(23, 22 + drop, 2, 8, [214, 60, 96]); // colar/gravatinha
-  // crachá amarelo no peito
-  R(27, 26 + drop, 4, 5, BR_BADGE);
-  R(27, 26 + drop, 4, 1, [255, 240, 160]);
+  R(16, 26, 28, 22, BR_SUIT);
+  R(16, 26, 28, 2, BR_SUIT_L); // ombros (luz)
+  R(16, 26, 3, 22, BR_SUIT_D); // lateral esq.
+  R(41, 26, 3, 22, BR_SUIT_D); // lateral dir.
+  R(16, 45, 28, 3, BR_SUIT_DD); // sombra inferior
+  // blusa clara no decote + lapelas em V
+  R(26, 27, 8, 15, BR_BLOUSE);
+  R(26, 27, 8, 2, BR_BLOUSE_D);
+  R(24, 27, 3, 13, BR_SUIT_L); // lapela esq.
+  R(33, 27, 3, 13, BR_SUIT_L); // lapela dir.
+  R(24, 27, 1, 13, BR_SUIT_DD);
+  R(35, 27, 1, 13, BR_SUIT_DD);
+  // colar de pérolas
+  R(27, 30, 6, 1, BR_BLOUSE);
+  P(27, 30, BR_GOLD);
+  P(29, 31, BR_GOLD);
+  P(31, 30, BR_GOLD);
+  // botões do blazer
+  P(29, 35, BR_GOLD);
+  P(29, 39, BR_GOLD);
+  P(29, 43, BR_GOLD);
+  // crachá/lanyard com mini-rosto
+  R(35, 33, 5, 6, BR_CLIP);
+  R(35, 33, 5, 1, BR_GOLD_D); // presilha
+  R(36, 34, 3, 3, BR_SKIN_D); // "foto"
+  P(37, 35, BR_OUT);
+  R(36, 37, 3, 1, BR_SUIT_D);
 
   // ── braços ──
   if (arm === "point") {
-    // braço direito estendido apontando (ataque)
-    R(32, 22 + drop, 12, 4, BR_SUIT);
-    R(32, 22 + drop, 12, 1, BR_SUIT_L);
-    R(43, 22 + drop, 4, 4, BR_SKIN); // punho/mão
-    R(45, 23 + drop, 3, 2, BR_SKIN_D); // dedo apontando
-    // braço esq. segura prancheta baixa
-    R(11, 24 + drop, 5, 9, BR_SUIT);
-    R(11, 31 + drop, 5, 3, BR_SKIN);
+    // braço direito estendido apontando (ataque) — manga + punho + dedo
+    R(43, 30, 13, 5, BR_SUIT);
+    R(43, 30, 13, 1, BR_SUIT_L);
+    R(43, 34, 13, 1, BR_SUIT_DD);
+    R(54, 30, 4, 5, BR_SKIN);
+    R(57, 31, 3, 2, BR_SKIN_D); // dedo apontando
+    P(54, 30, BR_SKIN_L);
+    // braço esq. dobrado segurando a prancheta
+    R(13, 32, 5, 11, BR_SUIT);
+    R(13, 32, 2, 11, BR_SUIT_D);
+    R(13, 42, 5, 3, BR_SKIN);
   } else if (arm === "up") {
     // ambos os braços levantados (hurt / telegraph)
-    R(11, 14 + drop, 4, 9, BR_SUIT);
-    R(11, 12 + drop, 4, 3, BR_SKIN);
-    R(33, 14 + drop, 4, 9, BR_SUIT);
-    R(33, 12 + drop, 4, 3, BR_SKIN);
+    R(14, 16, 5, 12, BR_SUIT);
+    R(14, 16, 2, 12, BR_SUIT_D);
+    R(14, 13, 5, 4, BR_SKIN);
+    R(41, 16, 5, 12, BR_SUIT);
+    R(44, 16, 2, 12, BR_SUIT_D);
+    R(41, 13, 5, 4, BR_SKIN);
   } else {
-    // repouso: braços aos lados
-    R(12, 21 + drop, 4, 12, BR_SUIT);
-    R(12, 32 + drop, 4, 3, BR_SKIN);
-    R(32, 21 + drop, 4, 12, BR_SUIT);
-    R(32, 32 + drop, 4, 3, BR_SKIN);
+    // repouso: braços aos lados com punho de manga + mão + anel
+    R(14, 28, 5, 15, BR_SUIT);
+    R(14, 28, 2, 15, BR_SUIT_D);
+    R(14, 40, 5, 2, BR_BLOUSE); // punho da blusa
+    R(14, 42, 5, 3, BR_SKIN);
+    P(15, 43, BR_GOLD); // anel
+    R(41, 28, 5, 15, BR_SUIT);
+    R(44, 28, 2, 15, BR_SUIT_D);
+    R(41, 40, 5, 2, BR_BLOUSE);
+    R(41, 42, 5, 3, BR_SKIN);
   }
 
   // ── prancheta (arma-tema) segurada à frente ──
   if (arm !== "up") {
-    const cy = (arm === "point" ? 33 : 30) + drop;
-    R(17, cy, 13, 12, BR_CLIP);
-    R(17, cy, 13, 2, BR_CLIP_D);
-    R(21, cy - 2, 5, 3, BR_CLIPRED); // clipe vermelho
-    R(19, cy + 4, 9, 1, BR_CLIP_D); // linhas do formulário
-    R(19, cy + 7, 9, 1, BR_CLIP_D);
-    R(19, cy + 10, 6, 1, BR_CLIP_D);
+    const cy = arm === "point" ? 44 : 40;
+    R(20, cy, 17, 16, BR_CLIP);
+    R(20, cy, 17, 2, BR_CLIP_D);
+    R(20, cy, 2, 16, BR_CLIP_D); // borda esq.
+    R(35, cy, 2, 16, BR_CLIP_DD); // borda dir. (sombra)
+    R(24, cy - 2, 8, 3, BR_CLIPRED); // clipe vermelho
+    R(24, cy - 2, 8, 1, [240, 120, 120]);
+    // formulário: linhas + checkbox marcado (feedback!)
+    R(23, cy + 4, 11, 1, BR_CLIP_DD);
+    R(23, cy + 7, 11, 1, BR_CLIP_DD);
+    R(23, cy + 10, 7, 1, BR_CLIP_DD);
+    R(23, cy + 3, 2, 2, BR_CLIP_DD); // caixa
+    P(23, cy + 4, BR_CLIPRED); // "X" vermelho
+    P(24, cy + 3, BR_CLIPRED);
+    // caneta atrás da prancheta
+    R(33, cy - 3, 2, 9, BR_PEN);
+    R(33, cy - 4, 2, 2, BR_GOLD);
   }
 
   // ── cabeça ──
-  const hx = 17 + tilt;
-  R(hx, 6 + drop, 14, 14, BR_SKIN); // rosto
-  R(hx, 6 + drop, 14, 3, BR_HAIR); // cabelo (testa)
-  R(hx - 1, 8 + drop, 2, 10, BR_HAIR); // cabelo lateral esq.
-  R(hx + 13, 8 + drop, 2, 10, BR_HAIR); // cabelo lateral dir.
-  // coque alto (silhueta de chefe)
-  R(hx + 4, 1 + drop, 6, 5, BR_HAIR);
-  R(hx + 5, 0 + drop, 4, 2, BR_HAIR_D);
-  // óculos
-  R(hx + 2, 11 + drop, 4, 3, BR_GLASS);
-  R(hx + 8, 11 + drop, 4, 3, BR_GLASS);
-  R(hx + 6, 12 + drop, 2, 1, BR_GLASS); // ponte
-  // boca
+  const hx = 21 + tilt;
+  R(hx, 8, 17, 17, BR_SKIN); // rosto
+  R(hx + 13, 10, 4, 13, BR_SKIN_D); // sombra lateral do rosto
+  R(hx + 1, 9, 5, 3, BR_SKIN_L); // luz na testa
+  // cabelo: franja lateral + costeletas + coque alto
+  R(hx, 8, 17, 4, BR_HAIR);
+  R(hx, 8, 8, 3, BR_HAIR_L); // brilho do cabelo
+  R(hx - 1, 10, 3, 12, BR_HAIR); // lateral esq.
+  R(hx + 15, 10, 3, 12, BR_HAIR); // lateral dir.
+  P(hx - 1, 11, BR_HAIR_D);
+  R(hx + 5, 1, 8, 7, BR_HAIR); // coque
+  R(hx + 6, 0, 5, 2, BR_HAIR_D);
+  R(hx + 6, 2, 3, 2, BR_HAIR_L); // brilho do coque
+  R(hx + 4, 5, 2, 2, BR_HAIR_D); // presilha do coque
+  // brinco pendente
+  P(hx - 1, 18, BR_GOLD);
+  P(hx - 1, 20, BR_GOLD_D);
+  // sobrancelhas
+  R(hx + 3, 12, 4, 1, BR_HAIR_D);
+  R(hx + 10, 12, 4, 1, BR_HAIR_D);
+  // óculos cat-eye com reflexo
+  R(hx + 2, 13, 5, 4, BR_GLASS);
+  R(hx + 10, 13, 5, 4, BR_GLASS);
+  R(hx + 7, 14, 3, 1, BR_GLASS); // ponte
+  P(hx + 3, 14, BR_GLASS_L); // reflexo lente esq.
+  P(hx + 11, 14, BR_GLASS_L); // reflexo lente dir.
+  P(hx + 6, 13, BR_HAIR_D); // canto cat-eye esq.
+  P(hx + 15, 13, BR_HAIR_D); // canto cat-eye dir.
+  // blush
+  R(hx + 1, 18, 3, 2, BR_BLUSH);
+  R(hx + 13, 18, 3, 2, BR_BLUSH);
+  // boca / batom
   if (pose.mouth) {
-    R(hx + 5, 16 + drop, 4, 2, [120, 30, 40]); // boca aberta (gritando)
+    R(hx + 6, 20, 5, 3, [120, 28, 40]); // boca aberta (gritando)
+    R(hx + 6, 20, 5, 1, BR_LIP);
   } else {
-    R(hx + 5, 16 + drop, 4, 1, BR_SKIN_D);
+    R(hx + 6, 20, 5, 1, BR_LIP);
+    P(hx + 6, 21, BR_LIP);
+    P(hx + 10, 21, BR_LIP);
   }
 
   addOutline(c, BR_OUT);
