@@ -125,7 +125,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     return 1;
   }
   protected getInitialObjective(): string {
-    return "Derrote o Gerente e acesse a Copa";
+    return "Sobreviva ao expediente e acesse a Copa";
   }
   protected getPlatformLayout(): Array<[number, number, number]> {
     return [
@@ -694,7 +694,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       this.fx.triggerChromaticHit();
     };
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
-    this.hud.setObjective("Derrote o Gerente e acesse a Copa");
+    this.hud.setObjective("Sobreviva ao expediente e acesse a Copa");
 
     // Item 1 — medidor de Produtividade + Item 2 — evento APAGÃO (sistemas)
     this.prod = new ProductivityMeter(this);

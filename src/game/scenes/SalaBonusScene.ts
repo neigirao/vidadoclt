@@ -72,9 +72,32 @@ export class SalaBonusScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(meta.bg);
 
+    // Fundo procedural com detalhe (antes era um retângulo quase preto → parecia
+    // "nada carregado"). Parede em faixas + azulejo + janela + luminárias.
+    const wallTop = 40;
+    const wallBot = GAME_HEIGHT - 64;
     const bg = this.add.graphics().setDepth(0);
-    bg.fillStyle(meta.bg + 0x060606, 1);
-    bg.fillRect(0, 40, LEVEL_WIDTH, GAME_HEIGHT - 72);
+    for (let i = 0; i < 5; i++) {
+      const y = wallTop + ((wallBot - wallTop) / 5) * i;
+      bg.fillStyle(meta.bg + i * 0x040404, 1);
+      bg.fillRect(0, y, LEVEL_WIDTH, (wallBot - wallTop) / 5 + 1);
+    }
+    // faixa de azulejo na base da parede
+    bg.fillStyle(meta.bg + 0x101010, 1);
+    bg.fillRect(0, wallBot - 60, LEVEL_WIDTH, 60);
+    bg.lineStyle(1, 0x000000, 0.35);
+    for (let x = 0; x <= LEVEL_WIDTH; x += 36) bg.lineBetween(x, wallBot - 60, x, wallBot);
+    bg.lineBetween(0, wallBot - 30, LEVEL_WIDTH, wallBot - 30);
+    // janela com brilho frio
+    bg.fillStyle(0x2a3648, 0.5);
+    bg.fillRect(LEVEL_WIDTH / 2 - 70, 70, 140, 96);
+    bg.fillStyle(0x9ab0d0, 0.14);
+    bg.fillRect(LEVEL_WIDTH / 2 - 62, 76, 124, 46);
+    bg.lineStyle(3, 0x141820, 1);
+    bg.strokeRect(LEVEL_WIDTH / 2 - 70, 70, 140, 96);
+    // luminárias do teto
+    bg.fillStyle(0xd0e0f0, 0.16);
+    for (let x = 80; x < LEVEL_WIDTH; x += 240) bg.fillRect(x, wallTop, 120, 6);
 
     // Chão
     this.platforms = this.physics.add.staticGroup();
@@ -113,7 +136,7 @@ export class SalaBonusScene extends Phaser.Scene {
     this.fx = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.hud.setPhaseTitle(meta.title);
-    this.hud.setObjective(meta.hint);
+    this.hud.setObjective(`${meta.hint}  •  Saia pela porta → (E)`);
 
     this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
       this.scene.pause();
@@ -123,6 +146,11 @@ export class SalaBonusScene extends Phaser.Scene {
 
     if (this.type === "financeiro") this.setupFinanceiro();
     else this.setupPedestal();
+
+    // Saída SEMPRE visível (antes só aparecia após usar o pedestal → jogador
+    // ficava preso achando que a sala travou). A porta da Copa fica no canto
+    // direito com uma seta guiando; o pedestal é bônus opcional.
+    this.spawnExit();
 
     const title = this.add
       .text(GAME_WIDTH / 2, 90, meta.title + "\n" + meta.hint, {
@@ -250,12 +278,29 @@ export class SalaBonusScene extends Phaser.Scene {
     }
     this.exitDoor = this.add.image(LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door").setDepth(6);
     this.add
-      .text(LEVEL_WIDTH - 60, FLOOR_Y - 70, "COPA", {
+      .text(LEVEL_WIDTH - 60, FLOOR_Y - 70, "COPA →", {
         fontFamily: "monospace",
         fontSize: "10px",
         color: "#c9a36a",
       })
       .setOrigin(0.5);
+    // seta piscante acima da porta p/ guiar (a sala parecia "travada")
+    const arrow = this.add
+      .text(LEVEL_WIDTH - 60, FLOOR_Y - 92, "▼", {
+        fontFamily: "monospace",
+        fontSize: "16px",
+        color: "#f2c14e",
+      })
+      .setOrigin(0.5)
+      .setDepth(6);
+    this.tweens.add({
+      targets: arrow,
+      y: arrow.y - 8,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
   }
 
   private persist() {
