@@ -152,6 +152,15 @@ export class SalaBonusScene extends Phaser.Scene {
     this.player = new Player(this, 80, FLOOR_Y - 60);
     this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
     this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
+    // Mesma velocidade/arma das fases (senão anda diferente aqui).
+    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
+    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
+    this.player.walkSpeed = 200 * classDef.speedMult;
+    this.player.damageMult = classDef.damageMult;
+    this.player.weaponId = weaponId;
+    this.player.attackRange = weaponDef.attackRange;
+    this.player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;

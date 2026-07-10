@@ -4,7 +4,7 @@ import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import { EstagiarioDesesperado, AnalistaJunior } from "../entities/Enemies";
 import { getRun } from "../systems/PlayerState";
-import { CLASSES, ClassId } from "../systems/WeaponSystem";
+import { CLASSES, ClassId, WEAPONS, WeaponId } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
 import { Music } from "../systems/MusicSystem";
@@ -143,6 +143,19 @@ export class SalaReuniaoScene extends Phaser.Scene {
     this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
     this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
     this.player.vrDropMult = classDef.vrMult + (run.upgVrDropMult ?? 0);
+    // Mesma velocidade/arma das fases (senão anda/ataca diferente aqui).
+    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
+    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
+    this.player.walkSpeed = 200 * classDef.speedMult;
+    this.player.damageMult = classDef.damageMult;
+    this.player.weaponId = weaponId;
+    this.player.attackRange = weaponDef.attackRange;
+    this.player.specialCooldown = weaponDef.specialCooldown;
+    this.player.specialType = weaponDef.specialType;
+    this.player.hitAutoRanged = weaponDef.hitAutoRanged;
+    this.player.isRangedPrimary = weaponDef.type === "ranged";
+    this.player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
+    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;
@@ -213,20 +226,24 @@ export class SalaReuniaoScene extends Phaser.Scene {
     });
 
     this.cameras.main.fadeIn(280, 0, 0, 0);
-    this.time.delayedCall(1400, () => this.spawnWave());
+    // Aviso durante a preparação — a sala não fica "vazia e sem o que fazer".
+    this.hud.setObjective("A reunião vai começar... prepare-se!");
+    this.time.delayedCall(900, () => this.spawnWave());
   }
 
   private spawnWave() {
     const w = WAVES[this.waveIdx];
     this.waveActive = true;
+    // Spawn concentrado na área visível a partir do player (evita nascer fora da
+    // tela à direita numa arena de 1920 — dava sensação de "sumiram/nada a fazer").
     for (let i = 0; i < w.estag; i++) {
-      const x = Phaser.Math.Between(300, LEVEL_WIDTH - 80);
+      const x = Phaser.Math.Between(300, 880);
       const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 60, Math.random() < 0.5 ? 1 : -1);
       e.target = this.player;
       this.enemies.add(e);
     }
     for (let i = 0; i < w.junior; i++) {
-      const x = Phaser.Math.Between(360, LEVEL_WIDTH - 80);
+      const x = Phaser.Math.Between(340, 900);
       const e = new AnalistaJunior(this, x, FLOOR_Y - 60);
       e.target = this.player;
       this.enemies.add(e);
