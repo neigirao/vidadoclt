@@ -60,16 +60,59 @@ export class SalaReuniaoScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(0x14110c);
 
-    // Fundo simples: sala de reunião (mesa comprida + telão).
+    // Fundo: sala de reunião — telão com slide, whiteboard, relógio e cadeiras.
     const bg = this.add.graphics().setDepth(0);
+    // parede em painéis + rodapé
     bg.fillStyle(0x241d14, 1);
     bg.fillRect(0, 40, LEVEL_WIDTH, GAME_HEIGHT - 72);
-    bg.fillStyle(0x0e1a2a, 1); // telão
-    bg.fillRect(GAME_WIDTH / 2 - 130, 70, 260, 96);
-    bg.lineStyle(2, 0x335577, 0.8);
-    bg.strokeRect(GAME_WIDTH / 2 - 130, 70, 260, 96);
-    bg.fillStyle(0x33445a, 0.5);
-    for (let x = 60; x < LEVEL_WIDTH; x += 140) bg.fillRect(x, 200, 90, 40); // cadeiras
+    bg.fillStyle(0x2c2418, 1);
+    for (let x = 0; x < LEVEL_WIDTH; x += 200) bg.fillRect(x, 40, 4, GAME_HEIGHT - 112); // ripas
+    bg.fillStyle(0x1c160f, 1);
+    bg.fillRect(0, GAME_HEIGHT - 120, LEVEL_WIDTH, 8); // moldura/rodapé
+
+    // TELÃO com slide (título + bullets + gráfico de "metas" + apontador laser)
+    const sx = GAME_WIDTH / 2 - 150,
+      sy = 58;
+    bg.fillStyle(0x0b1420, 1);
+    bg.fillRect(sx, sy, 300, 122);
+    bg.lineStyle(3, 0x3a5a7a, 1);
+    bg.strokeRect(sx, sy, 300, 122);
+    bg.fillStyle(0x9fc4e6, 0.9);
+    bg.fillRect(sx + 16, sy + 14, 150, 7); // título
+    bg.fillStyle(0x6a8aa8, 0.7);
+    for (let i = 0; i < 3; i++) bg.fillRect(sx + 16, sy + 36 + i * 13, 120 - i * 22, 4); // bullets
+    const bars = [22, 34, 18, 42];
+    bg.fillStyle(0x66bb88, 0.9);
+    bars.forEach((h, i) => bg.fillRect(sx + 196 + i * 22, sy + 100 - h, 14, h)); // barras
+    bg.fillStyle(0xff4444, 1);
+    bg.fillCircle(sx + 214, sy + 62, 2); // ponto do laser
+
+    // WHITEBOARD lateral com rabiscos
+    bg.fillStyle(0xe8e8e0, 0.85);
+    bg.fillRect(90, 76, 150, 92);
+    bg.lineStyle(2, 0x888888, 1);
+    bg.strokeRect(90, 76, 150, 92);
+    bg.lineStyle(2, 0x3366aa, 0.7);
+    bg.lineBetween(104, 98, 216, 98);
+    bg.lineBetween(104, 120, 190, 120);
+    bg.lineStyle(2, 0xaa3333, 0.7);
+    bg.lineBetween(104, 142, 210, 142);
+
+    // relógio de parede
+    bg.fillStyle(0xcfcfc0, 1);
+    bg.fillCircle(LEVEL_WIDTH - 140, 96, 16);
+    bg.lineStyle(2, 0x222222, 1);
+    bg.strokeCircle(LEVEL_WIDTH - 140, 96, 16);
+    bg.lineBetween(LEVEL_WIDTH - 140, 96, LEVEL_WIDTH - 140, 85);
+    bg.lineBetween(LEVEL_WIDTH - 140, 96, LEVEL_WIDTH - 131, 100);
+
+    // cadeiras de escritório encostadas na parede de fundo (silhueta ASSENTADA)
+    bg.fillStyle(0x1a1510, 1);
+    for (let x = 70; x < LEVEL_WIDTH; x += 150) {
+      bg.fillRect(x, FLOOR_Y - 42, 34, 26); // encosto
+      bg.fillRect(x + 6, FLOOR_Y - 18, 22, 12); // assento
+      bg.fillRect(x + 14, FLOOR_Y - 6, 6, 8); // haste
+    }
 
     // Chão + duas plataformas
     this.platforms = this.physics.add.staticGroup();

@@ -662,6 +662,11 @@ export class CopaScene extends Phaser.Scene {
     const damage = isFinisher ? 15 : 10;
     const knockback = (isFinisher ? 320 : 120) * this.player.facing;
 
+    // Som do golpe (a mini-versão da Copa não passa pelo MeleeCombat canônico,
+    // então tocamos aqui — 1×/golpe, o onAttack já veio gated por firstFrame).
+    if (isFinisher) Sfx.meleeHeavy();
+    else Sfx.meleeLight();
+
     // Arc slash visual
     const slash = this.add.graphics().setDepth(15);
     const cx = hb.x + hb.width / 2;

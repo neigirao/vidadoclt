@@ -99,6 +99,42 @@ export class SalaBonusScene extends Phaser.Scene {
     bg.fillStyle(0xd0e0f0, 0.16);
     for (let x = 80; x < LEVEL_WIDTH; x += 240) bg.fillRect(x, wallTop, 120, 6);
 
+    // ── Decoração temática: dá "cara" à sala (depth 0, atrás do gameplay) ──────
+    if (this.type === "banheiro") {
+      // azulejos da parede
+      bg.lineStyle(1, 0x2e4048, 0.5);
+      for (let x = 0; x <= LEVEL_WIDTH; x += 26) bg.lineBetween(x, wallTop, x, wallBot - 60);
+      for (let y = wallTop; y < wallBot - 60; y += 26) bg.lineBetween(0, y, LEVEL_WIDTH, y);
+      // cabines à direita (divisória + porta + trinco + indicador livre/ocupado)
+      bg.fillStyle(0x24333a, 1);
+      bg.fillRect(LEVEL_WIDTH - 366, FLOOR_Y - 128, 372, 8); // travessa superior
+      for (let i = 0; i < 3; i++) {
+        const bx = LEVEL_WIDTH - 360 + i * 120;
+        bg.fillStyle(0x24333a, 1);
+        bg.fillRect(bx, FLOOR_Y - 120, 6, 120); // divisória
+        bg.fillStyle(0x1a262c, 1);
+        bg.fillRect(bx + 6, FLOOR_Y - 118, 100, 118); // porta
+        bg.fillStyle(0x3a5560, 1);
+        bg.fillRect(bx + 92, FLOOR_Y - 66, 6, 10); // trinco
+        bg.fillStyle(i === 1 ? 0xcc4444 : 0x66bb66, 1);
+        bg.fillRect(bx + 88, FLOOR_Y - 110, 10, 4); // ocupado / livre
+      }
+      // pias + espelhos à esquerda
+      for (let i = 0; i < 3; i++) {
+        const px = 110 + i * 108;
+        bg.fillStyle(0x9fb0b6, 1);
+        bg.fillRect(px, FLOOR_Y - 54, 70, 14); // bancada
+        bg.fillStyle(0x6d7c82, 1);
+        bg.fillEllipse(px + 35, FLOOR_Y - 47, 42, 12); // cuba
+        bg.fillStyle(0xc8d8dc, 0.5);
+        bg.fillRect(px + 12, FLOOR_Y - 128, 46, 54); // espelho
+        bg.lineStyle(2, 0x2e4048, 1);
+        bg.strokeRect(px + 12, FLOOR_Y - 128, 46, 54);
+        bg.fillStyle(0xb0c0c4, 1);
+        bg.fillRect(px + 33, FLOOR_Y - 60, 4, 8); // torneira
+      }
+    }
+
     // Chão
     this.platforms = this.physics.add.staticGroup();
     const floor = this.add.rectangle(

@@ -58,7 +58,6 @@ export function addParallaxLayers(
   if (!cfg) return;
   const rng = new Phaser.Math.RandomDataGenerator([`parallax-${phase}`]);
   const band = floorY - topY;
-  const midBand = topY + band * 0.42; // linha dos "ombros" das baias
 
   // ── FAR: skyline distante (prédios + janelas acesas na linha do horizonte) ──
   const horizonY = topY + band * 0.36;
@@ -100,73 +99,48 @@ export function addParallaxLayers(
     glass.fillRect(0, winTop, levelWidth, (winBot - winTop) * 0.35);
     drawSkyline(glass);
     drawFrame(winTop, winBot);
-  } else {
-    // Fases de bg pintado rico (1/2) e a Fase 5 (bg já é céu): skyline distante
-    // SUTIL atrás, sem cobrir a arte. A Fase 5 ainda ganha o caixilho por cima.
-    const sky = scene.add.graphics().setScrollFactor(0.12, 0).setDepth(3).setAlpha(0.55);
+  } else if (WINDOW_FRAME_ONLY.has(phase)) {
+    // Fase 5: o bg JÁ é um pôr do sol/skyline — só reforça com skyline sutil
+    // atrás + o caixilho por cima (janela de canto executiva).
+    const sky = scene.add.graphics().setScrollFactor(0.12, 0).setDepth(3).setAlpha(0.5);
     drawSkyline(sky);
-    if (WINDOW_FRAME_ONLY.has(phase)) drawFrame(topY + 6, topY + band * 0.44);
+    drawFrame(topY + 6, topY + band * 0.44);
   }
+  // Fases 1/2 (bg pintado rico com janela própria): NADA de skyline/janela — a
+  // arte já fala por si; só o teto (foreground) entra, sem competir com o fundo.
 
-  // ── NEAR-BACK: baias distantes entre bg e gameplay (sf 0.6, depth 5) ────────
-  const back = scene.add.graphics().setScrollFactor(0.6, 0).setDepth(5).setAlpha(0.55);
-  for (let x = -40; x < levelWidth + 80; x += rng.between(110, 168)) {
-    const w = rng.between(70, 120);
-    const h = rng.between(28, 50);
-    back.fillStyle(cfg.silh, 1);
-    back.fillRect(x, midBand - h, w, h); // topo da baia
-    back.fillRect(x + w * 0.5 - 3, midBand - h - rng.between(8, 18), 6, 18); // monitor/haste
-    back.fillStyle(cfg.glow, 0.12); // brilho fraco de tela (assenta o plano)
-    back.fillRect(x + 8, midBand - h + 6, w - 16, 6);
-  }
-
-  // ── FOREGROUND (sf ≥ 1.12): só topo/cantos — respeita reduceSanityFx ────────
+  // ── FOREGROUND: só o TETO (viga + luminárias + planta) — sf 1.12, depth 900 ──
+  // Sem plano no chão: baias flutuantes/no canto cobriam o player e pareciam
+  // blocos soltos. O teto passa mais rápido que a ação, dá profundidade e NUNCA
+  // cobre o centro nem o spawn. Respeita reduceSanityFx (acessibilidade).
   const reduce = loadSettings().reduceSanityFx;
-  if (reduce) return; // acessibilidade: sem o plano que se move rápido
+  if (reduce) return;
 
   const ceilY = topY + 2;
   const fgTop = scene.add.graphics().setScrollFactor(1.12, 0).setDepth(900);
   fgTop.fillStyle(cfg.beam, 0.92);
-  fgTop.fillRect(0, ceilY, levelWidth, 10); // viga contínua do teto (mais grossa)
+  fgTop.fillRect(0, ceilY, levelWidth, 10); // viga contínua do teto
   for (let x = rng.between(120, 200); x < levelWidth; x += rng.between(280, 420)) {
-    // haste + luminária pendente (silhueta) com glow reforçado
+    // haste + luminária pendente (silhueta) com glow
     const stalk = rng.between(16, 30);
     fgTop.fillStyle(cfg.beam, 0.96);
     fgTop.fillRect(x - 1, ceilY + 10, 3, stalk);
     const ly = ceilY + 10 + stalk;
-    fgTop.fillRect(x - 14, ly, 30, 7); // corpo da luminária (maior)
-    const g = scene.add
+    fgTop.fillRect(x - 14, ly, 30, 7); // corpo da luminária
+    scene.add
       .ellipse(x + 1, ly + 10, 60, 20, cfg.lamp, 0.1)
       .setScrollFactor(1.12, 0)
       .setDepth(899)
       .setBlendMode(Phaser.BlendModes.ADD);
-    void g;
   }
-
-  // ── FOREGROUND: silhuetas de baia nos CANTOS inferiores (sf 1.2) ────────────
-  // Só nas bordas esquerda/direita — o centro (faixa de combate) fica livre.
-  const fgEdge = scene.add.graphics().setScrollFactor(1.2, 0).setDepth(901).setAlpha(0.94);
-  const drawCubicle = (cx: number) => {
-    const w = 128;
-    const topH = floorY - rng.between(76, 104);
-    fgEdge.fillStyle(cfg.silh, 1);
-    fgEdge.fillRect(cx - w / 2, topH, w, floorY - topH); // corpo da baia
-    fgEdge.fillStyle(cfg.beam, 1);
-    fgEdge.fillRect(cx - w / 2 + 16, topH + 10, 44, 28); // monitor escuro
-    fgEdge.fillStyle(cfg.glow, 0.14);
-    fgEdge.fillRect(cx - w / 2 + 18, topH + 12, 40, 6); // brilho da tela
-  };
-  drawCubicle(64);
-  drawCubicle(levelWidth - 64);
-
-  // ── FOREGROUND: planta pendente do teto num canto (silhueta, sf 1.2) ────────
+  // planta pendente do teto num canto (silhueta) — só no teto, longe do combate
   const plantX = rng.between(0, 1) ? 150 : levelWidth - 150;
-  fgEdge.fillStyle(cfg.beam, 0.95);
+  fgTop.fillStyle(cfg.beam, 0.95);
   for (let i = 0; i < 7; i++) {
     const fx = plantX + rng.between(-16, 16);
-    fgEdge.fillRect(fx, ceilY + 8, 2, rng.between(16, 34)); // folhas caídas
+    fgTop.fillRect(fx, ceilY + 8, 2, rng.between(16, 34)); // folhas caídas
   }
-  fgEdge.fillRect(plantX - 12, ceilY + 6, 24, 8); // vaso suspenso
+  fgTop.fillRect(plantX - 12, ceilY + 6, 24, 8); // vaso suspenso
 }
 
 /**
