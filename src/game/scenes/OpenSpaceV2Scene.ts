@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
-import { addPhaseBackground } from "../systems/Background";
+import { addPhaseBackground, addParallaxLayers } from "../systems/Background";
 import {
   EstagiarioDesesperado,
   EstagiarioSobrecarregado,
@@ -170,6 +170,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.setupWorldAndCamera();
 
     addPhaseBackground(this, "bg-openspace", HUD_TOP_H, FLOOR_Y);
+    addParallaxLayers(this, 1, HUD_TOP_H, FLOOR_Y);
     if (run.cameFrom !== "copa") Telemetry.runStart(run.characterClass, run.culturas);
     Telemetry.phaseEnter(this.scene.key);
     this.spawnDustParticles();

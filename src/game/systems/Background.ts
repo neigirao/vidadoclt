@@ -1,9 +1,94 @@
 import Phaser from "phaser";
 import { resolveSprite } from "./SpriteLibrary";
 import { GAME_WIDTH } from "../constants";
+import { loadSettings } from "./Settings";
 
 // Full level width — the background spans the entire scrollable level.
 const LEVEL_WIDTH = 1920;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parallax multi-camada — comunica PROFUNDIDADE (o escritório tem planos).
+//
+// O fundo de fase (addPhaseBackground) é uma imagem opaca a scrollFactor 0.2
+// (plano do MEIO). Aqui adicionamos:
+//   • NEAR-BACK  (sf 0.6, depth 5): silhuetas de baias distantes ENTRE o bg e o
+//     gameplay — separa o palco do papel de parede, "assenta" os personagens.
+//   • FOREGROUND (sf 1.12–1.2, depth 900): vigas/luminárias no topo e silhuetas
+//     de baia nas BORDAS inferiores — passam mais rápido que a ação (cue de
+//     profundidade forte) SEM cobrir a faixa central de combate.
+//
+// Legibilidade: o foreground fica só no topo (teto) e nos cantos, em quase-preto
+// e translúcido. Acessibilidade: o plano de frente respeita `reduceSanityFx`
+// (quem marca "reduzir efeitos" não recebe o plano que se move rápido).
+// ─────────────────────────────────────────────────────────────────────────────
+type ParallaxCfg = { silh: number; lamp: number; beam: number; glow: number };
+const PARALLAX: Record<number, ParallaxCfg> = {
+  1: { silh: 0x161b26, lamp: 0xd0e4f8, beam: 0x10151e, glow: 0x88a0c8 },
+  2: { silh: 0x1a1510, lamp: 0xf0e0c8, beam: 0x140f0a, glow: 0x9a8878 },
+  3: { silh: 0x181c18, lamp: 0xffe0f0, beam: 0x101410, glow: 0xff88bb },
+  4: { silh: 0x101820, lamp: 0x9becff, beam: 0x0a1016, glow: 0x66ddff },
+  5: { silh: 0x1c160e, lamp: 0xffe8b0, beam: 0x140f08, glow: 0xe8cf95 },
+};
+
+export function addParallaxLayers(
+  scene: Phaser.Scene,
+  phase: 1 | 2 | 3 | 4 | 5,
+  topY: number,
+  floorY: number,
+  levelWidth = LEVEL_WIDTH,
+): void {
+  const cfg = PARALLAX[phase];
+  if (!cfg) return;
+  const rng = new Phaser.Math.RandomDataGenerator([`parallax-${phase}`]);
+  const midBand = topY + (floorY - topY) * 0.42; // linha dos "ombros" das baias
+
+  // ── NEAR-BACK: baias distantes entre bg e gameplay (sf 0.6, depth 5) ────────
+  const back = scene.add.graphics().setScrollFactor(0.6, 0).setDepth(5).setAlpha(0.5);
+  back.fillStyle(cfg.silh, 1);
+  for (let x = -40; x < levelWidth + 80; x += rng.between(120, 180)) {
+    const w = rng.between(70, 120);
+    const h = rng.between(26, 46);
+    back.fillRect(x, midBand - h, w, h); // topo da baia
+    back.fillRect(x + w * 0.5 - 3, midBand - h - rng.between(8, 18), 6, 18); // monitor/haste
+  }
+
+  // ── FOREGROUND: vigas + luminárias no teto (sf 1.12, depth 900) ─────────────
+  const reduce = loadSettings().reduceSanityFx;
+  if (reduce) return; // acessibilidade: sem o plano que se move rápido
+
+  const ceilY = topY + 2;
+  const fgTop = scene.add.graphics().setScrollFactor(1.12, 0).setDepth(900);
+  fgTop.fillStyle(cfg.beam, 0.9);
+  fgTop.fillRect(0, ceilY, levelWidth, 8); // viga contínua do teto
+  for (let x = rng.between(120, 200); x < levelWidth; x += rng.between(300, 460)) {
+    // haste + luminária pendente (silhueta) com um leve glow
+    fgTop.fillStyle(cfg.beam, 0.95);
+    fgTop.fillRect(x - 1, ceilY + 8, 3, rng.between(14, 26));
+    const ly = ceilY + 8 + rng.between(14, 26);
+    fgTop.fillRect(x - 12, ly, 26, 6);
+    const g = scene.add
+      .ellipse(x + 1, ly + 8, 40, 14, cfg.lamp, 0.06)
+      .setScrollFactor(1.12, 0)
+      .setDepth(899)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    void g;
+  }
+
+  // ── FOREGROUND: silhuetas de baia nos CANTOS inferiores (sf 1.2) ────────────
+  // Só nas bordas esquerda/direita — o centro (faixa de combate) fica livre.
+  const fgEdge = scene.add.graphics().setScrollFactor(1.2, 0).setDepth(901).setAlpha(0.92);
+  fgEdge.fillStyle(cfg.silh, 1);
+  const drawCubicle = (cx: number) => {
+    const w = 120;
+    const topH = floorY - rng.between(70, 96);
+    fgEdge.fillRect(cx - w / 2, topH, w, floorY - topH); // corpo da baia
+    fgEdge.fillStyle(cfg.beam, 1);
+    fgEdge.fillRect(cx - w / 2 + 14, topH + 10, 40, 26); // monitor escuro
+    fgEdge.fillStyle(cfg.silh, 1);
+  };
+  drawCubicle(70);
+  drawCubicle(levelWidth - 70);
+}
 
 /**
  * Vida ambiente da cena (o cenário "respira"). Puramente visual, depth baixo,
