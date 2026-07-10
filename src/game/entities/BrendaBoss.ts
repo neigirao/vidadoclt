@@ -52,7 +52,7 @@ export class BrendaDoRH extends Phaser.Physics.Arcade.Sprite {
   onFeedback?: (bx: number, by: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, ...resolveSprite("tex-rh-idle0"));
+    super(scene, x, y, ...resolveSprite("tex-brenda-idle0"));
     this.homeX = x;
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -319,18 +319,18 @@ export class BrendaDoRH extends Phaser.Physics.Arcade.Sprite {
     let key: string;
     if (this._dying) {
       const f = Math.floor(now / 200) % 3;
-      key = `tex-rh-death${f}`;
+      key = `tex-brenda-death${f}`;
     } else if (now < this._hurtUntil) {
-      key = `tex-rh-hurt0`;
+      key = `tex-brenda-hurt0`;
     } else if (this.bossState === "telegraph" || this.bossState === "attack") {
       const f = Math.floor(now / 140) % 2;
-      key = `tex-rh-attack${f}`;
+      key = `tex-brenda-attack${f}`;
     } else if (this.bossState === "enter" || this.bossState === "recover") {
       const f = Math.floor(now / 150) % 4;
-      key = `tex-rh-walk${f}`;
+      key = `tex-brenda-walk${f}`;
     } else {
       const f = Math.floor(now / 500) % 3;
-      key = `tex-rh-idle${f}`;
+      key = `tex-brenda-idle${f}`;
     }
     applyTexture(this, key);
   }

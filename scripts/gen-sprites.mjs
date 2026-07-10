@@ -615,8 +615,147 @@ function bebedouro() {
   return c.save("obj-bebedouro-idle.png");
 }
 
+// ── Brenda do RH (boss da Fase 3) — sprite DEDICADO ───────────────────────────
+// Antes reusava o inimigo comum `enemy-rh`. Aqui ela ganha "cara de chefão":
+// silhueta frontal imponente, paleta magenta de RH, coque alto, óculos, crachá
+// e a PRANCHETA de feedback/PDI como arma-tema. 48×64, pés na base (~y61),
+// pose quase frontal (mirror-safe: a cena espelha por dir). addOutline dá o
+// contorno "sticker" que casa com os demais personagens.
+const BR_SUIT = [198, 52, 120],
+  BR_SUIT_D = [150, 32, 88],
+  BR_SUIT_L = [230, 100, 160],
+  BR_SKIRT = [70, 40, 66],
+  BR_SKIRT_D = [46, 26, 46],
+  BR_SKIN = [230, 182, 152],
+  BR_SKIN_D = [190, 142, 116],
+  BR_HAIR = [58, 38, 46],
+  BR_HAIR_D = [38, 22, 30],
+  BR_CLIP = [238, 238, 230],
+  BR_CLIP_D = [188, 188, 178],
+  BR_CLIPRED = [214, 62, 62],
+  BR_HEEL = [26, 20, 26],
+  BR_GLASS = [44, 44, 56],
+  BR_BADGE = [244, 212, 84],
+  BR_OUT = [20, 12, 18];
+
+// pose: { drop, tilt, step, arm:"rest"|"point"|"up", mouth:bool }
+function brendaFrame(name, pose = {}) {
+  const W = 48,
+    H = 64,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  const drop = pose.drop || 0; // afunda o corpo (hurt/death)
+  const tilt = pose.tilt || 0; // desloca a cabeça em x
+  const step = pose.step || 0; // -1/0/1 passada (walk)
+  const arm = pose.arm || "rest";
+
+  // ── pernas + saltos (sob a saia) ──
+  const legY = 47 + drop;
+  const lo = step < 0 ? 2 : 0,
+    ro = step > 0 ? 2 : 0;
+  R(19 + lo, legY, 4, 11, BR_SKIN); // perna esq.
+  R(18 + lo, legY + 11, 6, 3, BR_HEEL); // salto esq.
+  R(25 - ro, legY, 4, 11, BR_SKIN); // perna dir.
+  R(25 - ro, legY + 11, 6, 3, BR_HEEL); // salto dir.
+
+  // ── saia lápis ──
+  R(16, 34 + drop, 16, 14, BR_SKIRT);
+  R(16, 34 + drop, 3, 14, BR_SKIRT_D); // sombra lateral esq.
+  R(29, 34 + drop, 3, 14, BR_SKIRT_D); // sombra lateral dir.
+  R(16, 45 + drop, 16, 2, BR_SKIRT_D); // barra
+
+  // ── blazer / torso ──
+  R(15, 19 + drop, 18, 16, BR_SUIT);
+  R(15, 19 + drop, 18, 2, BR_SUIT_L); // ombro (luz)
+  R(15, 19 + drop, 3, 16, BR_SUIT_D); // lateral esq.
+  R(30, 19 + drop, 3, 16, BR_SUIT_D); // lateral dir.
+  // lapelas em V + blusa clara no meio
+  R(22, 20 + drop, 4, 12, BR_CLIP);
+  R(21, 20 + drop, 1, 8, BR_SUIT_D);
+  R(26, 20 + drop, 1, 8, BR_SUIT_D);
+  R(23, 22 + drop, 2, 8, [214, 60, 96]); // colar/gravatinha
+  // crachá amarelo no peito
+  R(27, 26 + drop, 4, 5, BR_BADGE);
+  R(27, 26 + drop, 4, 1, [255, 240, 160]);
+
+  // ── braços ──
+  if (arm === "point") {
+    // braço direito estendido apontando (ataque)
+    R(32, 22 + drop, 12, 4, BR_SUIT);
+    R(32, 22 + drop, 12, 1, BR_SUIT_L);
+    R(43, 22 + drop, 4, 4, BR_SKIN); // punho/mão
+    R(45, 23 + drop, 3, 2, BR_SKIN_D); // dedo apontando
+    // braço esq. segura prancheta baixa
+    R(11, 24 + drop, 5, 9, BR_SUIT);
+    R(11, 31 + drop, 5, 3, BR_SKIN);
+  } else if (arm === "up") {
+    // ambos os braços levantados (hurt / telegraph)
+    R(11, 14 + drop, 4, 9, BR_SUIT);
+    R(11, 12 + drop, 4, 3, BR_SKIN);
+    R(33, 14 + drop, 4, 9, BR_SUIT);
+    R(33, 12 + drop, 4, 3, BR_SKIN);
+  } else {
+    // repouso: braços aos lados
+    R(12, 21 + drop, 4, 12, BR_SUIT);
+    R(12, 32 + drop, 4, 3, BR_SKIN);
+    R(32, 21 + drop, 4, 12, BR_SUIT);
+    R(32, 32 + drop, 4, 3, BR_SKIN);
+  }
+
+  // ── prancheta (arma-tema) segurada à frente ──
+  if (arm !== "up") {
+    const cy = (arm === "point" ? 33 : 30) + drop;
+    R(17, cy, 13, 12, BR_CLIP);
+    R(17, cy, 13, 2, BR_CLIP_D);
+    R(21, cy - 2, 5, 3, BR_CLIPRED); // clipe vermelho
+    R(19, cy + 4, 9, 1, BR_CLIP_D); // linhas do formulário
+    R(19, cy + 7, 9, 1, BR_CLIP_D);
+    R(19, cy + 10, 6, 1, BR_CLIP_D);
+  }
+
+  // ── cabeça ──
+  const hx = 17 + tilt;
+  R(hx, 6 + drop, 14, 14, BR_SKIN); // rosto
+  R(hx, 6 + drop, 14, 3, BR_HAIR); // cabelo (testa)
+  R(hx - 1, 8 + drop, 2, 10, BR_HAIR); // cabelo lateral esq.
+  R(hx + 13, 8 + drop, 2, 10, BR_HAIR); // cabelo lateral dir.
+  // coque alto (silhueta de chefe)
+  R(hx + 4, 1 + drop, 6, 5, BR_HAIR);
+  R(hx + 5, 0 + drop, 4, 2, BR_HAIR_D);
+  // óculos
+  R(hx + 2, 11 + drop, 4, 3, BR_GLASS);
+  R(hx + 8, 11 + drop, 4, 3, BR_GLASS);
+  R(hx + 6, 12 + drop, 2, 1, BR_GLASS); // ponte
+  // boca
+  if (pose.mouth) {
+    R(hx + 5, 16 + drop, 4, 2, [120, 30, 40]); // boca aberta (gritando)
+  } else {
+    R(hx + 5, 16 + drop, 4, 1, BR_SKIN_D);
+  }
+
+  addOutline(c, BR_OUT);
+  return c.save(name);
+}
+
 // Registro: [nome-para-filtro, função]
 const SPRITES = [
+  ["brenda", () => brendaFrame("enemy-brenda-idle0.png", { drop: 0 })],
+  ["brenda", () => brendaFrame("enemy-brenda-idle1.png", { drop: 1 })],
+  ["brenda", () => brendaFrame("enemy-brenda-idle2.png", { drop: 0, tilt: 1 })],
+  ["brenda", () => brendaFrame("enemy-brenda-walk0.png", { step: 1 })],
+  ["brenda", () => brendaFrame("enemy-brenda-walk1.png", { step: 0, drop: 1 })],
+  ["brenda", () => brendaFrame("enemy-brenda-walk2.png", { step: -1 })],
+  ["brenda", () => brendaFrame("enemy-brenda-walk3.png", { step: 0, drop: 1 })],
+  ["brenda", () => brendaFrame("enemy-brenda-attack0.png", { arm: "point", mouth: true })],
+  ["brenda", () => brendaFrame("enemy-brenda-attack1.png", { arm: "point", mouth: true, tilt: 1 })],
+  [
+    "brenda",
+    () => brendaFrame("enemy-brenda-hurt0.png", { arm: "up", drop: 1, tilt: -1, mouth: true }),
+  ],
+  ["brenda", () => brendaFrame("enemy-brenda-death0.png", { arm: "up", drop: 4, mouth: true })],
+  ["brenda", () => brendaFrame("enemy-brenda-death1.png", { arm: "up", drop: 9 })],
+  ["brenda", () => brendaFrame("enemy-brenda-death2.png", { arm: "rest", drop: 14 })],
+
   ["analista-novo", analistaNovoWalk3],
   ["bebedouro", bebedouro],
   ["guardiao-cafe", () => guardiaoCafeFrame("enemy-guardiao-cafe.png", 0)],
