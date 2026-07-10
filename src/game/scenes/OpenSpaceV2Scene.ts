@@ -899,6 +899,31 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       .setDisplaySize(34, 26);
     this.add.rectangle(cx, surfY - 3, 22, 3, 0x222428).setDepth(9); // teclado
 
+    // Variação de mesa por posição (3 variantes) — quebra a repetição visual:
+    // 0 = só monitor (já feito), 1 = + pilha de papéis, 2 = + caneca de café.
+    const variant = (Math.abs(Math.round(x)) >> 5) % 3;
+    if (variant === 1) {
+      // pilha de papéis à esquerda do monitor
+      const px = x + 10;
+      const py = surfY - 10;
+      this.add.rectangle(px, py, 12, 8, 0xf5f2e6).setDepth(9);
+      this.add.rectangle(px - 1, py - 1, 12, 8, 0xffffff).setDepth(9);
+      this.add.rectangle(px, py + 1, 12, 1, 0x8a8168).setDepth(9);
+      // clip vermelho
+      this.add.rectangle(px + 4, py - 4, 3, 3, 0xcc3020).setDepth(9);
+    } else if (variant === 2) {
+      // caneca de café à direita do monitor
+      const mx = x + w - 12;
+      const my = surfY - 12;
+      this.add.rectangle(mx, my, 8, 10, 0xffffff).setDepth(9); // corpo
+      this.add.rectangle(mx + 5, my, 2, 6, 0xffffff).setDepth(9); // alça
+      this.add.rectangle(mx, my - 4, 8, 2, 0x5a3a20).setDepth(9); // café
+      // vapor
+      this.add.rectangle(mx - 1, my - 8, 1, 2, 0xffffff, 0.5).setDepth(9);
+      this.add.rectangle(mx + 2, my - 10, 1, 2, 0xffffff, 0.4).setDepth(9);
+    }
+
+
     // Física: superfície (player + inimigos pousam)
     const surf = this.add.rectangle(cx, surfY, w, 14, 0, 0);
     this.physics.add.existing(surf, true);
@@ -945,29 +970,34 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     rng: Phaser.Math.RandomDataGenerator,
   ): void {
     const dir: 1 | -1 = rng.frac() > 0.5 ? 1 : -1;
+    let spawned: Phaser.Physics.Arcade.Sprite | null = null;
     switch (type) {
       case "estagiario": {
         const e = new EstagiarioDesesperado(this, x, FLOOR_Y - 40, dir);
         e.target = this.player;
         this.estagiarios.add(e);
+        spawned = e;
         break;
       }
       case "sobrecarregado": {
         const e = new EstagiarioSobrecarregado(this, x, FLOOR_Y - 40, dir);
         e.target = this.player;
         this.sobrecarregados.add(e);
+        spawned = e;
         break;
       }
       case "junior": {
         const a = new AnalistaJunior(this, x, FLOOR_Y - 60);
         a.target = this.player;
         this.analistas.add(a);
+        spawned = a;
         break;
       }
       case "rh": {
         const rh = new EnemyRH(this, x, FLOOR_Y - 60);
         rh.target = this.player;
         this.rhs.add(rh);
+        spawned = rh;
         break;
       }
       case "onboarding": {
@@ -975,6 +1005,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         a.target = this.player;
         a.onShoot = this.rangedShoot;
         this.onboardings.add(a);
+        spawned = a;
         break;
       }
       case "facilitador": {
@@ -982,10 +1013,39 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         f.target = this.player;
         f.onShoot = this.rangedShoot;
         this.facilitadores.add(f);
+        spawned = f;
         break;
       }
     }
+    // Silhueta escura sutil atrás do sprite → contorno "de leitura" contra o
+    // fundo (sem depender de pipeline WebGL/preFX). Escala levemente maior +
+    // tint preto + alpha baixo — segue o inimigo via tween no preUpdate? Não,
+    // basta parent-child implícito: setamos a posição uma vez e criamos um
+    // update-loop leve via evento 'preupdate' da própria cena.
+    if (spawned) {
+      const shadow = this.add
+        .image(spawned.x, spawned.y, spawned.texture.key, spawned.frame.name)
+        .setTint(0x000000)
+        .setAlpha(0.35)
+        .setScale(spawned.scaleX * 1.08, spawned.scaleY * 1.08)
+        .setDepth((spawned.depth ?? 10) - 1);
+      const sub = spawned; // capture
+      this.events.on("update", () => {
+        if (!sub.active) {
+          shadow.destroy();
+          return;
+        }
+        shadow.setPosition(sub.x, sub.y + 1);
+        shadow.setFlipX(sub.flipX);
+        if (sub.texture.key !== shadow.texture.key || sub.frame.name !== shadow.frame.name) {
+          shadow.setTexture(sub.texture.key, sub.frame.name);
+        }
+        shadow.setScale(sub.scaleX * 1.08, sub.scaleY * 1.08);
+        shadow.setVisible(sub.visible);
+      });
+    }
   }
+
 
   private spawnEnemies(): void {
     // ── Dificuldade escalonada: fácil (esquerda) → difícil (direita) ──────────
@@ -1009,7 +1069,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       ["estagiario", "estagiario", "estagiario"],
       ["estagiario", "estagiario", "sobrecarregado"],
     ]) as F1EnemyType[];
-    [320, 440, 560].forEach((x, i) => this.spawnEnemyOfType(z1[i], x, rng));
+    [280, 460, 620].forEach((x, i) => this.spawnEnemyOfType(z1[i], x, rng));
 
     // Zona 2 (melee leve) — 4 slots: sobrecarregados + juniores
     const z2 = rng.shuffle(
@@ -1019,14 +1079,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         ["sobrecarregado", "sobrecarregado", "sobrecarregado", "junior"],
       ]),
     ) as F1EnemyType[];
-    [660, 770, 880, 990].forEach((x, i) => this.spawnEnemyOfType(z2[i], x, rng));
+    [700, 830, 960, 1080].forEach((x, i) => this.spawnEnemyOfType(z2[i], x, rng));
 
     // Zona 3 (perseguidor) — 2 slots
     const z3 = rng.pick([
       ["rh", "rh"],
       ["rh", "sobrecarregado"],
     ]) as F1EnemyType[];
-    [1100, 1210].forEach((x, i) => this.spawnEnemyOfType(z3[i], x, rng));
+    [1180, 1310].forEach((x, i) => this.spawnEnemyOfType(z3[i], x, rng));
 
     // Zona 4 (ranged) — 4 slots: onboarding + facilitador
     const z4 = rng.shuffle(
@@ -1036,7 +1096,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         ["onboarding", "facilitador", "facilitador", "facilitador"],
       ]),
     ) as F1EnemyType[];
-    [1230, 1340, 1420, 1520].forEach((x, i) => this.spawnEnemyOfType(z4[i], x, rng));
+    [1400, 1520, 1640, 1760].forEach((x, i) => this.spawnEnemyOfType(z4[i], x, rng));
+
 
     // Zona 5 — Scrum Master Caótico (elite, perto do boss) — âncora fixa
     const scrum = new ScrumMasterCaotico(this, 1590, FLOOR_Y - 60);
