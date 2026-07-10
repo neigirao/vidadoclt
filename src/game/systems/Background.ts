@@ -21,13 +21,23 @@ const LEVEL_WIDTH = 1920;
 // e translúcido. Acessibilidade: o plano de frente respeita `reduceSanityFx`
 // (quem marca "reduzir efeitos" não recebe o plano que se move rápido).
 // ─────────────────────────────────────────────────────────────────────────────
-type ParallaxCfg = { silh: number; lamp: number; beam: number; glow: number };
+type ParallaxCfg = {
+  silh: number;
+  lamp: number;
+  beam: number;
+  glow: number;
+  build: number; // silhueta dos prédios distantes
+  win: number; // janelas acesas dos prédios
+  buildH: number; // altura máx. dos prédios — MENOR = andar mais alto (mais céu)
+};
+// `buildH` decresce da Fase 1→5: quanto mais alto o andar, mais céu e prédios
+// menores/distantes lá fora — o jogador "sente" que subiu o prédio.
 const PARALLAX: Record<number, ParallaxCfg> = {
-  1: { silh: 0x161b26, lamp: 0xd0e4f8, beam: 0x10151e, glow: 0x88a0c8 },
-  2: { silh: 0x1a1510, lamp: 0xf0e0c8, beam: 0x140f0a, glow: 0x9a8878 },
-  3: { silh: 0x181c18, lamp: 0xffe0f0, beam: 0x101410, glow: 0xff88bb },
-  4: { silh: 0x101820, lamp: 0x9becff, beam: 0x0a1016, glow: 0x66ddff },
-  5: { silh: 0x1c160e, lamp: 0xffe8b0, beam: 0x140f08, glow: 0xe8cf95 },
+  1: { silh: 0x161b26, lamp: 0xd0e4f8, beam: 0x10151e, glow: 0x88a0c8, build: 0x2a3550, win: 0x9fd0ff, buildH: 64 }, // prettier-ignore
+  2: { silh: 0x1a1510, lamp: 0xf0e0c8, beam: 0x140f0a, glow: 0x9a8878, build: 0x3a2f24, win: 0xffcf8a, buildH: 55 }, // prettier-ignore
+  3: { silh: 0x181c18, lamp: 0xffe0f0, beam: 0x101410, glow: 0xff88bb, build: 0x352838, win: 0xffb0e0, buildH: 47 }, // prettier-ignore
+  4: { silh: 0x101820, lamp: 0x9becff, beam: 0x0a1016, glow: 0x66ddff, build: 0x18303c, win: 0x7fffea, buildH: 39 }, // prettier-ignore
+  5: { silh: 0x1c160e, lamp: 0xffe8b0, beam: 0x140f08, glow: 0xe8cf95, build: 0x2e2740, win: 0xffd890, buildH: 30 }, // prettier-ignore
 };
 
 export function addParallaxLayers(
@@ -40,34 +50,58 @@ export function addParallaxLayers(
   const cfg = PARALLAX[phase];
   if (!cfg) return;
   const rng = new Phaser.Math.RandomDataGenerator([`parallax-${phase}`]);
-  const midBand = topY + (floorY - topY) * 0.42; // linha dos "ombros" das baias
+  const band = floorY - topY;
+  const midBand = topY + band * 0.42; // linha dos "ombros" das baias
 
-  // ── NEAR-BACK: baias distantes entre bg e gameplay (sf 0.6, depth 5) ────────
-  const back = scene.add.graphics().setScrollFactor(0.6, 0).setDepth(5).setAlpha(0.5);
-  back.fillStyle(cfg.silh, 1);
-  for (let x = -40; x < levelWidth + 80; x += rng.between(120, 180)) {
-    const w = rng.between(70, 120);
-    const h = rng.between(26, 46);
-    back.fillRect(x, midBand - h, w, h); // topo da baia
-    back.fillRect(x + w * 0.5 - 3, midBand - h - rng.between(8, 18), 6, 18); // monitor/haste
+  // ── FAR: skyline distante lá fora (sf 0.12, depth 3) ────────────────────────
+  // Prédios em silhueta com janelas acesas, na altura da janela do escritório.
+  // Perspectiva atmosférica: alpha baixo + tinta de haze → "recua" no fundo.
+  const horizonY = topY + band * 0.36;
+  const sky = scene.add.graphics().setScrollFactor(0.12, 0).setDepth(3).setAlpha(0.55);
+  // linha de haze do horizonte
+  sky.fillStyle(cfg.glow, 0.1);
+  sky.fillRect(0, horizonY - 1, levelWidth, 2);
+  for (let x = -30; x < levelWidth + 60; x += rng.between(46, 84)) {
+    const w = rng.between(30, 58);
+    const h = rng.between(Math.round(cfg.buildH * 0.5), cfg.buildH);
+    sky.fillStyle(cfg.build, 1);
+    sky.fillRect(x, horizonY - h, w, h);
+    // janelas acesas (grade esparsa)
+    sky.fillStyle(cfg.win, 0.5);
+    for (let wy = horizonY - h + 4; wy < horizonY - 3; wy += 7)
+      for (let wx = x + 3; wx < x + w - 3; wx += 7)
+        if (rng.frac() < 0.45) sky.fillRect(wx, wy, 3, 4);
   }
 
-  // ── FOREGROUND: vigas + luminárias no teto (sf 1.12, depth 900) ─────────────
+  // ── NEAR-BACK: baias distantes entre bg e gameplay (sf 0.6, depth 5) ────────
+  const back = scene.add.graphics().setScrollFactor(0.6, 0).setDepth(5).setAlpha(0.55);
+  for (let x = -40; x < levelWidth + 80; x += rng.between(110, 168)) {
+    const w = rng.between(70, 120);
+    const h = rng.between(28, 50);
+    back.fillStyle(cfg.silh, 1);
+    back.fillRect(x, midBand - h, w, h); // topo da baia
+    back.fillRect(x + w * 0.5 - 3, midBand - h - rng.between(8, 18), 6, 18); // monitor/haste
+    back.fillStyle(cfg.glow, 0.12); // brilho fraco de tela (assenta o plano)
+    back.fillRect(x + 8, midBand - h + 6, w - 16, 6);
+  }
+
+  // ── FOREGROUND (sf ≥ 1.12): só topo/cantos — respeita reduceSanityFx ────────
   const reduce = loadSettings().reduceSanityFx;
   if (reduce) return; // acessibilidade: sem o plano que se move rápido
 
   const ceilY = topY + 2;
   const fgTop = scene.add.graphics().setScrollFactor(1.12, 0).setDepth(900);
-  fgTop.fillStyle(cfg.beam, 0.9);
-  fgTop.fillRect(0, ceilY, levelWidth, 8); // viga contínua do teto
-  for (let x = rng.between(120, 200); x < levelWidth; x += rng.between(300, 460)) {
-    // haste + luminária pendente (silhueta) com um leve glow
-    fgTop.fillStyle(cfg.beam, 0.95);
-    fgTop.fillRect(x - 1, ceilY + 8, 3, rng.between(14, 26));
-    const ly = ceilY + 8 + rng.between(14, 26);
-    fgTop.fillRect(x - 12, ly, 26, 6);
+  fgTop.fillStyle(cfg.beam, 0.92);
+  fgTop.fillRect(0, ceilY, levelWidth, 10); // viga contínua do teto (mais grossa)
+  for (let x = rng.between(120, 200); x < levelWidth; x += rng.between(280, 420)) {
+    // haste + luminária pendente (silhueta) com glow reforçado
+    const stalk = rng.between(16, 30);
+    fgTop.fillStyle(cfg.beam, 0.96);
+    fgTop.fillRect(x - 1, ceilY + 10, 3, stalk);
+    const ly = ceilY + 10 + stalk;
+    fgTop.fillRect(x - 14, ly, 30, 7); // corpo da luminária (maior)
     const g = scene.add
-      .ellipse(x + 1, ly + 8, 40, 14, cfg.lamp, 0.06)
+      .ellipse(x + 1, ly + 10, 60, 20, cfg.lamp, 0.1)
       .setScrollFactor(1.12, 0)
       .setDepth(899)
       .setBlendMode(Phaser.BlendModes.ADD);
@@ -76,18 +110,28 @@ export function addParallaxLayers(
 
   // ── FOREGROUND: silhuetas de baia nos CANTOS inferiores (sf 1.2) ────────────
   // Só nas bordas esquerda/direita — o centro (faixa de combate) fica livre.
-  const fgEdge = scene.add.graphics().setScrollFactor(1.2, 0).setDepth(901).setAlpha(0.92);
-  fgEdge.fillStyle(cfg.silh, 1);
+  const fgEdge = scene.add.graphics().setScrollFactor(1.2, 0).setDepth(901).setAlpha(0.94);
   const drawCubicle = (cx: number) => {
-    const w = 120;
-    const topH = floorY - rng.between(70, 96);
+    const w = 128;
+    const topH = floorY - rng.between(76, 104);
+    fgEdge.fillStyle(cfg.silh, 1);
     fgEdge.fillRect(cx - w / 2, topH, w, floorY - topH); // corpo da baia
     fgEdge.fillStyle(cfg.beam, 1);
-    fgEdge.fillRect(cx - w / 2 + 14, topH + 10, 40, 26); // monitor escuro
-    fgEdge.fillStyle(cfg.silh, 1);
+    fgEdge.fillRect(cx - w / 2 + 16, topH + 10, 44, 28); // monitor escuro
+    fgEdge.fillStyle(cfg.glow, 0.14);
+    fgEdge.fillRect(cx - w / 2 + 18, topH + 12, 40, 6); // brilho da tela
   };
-  drawCubicle(70);
-  drawCubicle(levelWidth - 70);
+  drawCubicle(64);
+  drawCubicle(levelWidth - 64);
+
+  // ── FOREGROUND: planta pendente do teto num canto (silhueta, sf 1.2) ────────
+  const plantX = rng.between(0, 1) ? 150 : levelWidth - 150;
+  fgEdge.fillStyle(cfg.beam, 0.95);
+  for (let i = 0; i < 7; i++) {
+    const fx = plantX + rng.between(-16, 16);
+    fgEdge.fillRect(fx, ceilY + 8, 2, rng.between(16, 34)); // folhas caídas
+  }
+  fgEdge.fillRect(plantX - 12, ceilY + 6, 24, 8); // vaso suspenso
 }
 
 /**
