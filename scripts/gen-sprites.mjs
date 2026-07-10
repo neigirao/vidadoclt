@@ -631,7 +631,9 @@ const BR_SKIN = [192, 144, 112],
   BR_SKIN_L = [224, 192, 160];
 const BR_HAIR = [48, 32, 32],
   BR_HAIR_D = [28, 20, 22],
-  BR_HAIR_L = [100, 68, 52];
+  BR_HAIR_MID = [72, 50, 42],
+  BR_HAIR_L = [100, 68, 52],
+  BR_HAIR_RIM = [140, 104, 78]; // luz de contorno quente (keyline da casa)
 const BR_SUIT = [150, 84, 104], // blazer rosa-mauve dessaturado
   BR_SUIT_D = [104, 54, 72],
   BR_SUIT_DD = [70, 34, 48],
@@ -706,8 +708,11 @@ function brendaFrame(name, pose = {}) {
   // ===== BLAZER / TORSO (ombros arredondados) =====
   RR(28, 42, 24, 16, BR_SUIT, 3);
   R(28, 42, 24, 2, BR_SUIT_L); // ombros (luz)
-  R(28, 42, 3, 15, BR_SUIT_D); // lateral esq. (na verdade luz→sombra dir.)
-  R(49, 42, 3, 15, BR_SUIT_D);
+  R(28, 43, 2, 11, BR_SUIT_L); // rim de luz na lateral esq.
+  R(49, 44, 3, 13, BR_SUIT_D); // sombra lateral dir.
+  R(50, 46, 2, 11, BR_SUIT_DD);
+  R(31, 47, 1, 9, BR_SUIT_DD); // vinco/dobra esq.
+  R(47, 47, 1, 9, BR_SUIT_DD); // vinco/dobra dir.
   R(29, 55, 22, 3, BR_SUIT_DD); // AO inferior
   // blusa em V + lapelas
   R(36, 43, 8, 13, BR_BLOUSE);
@@ -747,15 +752,18 @@ function brendaFrame(name, pose = {}) {
     R(52, 30, 2, 14, BR_SUIT_D);
     R(49, 26, 5, 5, BR_SKIN);
   } else {
-    R(25, 44, 5, 13, BR_SUIT);
-    R(25, 44, 2, 13, BR_SUIT_D);
-    R(25, 54, 5, 2, BR_BLOUSE); // punho
+    // braços mais cheios (6px) com rim de luz + punho + mão
+    R(24, 44, 6, 13, BR_SUIT);
+    R(24, 44, 2, 13, BR_SUIT_L); // rim (luz vem da esq.)
+    R(28, 45, 2, 12, BR_SUIT_D); // sombra interna
+    R(24, 54, 6, 2, BR_BLOUSE); // punho
     R(25, 56, 5, 3, BR_SKIN);
     P(26, 57, BR_GOLD); // anel
-    R(50, 44, 5, 13, BR_SUIT);
-    R(53, 44, 2, 13, BR_SUIT_D);
-    R(50, 54, 5, 2, BR_BLOUSE);
-    R(50, 56, 5, 3, BR_SKIN);
+    R(50, 44, 6, 13, BR_SUIT);
+    R(54, 44, 2, 13, BR_SUIT_D); // sombra
+    R(50, 44, 1, 12, BR_SUIT_DD);
+    R(50, 54, 6, 2, BR_BLOUSE);
+    R(51, 56, 5, 3, BR_SKIN);
   }
 
   // ===== PRANCHETA (arma-tema) =====
@@ -780,53 +788,76 @@ function brendaFrame(name, pose = {}) {
   // ===== CABEÇA (grande, estilo herói) =====
   const fx = 40 + tilt;
   R(37, 40, 6, 4, BR_SKIN_D); // pescoço
-  // cabelo de trás (massa volumosa)
-  RR(fx - 16, 6, 32, 34, BR_HAIR, 7);
-  // rosto
-  RR(fx - 12, 20, 24, 22, BR_SKIN, 4);
-  R(fx + 6, 22, 6, 18, BR_SKIN_D); // sombra lado dir. (luz vem da esq.)
-  R(fx - 11, 21, 5, 3, BR_SKIN_L); // luz na testa
-  P(fx, 34, BR_SKIN_D); // nariz
-  P(fx - 1, 35, BR_SKIN_D);
-  // franja + laterais sobre o rosto
-  RR(fx - 13, 14, 26, 10, BR_HAIR, 5);
-  R(fx - 13, 14, 11, 4, BR_HAIR_L); // brilho (topo-esq.)
-  R(fx - 13, 20, 3, 18, BR_HAIR); // costeleta esq.
-  R(fx + 10, 20, 3, 18, BR_HAIR); // costeleta dir.
-  P(fx + 12, 22, BR_HAIR_D);
-  // coque alto
-  RR(fx - 6, 0, 14, 10, BR_HAIR, 4);
-  R(fx - 4, 1, 6, 3, BR_HAIR_L);
-  P(fx - 2, 5, BR_HAIR_D);
-  // brincos
-  P(fx - 12, 33, BR_GOLD);
-  P(fx - 12, 35, BR_GOLD_D);
-  P(fx + 11, 33, BR_GOLD);
-  // sobrancelhas
-  R(fx - 8, 26, 5, 1, BR_HAIR_D);
-  R(fx + 3, 26, 5, 1, BR_HAIR_D);
-  // óculos REDONDOS (como o herói) — aro + lente + reflexo + olho
+  R(37, 40, 2, 4, BR_SKIN_DD); // AO do pescoço
+  // ── cabelo de trás: silhueta escura + corpo + mechas (3 tons, não bloco) ──
+  RR(fx - 16, 5, 32, 35, BR_HAIR_D, 8);
+  RR(fx - 15, 6, 30, 32, BR_HAIR, 7);
+  R(fx - 12, 8, 3, 13, BR_HAIR_L); // mecha de brilho esq.
+  R(fx - 8, 7, 2, 9, BR_HAIR_L);
+  R(fx + 7, 9, 2, 11, BR_HAIR_MID); // mecha lateral dir.
+  R(fx + 11, 12, 2, 10, BR_HAIR_D);
+  // ── rosto (bochecha cheia, luz esq. / sombra dir.) ──
+  RR(fx - 11, 20, 22, 22, BR_SKIN, 4);
+  R(fx + 5, 22, 6, 18, BR_SKIN_D); // sombra lado dir.
+  R(fx + 8, 25, 3, 12, BR_SKIN_DD); // AO mais profundo
+  R(fx - 10, 21, 5, 3, BR_SKIN_L); // luz testa
+  R(fx - 10, 25, 2, 11, BR_SKIN_L); // rim de luz na bochecha esq.
+  P(fx - 8, 33, [232, 200, 170]); // brilho da bochecha
+  // nariz
+  R(fx - 1, 31, 2, 4, BR_SKIN_D);
+  P(fx - 1, 35, BR_SKIN_DD);
+  P(fx + 1, 34, BR_SKIN_DD);
+  // ── franja + costeletas sobre o rosto ──
+  RR(fx - 12, 13, 24, 11, BR_HAIR, 5);
+  R(fx - 12, 13, 11, 3, BR_HAIR_L); // brilho da franja
+  R(fx - 6, 14, 4, 2, BR_HAIR_MID);
+  R(fx - 12, 19, 3, 19, BR_HAIR); // costeleta esq.
+  R(fx + 9, 19, 3, 19, BR_HAIR); // costeleta dir.
+  R(fx + 10, 19, 2, 19, BR_HAIR_D);
+  R(fx - 12, 22, 1, 14, BR_HAIR_MID); // mecha na costeleta
+  // ── coque alto ──
+  RR(fx - 5, 0, 13, 9, BR_HAIR, 4);
+  R(fx - 3, 1, 6, 2, BR_HAIR_L);
+  R(fx - 5, 6, 13, 1, BR_HAIR_D); // base do coque (sombra)
+  R(fx - 6, 5, 2, 3, BR_HAIR_D); // presilha
+  // ── brincos (argola) ──
+  P(fx - 11, 33, BR_GOLD);
+  P(fx - 11, 35, BR_GOLD_D);
+  P(fx - 12, 34, BR_GOLD_D);
+  P(fx + 10, 33, BR_GOLD);
+  P(fx + 10, 35, BR_GOLD_D);
+  // ── sobrancelhas ──
+  R(fx - 7, 25, 4, 1, BR_HAIR_D);
+  R(fx + 3, 25, 4, 1, BR_HAIR_D);
+  // ── óculos REDONDOS (aro + lente + reflexo diagonal + olho) ──
   const lens = (lx, ly) => {
     RR(lx, ly, 7, 7, BR_GLASS, 2);
     RR(lx + 1, ly + 1, 5, 5, BR_LENS, 1);
-    P(lx + 2, ly + 2, BR_GLASS_L); // reflexo
+    P(lx + 1, ly + 1, BR_GLASS_L); // reflexo (canto sup-esq.)
+    P(lx + 2, ly + 1, BR_GLASS_L);
     R(lx + 3, ly + 3, 2, 2, BR_HAIR_D); // olho
+    P(lx + 3, ly + 3, [30, 24, 30]);
   };
-  lens(fx - 9, 27);
-  lens(fx + 3, 27);
-  R(fx - 1, 30, 2, 1, BR_GLASS); // ponte
-  // blush
-  R(fx - 9, 35, 3, 2, BR_BLUSH);
-  R(fx + 7, 35, 3, 2, BR_BLUSH);
-  // boca / batom
+  lens(fx - 8, 27);
+  lens(fx + 2, 27);
+  R(fx - 1, 29, 2, 1, BR_GLASS); // ponte
+  // ── blush + batom ──
+  R(fx - 8, 36, 3, 2, BR_BLUSH);
+  R(fx + 6, 36, 3, 2, BR_BLUSH);
   if (pose.mouth) {
-    R(fx - 2, 38, 5, 3, [120, 40, 50]);
+    R(fx - 2, 38, 5, 3, [120, 40, 50]); // boca aberta
     R(fx - 2, 38, 5, 1, BR_LIP);
+    P(fx - 1, 40, [90, 30, 38]);
   } else {
     R(fx - 2, 38, 5, 1, BR_LIP);
     P(fx - 2, 39, BR_LIP);
     P(fx + 2, 39, BR_LIP);
   }
+  // ── RIM LIGHT quente no topo-esq. do cabelo (keyline da casa) ──
+  R(fx - 5, 0, 8, 1, BR_HAIR_RIM); // topo do coque
+  R(fx - 16, 6, 2, 4, BR_HAIR_RIM); // ombro-esq. do cabelo
+  P(fx - 15, 10, BR_HAIR_RIM);
+  P(fx - 14, 13, BR_HAIR_RIM);
 
   addOutline(c, BR_OUT);
   return c.save(name);
