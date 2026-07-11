@@ -626,6 +626,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       );
       Sfx.vrPickup();
       ParticleFactory.pickupSparkle(this, spr.x, spr.y);
+      this.combatFx.spawnDamageNumber(spr.x, spr.y - 6, 1, "#f2c14e");
       this.cameras.main.shake(40, 0.0025);
       spr.destroy();
     });
