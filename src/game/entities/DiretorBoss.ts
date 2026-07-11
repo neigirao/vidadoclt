@@ -13,10 +13,14 @@ import { markKilled } from "../systems/BestiarySystem";
  *    (troca de lado), forçando o player a reposicionar. Wireada via onReestrutura.
  *  - "PDI" (contato de dash): investida curta telegrafada (swingHitbox), padrão
  *    pesado da casa.
+ *  - "CASCATA DE METAS" (assinatura, só na phase 2 ≤35% HP): barragem de metas
+ *    caindo em faixas com brechas seguras — o padrão bullet-hell de leitura que
+ *    marca o boss FINAL (os mid-bosses só dão hits únicos). Wireada via onCascata.
+ *    Faz o enrage virar um gear-shift de verdade, não só "um pouco mais rápido".
  *
  * Reusa o sprite `enemy-evangelista-boss-*` (64×64) — figura de terno já pronta.
  */
-type DiretorAttack = "meta" | "reestrutura" | "pdi";
+type DiretorAttack = "meta" | "reestrutura" | "pdi" | "cascata";
 
 const BOSS_HIT_INVULN_MS = 340;
 
@@ -51,6 +55,8 @@ export class DiretorDeResultados extends Phaser.Physics.Arcade.Sprite {
   onMeta?: (bx: number, by: number) => void;
   /** Reestruturação: cena faz o flash/teleporte de feedback; retorna o novo X. */
   onReestrutura?: (fromX: number) => void;
+  /** Cascata de Metas (assinatura, phase 2): cena desenha a barragem em faixas. */
+  onCascata?: (bx: number, by: number) => void;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ...resolveSprite("tex-diretor-idle0"));
@@ -190,7 +196,8 @@ export class DiretorDeResultados extends Phaser.Physics.Arcade.Sprite {
 
   private buildQueue() {
     const pool: DiretorAttack[] = ["meta", "pdi", "reestrutura", "pdi"];
-    if (this.phase2) pool.push("meta");
+    // Na phase 2 a assinatura entra no rodízio: o boss final ganha a barragem.
+    if (this.phase2) pool.push("cascata", "meta");
     this.queue = Phaser.Utils.Array.Shuffle([...pool]) as DiretorAttack[];
   }
 
@@ -205,16 +212,19 @@ export class DiretorDeResultados extends Phaser.Physics.Arcade.Sprite {
       meta: 620,
       reestrutura: 560,
       pdi: 460,
+      cascata: 780, // telegraph mais longo: barragem exige leitura
     };
     const colors: Record<DiretorAttack, number> = {
       meta: 0xffaa22,
       reestrutura: 0x9966ff,
       pdi: 0xff3322,
+      cascata: 0xffdd33,
     };
     const names: Record<DiretorAttack, string> = {
       meta: "META INALCANÇÁVEL",
       reestrutura: "REESTRUTURAÇÃO",
       pdi: "PDI INVOLUNTÁRIO!",
+      cascata: "CASCATA DE METAS!!",
     };
 
     const factor = this.phase2 ? 0.82 : 1;
@@ -261,6 +271,14 @@ export class DiretorDeResultados extends Phaser.Physics.Arcade.Sprite {
         this.stateUntil = t + 300;
         break;
       }
+
+      case "cascata":
+        // Assinatura: a cena desenha a barragem em faixas. O Diretor fica
+        // exposto durante a chuva (janela de dano longa) — punir a leitura,
+        // recompensar quem entra na brecha e bate.
+        this.onCascata?.(this.x, this.y);
+        this.stateUntil = t + 1900;
+        break;
 
       case "pdi": {
         if (this.target) this.dir = this.target.x < this.x ? -1 : 1;

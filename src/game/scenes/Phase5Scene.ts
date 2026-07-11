@@ -211,6 +211,7 @@ export class Phase5Scene extends BasePhaseScene {
     diretor.target = this.player;
     diretor.onMeta = (bx, by) => this.metaInalcancavel(bx, by);
     diretor.onReestrutura = (fromX) => this.reestruturacao(fromX);
+    diretor.onCascata = (bx, by) => this.cascataDeMetas(bx, by);
     this.diretor = diretor;
     this.boss = diretor;
     this.bossPresence = new BossPresence(this, diretor, 0xffaa22);
@@ -281,6 +282,84 @@ export class Phase5Scene extends BasePhaseScene {
       alpha: 0,
       duration: 360,
       onComplete: () => flashIn.destroy(),
+    });
+  }
+
+  // ── "CASCATA DE METAS" (assinatura, phase 2): barragem de metas caindo em
+  //    faixas telegrafadas com brechas seguras. O padrão bullet-hell que marca o
+  //    boss FINAL — leitura + costura, não hit único. Uma brecha sempre nasce
+  //    perto do player (dodgeável), e as ondas deslocam a brecha (pressão). ──
+  private cascataDeMetas(bx: number, by: number): void {
+    const view = this.cameras.main.worldView;
+    const left = Math.max(60, view.left + 40);
+    const right = Math.min(LEVEL_WIDTH - 60, view.right - 40);
+    const cols = 9;
+    const step = (right - left) / (cols - 1);
+    const topY = Math.max(40, FLOOR_Y - 320);
+    const WAVES = 2;
+
+    // brecha inicial na coluna mais perto do player → sempre há saída.
+    let gap = Phaser.Math.Clamp(Math.round((this.player.x - left) / step), 0, cols - 1);
+
+    for (let wv = 0; wv < WAVES; wv++) {
+      const delay = wv * 720;
+      // desloca a brecha a cada onda (±1..2) p/ obrigar movimento.
+      const gapThis = gap;
+      const deadly: number[] = [];
+      for (let i = 0; i < cols; i++) if (Math.abs(i - gapThis) > 0) deadly.push(i);
+      gap = Phaser.Math.Clamp(gapThis + Phaser.Math.Between(-2, 2), 1, cols - 2);
+
+      // telegraph: retículas nas colunas mortais + realce da brecha segura.
+      this.time.delayedCall(delay, () => {
+        for (const i of deadly) {
+          const x = left + i * step;
+          const warn = this.add
+            .rectangle(x, (topY + FLOOR_Y) / 2, 10, FLOOR_Y - topY, 0xffdd33, 0.14)
+            .setDepth(180);
+          this.time.delayedCall(560, () => warn.destroy());
+        }
+        const gx = left + gapThis * step;
+        const safe = this.add
+          .rectangle(gx, FLOOR_Y - 8, step * 0.8, 6, 0x33ff88, 0.5)
+          .setDepth(181);
+        this.tweens.add({
+          targets: safe,
+          alpha: 0,
+          duration: 900,
+          onComplete: () => safe.destroy(),
+        });
+      });
+
+      // disparo: metas caem retas nas colunas mortais, escalonadas.
+      this.time.delayedCall(delay + 600, () => {
+        deadly.forEach((i, k) => {
+          this.time.delayedCall(k * 45, () => {
+            const x = left + i * step;
+            this.spawnEnemyProjectile(x, topY, x, FLOOR_Y, 16, 0xffcc22, 300);
+          });
+        });
+      });
+    }
+
+    // "grito" temático em cima do boss
+    const shout = this.add
+      .text(bx, by - 84, "BATE A META OU RODA!", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        fontStyle: "bold",
+        color: "#ffdd33",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(600);
+    this.tweens.add({
+      targets: shout,
+      alpha: 0,
+      y: shout.y - 20,
+      duration: 1000,
+      delay: 500,
+      onComplete: () => shout.destroy(),
     });
   }
 
