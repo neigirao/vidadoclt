@@ -190,26 +190,36 @@ export class SanityFx {
     const t = this.scene.time.now * 0.001;
     const pulse = noise2d(t * 0.4, stress * 2.0) * 0.03 * stress; // ±3% at full burnout
 
-    this.vignette.radius = 0.85 - stress * 0.45 + pulse;
-    this.vignette.strength = stress * 0.85 + pulse * 0.5;
+    // burnoutT: 0→1 DENTRO da faixa burnout (stress>0.75). O Burnout deixou de ser
+    // "agonia" (túnel cinza escuro) e virou "VAI NA RAÇA / adrenalina": a partir
+    // daqui o vinhete ABRE (você enxerga pra brigar), a cor vira vermelho-quente
+    // VIVO com pulso de batimento, e a dessaturação VOLTA (raiva é vívida).
+    const burnoutT = Phaser.Math.Clamp((stress - 0.75) / 0.25, 0, 1);
 
-    // Color transitions from black → dark red starting at ~75% stress
-    if (stress > 0.75) {
-      const t = (stress - 0.75) / 0.25; // 0 → 1 over last quarter
-      const r = Math.round(t * 0x6b);
-      const g = Math.round(t * 0x08);
-      const b = Math.round(t * 0x08);
+    // Menos túnel que antes (0.30 vs 0.45) e ABRE de volta na raiva (−0.15·burnoutT).
+    this.vignette.radius = 0.85 - stress * 0.3 + burnoutT * 0.15 + pulse;
+    this.vignette.strength = stress * 0.7 - burnoutT * 0.15 + pulse * 0.5;
+
+    // Cor: preto → vermelho-adrenalina VIVO a partir de ~60% stress. Na raiva,
+    // pulso de batimento cardíaco (heartbeat) — comunica "modo fúria", não agonia.
+    if (stress > 0.6) {
+      const ct = (stress - 0.6) / 0.4; // 0 → 1
+      const heartbeat = burnoutT > 0 ? 0.72 + 0.28 * Math.sin(this.scene.time.now * 0.009) : 1;
+      const r = Math.round(ct * 0xd8 * heartbeat);
+      const g = Math.round(ct * 0x18 * heartbeat);
+      const b = Math.round(ct * 0x0e * heartbeat);
       this.vignette.setColor((r << 16) | (g << 8) | b);
     } else {
       this.vignette.setColor(0x000000);
     }
 
     // ── ColorMatrix (desaturation) ────────────────────────────────────────────
-    // Begins at 50% stress, reaches full desaturation at burnout
+    // Sobe até o "anxious" (dread, aviso) e CAI na raiva (adrenalina é vívida,
+    // não cinza-agonia). Pico ~stress 0.75, quase zerada no fundo do burnout.
     if (stress > 0.5) {
-      const desat = (stress - 0.5) / 0.5; // 0 → 1 over upper half
-      // saturate(-x): x=0 identity, x=1 fully grey
-      this.colorMatrix.colorMatrix.reset().saturate(-(desat * 0.85));
+      const desat = (stress - 0.5) / 0.5; // 0 → 1
+      const amt = desat * 0.6 * (1 - burnoutT * 0.85); // volta a cor na raiva
+      this.colorMatrix.colorMatrix.reset().saturate(-amt);
     } else {
       this.colorMatrix.colorMatrix.reset();
     }
