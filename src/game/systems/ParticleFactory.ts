@@ -53,6 +53,64 @@ export class ParticleFactory {
     }
   }
 
+  // Poeira do pouso — leve, cinza, dispara nos dois lados do sprite.
+  static landDust(scene: Phaser.Scene, x: number, y: number) {
+    for (let i = 0; i < 6; i++) {
+      const side = i < 3 ? -1 : 1;
+      const g = scene.add.graphics().setDepth(9);
+      g.fillStyle(0xc9c2b3, 0.75);
+      const s = 2 + Math.floor(Math.random() * 2);
+      g.fillRect(-s / 2, -s / 2, s, s);
+      g.setPosition(Math.round(x + side * (2 + Math.random() * 4)), Math.round(y));
+      scene.tweens.add({
+        targets: g,
+        x: Math.round(g.x + side * (10 + Math.random() * 14)),
+        y: Math.round(g.y - 2 - Math.random() * 6),
+        alpha: 0,
+        duration: 260,
+        ease: "Quad.easeOut",
+        onComplete: () => g.destroy(),
+      });
+    }
+  }
+
+  // Faísca de pickup — brilho dourado radial, curto, sem gravidade.
+  static pickupSparkle(scene: Phaser.Scene, x: number, y: number, color = 0xffd766) {
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      const speed = 30 + Math.floor(Math.random() * 4) * 8;
+      const g = scene.add.graphics().setDepth(60);
+      g.fillStyle(color, 1);
+      g.fillRect(-1.5, -1.5, 3, 3);
+      g.setPosition(Math.round(x), Math.round(y));
+      scene.tweens.add({
+        targets: g,
+        x: Math.round(x + Math.cos(angle) * speed),
+        y: Math.round(y + Math.sin(angle) * speed),
+        alpha: 0,
+        scaleX: 0.3,
+        scaleY: 0.3,
+        duration: 260,
+        ease: "Quad.easeOut",
+        onComplete: () => g.destroy(),
+      });
+    }
+    // Aro rápido no centro reforça o "peguei"
+    const ring = scene.add.graphics().setDepth(60);
+    ring.lineStyle(2, color, 0.9);
+    ring.strokeCircle(0, 0, 6);
+    ring.setPosition(Math.round(x), Math.round(y));
+    scene.tweens.add({
+      targets: ring,
+      scaleX: 2.2,
+      scaleY: 2.2,
+      alpha: 0,
+      duration: 240,
+      ease: "Cubic.easeOut",
+      onComplete: () => ring.destroy(),
+    });
+  }
+
   // Corporate-themed death: paper shreds + coffee spill
   static enemyDeath(scene: Phaser.Scene, x: number, y: number) {
     const corpColors = [0xffffff, 0x4a90d9, 0xd0e4f8, 0xaaaaaa, 0x2a3a5a];

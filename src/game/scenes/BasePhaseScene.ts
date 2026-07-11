@@ -26,6 +26,7 @@ import { SanityFx } from "../systems/SanityFx";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CulturaId, reapplyAllCulturas, selectableCulturaIds } from "../systems/CulturaSystem";
 import { CombatFx } from "../systems/CombatFx";
+import { ParticleFactory } from "../systems/ParticleFactory";
 import { Sfx } from "../systems/AudioSystem";
 import { Telemetry } from "../systems/Telemetry";
 import { Music } from "../systems/MusicSystem";
@@ -551,6 +552,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         "VR (Vale Refeição) é sua moeda. Junte e gaste na Copa.",
       );
       Sfx.vrPickup();
+      ParticleFactory.pickupSparkle(this, spr.x, spr.y);
+      this.cameras.main.shake(40, 0.0025);
       spr.destroy();
     });
 

@@ -4,6 +4,7 @@ import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
 import { sanityBand } from "../systems/PlayerState";
+import { ParticleFactory } from "../systems/ParticleFactory";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -490,6 +491,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Land squash: fire on the frame we first touch the ground
     if (onGround && !this.prevOnGround) {
       CombatFx.landSquash(this);
+      // Poeira do pouso (só se caiu de altura mínima)
+      ParticleFactory.landDust(this.scene, this.x, this.y + this.displayHeight * 0.45);
     }
     this.prevOnGround = onGround;
 
@@ -603,6 +606,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.jumpsUsed++;
       this.lastJumpPressedAt = -9999;
       Sfx.jump();
+      CombatFx.jumpStretch(this);
       // Burst the ring on use
       if (this.djRing) {
         this.djRing.destroy();
