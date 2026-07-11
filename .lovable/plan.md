@@ -18,7 +18,7 @@ Análise feita lendo `OpenSpaceV2Scene`, `Boss.ts` (Gerente), `Enemies.ts`, `Pla
 2. **Leitura de ameaça inconsistente.** Healer tem "+" mas Facilitador/Onboarding (ranged com windup) e Sênior (elite pesado) não têm marcador; o telegraph do Facilitador é bom mas o novato não sabe que aquilo é o padrão.
 3. **Falta consequência forte no APAGÃO e no segredo do extintor.** Segredo dá 3 VR (irrisório vs. custo da Copa 6–32), APAGÃO só escurece — não altera comportamento de inimigo nem drop.
 4. **Economia de VR da Fase 1 rasa.** Único sink dentro da fase é morrer; ganhos vão todos pra Copa. Faltaria pelo menos 1 pickup arriscado ou 1 escolha in-fase.
-  &nbsp;
+   &nbsp;
 
 ---
 
@@ -26,7 +26,7 @@ Análise feita lendo `OpenSpaceV2Scene`, `Boss.ts` (Gerente), `Enemies.ts`, `Pla
 
 **Estado atual dos assets:**
 
-- Backgrounds das Fases 2–5 são PNGs curados em `public/assets/backgrounds/`. **A Fase 1 não tem `bg-openspace.png**` — usa `pxbg-openspace` gerado proceduralmente (parallax mid-layer + dithering em `create()`). Fica visivelmente mais pobre que Fases 2–5.
+- Backgrounds das Fases 2–5 são PNGs curados em `public/assets/backgrounds/`. **A Fase 1 não tem `bg-openspace.png**`— usa`pxbg-openspace`gerado proceduralmente (parallax mid-layer + dithering em`create()`). Fica visivelmente mais pobre que Fases 2–5.
 - Inimigos da Fase 1 (estagiário, analista, RH, facilitador, scrum, coordenador, sênior) têm idle/walk/attack/hurt no atlas. Consistência ok.
 - Tiles de mobília (`tile-fase1-03`, `-04`) existem mas plataformas hoje são **desenhadas por `graphics.fillStyle(0x5c3318)**` — retângulos marrons chapados. Contrastam feio com o parallax detalhado.
 - HUD (`Hud.ts`, 1166 linhas) tem boss bar, minimapa, ícones — está denso mas coerente.
@@ -50,7 +50,7 @@ G. **Feedback de kill fraco visualmente.** `CombatFx` tem hit-stop/shake, mas fa
 2. **Tutorial contextual (5 prompts, só na 1ª run):** Andar, Pular, Atacar, Dash, Especial. Sistema já desenhado no plano anterior — `TutorialPrompts` + hooks em `onPhaseUpdate`/`MeleeHost`/`handleSpecial`.
 3. **Fix do spawn Fases 2–5** (bug já documentado no ROADMAP). Sem isso o MVP não sobrevive a um playtest — Fase 1 até funciona, mas o jogo "acaba" na Copa.
 4. **Sprite de plataforma real** substituindo o `fillStyle` chapado — reusar `tile-platform` do atlas ou desenhar mesa de escritório com pé (via `gen-sprites.mjs`).
-  &nbsp;
+   &nbsp;
 
 **P1 — polimento que separa "protótipo" de "MVP publicável" (2–3 dias):**
 
