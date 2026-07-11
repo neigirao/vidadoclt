@@ -626,6 +626,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       );
       Sfx.vrPickup();
       ParticleFactory.pickupSparkle(this, spr.x, spr.y);
+      this.combatFx.spawnDamageNumber(spr.x, spr.y - 6, 1, "#f2c14e");
       this.cameras.main.shake(40, 0.0025);
       spr.destroy();
     });
@@ -1032,6 +1033,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         .setScale(spawned.scaleX * 1.08, spawned.scaleY * 1.08)
         .setDepth((spawned.depth ?? 10) - 1);
       const sub = spawned; // capture
+      let wasAir = false;
       this.events.on("update", () => {
         if (!sub.active) {
           shadow.destroy();
@@ -1044,6 +1046,15 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         }
         shadow.setScale(sub.scaleX * 1.08, sub.scaleY * 1.08);
         shadow.setVisible(sub.visible);
+        // Poeira ao pousar após pulo (scrum/rh saltam)
+        const b = sub.body as Phaser.Physics.Arcade.Body | undefined;
+        if (b) {
+          const onGround = b.blocked.down || b.touching.down;
+          if (onGround && wasAir) {
+            ParticleFactory.landDust(this, sub.x, sub.y + sub.displayHeight * 0.45);
+          }
+          wasAir = !onGround;
+        }
       });
     }
   }
