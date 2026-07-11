@@ -2,6 +2,7 @@
 
 > **RECONCILIAÇÃO (status real do código, jul/2026).** Quase tudo deste plano
 > foi entregue — mantido como histórico. O que sobrou de verdade:
+>
 > - 🔴 **Porta da Copa** ainda é `tint`+`[BLOQUEADO]` (item D / P1 #10) — só falta sprite.
 > - 🟨 Fundos high-res das Fases 3/4/5 + cobertura (placeholders ~32–43KB) — arte externa.
 >
@@ -11,7 +12,6 @@
 > beat de fim de fase, momento de enrage (+ agora com dentes na cadência), APAGÃO
 > como stealth, extintor como JATO DE CO2, e o Burnout redesenhado (VAI NA RAÇA).
 > O texto abaixo é o diagnóstico ORIGINAL — leia como registro, não como TODO.
-
 
 Análise feita lendo `OpenSpaceV2Scene`, `Boss.ts` (Gerente), `Enemies.ts`, `Player.ts`, `Background.ts`, o inventário de sprites em `public/assets/sprites/` e o `ROADMAP.md`. Foco no que **falta** para chamar a Fase 1 de "vertical slice pronta" e o MVP de "jogável de ponta a ponta sem constrangimento".
 
