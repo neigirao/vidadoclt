@@ -69,7 +69,7 @@ src/
       PlayerState.ts         # RunState (registry "run"), persistência localStorage
       RNG.ts                 # Seed determinística (seedrandom) + prefixos temáticos
       WeaponSystem.ts        # CLASSES + WEAPONS (3 classes, 12 armas)
-      PerkSystem.ts          # Perks aleatórios pós-boss
+      PerkSystem.ts          # Perks pós-boss + sinergias perk×perk (SYNERGIES) e arma×perk (WEAPON_SYNERGIES)
       CulturaSystem.ts       # 12 Culturas Corporativas (modificadores de run)
       ReconhecimentoSystem.ts# Upgrades permanentes comprados com Reconhecimento
       Shop.ts                # Loja da Copa
@@ -254,7 +254,7 @@ Nenhum band-aid ativo no momento.
 
 - Player completo: andar, pular (coyote + buffer), dash (i-frames), combo, ataque especial (K), interação (E)
 - 3 classes (Estagiário, Analista, Terceirizado) com stats próprios
-- 12 armas (WeaponSystem) + perks aleatórios pós-boss (PerkSystem)
+- 12 armas (WeaponSystem) + perks aleatórios pós-boss (PerkSystem); **sinergias** em dois eixos: perk×perk (`SYNERGIES`, 8) e **arma×perk** (`WEAPON_SYNERGIES`, 4 — a arma equipada casa com um perk; reusam campos já consumidos, avaliadas no `buildPlayer`, badge compartilhado)
 - **12 Culturas Corporativas** (CulturaSystem) — modificadores de run selecionados antes da Fase 1
 - Inimigos da Fase 1 (Enemies.ts) e Fases 2–5 (PhaseEnemies.ts); catálogo de metadados em `EnemyCatalog.ts` (29 IDs)
 - Bosses: Gerente Microgestor (Boss.ts), CEO (CeoBoss.ts)
@@ -270,7 +270,7 @@ Nenhum band-aid ativo no momento.
 - Copa: cura de sanidade + loja (Faxineiro), checkpoint
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 - **Encontros por seed**: Fase 1 varia o TIPO de inimigo por zona (`spawnEnemyOfType`); Fases 2–5 variam POSIÇÃO/densidade (`pickPositions` em `BasePhaseScene`) — contagem fixa p/ o validador
-- **Qualidade**: `tsc` strict + ESLint 0 erros; **testes unitários** (bun:test) de EnemyCatalog, WeaponSystem, ReconhecimentoSystem, **CulturaSystem, PerkSystem, sanityBand** (37 testes); **CI** (GitHub Actions: tsc + lint + test) em `.github/workflows/ci.yml`
+- **Qualidade**: `tsc` strict + ESLint 0 erros; **testes unitários** (bun:test) de EnemyCatalog, WeaponSystem, ReconhecimentoSystem, **CulturaSystem, PerkSystem (incl. sinergias arma×perk), sanityBand** (49 testes); **CI** (GitHub Actions: tsc + lint + test) em `.github/workflows/ci.yml`
 - **Legibilidade/onboarding**: marcadores de ameaça por arquétipo (`ThreatMarkers`), presença de chefão (`BossPresence`: escala+aura+coroa), momento de enrage do boss aos 35% HP (`playBossEnrageMoment` — beat visual; e o flag `bossEnraged` + hook `onBossEnrage()` que **apertam a cadência de especial** na 2ª metade da luta: Coordenador/Scrum aceleram e disparam um especial na virada; Brenda/Diretor/Gerente já auto-escalam via phase2 interno), beat de fim de fase (`playPhaseClearBeat`), e **dicas contextuais de 1ª sessão** (`TutorialPrompts`)
 - **Armas no meio da fase**: drop de arma por kill/boss (`dropWeapon`) + slot secundário com troca (Q); telemetria de playtest gravada no Supabase dedicado (`Telemetry` + `telemetryClient`)
 

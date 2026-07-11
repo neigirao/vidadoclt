@@ -17,7 +17,12 @@ import { getRun, savePersisted } from "../systems/PlayerState";
 import { WEAPONS, WEAPON_ICONS, WeaponId, WeaponDef } from "../systems/WeaponSystem";
 import { applyClassAndWeapon } from "../systems/PlayerLoadout";
 import { SanityFx } from "../systems/SanityFx";
-import { reapplyAllPerks, checkAndApplySynergies, SYNERGIES } from "../systems/PerkSystem";
+import {
+  reapplyAllPerks,
+  checkAndApplySynergies,
+  checkAndApplyWeaponSynergies,
+  SYNERGIES,
+} from "../systems/PerkSystem";
 import { CulturaId, reapplyAllCulturas, selectableCulturaIds } from "../systems/CulturaSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { ParticleFactory } from "../systems/ParticleFactory";
@@ -166,6 +171,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // recriado a cada cena, então roda 1× sobre stats limpos — sem acúmulo).
     const activeSyn = checkAndApplySynergies(this.player, run);
     this.synergyLabels = activeSyn.map((id) => `${SYNERGIES[id].icon} ${SYNERGIES[id].name}`);
+    // Sinergias arma×perk (eixo novo): a arma equipada + um perk. Rótulos vão
+    // pro mesmo badge das perk×perk.
+    this.synergyLabels.push(...checkAndApplyWeaponSynergies(this.player, run));
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.furnitureBodies);

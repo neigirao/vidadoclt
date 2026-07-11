@@ -1,5 +1,6 @@
 import type { Player } from "../entities/Player";
 import type { RunState } from "./PlayerState";
+import type { WeaponId } from "./WeaponSystem";
 
 export type PerkId =
   | "autonomia"
@@ -275,6 +276,85 @@ export function checkAndApplySynergies(player: Player, run: RunState): SynergyId
   }
   run.activeSynergies = activated;
   return activated;
+}
+
+// ── Sinergias ARMA×PERK ───────────────────────────────────────────────────────
+// Eixo novo (além de perk×perk): a arma equipada interage com um perk. Dá ao
+// veterano um motivo pra casar arma + perk específico, não só empilhar perks.
+// Reusa APENAS campos já consumidos (specialCooldownMult, airAttackBonus,
+// firstStrikeStun, vrDropMult) — sem wiring morto. Avaliadas no buildPlayer,
+// junto das perk×perk (player recriado a cada cena → 1× sobre stats limpos).
+export type WeaponSynergyId =
+  | "cafeina_pura"
+  | "queda_produtividade"
+  | "choque_termico"
+  | "planilha_infinita";
+
+type WeaponSynergyDef = {
+  weapon: WeaponId;
+  perk: PerkId;
+  name: string;
+  desc: string;
+  icon: string;
+  apply: (player: Player, run: RunState) => void;
+};
+
+export const WEAPON_SYNERGIES: Record<WeaponSynergyId, WeaponSynergyDef> = {
+  cafeina_pura: {
+    weapon: "caneca",
+    perk: "cafe_forte",
+    name: "Cafeína Pura",
+    desc: "Caneca + Café Forte = especial recarrega 30% mais rápido.",
+    icon: "☕",
+    apply: (player) => {
+      player.specialCooldownMult *= 0.7;
+    },
+  },
+  queda_produtividade: {
+    weapon: "furador",
+    perk: "piso_de_vidro",
+    name: "Queda de Produtividade",
+    desc: "Furador + Piso de Vidro = +50% dano em ataques no ar.",
+    icon: "🪂",
+    apply: (player) => {
+      player.airAttackBonus += 0.5;
+    },
+  },
+  choque_termico: {
+    weapon: "extintor",
+    perk: "sindrome_impostor",
+    name: "Choque Térmico",
+    desc: "Extintor + Síndrome do Impostor = 1º hit de cada sala congela (stun).",
+    icon: "🧊",
+    apply: (player) => {
+      player.firstStrikeStun = true;
+    },
+  },
+  planilha_infinita: {
+    weapon: "impressora",
+    perk: "plr",
+    name: "Planilha Infinita",
+    desc: "Impressora + PLR = +30% VR por inimigo derrotado.",
+    icon: "🖨️",
+    apply: (player) => {
+      player.vrDropMult *= 1.3;
+    },
+  },
+};
+
+/** Aplica sinergias arma×perk e retorna os rótulos (ícone + nome) p/ o badge. */
+export function checkAndApplyWeaponSynergies(player: Player, run: RunState): string[] {
+  const weapon = player.weaponId as WeaponId | undefined;
+  const perks = run.perks ?? [];
+  const labels: string[] = [];
+  if (!weapon) return labels;
+  for (const syn of Object.values(WEAPON_SYNERGIES)) {
+    if (syn.weapon === weapon && perks.includes(syn.perk)) {
+      syn.apply(player, run);
+      labels.push(`${syn.icon} ${syn.name}`);
+    }
+  }
+  return labels;
 }
 
 export function reapplyAllPerks(player: Player, run: RunState) {

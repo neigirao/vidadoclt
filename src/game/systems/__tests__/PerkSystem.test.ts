@@ -1,5 +1,13 @@
 import { describe, it, expect } from "bun:test";
-import { PERKS, PerkId, SYNERGIES, applyPerk } from "../PerkSystem";
+import {
+  PERKS,
+  PerkId,
+  SYNERGIES,
+  WEAPON_SYNERGIES,
+  applyPerk,
+  checkAndApplyWeaponSynergies,
+} from "../PerkSystem";
+import { WEAPONS } from "../WeaponSystem";
 import type { Player } from "../../entities/Player";
 import type { RunState } from "../PlayerState";
 
@@ -15,7 +23,10 @@ const fakePlayer = () =>
     specialCooldownMult: 1,
     healOnKill: 0,
     sanityFloor: 0,
-  }) as unknown as Player & Record<string, number | boolean>;
+    airAttackBonus: 0,
+    firstStrikeStun: false,
+    weaponId: undefined,
+  }) as unknown as Player & Record<string, number | boolean | undefined>;
 
 const fakeRun = () =>
   ({ perks: [], extraLives: 0, cafeForte: false }) as unknown as RunState & {
@@ -95,5 +106,53 @@ describe("PerkSystem — applyPerk efeitos", () => {
     applyPerk("cafe_forte", p, r);
     expect(r.extraLives).toBe(1);
     expect(r.cafeForte).toBe(true);
+  });
+});
+
+describe("PerkSystem — sinergias arma×perk", () => {
+  it("cada sinergia referencia arma e perk válidos + name/desc/icon", () => {
+    for (const def of Object.values(WEAPON_SYNERGIES)) {
+      expect(WEAPONS[def.weapon]).toBeDefined();
+      expect(PERKS[def.perk]).toBeDefined();
+      expect(def.name.length).toBeGreaterThan(0);
+      expect(def.desc.length).toBeGreaterThan(0);
+      expect(def.icon.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("ativa só quando a arma equipada E o perk estão presentes", () => {
+    const p = fakePlayer();
+    p.weaponId = "caneca";
+    const r = fakeRun();
+    r.perks = ["cafe_forte"];
+    const labels = checkAndApplyWeaponSynergies(p, r);
+    expect(labels.length).toBe(1);
+    expect(p.specialCooldownMult).toBeCloseTo(0.7); // Cafeína Pura
+  });
+
+  it("não ativa se a arma não bate (mesmo com o perk)", () => {
+    const p = fakePlayer();
+    p.weaponId = "grampeador";
+    const r = fakeRun();
+    r.perks = ["cafe_forte"];
+    const labels = checkAndApplyWeaponSynergies(p, r);
+    expect(labels.length).toBe(0);
+    expect(p.specialCooldownMult).toBeCloseTo(1);
+  });
+
+  it("não ativa sem arma equipada", () => {
+    const p = fakePlayer();
+    const r = fakeRun();
+    r.perks = ["plr"];
+    expect(checkAndApplyWeaponSynergies(p, r).length).toBe(0);
+  });
+
+  it("Planilha Infinita: impressora + plr → vrDropMult ×1.3", () => {
+    const p = fakePlayer();
+    p.weaponId = "impressora";
+    const r = fakeRun();
+    r.perks = ["plr"];
+    checkAndApplyWeaponSynergies(p, r);
+    expect(p.vrDropMult).toBeCloseTo(1.3);
   });
 });

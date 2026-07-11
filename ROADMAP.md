@@ -26,6 +26,7 @@ itens de engenharia do `CLAUDE.md`.
 - Sistema de **Burnout "VAI NA RAÇA"** (glass-cannon opt-in: dano ×1.35, VR/kill ×1.5, +4 sanidade/kill como saída por agressão, contra dano recebido ×1.4 e parry apertado; ensinado 1× via `TutorialPrompts`). Deixou de ser relógio-de-derrota.
 - **Qualidade**: `tsc` strict + ESLint 0 erros, **37 testes unitários** (bun:test), **CI** (GitHub Actions).
 - **Encontros por seed** (Fase 1 varia tipos; Fases 2–5 variam posições).
+- **Sinergias de build** em dois eixos: perk×perk (`SYNERGIES`, 8) e **arma×perk** (`WEAPON_SYNERGIES`, 4 — Cafeína Pura, Queda de Produtividade, Choque Térmico, Planilha Infinita), avaliadas no `buildPlayer`, badge compartilhado.
 - **Arquitetura**: Fase 1 migrada p/ `BasePhaseScene`; God-scene decomposto (`ProductivityMeter`, `Apagao`).
 
 ---
