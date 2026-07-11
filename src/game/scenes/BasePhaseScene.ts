@@ -17,7 +17,7 @@ import { getRun, savePersisted } from "../systems/PlayerState";
 import { WEAPONS, WEAPON_ICONS, WeaponId, WeaponDef } from "../systems/WeaponSystem";
 import { applyClassAndWeapon } from "../systems/PlayerLoadout";
 import { SanityFx } from "../systems/SanityFx";
-import { reapplyAllPerks } from "../systems/PerkSystem";
+import { reapplyAllPerks, checkAndApplySynergies, SYNERGIES } from "../systems/PerkSystem";
 import { CulturaId, reapplyAllCulturas, selectableCulturaIds } from "../systems/CulturaSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { ParticleFactory } from "../systems/ParticleFactory";
@@ -55,6 +55,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected boss?: BossEntity;
   protected bossPresence?: BossPresence;
   protected threatMarkers?: ThreatMarkers;
+  /** Labels das sinergias perk×perk ativas (ícone + nome) p/ o badge do HUD. */
+  protected synergyLabels: string[] = [];
   private _bossMaxHp = 0;
   private _bossEnraged = false;
   protected bossDefeated = false;
@@ -151,6 +153,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 2ª bifurcação (pós-Fase 2): Produto (dano) / Tecnologia (dash).
     if (run.route2 === "produto") this.player.damageMult *= 1.15;
     else if (run.route2 === "tecnologia") this.player.dashCooldownBonus += 250;
+
+    // Sinergias perk×perk — ANTES ficava só na Fase 1 (OpenSpaceV2), então
+    // sumiam da Fase 2 em diante. Agora aplicam em TODAS as fases (player é
+    // recriado a cada cena, então roda 1× sobre stats limpos — sem acúmulo).
+    const activeSyn = checkAndApplySynergies(this.player, run);
+    this.synergyLabels = activeSyn.map((id) => `${SYNERGIES[id].icon} ${SYNERGIES[id].name}`);
 
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.collider(this.player, this.furnitureBodies);
@@ -354,6 +362,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.hud.setWeapon(`${WEAPON_ICONS[wdef.id]} ${wdef.name}`);
       this.hud.setSpecial(wdef.specialName);
       this.updateSecondaryHud();
+      this.hud.setSynergies(this.synergyLabels);
     }
 
     // 8. Subclass populates this.enemyGroups and this.boss

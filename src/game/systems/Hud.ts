@@ -115,6 +115,7 @@ export class Hud {
   private prevEnergy = -1;
   private prevPerkCount = 0;
   private heatText!: Phaser.GameObjects.Text;
+  private synergyText!: Phaser.GameObjects.Text;
 
   // ─── Burnout status row (sintomas ativos) ────────────────────────
   private burnoutRow!: Phaser.GameObjects.Container;
@@ -184,6 +185,30 @@ export class Hud {
       .setScrollFactor(0)
       .setDepth(1001)
       .setOrigin(0, 0);
+
+    // Badge de sinergias ativas (perk×perk) — logo abaixo da barra do topo, à
+    // esquerda. Só aparece quando há sinergia. Fixo à câmera.
+    this.synergyText = this.scene.add
+      .text(6, HUD_TOP_H + 4, "", {
+        fontFamily: F,
+        fontSize: "10px",
+        color: "#ffdd66",
+        backgroundColor: "#00000088",
+        padding: { x: 5, y: 2 },
+      })
+      .setScrollFactor(0)
+      .setDepth(1001)
+      .setOrigin(0, 0)
+      .setVisible(false);
+  }
+
+  /** Mostra o badge das sinergias perk×perk ativas (labels "ícone nome"). */
+  setSynergies(labels: string[]) {
+    if (!labels.length) {
+      this.synergyText.setVisible(false);
+      return;
+    }
+    this.synergyText.setText("⚡ " + labels.join("   ")).setVisible(true);
   }
 
   private buildTopSeparator() {

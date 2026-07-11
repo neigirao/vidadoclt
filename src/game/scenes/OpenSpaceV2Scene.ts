@@ -23,7 +23,7 @@ import { ParticleFactory } from "../systems/ParticleFactory";
 import { SanityFx } from "../systems/SanityFx";
 import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
-import { applyPerk, checkAndApplySynergies, PERKS, SYNERGIES, PerkId } from "../systems/PerkSystem";
+import { applyPerk, PERKS, SYNERGIES, PerkId, SynergyId } from "../systems/PerkSystem";
 import { HEAT_LEVELS } from "./HoraExtraScene";
 import { CulturaId, selectableCulturaIds } from "../systems/CulturaSystem";
 import { addImage, resolveSprite } from "../systems/SpriteLibrary";
@@ -309,8 +309,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // onAttack/onRangedAttack) via BasePhaseScene. Callbacks abaixo são da Fase 1.
     const spawnX = run.cameFrom === "copa" ? 120 : 80;
     this.buildPlayer(run, spawnX);
-    // Específico da Fase 1: sinergias de perks + multiplicador de Heat (Hora Extra)
-    checkAndApplySynergies(this.player, run);
+    // Sinergias perk×perk já aplicadas dentro do buildPlayer (todas as fases).
+    // Específico da Fase 1: multiplicador de Heat (Hora Extra) sobre o VR drop.
     const heatLvl = HEAT_LEVELS[run.heatLevel ?? 0] ?? HEAT_LEVELS[0];
     this.player.vrDropMult *= heatLvl.vrMult;
 
@@ -705,6 +705,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     };
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
     this.hud.setObjective("Sobreviva ao expediente e acesse a Copa");
+    this.hud.setSynergies(this.synergyLabels); // badge das sinergias perk×perk
     // Dica 1 (só 1ª sessão): o objetivo/loop do jogo.
     this.time.delayedCall(2600, () =>
       TutorialPrompts.maybeShow(
@@ -1318,9 +1319,23 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   }
 
   private checkSynergiesAndPopup(run: import("../systems/PlayerState").RunState): void {
-    const prevSynergies = run.activeSynergies ?? [];
-    const newSynergies = checkAndApplySynergies(this.player, run);
-    const gained = newSynergies.filter((id) => !prevSynergies.includes(id));
+    const prev = new Set(run.activeSynergies ?? []);
+    // Aplica só as sinergias RECÉM-ativadas (as já ativas foram aplicadas no
+    // buildPlayer — re-aplicar todas acumularia o bônus). Também refaz o badge.
+    const active: SynergyId[] = [];
+    for (const [id, syn] of Object.entries(SYNERGIES) as [
+      SynergyId,
+      (typeof SYNERGIES)[SynergyId],
+    ][]) {
+      if (syn.perks.every((p) => (run.perks ?? []).includes(p as PerkId))) {
+        active.push(id);
+        if (!prev.has(id)) syn.apply(this.player, run);
+      }
+    }
+    run.activeSynergies = active;
+    this.synergyLabels = active.map((id) => `${SYNERGIES[id].icon} ${SYNERGIES[id].name}`);
+    this.hud?.setSynergies(this.synergyLabels);
+    const gained = active.filter((id) => !prev.has(id));
     if (gained.length === 0) return;
     const syn = SYNERGIES[gained[0]];
     if (!syn) return;
