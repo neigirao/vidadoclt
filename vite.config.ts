@@ -13,10 +13,13 @@ function pngDims(buf: Buffer): { w: number; h: number } | null {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Plugin DEV: upload de sprite pelo LAB DE SPRITES. Recebe um PNG (base64),
-// grava em public/assets/sprites/<frame>.png e re-empacota o atlas. Só existe no
-// `bun dev` (apply: "serve") — some do build publicado. Grava só dentro de
-// sprites/ (sem path traversal) e valida o nome do frame.
+// Plugin DEV: upload pelo LAB DE SPRITES. Recebe um PNG (base64). Dois modos:
+//   • sprite (default): grava public/assets/sprites/<frame>.png + re-empacota o
+//     atlas; regra de dimensão (mesmo tamanho do frame).
+//   • background (kind:"background"): grava public/assets/<bg-*>.png; sem repack
+//     e sem regra de dimensão (o fundo é esticado p/ preencher a fase).
+// Só existe no `bun dev` (apply:"serve") — some do build publicado. Valida nome,
+// assinatura PNG e bloqueia caminho fora do diretório alvo.
 // ─────────────────────────────────────────────────────────────────────────────
 function spriteUploadDevPlugin(): Plugin {
   return {
@@ -34,21 +37,32 @@ function spriteUploadDevPlugin(): Plugin {
             res.end(JSON.stringify(obj));
           };
           try {
-            const { name, dataUrl } = JSON.parse(body) as { name?: string; dataUrl?: string };
-            if (!name || !/^[a-z0-9][a-z0-9_-]*$/i.test(name))
+            const { name, dataUrl, kind } = JSON.parse(body) as {
+              name?: string;
+              dataUrl?: string;
+              kind?: string;
+            };
+            const isBg = kind === "background";
+            // Fundo: imagem solta em assets/ (bg-*). Sprite: frame-fonte em
+            // sprites/ (re-empacota o atlas).
+            if (isBg) {
+              if (!name || !/^bg-[a-z0-9-]+$/i.test(name))
+                throw new Error("nome de fundo inválido");
+            } else if (!name || !/^[a-z0-9][a-z0-9_-]*$/i.test(name)) {
               throw new Error("nome de frame inválido");
+            }
             const m = /^data:image\/png;base64,(.+)$/.exec(dataUrl ?? "");
             if (!m) throw new Error("esperado PNG em base64");
-            const dir = resolve(process.cwd(), "public/assets/sprites");
+            const dir = resolve(process.cwd(), isBg ? "public/assets" : "public/assets/sprites");
             const file = resolve(dir, `${name}.png`);
-            if (!file.startsWith(dir + "/")) throw new Error("caminho fora de sprites/");
+            if (!file.startsWith(dir + "/")) throw new Error("caminho inválido");
             const buf = Buffer.from(m[1], "base64");
             const up = pngDims(buf);
             if (!up) throw new Error("PNG inválido");
-            // REGRA: mantém o padrão do frame — a dimensão do upload tem que casar
-            // com a do PNG-fonte que está sendo substituído (senão quebra a
-            // família de animação / causa "encolhimento" no atlas).
-            if (existsSync(file)) {
+            // REGRA (só sprite): a dimensão do upload tem que casar com a do
+            // PNG-fonte substituído (senão quebra a família de animação). Fundos
+            // são esticados p/ preencher — sem regra de dimensão exata.
+            if (!isBg && existsSync(file)) {
               const cur = pngDims(readFileSync(file));
               if (cur && (cur.w !== up.w || cur.h !== up.h))
                 throw new Error(
@@ -56,6 +70,10 @@ function spriteUploadDevPlugin(): Plugin {
                 );
             }
             writeFileSync(file, buf);
+            if (isBg) {
+              send(200, { ok: true, file: `assets/${name}.png` });
+              return;
+            }
             // re-empacota o atlas a partir de sprites/
             const child = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
             let log = "";

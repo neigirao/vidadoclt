@@ -154,6 +154,22 @@ const SUBJECTS: Subject[] = [
   mkItem("Chão (tile)", "Cenário", { idle: ["tile-floor"] }),
   mkItem("Plataforma", "Cenário", { idle: ["tile-platform"] }),
   mkItem("Fundo Open Space", "Cenário", { idle: ["pxbg-openspace"] }),
+  // ── Fundos de fase (imagens soltas em assets/bg-*.png). Aceitam upload de
+  // alta-res via o mesmo botão (sem regra de dimensão — o fundo é esticado). ──
+  mkItem("Fundo F2 Atendimento", "Fundos", { idle: ["bg-atendimento"] }),
+  mkItem("Fundo F3 Comercial", "Fundos", { idle: ["bg-comercial"] }),
+  mkItem("Fundo F4 Tecnologia", "Fundos", { idle: ["bg-tecnologia"] }),
+  mkItem("Fundo F5 Diretoria", "Fundos", { idle: ["bg-diretoria"] }),
+  mkItem("Fundo CEO Cobertura", "Fundos", { idle: ["bg-cobertura"] }),
+];
+
+const LAB_BGS = [
+  "bg-openspace",
+  "bg-atendimento",
+  "bg-comercial",
+  "bg-tecnologia",
+  "bg-diretoria",
+  "bg-cobertura",
 ];
 
 type FrameInfo = { key: string; ok: boolean; tex: string; frame?: string; w: number; h: number };
@@ -181,6 +197,12 @@ export class SpriteLabScene extends Phaser.Scene {
 
   constructor() {
     super("SpriteLabScene");
+  }
+
+  preload() {
+    // Fundos de fase não estão no atlas — carrega os que faltam pra o Lab poder
+    // mostrar/substituir (bg-openspace/menu já vêm do BootScene).
+    for (const b of LAB_BGS) if (!this.textures.exists(b)) this.load.image(b, `/assets/${b}.png`);
   }
 
   create() {
@@ -280,9 +302,15 @@ export class SpriteLabScene extends Phaser.Scene {
 
   private pickAndUpload() {
     const cur = this.frames[this.frameIdx];
-    const name = cur?.frame; // nome do frame no atlas = nome do PNG-fonte
-    if (!name || !cur) {
-      this.uploadToast.setText("⚠ este frame não tem PNG-fonte no atlas").setColor("#ffaa66");
+    if (!cur || !cur.ok) {
+      this.uploadToast.setText("⚠ frame inválido").setColor("#ffaa66");
+      return;
+    }
+    // Fundo = textura solta bg-* (sem frame de atlas). Sprite = frame do atlas.
+    const isBg = !cur.frame && /^bg-/.test(cur.tex);
+    const name = cur.frame ?? (isBg ? cur.tex : undefined);
+    if (!name) {
+      this.uploadToast.setText("⚠ este frame não tem PNG-fonte").setColor("#ffaa66");
       return;
     }
     const expW = cur.w,
@@ -298,23 +326,28 @@ export class SpriteLabScene extends Phaser.Scene {
         return;
       }
       const reader = new FileReader();
-      reader.onload = () => this.validateAndSend(name, expW, expH, String(reader.result));
+      reader.onload = () => this.validateAndSend(name, expW, expH, String(reader.result), isBg);
       reader.readAsDataURL(file);
     };
     input.click();
   }
 
-  // REGRA: o PNG novo tem que ter a MESMA dimensão do frame que substitui — senão
-  // quebra a família de animação (frames de tamanhos diferentes "encolhem" no
-  // atlas). Valida no cliente (feedback na hora); o servidor re-valida por segurança.
-  private validateAndSend(name: string, expW: number, expH: number, dataUrl: string) {
+  // Sprite: REGRA de dimensão (mesmo tamanho do frame, senão quebra a família de
+  // animação). Fundo: sem regra (é esticado p/ preencher a fase) — só confere PNG.
+  private validateAndSend(
+    name: string,
+    expW: number,
+    expH: number,
+    dataUrl: string,
+    isBg: boolean,
+  ) {
     if (!dataUrl.startsWith("data:image/png;base64,")) {
       this.uploadToast.setText("⚠ envie um PNG").setColor("#ffaa66");
       return;
     }
     const img = new Image();
     img.onload = () => {
-      if (img.naturalWidth !== expW || img.naturalHeight !== expH) {
+      if (!isBg && (img.naturalWidth !== expW || img.naturalHeight !== expH)) {
         this.uploadToast
           .setText(
             `⚠ ${img.naturalWidth}×${img.naturalHeight} ≠ frame ${expW}×${expH} — mantenha o tamanho do frame`,
@@ -322,24 +355,27 @@ export class SpriteLabScene extends Phaser.Scene {
           .setColor("#ffaa66");
         return;
       }
-      void this.postUpload(name, dataUrl);
+      void this.postUpload(name, dataUrl, isBg);
     };
     img.onerror = () => this.uploadToast.setText("⚠ PNG inválido").setColor("#ffaa66");
     img.src = dataUrl;
   }
 
-  private async postUpload(name: string, dataUrl: string) {
+  private async postUpload(name: string, dataUrl: string, isBg: boolean) {
     this.uploadToast.setText(`enviando ${name}.png…`).setColor("#cfd6e0");
     try {
       const r = await fetch("/__sprite-upload", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, dataUrl }),
+        body: JSON.stringify({ name, dataUrl, kind: isBg ? "background" : "sprite" }),
       });
       const j = (await r.json()) as { ok: boolean; error?: string };
       if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
-      this.uploadToast.setText(`✓ salvo ${name}.png — atlas re-empacotado`).setColor("#88ff88");
-      this.reloadAtlas(() => this.loadState());
+      this.uploadToast
+        .setText(`✓ salvo ${name}.png${isBg ? "" : " — atlas re-empacotado"}`)
+        .setColor("#88ff88");
+      if (isBg) this.reloadImage(name, () => this.loadState());
+      else this.reloadAtlas(() => this.loadState());
     } catch (e) {
       this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
     }
@@ -349,6 +385,14 @@ export class SpriteLabScene extends Phaser.Scene {
     const t = Date.now();
     this.textures.remove(ATLAS_KEY);
     this.load.atlas(ATLAS_KEY, `/assets/atlas.png?t=${t}`, `/assets/atlas.json?t=${t}`);
+    this.load.once(Phaser.Loader.Events.COMPLETE, onDone);
+    this.load.start();
+  }
+
+  private reloadImage(name: string, onDone: () => void) {
+    const t = Date.now();
+    this.textures.remove(name);
+    this.load.image(name, `/assets/${name}.png?t=${t}`);
     this.load.once(Phaser.Loader.Events.COMPLETE, onDone);
     this.load.start();
   }

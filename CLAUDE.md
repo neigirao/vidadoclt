@@ -210,6 +210,13 @@ rápido pra substituir arte procedural por arte desenhada à mão sem editar arq
 substitui (senão quebra a família de animação / causa "encolhimento" no atlas) —
 validado no cliente (feedback na hora) E no servidor (rejeita sem gravar).
 
+**Fundos de fase** (categoria FUNDOS no Lab: `bg-atendimento`/`bg-comercial`/
+`bg-tecnologia`/`bg-diretoria`/`bg-cobertura`) também aceitam upload pelo mesmo
+botão, com `kind:"background"`: grava em `public/assets/<bg-*>.png` (imagem solta,
+não vai pro atlas), **sem re-empacotar** e **sem** a regra de dimensão (o fundo é
+esticado p/ preencher a fase). É o caminho pra subir as artes de alta-res que
+faltam (Fases 3/4/5).
+
 ### SpriteLabScene — validação visual (menu "LAB SPRITES")
 
 Área de teste que mostra **todos os assets renderizados** (personagens, inimigos das Fases 1–4, bosses, objetos, drops, projéteis, **cenário: tiles + fundo**) com botões clicáveis: clique no sujeito (2 colunas à esquerda) e na ação (embaixo) → a animação roda em loop. Mostra bounding box, linha dos pés, strip de frames e um painel de diagnóstico; loga `[SpriteLab] nome/ação: Nf sizes=… missing=… → OK/PROBLEMA`. É a forma rápida de flagrar frame trocado/cortado/faltando. Preview auto-escala (assets grandes como o fundo 1920px encolhem para caber).
