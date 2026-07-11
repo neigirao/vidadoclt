@@ -36,3 +36,31 @@ jobs:
 
       - name: Testes (bun:test)
         run: bun test src/game
+
+  # Smoke de cenas: boota CADA cena num navegador headless e falha se houver
+  # erro de console/exceção. Pega regressões de render/scene que o bun:test
+  # (sem Phaser) não vê. Playwright é instalado de forma EFÊMERA (não vai pro
+  # package.json/bun.lock do repo).
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Neutralizar registry privado no lockfile
+        run: |
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/sandbox-npm-cache/#https://registry.npmjs.org/#g' bun.lock
+
+      - name: Instalar dependências
+        run: bun install
+
+      - name: Instalar Playwright + Chromium (efêmero)
+        run: |
+          bun add -D playwright@1.55.0
+          bunx playwright install --with-deps chromium
+
+      - name: Smoke de cenas
+        run: bun smoke

@@ -328,6 +328,7 @@ bun dev                      # servidor de desenvolvimento
 bun run build                # build de produção (vite build)
 bun lint                     # ESLint
 bun test src/game            # testes unitários (bun:test) — mesma checagem do CI
+bun smoke                    # smoke de cenas: boota CADA cena headless; falha se houver erro de console (rode ANTES de subir mudança visual/de cena)
 bun format                   # Prettier
 node scripts/gen-sprites.mjs # (re)gera sprites procedurais (post-it, café, copo)
 node scripts/pack-atlas.mjs  # re-empacota o atlas a partir de public/assets/sprites/

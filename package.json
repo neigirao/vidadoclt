@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "bun test src/game",
+    "smoke": "node scripts/smoke-scenes.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {
