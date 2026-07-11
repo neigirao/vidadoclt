@@ -281,28 +281,54 @@ export class SpriteLabScene extends Phaser.Scene {
   private pickAndUpload() {
     const cur = this.frames[this.frameIdx];
     const name = cur?.frame; // nome do frame no atlas = nome do PNG-fonte
-    if (!name) {
+    if (!name || !cur) {
       this.uploadToast.setText("⚠ este frame não tem PNG-fonte no atlas").setColor("#ffaa66");
       return;
     }
+    const expW = cur.w,
+      expH = cur.h;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/png";
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
+      if (file.type !== "image/png") {
+        this.uploadToast.setText("⚠ envie um arquivo PNG").setColor("#ffaa66");
+        return;
+      }
       const reader = new FileReader();
-      reader.onload = () => this.sendUpload(name, String(reader.result));
+      reader.onload = () => this.validateAndSend(name, expW, expH, String(reader.result));
       reader.readAsDataURL(file);
     };
     input.click();
   }
 
-  private async sendUpload(name: string, dataUrl: string) {
+  // REGRA: o PNG novo tem que ter a MESMA dimensão do frame que substitui — senão
+  // quebra a família de animação (frames de tamanhos diferentes "encolhem" no
+  // atlas). Valida no cliente (feedback na hora); o servidor re-valida por segurança.
+  private validateAndSend(name: string, expW: number, expH: number, dataUrl: string) {
     if (!dataUrl.startsWith("data:image/png;base64,")) {
       this.uploadToast.setText("⚠ envie um PNG").setColor("#ffaa66");
       return;
     }
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth !== expW || img.naturalHeight !== expH) {
+        this.uploadToast
+          .setText(
+            `⚠ ${img.naturalWidth}×${img.naturalHeight} ≠ frame ${expW}×${expH} — mantenha o tamanho do frame`,
+          )
+          .setColor("#ffaa66");
+        return;
+      }
+      void this.postUpload(name, dataUrl);
+    };
+    img.onerror = () => this.uploadToast.setText("⚠ PNG inválido").setColor("#ffaa66");
+    img.src = dataUrl;
+  }
+
+  private async postUpload(name: string, dataUrl: string) {
     this.uploadToast.setText(`enviando ${name}.png…`).setColor("#cfd6e0");
     try {
       const r = await fetch("/__sprite-upload", {

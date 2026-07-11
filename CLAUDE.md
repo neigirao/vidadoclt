@@ -206,6 +206,9 @@ atlas na hora. O nome do frame no atlas **é** o nome do PNG-fonte, então a tro
 é direta e o arquivo já entra no repo pronto pra commitar. Só existe no dev (some
 do build publicado); grava só dentro de `sprites/` (sem path traversal). É o loop
 rápido pra substituir arte procedural por arte desenhada à mão sem editar arquivo.
+**Regra de padrão:** o PNG novo precisa ter a **mesma dimensão** do frame que
+substitui (senão quebra a família de animação / causa "encolhimento" no atlas) —
+validado no cliente (feedback na hora) E no servidor (rejeita sem gravar).
 
 ### SpriteLabScene — validação visual (menu "LAB SPRITES")
 

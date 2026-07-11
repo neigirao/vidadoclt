@@ -1,8 +1,16 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 import type { Plugin } from "vite";
+
+// Lê largura×altura de um PNG direto do IHDR (bytes 16–24), sem depender de lib.
+// Valida a assinatura PNG antes. Retorna null se não for PNG válido.
+function pngDims(buf: Buffer): { w: number; h: number } | null {
+  const SIG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (buf.length < 24 || !buf.subarray(0, 8).equals(SIG)) return null;
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin DEV: upload de sprite pelo LAB DE SPRITES. Recebe um PNG (base64),
@@ -34,7 +42,20 @@ function spriteUploadDevPlugin(): Plugin {
             const dir = resolve(process.cwd(), "public/assets/sprites");
             const file = resolve(dir, `${name}.png`);
             if (!file.startsWith(dir + "/")) throw new Error("caminho fora de sprites/");
-            writeFileSync(file, Buffer.from(m[1], "base64"));
+            const buf = Buffer.from(m[1], "base64");
+            const up = pngDims(buf);
+            if (!up) throw new Error("PNG inválido");
+            // REGRA: mantém o padrão do frame — a dimensão do upload tem que casar
+            // com a do PNG-fonte que está sendo substituído (senão quebra a
+            // família de animação / causa "encolhimento" no atlas).
+            if (existsSync(file)) {
+              const cur = pngDims(readFileSync(file));
+              if (cur && (cur.w !== up.w || cur.h !== up.h))
+                throw new Error(
+                  `dimensão ${up.w}×${up.h} ≠ frame ${cur.w}×${cur.h} — mantenha o tamanho`,
+                );
+            }
+            writeFileSync(file, buf);
             // re-empacota o atlas a partir de sprites/
             const child = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
             let log = "";
