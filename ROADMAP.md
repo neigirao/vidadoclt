@@ -23,7 +23,7 @@ itens de engenharia do `CLAUDE.md`.
 
 ### Extras entregues (fora do GDD original)
 
-- Sistema de **Burnout** (penalidades por faixa + telegrafo do tremor + HUD de sintomas) — Lovable.
+- Sistema de **Burnout "VAI NA RAÇA"** (glass-cannon opt-in: dano ×1.35, VR/kill ×1.5, +4 sanidade/kill como saída por agressão, contra dano recebido ×1.4 e parry apertado; ensinado 1× via `TutorialPrompts`). Deixou de ser relógio-de-derrota.
 - **Qualidade**: `tsc` strict + ESLint 0 erros, **37 testes unitários** (bun:test), **CI** (GitHub Actions).
 - **Encontros por seed** (Fase 1 varia tipos; Fases 2–5 variam posições).
 - **Arquitetura**: Fase 1 migrada p/ `BasePhaseScene`; God-scene decomposto (`ProductivityMeter`, `Apagao`).
@@ -34,20 +34,21 @@ itens de engenharia do `CLAUDE.md`.
 
 ### 🔴 Bugs / correções
 
-- **Spawn das Fases 2–5**: nascem em x≈1800 (em cima do boss/saída, trash atrás). Fix: spawn à esquerda + reajuste dos pools de borda.
+- _(vazio — o spawn das Fases 2–5 já nasce à esquerda: `spawnX = cameFrom==="copa" ? 120 : 80`.)_
 
-### Onboarding + Burnout (plano do Lovable — em andamento)
+### Onboarding + Burnout (plano do Lovable — ✅ concluído)
 
-- Terminar 1ª run: `padrao_clt` (cultura no-op), auto-skip Class/Cultura, unlock de classe por marco (`openSpaceCleared`), 3 dicas contextuais.
-- **Contra-jogo do Burnout**: drops de sanidade em fase + consumível de sanidade.
+- ✅ 1ª run: `padrao_clt` (cultura no-op), auto-skip Class/Cultura, unlock por marco, dicas contextuais.
+- ✅ **Contra-jogo do Burnout**: drops de sanidade + consumível; e o Burnout virou VAI NA RAÇA (cura por kill = saída por agressão).
 
 ### Conteúdo de jogo (GDD — lacunas reais)
 
 - **Fundos de alta-res das Fases 3/4/5** — 🟡 _em andamento (arte externa)_: Fases 1 e 2 têm fundos ricos (~1.5 MB); Fases 3/4/5 usam PNGs baixa-res (32–40 KB, `bg-comercial`/`bg-tecnologia`/`bg-diretoria`). O dono está **gerando fundos novos** com o prompt de referência (estilo Fase 1/2). **Fase 3 (RH) já gerada** — falta o dono subir como `public/assets/bg-comercial.png` no repo (a chave já é carregada; troca sem código). Depois: Fase 4 → `bg-tecnologia.png`, Fase 5 → `bg-diretoria.png`. Ao receber, validar render + enquadramento no bot.
 
 - **Ramificação de rotas**: 🟢 _feita (fundação das duas bifurcações)_ — `RouteSelectScene` após a Fase 1 (2A Comercial / 2B Atendimento → `run.route`) **e** após a Fase 2 (3A Produto / 3B Tecnologia → `run.route2`), cada rota com um modificador de run. Falta só as **fases divergentes de verdade** (conteúdo distinto por rota, dependente de arte/level design).
-- **Bosses únicos das Fases 2–5** — 🟢 _mecânica pronta_: cada fase tem um chefão temático com repertório telegrafado — Coordenador de Sinergia (F2: balões orbitando + tiro em cruz), Brenda do RH (F3: zonas de sorriso obrigatório + feedback dirigido), Scrum Master Caótico (F4: firewall dividindo a arena + Daily/Retro), Diretor de Resultados (F5: meta que estoura + reestruturação). CEO é a cena final.
+- **Bosses únicos das Fases 2–5** — 🟢 _mecânica pronta_: cada fase tem um chefão temático com repertório telegrafado — Coordenador de Sinergia (F2: balões orbitando + tiro em cruz), Brenda do RH (F3: zonas de sorriso obrigatório + feedback dirigido), Scrum Master Caótico (F4: firewall dividindo a arena + Daily/Retro), Diretor de Resultados (F5: meta que estoura + reestruturação). CEO é a cena final. O **enrage aos 35% HP tem dentes** (`bossEnraged` + `onBossEnrage()`): Coordenador/Scrum apertam a cadência de especial e disparam um na virada; Brenda/Diretor/Gerente auto-escalam via phase2 interno — a 2ª metade de toda luta ramp-a.
   - **"cara de chefão" (arte)** — ✅ _feito_: os 5 bosses têm sprite DEDICADO, derivado da arte pintada à mão da casa via recolor (`recolorFrames`/`tintDark` em `gen-sprites.mjs`) — fidelidade máxima, mantém animação. **Brenda** (F3, do `enemy-rh` → magenta), **Coordenador** (F2, do `enemy-coordenador` → teal), **Scrum** (F4, do `enemy-scrum` → roxo), **Diretor** (F5, do `evangelista-boss` → aço). Coordenador/Scrum ganharam flag `asBoss` (troca só o prefixo de textura; o trash da Fase 1 segue na cor original). CEO e Gerente já tinham arte própria. As cores casam com as auras do `BossPresence`.
+- **Porta da Copa (Fase 1)** — 🔴 _pendente (arte-código pequena)_: ainda é um retângulo `tint:0x555555` + texto `COPA [BLOQUEADO]` (`getDoorConfig`). Merece sprite dedicado com estado bloqueado/desbloqueado + brilho ao liberar. Único resquício de placeholder visual da Fase 1.
 - **Identidade visual das fases** — ✅ _feito_: cada Fase 2–5 tem geometria de plataforma própria (baias/escada/torres/átrio), superfície temática (tecido/carpete/rack/mármore), prop de chão (headset/standee/cabos/troféu) e partículas ambientes (papel/confete/faíscas/ouro). Fica pendente só arte de plataforma por sprite dedicado (opcional).
 - **Parallax multi-camada** — ✅ _feito (todas as fases)_: `addParallaxLayers` (Background.ts) adiciona planos de profundidade sobre o bg — FRENTE (viga+luminárias do teto sf 1.12, baias em silhueta nos cantos sf 1.2, centro livre p/ combate) e NEAR-BACK (baias distantes sf 0.6). Cores por tema de fase; respeita `reduceSanityFx` (desliga o plano rápido). Comunica que o escritório tem camadas; game feel de velocidade no dash/corrida.
 - **Salas opcionais**: ✅ _feito_ — `SalaReuniaoScene` (horda) + `SalaBonusScene` (Banheiro/TI/RH/Financeiro). A porta lateral da Copa sorteia uma sala não-limpa por visita (roguelite), 1×/run cada via `run.optionalRoomsCleared`.
@@ -56,7 +57,7 @@ itens de engenharia do `CLAUDE.md`.
 
 ### Balanceamento (decisões)
 
-- **Economia de VR**: ✅ _feito_ — cap do empilhamento evento×produtividade em 2.5× + preços da Copa mais altos (Café 6, Pausa 9).
+- **Economia de VR**: ✅ _feito_ — cap do empilhamento evento×produtividade em 2.5× + preços da Copa mais altos (Café 6, Pausa 9). Economia **in-fase** da Fase 1 também: extintor virou JATO DE CO2 (AoE + VR escalado por inimigos pegos, decisão de iscar a horda); APAGÃO virou stealth (inimigos longe dormem — você dita o ritmo).
 - **Ataques especiais próprios** para os bosses das Fases 2–4: ✅ _feito_ (Fase 4 já tinha; Fases 2 e 3 agora têm especiais telegrafados).
 
 ### Acessibilidade (Sprint 8)
