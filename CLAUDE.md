@@ -340,7 +340,7 @@ O HUD (`Hud.ts`) usa `setScrollFactor(0)` para fixar à câmera. Instanciar `new
 | Rescisão         | tela de Game Over                                                                                                                                                                                   |
 | Ponto Eletrônico | checkpoint (Copa)                                                                                                                                                                                   |
 | Autonomia        | `run.autonomia` (perk pós-boss)                                                                                                                                                                     |
-| Burnout          | sanidade = 0, faixa "burnout" (`sanityBand`); penalidades sistêmicas em `Player.getBurnoutMods()` — velocidade, cooldowns, dano recebido, parry desabilitado, tremor (`isTremoring`) invertendo L/R |
+| Burnout          | faixa "burnout" (`sanityBand`, sanidade ≤24) = **VAI NA RAÇA**: glass-cannon opt-in em `Player.getBurnoutMods()`. Presas (dano causado ×1.35, VR/kill ×1.5, +4 sanidade/kill = saída por agressão) contra fragilidade (dano recebido ×1.4, parry apertado −60ms **mas ativo**, velocidade ×0.9). Ensinado 1× (`TutorialPrompts` id `burnout` em `SanityFx`). Tremor (`isTremoring`) invertendo L/R segue como hazard telegrafado |
 
 ## Comandos
 

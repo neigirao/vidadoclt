@@ -350,7 +350,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  /** Sintomas do Burnout — mods derivados da faixa de Sanidade. */
+  /**
+   * Sintomas do Burnout — mods derivados da faixa de Sanidade.
+   *
+   * Filosofia (VAI NA RAÇA): a faixa "burnout" NÃO é só ladeira abaixo — é um
+   * glass-cannon opt-in. Quem escolhe brigar de dentro dela fica mais perigoso
+   * (dano/VR) e tem uma SAÍDA por agressão (cura por kill), pagando com
+   * fragilidade (dano recebido) e parry apertado (difícil, não desligado). As
+   * faixas "stressed"/"anxious" são a rampa de aviso (só penalidade leve).
+   */
   getBurnoutMods(): {
     speedMult: number;
     parryWindowDelta: number; // ms adicionados (negativo = penalidade)
@@ -358,6 +366,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     specialCooldownMult: number;
     damageTakenMult: number;
     vrDropMult: number;
+    damageDealtMult: number; // upside do Burnout: bate mais forte
+    sanityHealOnKill: number; // saída por agressão: matar recupera sanidade
   } {
     const band = sanityBand(this.sanity);
     switch (band) {
@@ -369,6 +379,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
           specialCooldownMult: 1.0,
           damageTakenMult: 1.0,
           vrDropMult: 1.0,
+          damageDealtMult: 1.0,
+          sanityHealOnKill: 0,
         };
       case "anxious":
         return {
@@ -378,15 +390,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
           specialCooldownMult: 1.3,
           damageTakenMult: 1.0,
           vrDropMult: 0.8,
+          damageDealtMult: 1.0,
+          sanityHealOnKill: 0,
         };
       case "burnout":
+        // VAI NA RAÇA: presas (dano+VR) e saída (cura/kill) contra fragilidade
+        // (dano recebido) e parry apertado — trade-off legível, não punição.
         return {
-          speedMult: 0.85,
-          parryWindowDelta: -40,
-          parryDisabled: true,
-          specialCooldownMult: 1.3,
-          damageTakenMult: 1.3,
-          vrDropMult: 0.8,
+          speedMult: 0.9,
+          parryWindowDelta: -60,
+          parryDisabled: false,
+          specialCooldownMult: 1.0,
+          damageTakenMult: 1.4,
+          vrDropMult: 1.5,
+          damageDealtMult: 1.35,
+          sanityHealOnKill: 4,
         };
       default:
         return {
@@ -396,6 +414,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
           specialCooldownMult: 1.0,
           damageTakenMult: 1.0,
           vrDropMult: 1.0,
+          damageDealtMult: 1.0,
+          sanityHealOnKill: 0,
         };
     }
   }

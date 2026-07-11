@@ -77,7 +77,9 @@ export function resolveMeleeAttack(
     strikeMult = 1.5;
     scene.cameras.main.flash(180, 255, 215, 0, false);
   }
-  const damage = Math.round(baseDmg * player.damageMult * strikeMult);
+  // VAI NA RAÇA: no Burnout o dano causado sobe (glass-cannon opt-in).
+  const burnoutDealtMult = player.getBurnoutMods().damageDealtMult;
+  const damage = Math.round(baseDmg * player.damageMult * strikeMult * burnoutDealtMult);
   const knockback = (step >= comboHits ? def.comboKnockback : 80) * player.facing;
   const slowMs = def.hitSlow;
   const isFinisher = step >= comboHits;
@@ -144,14 +146,18 @@ export function resolveMeleeAttack(
         Sfx.enemyDeath();
         ParticleFactory.enemyDeath(scene, e.x, e.y - 10);
         const mult = host.killVrMult?.(e.x, e.y) ?? 1;
-        const burnoutVrMult = player.getBurnoutMods().vrDropMult;
+        const burnout = player.getBurnoutMods();
         host.dropVR(
           e.x,
           e.y,
-          Math.max(1, Math.round(vrDrop * player.vrDropMult * mult * burnoutVrMult)),
+          Math.max(1, Math.round(vrDrop * player.vrDropMult * mult * burnout.vrDropMult)),
         );
         if (player.healOnKill > 0)
           player.energy = Math.min(player.maxEnergy, player.energy + player.healOnKill);
+        // VAI NA RAÇA: matar de dentro do Burnout devolve sanidade — a saída
+        // por agressão. Transforma o espiral num fio de faca escalável.
+        if (burnout.sanityHealOnKill > 0)
+          player.sanity = Math.min(player.maxSanity, player.sanity + burnout.sanityHealOnKill);
         player.onKill?.();
         host.onEnemyKilled?.(e);
         scene.tweens.add({

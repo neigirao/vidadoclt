@@ -114,7 +114,16 @@ export class SanityFx {
         TutorialPrompts.maybeShow(
           this.scene,
           "sanity",
-          "Sanidade baixa vira Burnout: você fica lento e sem parry. Cuide dela.",
+          "Sanidade caindo: no fundo dela vem o Burnout. Cuide dela — ou aprenda a lutar nele.",
+        );
+      }
+      // VAI NA RAÇA: ao ENTRAR no Burnout, ensina o trade-off (é modo, não bug).
+      // Parry apertado + frágil, MAS bate mais forte, ganha +VR e mata cura.
+      if (band === "burnout") {
+        TutorialPrompts.maybeShow(
+          this.scene,
+          "burnout",
+          "🔥 VAI NA RAÇA: você bate +forte, ganha +VR e mata cura sanidade — mas é frágil. Ataque pra sair.",
         );
       }
     }
