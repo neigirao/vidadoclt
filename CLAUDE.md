@@ -196,6 +196,17 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 - Já gera: Post-it (projétil), drop de Café, copo estático da Copa e os tiles de cenário (`tile-floor` = carpete de escritório usado no rodapé de todas as fases; `tile-platform` = tampo de madeira). Tiles usam RNG determinístico (mulberry32) para textura reproduzível e ladrilham na horizontal. Adicionar novo asset = escrever uma função `canvas(w,h)…save("item-x.png")` e registrar em `SPRITES`.
 - Regra de bolso: use o gerador quando o asset em uso estiver quebrado **e** for simples. Para arte complexa (ex: CEO), prefira copiar um frame bom vizinho.
 
+### Upload de sprite no Lab (DEV) — troca de arte ao vivo
+
+No **LAB SPRITES**, com `bun dev`, o botão **⬆ SUBIR PNG NESTE FRAME** manda um
+PNG pro frame atualmente selecionado. Um plugin DEV do Vite (`vite.config.ts`,
+`apply: "serve"`, endpoint `POST /__sprite-upload`) grava em
+`public/assets/sprites/<frame>.png` e roda `pack-atlas.mjs`; o Lab recarrega o
+atlas na hora. O nome do frame no atlas **é** o nome do PNG-fonte, então a troca
+é direta e o arquivo já entra no repo pronto pra commitar. Só existe no dev (some
+do build publicado); grava só dentro de `sprites/` (sem path traversal). É o loop
+rápido pra substituir arte procedural por arte desenhada à mão sem editar arquivo.
+
 ### SpriteLabScene — validação visual (menu "LAB SPRITES")
 
 Área de teste que mostra **todos os assets renderizados** (personagens, inimigos das Fases 1–4, bosses, objetos, drops, projéteis, **cenário: tiles + fundo**) com botões clicáveis: clique no sujeito (2 colunas à esquerda) e na ação (embaixo) → a animação roda em loop. Mostra bounding box, linha dos pés, strip de frames e um painel de diagnóstico; loga `[SpriteLab] nome/ação: Nf sizes=… missing=… → OK/PROBLEMA`. É a forma rápida de flagrar frame trocado/cortado/faltando. Preview auto-escala (assets grandes como o fundo 1920px encolhem para caber).

@@ -241,6 +241,90 @@ export class SpriteLabScene extends Phaser.Scene {
     });
 
     this.loadState();
+
+    // Upload de sprite (só DEV): substitui o PNG-fonte do frame atual e
+    // re-empacota o atlas via o middleware do Vite.
+    if (import.meta.env.DEV) this.buildUploadButton();
+  }
+
+  // ── Upload do frame atual (DEV) ──────────────────────────────────────────────
+  private uploadToast!: Phaser.GameObjects.Text;
+
+  private buildUploadButton() {
+    const x = 745,
+      y = 372;
+    const bg = this.add
+      .rectangle(x, y, 250, 30, 0x2a3d2a)
+      .setStrokeStyle(2, 0x66bb66)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(x, y, "⬆  SUBIR PNG NESTE FRAME", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#bfe6bf",
+      })
+      .setOrigin(0.5);
+    this.uploadToast = this.add
+      .text(x, y + 24, "", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#8a93a0",
+        align: "center",
+        wordWrap: { width: 300 },
+      })
+      .setOrigin(0.5, 0);
+    bg.on("pointerover", () => bg.setFillStyle(0x38513a));
+    bg.on("pointerout", () => bg.setFillStyle(0x2a3d2a));
+    bg.on("pointerdown", () => this.pickAndUpload());
+  }
+
+  private pickAndUpload() {
+    const cur = this.frames[this.frameIdx];
+    const name = cur?.frame; // nome do frame no atlas = nome do PNG-fonte
+    if (!name) {
+      this.uploadToast.setText("⚠ este frame não tem PNG-fonte no atlas").setColor("#ffaa66");
+      return;
+    }
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/png";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => this.sendUpload(name, String(reader.result));
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }
+
+  private async sendUpload(name: string, dataUrl: string) {
+    if (!dataUrl.startsWith("data:image/png;base64,")) {
+      this.uploadToast.setText("⚠ envie um PNG").setColor("#ffaa66");
+      return;
+    }
+    this.uploadToast.setText(`enviando ${name}.png…`).setColor("#cfd6e0");
+    try {
+      const r = await fetch("/__sprite-upload", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, dataUrl }),
+      });
+      const j = (await r.json()) as { ok: boolean; error?: string };
+      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      this.uploadToast.setText(`✓ salvo ${name}.png — atlas re-empacotado`).setColor("#88ff88");
+      this.reloadAtlas(() => this.loadState());
+    } catch (e) {
+      this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
+    }
+  }
+
+  private reloadAtlas(onDone: () => void) {
+    const t = Date.now();
+    this.textures.remove(ATLAS_KEY);
+    this.load.atlas(ATLAS_KEY, `/assets/atlas.png?t=${t}`, `/assets/atlas.json?t=${t}`);
+    this.load.once(Phaser.Loader.Events.COMPLETE, onDone);
+    this.load.start();
   }
 
   // ── Botões de personagem (2 colunas à esquerda, agrupados por categoria) ─────
