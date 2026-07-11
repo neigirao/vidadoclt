@@ -243,6 +243,7 @@ faltam (Fases 3/4/5).
 Nenhum band-aid ativo no momento.
 
 - ✅ **Post-it / Café (drop) / copo da Copa**: refeitos via `gen-sprites.mjs` (eram bloco amarelo / respingos).
+- ✅ **Porta da Copa** (`obj-door`, 36×60): refeita via `gen-sprites.mjs` (`copaDoor()`) — era retângulo tintado + `[BLOQUEADO]`. Agora porta de escritório com vidro aramado + luz quente. Estado: tint cinza (bloqueada) → clearTint + `playDoorUnlockGlow` (anéis quentes + faíscas + `Sfx.doorOpen`) ao derrotar o boss.
 - ✅ **CEO em corrida** (`boss-ceo-run1/2`): frames-lixo substituídos por vizinhos válidos.
 - ✅ Inimigos das Fases 2–4 auditados: bases limpas. Inconsistências de tamanho remanescentes são frames idle/walk **não usados** (esses inimigos renderizam base estática).
 - ✅ **Ataque animado (Fase 1)**: `setEnemyTex` cicla o estado `attack` via `ATTACK_FRAME_COUNTS` (whitelist de frames validados por inimigo — senior 3, rh/facilitador/analista 2). Frames-lixo 32×48 (facilitador/analista/scrum-attack2) ficam de fora; prefixo ausente → frame 0 estático (sem regressão). `walk`/`idle` já eram consistentes; `hurt` segue single-frame.

@@ -690,7 +690,72 @@ const COORD_FRAMES = ["attack0","attack1","attack2","death0","death1","death2","
 const SCRUM_FRAMES = ["attack0","attack1","attack2","death0","death1","death2","hurt0","idle0","idle1","idle2","idle3","walk0","walk1","walk2","walk3","walk4","walk5"];
 
 // Registro: [nome-para-filtro, função]
+// ── Porta da Copa (Fase 1) — 36×60 ───────────────────────────────────────────
+// Era um retângulo tintado + texto "[BLOQUEADO]". Vira uma porta de escritório
+// legível: batente, dois painéis, janela de vidro aramado com luz quente, maçaneta
+// e uma plaquinha. A cena usa tint cinza p/ o estado BLOQUEADO e clearTint p/ o
+// DESBLOQUEADO — então desenho a versão "acesa" (quente), que o tint escurece.
+function copaDoor() {
+  const W = 36,
+    H = 60,
+    c = canvas(W, H);
+  const FRAME = [70, 52, 34],
+    FRAME_D = [48, 34, 20],
+    FRAME_L = [104, 78, 50];
+  const PANEL = [150, 108, 66],
+    PANEL_D = [120, 84, 48],
+    PANEL_L = [178, 134, 86];
+  const GLASS = [120, 196, 210],
+    GLASS_L = [190, 236, 240],
+    GLOW = [255, 226, 150];
+  const HANDLE = [212, 196, 120],
+    HANDLE_D = [150, 132, 70];
+
+  // batente externo
+  c.rect(2, 1, 32, 58, FRAME);
+  c.rect(2, 1, 32, 2, FRAME_L); // topo iluminado
+  c.rect(2, 1, 2, 58, FRAME_L); // lateral esq iluminada
+  c.rect(32, 1, 2, 58, FRAME_D); // lateral dir sombra
+  c.rect(2, 57, 32, 2, FRAME_D);
+
+  // folha da porta (recuo do batente)
+  c.rect(5, 3, 26, 54, PANEL);
+  c.rect(5, 3, 26, 1, PANEL_L);
+  c.rect(5, 3, 1, 54, PANEL_L);
+  c.rect(30, 3, 1, 54, PANEL_D);
+
+  // janela de vidro aramado (parte de cima) com luz quente vazando
+  c.rect(9, 8, 18, 16, GLASS);
+  c.rect(9, 8, 18, 1, GLASS_L);
+  for (let i = 0; i < 3; i++) c.hline(9, 11 + i * 4, 18, [90, 150, 168, 120]); // grade h
+  for (let i = 0; i < 3; i++) c.rect(14 + i * 5, 8, 1, 16, [90, 150, 168, 120]); // grade v
+  // brilho quente da Copa vazando pelo vidro
+  c.rect(11, 18, 14, 5, GLOW);
+  c.rect(13, 20, 10, 3, [255, 240, 190]);
+  c.rect(9, 7, 18, 1, FRAME_D); // moldura da janela
+  c.rect(9, 24, 18, 1, FRAME_D);
+
+  // painel inferior (almofadado)
+  c.rect(9, 30, 18, 22, PANEL_D);
+  c.rect(11, 32, 14, 18, PANEL);
+  c.rect(11, 32, 14, 1, PANEL_L);
+  c.rect(11, 32, 1, 18, PANEL_L);
+
+  // maçaneta
+  c.rect(26, 38, 3, 3, HANDLE);
+  c.px(26, 40, HANDLE_D);
+  c.rect(27, 41, 1, 4, HANDLE_D);
+
+  // plaquinha da Copa (☕) acima da janela
+  c.rect(13, 4, 10, 3, [60, 60, 66]);
+  c.rect(14, 5, 8, 1, [200, 200, 210]);
+
+  addOutline(c, OBJ_OUT);
+  return c.save("obj-door.png");
+}
+
 const SPRITES = [
+  ["door", copaDoor],
   ["brenda", () => recolorFrames("rh", "brenda", BRENDA_FRAMES, remapRedToMagenta)],
   // Diretor (F5): fonte evangelista-boss → aço/navy (executivo frio)
   [

@@ -1272,6 +1272,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     this.doorEl.clearTint();
     this.doorLabel.setText("COPA").setColor("#c9a36a");
+    this.playDoorUnlockGlow();
 
     // #9 Hover: door label bobs to signal the way out
     this.tweens.add({
@@ -1852,6 +1853,33 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     sr.target = this.player;
     this.seniors.add(sr); // colliders/dano/hit já cobrem membros novos do grupo
     fxGlow(sr, 0xffaa33, 1200); // destaque de entrada do fiscal
+  }
+
+  // ── Brilho ao desbloquear a porta da Copa (beat de "saída liberada") ────────
+  private playDoorUnlockGlow(): void {
+    const dx = this.doorEl.x,
+      dy = this.doorEl.y;
+    // anéis quentes expandindo (a Copa "acende")
+    for (let i = 0; i < 2; i++) {
+      const ring = this.add
+        .circle(dx, dy - 8, 12, 0xffdd88, 0.5)
+        .setDepth(9)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: ring,
+        scale: 5,
+        alpha: 0,
+        duration: 560 + i * 160,
+        ease: "Cubic.easeOut",
+        onComplete: () => ring.destroy(),
+      });
+    }
+    // faíscas subindo da fresta da porta
+    ParticleFactory.hitLight(this, dx, dy - 8);
+    // pulso rápido de brilho na própria porta
+    this.doorEl.setTint(0xfff2c8);
+    this.time.delayedCall(140, () => this.doorEl.active && this.doorEl.clearTint());
+    Sfx.doorOpen();
   }
 
   // ── APAGÃO: inimigos fora do círculo de luz ficam dormentes ─────────────────
