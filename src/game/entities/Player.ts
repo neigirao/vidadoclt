@@ -4,6 +4,7 @@ import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
 import { sanityBand } from "../systems/PlayerState";
+import { ParticleFactory } from "../systems/ParticleFactory";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -605,6 +606,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.jumpsUsed++;
       this.lastJumpPressedAt = -9999;
       Sfx.jump();
+      CombatFx.jumpStretch(this);
       // Burst the ring on use
       if (this.djRing) {
         this.djRing.destroy();

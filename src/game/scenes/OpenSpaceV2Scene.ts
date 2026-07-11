@@ -625,6 +625,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         "VR (Vale Refeição) é sua moeda. Junte e gaste na Copa.",
       );
       Sfx.vrPickup();
+      ParticleFactory.pickupSparkle(this, spr.x, spr.y);
+      this.cameras.main.shake(40, 0.0025);
       spr.destroy();
     });
 
