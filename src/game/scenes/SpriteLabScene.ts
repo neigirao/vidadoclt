@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
-import { resolveSprite, isAtlasKey, ATLAS_KEY } from "../systems/SpriteLibrary";
+import { resolveSprite, isAtlasKey, ATLAS_KEY, initSpriteLibrary } from "../systems/SpriteLibrary";
 
 // ── Lab de Sprites: valida TODOS os assets da Fase 1 (personagens, inimigos,
 // bosses, objetos, drops, projéteis) com botões clicáveis que tocam a animação
@@ -306,9 +306,18 @@ export class SpriteLabScene extends Phaser.Scene {
       this.uploadToast.setText("⚠ frame inválido").setColor("#ffaa66");
       return;
     }
-    // Fundo = textura solta bg-* (sem frame de atlas). Sprite = frame do atlas.
+    // Três casos de destino:
+    //  • frame do atlas (sprite/objeto atlas-backed): grava sprites/<frame>.png.
+    //  • fundo bg-* (textura solta): grava assets/<bg>.png.
+    //  • objeto GERADO em código (tex-*, sem frame no atlas): cria
+    //    sprites/obj-<nome>.png — o resolveSprite passa a preferir o frame do
+    //    atlas, então o upload substitui a textura procedural.
     const isBg = !cur.frame && /^bg-/.test(cur.tex);
-    const name = cur.frame ?? (isBg ? cur.tex : undefined);
+    let name = cur.frame;
+    if (!name) {
+      if (isBg) name = cur.tex;
+      else if (/^tex-/.test(cur.tex)) name = `obj-${cur.tex.slice(4)}`;
+    }
     if (!name) {
       this.uploadToast.setText("⚠ este frame não tem PNG-fonte").setColor("#ffaa66");
       return;
@@ -385,7 +394,12 @@ export class SpriteLabScene extends Phaser.Scene {
     const t = Date.now();
     this.textures.remove(ATLAS_KEY);
     this.load.atlas(ATLAS_KEY, `/assets/atlas.png?t=${t}`, `/assets/atlas.json?t=${t}`);
-    this.load.once(Phaser.Loader.Events.COMPLETE, onDone);
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      // Re-registra os frames (inclui NOVOS, ex.: obj-<nome> de objeto gerado) e
+      // limpa o cache do resolveSprite, senão a chave tex-* segue na textura antiga.
+      initSpriteLibrary(this);
+      onDone();
+    });
     this.load.start();
   }
 
