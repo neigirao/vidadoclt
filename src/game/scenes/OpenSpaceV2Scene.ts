@@ -926,7 +926,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       this.add.rectangle(mx + 2, my - 10, 1, 2, 0xffffff, 0.4).setDepth(9);
     }
 
-
     // Física: superfície (player + inimigos pousam)
     const surf = this.add.rectangle(cx, surfY, w, 14, 0, 0);
     this.physics.add.existing(surf, true);
@@ -1059,7 +1058,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     }
   }
 
-
   private spawnEnemies(): void {
     // ── Dificuldade escalonada: fácil (esquerda) → difícil (direita) ──────────
     // O jogador entra em x≈80 e avança para a direita rumo ao boss (x≈1820).
@@ -1110,8 +1108,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       ]),
     ) as F1EnemyType[];
     [1360, 1440, 1500, 1560].forEach((x, i) => this.spawnEnemyOfType(z4[i], x, rng));
-
-
 
     // Zona 5 — Scrum Master Caótico (elite, perto do boss) — âncora fixa
     const scrum = new ScrumMasterCaotico(this, 1590, FLOOR_Y - 60);
