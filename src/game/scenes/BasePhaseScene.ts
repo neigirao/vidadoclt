@@ -14,14 +14,8 @@ import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
-import {
-  CLASSES,
-  WEAPONS,
-  WEAPON_ICONS,
-  WeaponId,
-  ClassId,
-  WeaponDef,
-} from "../systems/WeaponSystem";
+import { WEAPONS, WEAPON_ICONS, WeaponId, WeaponDef } from "../systems/WeaponSystem";
+import { applyClassAndWeapon } from "../systems/PlayerLoadout";
 import { SanityFx } from "../systems/SanityFx";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CulturaId, reapplyAllCulturas, selectableCulturaIds } from "../systems/CulturaSystem";
@@ -124,33 +118,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
    * sinergias, heat) ficam a cargo de quem chama, DEPOIS deste método.
    */
   protected buildPlayer(run: ReturnType<typeof getRun>, spawnX: number): void {
-    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
-    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
-    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
-
     this.player = new Player(this, spawnX, FLOOR_Y - 60);
-
-    this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
-    this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
-    this.player.walkSpeed = 200 * classDef.speedMult;
-    this.player.damageMult = classDef.damageMult;
-    this.player.vrDropMult = classDef.vrMult + (run.upgVrDropMult ?? 0);
-    this.player.parryWindowBonus = run.upgParryWindowBonus ?? 0;
-    this.player.weaponId = weaponId;
-    this.player.attackRange = weaponDef.attackRange;
-    this.player.specialCooldown = weaponDef.specialCooldown;
-    this.player.specialType = weaponDef.specialType;
-    this.player.hitAutoRanged = weaponDef.hitAutoRanged;
-    this.player.isRangedPrimary = weaponDef.type === "ranged";
-    this.player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
-    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
+    // Loadout determinístico (classe + arma + upgrades) — fonte única.
+    applyClassAndWeapon(this.player, run);
     this.player.autonomia = run.autonomia ?? false;
-    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
-    this.player.dashCooldownBonus = run.upgDashCooldownBonus ?? 0;
-    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
-    this.player.parryEnergyRestore = run.upgParryEnergyRestore ?? 0;
-    this.player.parryVrDrop = run.upgParryVrDrop ?? 0;
-    if ((run.upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
 
     // 2ª arma (slot secundário, troca com Q). onSecondarySwap refaz os stats
     // do jogador para a arma agora ativa e persiste no run.

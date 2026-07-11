@@ -6,7 +6,8 @@ import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import { Faxineiro } from "../entities/Faxineiro";
 import { getRun, savePersisted } from "../systems/PlayerState";
-import { CLASSES, ClassId, WEAPONS, WeaponId } from "../systems/WeaponSystem";
+import { WEAPONS, WeaponId } from "../systems/WeaponSystem";
+import { applyClassAndWeapon } from "../systems/PlayerLoadout";
 import { SanityFx } from "../systems/SanityFx";
 import { ShopUI } from "../systems/Shop";
 import { Hud } from "../systems/Hud";
@@ -163,31 +164,9 @@ export class CopaScene extends Phaser.Scene {
     doorBack.setData("door", "back");
 
     // Player
-    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
     this.player = new Player(this, 80, FLOOR_Y - 60);
-    this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
-    this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
-    this.player.vrDropMult = classDef.vrMult + (run.upgVrDropMult ?? 0);
-    // Mesma velocidade/arma das fases — sem isto o boneco andava/atacava
-    // diferente na Copa (walkSpeed default + arma default).
-    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
-    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
-    this.player.walkSpeed = 200 * classDef.speedMult;
-    this.player.damageMult = classDef.damageMult;
-    this.player.weaponId = weaponId;
-    this.player.attackRange = weaponDef.attackRange;
-    this.player.specialCooldown = weaponDef.specialCooldown;
-    this.player.specialType = weaponDef.specialType;
-    this.player.hitAutoRanged = weaponDef.hitAutoRanged;
-    this.player.isRangedPrimary = weaponDef.type === "ranged";
-    this.player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
-    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
-    this.player.parryWindowBonus = run.upgParryWindowBonus ?? 0;
-    this.player.specialCooldownMult = run.upgSpecialCooldownMult ?? 1.0;
-    this.player.dashCooldownBonus = run.upgDashCooldownBonus ?? 0;
-    this.player.damageReductionMult = run.upgDamageReductionMult ?? 1.0;
-    this.player.parryEnergyRestore = run.upgParryEnergyRestore ?? 0;
-    this.player.parryVrDrop = run.upgParryVrDrop ?? 0;
+    // Loadout igual às fases (classe + arma + upgrades) — fonte única.
+    applyClassAndWeapon(this.player, run);
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;

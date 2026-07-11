@@ -3,7 +3,8 @@ import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import { getRun } from "../systems/PlayerState";
-import { CLASSES, ClassId, WEAPONS, WeaponId } from "../systems/WeaponSystem";
+import { WEAPONS, WeaponId } from "../systems/WeaponSystem";
+import { applyClassAndWeapon } from "../systems/PlayerLoadout";
 import { SanityFx } from "../systems/SanityFx";
 import { Hud } from "../systems/Hud";
 import { Music } from "../systems/MusicSystem";
@@ -148,19 +149,9 @@ export class SalaBonusScene extends Phaser.Scene {
     this.platforms.add(floor);
 
     // Player
-    const classDef = CLASSES[(run.characterClass ?? "analista") as ClassId];
     this.player = new Player(this, 80, FLOOR_Y - 60);
-    this.player.maxEnergy = classDef.maxEnergy + (run.upgMaxEnergy ?? 0);
-    this.player.maxSanity = classDef.maxSanity + (run.upgMaxSanity ?? 0);
-    // Mesma velocidade/arma das fases (senão anda diferente aqui).
-    const weaponId = (run.weaponId ?? classDef.startWeapon) as WeaponId;
-    const weaponDef = WEAPONS[weaponId] ?? WEAPONS[classDef.startWeapon];
-    this.player.walkSpeed = 200 * classDef.speedMult;
-    this.player.damageMult = classDef.damageMult;
-    this.player.weaponId = weaponId;
-    this.player.attackRange = weaponDef.attackRange;
-    this.player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
-    this.player.attackIntervalMs = Math.round(220 / (weaponDef.attackSpeedMult ?? 1));
+    // Loadout igual às fases (classe + arma + upgrades) — fonte única.
+    applyClassAndWeapon(this.player, run);
     this.player.energy = run.energy;
     this.player.sanity = run.sanity;
     this.player.vr = run.vr;
