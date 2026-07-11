@@ -236,7 +236,7 @@ faltam (Fases 3/4/5).
 
 ### Eventos de sala (Fase 1) e segredo
 
-`rollRoomEvent` tem 6 eventos + sala normal, com um **badge fixo** do evento ativo (nome + efeito) no canto durante toda a fase. Os **mecânicos** são APAGÃO (sistema `Apagao`: escuridão com lanterna no player — textura 2× da tela com furo radial, pois GeometryMask é Canvas-only no Phaser 4; **acende quando o boss ativa**) e FISCALIZAÇÃO (Sênior extra). O medidor de Produtividade (streak de kills → mult de VR) é o sistema `ProductivityMeter`. Segredo: bater no extintor (x≈1793) derruba +3 VR, 1× por run (`checkExtintorSecret`).
+`rollRoomEvent` tem 6 eventos + sala normal, com um **badge fixo** do evento ativo (nome + efeito) no canto durante toda a fase. Os **mecânicos** são APAGÃO (sistema `Apagao`: escuridão com lanterna no player — textura 2× da tela com furo radial, pois GeometryMask é Canvas-only no Phaser 4; **acende quando o boss ativa**. A escuridão corta dos dois lados: `applyApagaoDormancy` reaplica um freeze curto por frame nos inimigos além do raio de luz+penumbra — eles dormem e acordam ao entrar na luz → o APAGÃO vira stealth, não só handicap visual) e FISCALIZAÇÃO (Sênior extra). O medidor de Produtividade (streak de kills → mult de VR) é o sistema `ProductivityMeter`. Segredo: quebrar o extintor (x≈1793) solta um **JATO DE CO2** — AoE que fere/mata inimigos no raio e dá VR escalado por quantos foram pegos (base 5 + 4/inimigo, teto 25), 1× por run (`checkExtintorSecret`). Deixou de ser token de +3 VR; vira decisão de iscar a horda.
 
 ### Band-aids de sprite ativos
 

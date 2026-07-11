@@ -1854,19 +1854,84 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     fxGlow(sr, 0xffaa33, 1200); // destaque de entrada do fiscal
   }
 
-  // ── Segredo: bater no extintor derruba um cache de VR (1x por run) ──────────
+  // ── APAGÃO: inimigos fora do círculo de luz ficam dormentes ─────────────────
+  // Raio de luz = R do Apagao (170px de tela) + penumbra. Reaplica um freeze
+  // curto por frame nos que estão além; eles acordam sozinhos ao entrar na luz.
+  private readonly APAGAO_WAKE_RADIUS = 230; // 170 (luz) + 60 (penumbra)
+  private applyApagaoDormancy(_time: number): void {
+    const px = this.player.x,
+      py = this.player.y;
+    for (const { group } of this.enemyGroups) {
+      group.getChildren().forEach((c) => {
+        const e = c as Phaser.Physics.Arcade.Sprite & { applyFreeze?: (ms: number) => void };
+        if (!e.active || !e.applyFreeze) return;
+        if (Phaser.Math.Distance.Between(px, py, e.x, e.y) > this.APAGAO_WAKE_RADIUS)
+          e.applyFreeze(120);
+      });
+    }
+  }
+
+  // ── Segredo: quebrar o extintor solta um JATO DE CO2 (1x por run) ───────────
+  // Deixou de ser um token de +3 VR (irrisório vs. Copa 6–32) e virou uma jogada
+  // tática: o jato é um AoE que fere/mata inimigos no raio, e o VR escala com
+  // quantos foram pegos. Decisão: iscar a horda até x≈1793 antes de detonar.
+  private readonly EXTINTOR_RADIUS = 150;
+  private readonly EXTINTOR_DAMAGE = 34;
   private checkExtintorSecret(hb: Phaser.Geom.Rectangle): void {
     if (this.extintorLooted) return;
     const zone = new Phaser.Geom.Rectangle(1782, FLOOR_Y - 54, 28, 48);
     if (!Phaser.Geom.Intersects.RectangleToRectangle(hb, zone)) return;
     this.extintorLooted = true;
-    ParticleFactory.hitLight(this, 1800, FLOOR_Y - 30);
-    this.dropVR(1795, FLOOR_Y - 40, 3);
+    const cx = 1795,
+      cy = FLOOR_Y - 34;
+
+    // Jato de CO2: nuvem branca que expande + shake + som.
+    this.cameras.main.shake(200, 0.011);
+    Sfx.enemyDeath();
+    ParticleFactory.hitLight(this, cx, cy);
+    for (let i = 0; i < 3; i++) {
+      const puff = this.add
+        .circle(cx, cy, 10, 0xeef4ff, 0.5)
+        .setDepth(300)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: puff,
+        radius: this.EXTINTOR_RADIUS,
+        scale: 1,
+        alpha: 0,
+        duration: 420 + i * 90,
+        ease: "Cubic.easeOut",
+        onComplete: () => puff.destroy(),
+      });
+    }
+
+    // AoE: fere todos os inimigos no raio; VR escala com quantos foram pegos.
+    let caught = 0;
+    for (const { group } of this.enemyGroups) {
+      group.getChildren().forEach((c) => {
+        const e = c as Phaser.Physics.Arcade.Sprite & {
+          hit?: (d: number, k: number) => boolean;
+        };
+        if (!e.active || !e.hit) return;
+        if (Phaser.Math.Distance.Between(cx, cy, e.x, e.y) > this.EXTINTOR_RADIUS) return;
+        caught++;
+        const kb = e.x < cx ? -220 : 220;
+        if (e.hit(this.EXTINTOR_DAMAGE, kb)) {
+          Sfx.enemyDeath();
+          ParticleFactory.enemyDeath(this, e.x, e.y - 10);
+          e.destroy();
+        }
+      });
+    }
+
+    // Base 5 + 4 por inimigo pego (teto 25) — recompensa iscar a horda.
+    const vr = Math.min(25, 5 + caught * 4);
+    this.dropVR(cx, cy - 6, vr);
     const t = this.add
-      .text(1800, FLOOR_Y - 70, "🧯 CAIXINHA DO EXTINTOR  +3 VR", {
+      .text(cx, FLOOR_Y - 74, `🧯 JATO DE CO2!  ${caught} pego(s)  +${vr} VR`, {
         fontFamily: "monospace",
         fontSize: "10px",
-        color: "#ffdd66",
+        color: "#cfe6ff",
         stroke: "#000000",
         strokeThickness: 3,
       })
@@ -1876,7 +1941,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       targets: t,
       y: t.y - 24,
       alpha: 0,
-      duration: 1200,
+      duration: 1400,
       onComplete: () => t.destroy(),
     });
   }
@@ -1930,8 +1995,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       {
         id: "apagao",
         name: "APAGÃO",
-        desc: "Só se vê perto de você. +60% VR",
-        tip: "Mate rápido e agrupado — o VR alto premia agressividade.",
+        desc: "No escuro, inimigos longe dormem. +60% VR",
+        tip: "Você dita o ritmo: avance com a luz e pegue a horda um a um.",
         color: "#aa88ff",
         apply: () => {
           this.eventVrMult = 1.6;
@@ -2083,6 +2148,12 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     // APAGÃO: centraliza o furo da escuridão no player (coords de tela).
     this.apagao.reposition(this.player.x, this.player.y);
+    // A escuridão corta dos DOIS lados: inimigos longe do teu círculo de luz
+    // também estão cegos → ficam dormentes (freeze curto re-aplicado por frame,
+    // acordam ~120ms depois que a luz os alcança). Vira stealth: você dita o
+    // ritmo e escolhe pegar a horda um a um. Penumbra de 60px mantém os da borda
+    // ainda perigosos. Só afeta os no chão (o padrão de ameaça da Fase 1).
+    if (this.apagao.active) this.applyApagaoDormancy(time);
 
     // Physics body sleep: disable body for enemies far off-screen to save CPU
     const camBounds = this.cameras.main.worldView;
