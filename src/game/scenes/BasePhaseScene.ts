@@ -58,7 +58,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   /** Labels das sinergias perk×perk ativas (ícone + nome) p/ o badge do HUD. */
   protected synergyLabels: string[] = [];
   private _bossMaxHp = 0;
-  private _bossEnraged = false;
+  /**
+   * Enrage do boss (1ª vez abaixo de 35% HP). Exposto p/ as cenas apertarem a
+   * cadência de especial na 2ª metade da luta — a virada tem que ter dentes, não
+   * ser só flash. Os bosses de classe própria (Brenda/Diretor/Gerente) já
+   * auto-escalam via phase2 interno; os scene-driven (Coordenador/Scrum) leem
+   * este flag.
+   */
+  protected bossEnraged = false;
   protected bossDefeated = false;
   protected startTimeMs = 0;
   protected fx!: SanityFx;
@@ -655,9 +662,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.bossPresence?.update(delta);
       // Momento de enrage: 1ª vez que o boss cai abaixo de 35% de HP → beat
       // legível (aprendizado do Lovable). Genérico p/ todos os 5 bosses.
-      if (!this._bossEnraged && this._bossMaxHp > 0 && this.boss.hp <= this._bossMaxHp * 0.35) {
-        this._bossEnraged = true;
+      if (!this.bossEnraged && this._bossMaxHp > 0 && this.boss.hp <= this._bossMaxHp * 0.35) {
+        this.bossEnraged = true;
         this.playBossEnrageMoment(this.boss.x, this.boss.y);
+        this.onBossEnrage(); // cenas scene-driven disparam um especial imediato
       }
       if (
         !this.player.isInvulnerable(time) &&
@@ -745,6 +753,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
    * dos 35% de HP: flash vermelho + shake + grito flutuante + aura pulsante.
    * Faz a virada parecer um beat, não só ataques um pouco mais rápidos.
    */
+  /**
+   * Hook de enrage p/ cenas com especial dirigido pela cena (Coordenador/Scrum):
+   * dispara um especial na hora da virada, pra ela ter dentes. Default no-op —
+   * bosses que auto-escalam (phase2 interno) não precisam. */
+  protected onBossEnrage() {}
+
   protected playBossEnrageMoment(x: number, y: number) {
     this.cameras.main.flash(240, 200, 20, 20, false);
     this.cameras.main.shake(260, 0.01);

@@ -249,7 +249,8 @@ export class Phase4Scene extends BasePhaseScene {
     if (Math.abs(this.player.x - boss.x) > 560) return;
     if (this.nextSprintAt === 0) this.nextSprintAt = time + 5000;
     if (time < this.nextSprintAt) return;
-    this.nextSprintAt = time + 8000;
+    // Enrage: cadência aperta na 2ª metade (8s → ~5s) — a arena fecha mais vezes.
+    this.nextSprintAt = time + (this.bossEnraged ? 5000 : 8000);
 
     // 2 grades entre o player e o boss (posições fixas relativas à arena)
     const cols = [boss.x - 360, boss.x - 180].map((x) =>
@@ -313,6 +314,11 @@ export class Phase4Scene extends BasePhaseScene {
 
   protected onPhaseUpdate(time: number, _delta: number) {
     this.sprintReview(time);
+  }
+
+  /** Virada aos 35% HP: fecha a arena com um Sprint Review imediato. */
+  protected override onBossEnrage() {
+    this.nextSprintAt = this.time.now; // força disparo no próximo tick
   }
 
   protected onEnemyKilledByMelee(e: GameEnemy) {

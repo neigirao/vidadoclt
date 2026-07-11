@@ -156,8 +156,18 @@ export class Phase2Scene extends BasePhaseScene {
     if (dist > 520) return; // só engajado
     if (this.nextSpecialAt === 0) this.nextSpecialAt = time + 4000;
     if (time < this.nextSpecialAt) return;
-    this.nextSpecialAt = time + 7000;
+    // Enrage: cadência aperta na 2ª metade (7s → ~4s) — a luta ramp-a.
+    this.nextSpecialAt = time + (this.bossEnraged ? 4000 : 7000);
     this.coordenadorSpecial(boss.x, boss.y);
+  }
+
+  /** Virada aos 35% HP: convoca a Reunião de Alinhamento na hora. */
+  protected override onBossEnrage() {
+    const boss = this.boss;
+    if (boss?.active) {
+      this.coordenadorSpecial(boss.x, boss.y);
+      this.nextSpecialAt = this.time.now + 4000;
+    }
   }
 
   // "REUNIÃO DE ALINHAMENTO": convoca 2 balões de fala que orbitam o Coordenador

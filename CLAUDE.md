@@ -270,7 +270,7 @@ Nenhum band-aid ativo no momento.
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 - **Encontros por seed**: Fase 1 varia o TIPO de inimigo por zona (`spawnEnemyOfType`); Fases 2–5 variam POSIÇÃO/densidade (`pickPositions` em `BasePhaseScene`) — contagem fixa p/ o validador
 - **Qualidade**: `tsc` strict + ESLint 0 erros; **testes unitários** (bun:test) de EnemyCatalog, WeaponSystem, ReconhecimentoSystem, **CulturaSystem, PerkSystem, sanityBand** (37 testes); **CI** (GitHub Actions: tsc + lint + test) em `.github/workflows/ci.yml`
-- **Legibilidade/onboarding**: marcadores de ameaça por arquétipo (`ThreatMarkers`), presença de chefão (`BossPresence`: escala+aura+coroa), momento de enrage do boss aos 35% HP (`playBossEnrageMoment` na base), beat de fim de fase (`playPhaseClearBeat`), e **dicas contextuais de 1ª sessão** (`TutorialPrompts`)
+- **Legibilidade/onboarding**: marcadores de ameaça por arquétipo (`ThreatMarkers`), presença de chefão (`BossPresence`: escala+aura+coroa), momento de enrage do boss aos 35% HP (`playBossEnrageMoment` — beat visual; e o flag `bossEnraged` + hook `onBossEnrage()` que **apertam a cadência de especial** na 2ª metade da luta: Coordenador/Scrum aceleram e disparam um especial na virada; Brenda/Diretor/Gerente já auto-escalam via phase2 interno), beat de fim de fase (`playPhaseClearBeat`), e **dicas contextuais de 1ª sessão** (`TutorialPrompts`)
 - **Armas no meio da fase**: drop de arma por kill/boss (`dropWeapon`) + slot secundário com troca (Q); telemetria de playtest gravada no Supabase dedicado (`Telemetry` + `telemetryClient`)
 
 ### Pendente / em aberto
