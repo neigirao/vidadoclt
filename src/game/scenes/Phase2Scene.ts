@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { BossPresence } from "../systems/BossPresence";
+import { getRun } from "../systems/PlayerState";
 import { CoordenadorDeSinergia } from "../entities/Enemies";
 import {
   TelemarketerZumbi,
@@ -22,31 +23,55 @@ export class Phase2Scene extends BasePhaseScene {
     super("Phase2Scene");
   }
 
+  // Rota divergente de verdade (piloto): a escolha 2A/2B após a Fase 1 muda a
+  // Fase 2 além de um modificador de stat — fundo, título, layout e composição
+  // de inimigos. Comercial (2A) = chão de vendas ABERTO e AGRESSIVO (ranged);
+  // Atendimento (2B) = call center APERTADO e de ATRITO (auras). Boss é o mesmo
+  // (Coordenador) — a rota diverge na JORNADA, não no chefe.
+  private isComercial(): boolean {
+    return getRun(this).route === "comercial";
+  }
+
   preload() {
     this.load.image("bg-atendimento", "/assets/bg-atendimento.png");
+    this.load.image("bg-comercial", "/assets/bg-comercial.png");
   }
 
   protected getBgKey() {
-    return "bg-atendimento";
+    return this.isComercial() ? "bg-comercial" : "bg-atendimento";
   }
   protected getPhaseNumber(): 2 {
     return 2;
   }
   protected getPhaseTitle() {
-    return "FASE 2 — REUNIAO INFINITA";
+    return this.isComercial() ? "FASE 2 — CHAO DE VENDAS" : "FASE 2 — REUNIAO INFINITA";
   }
   protected getInitialObjective() {
-    return "Derrote o Coordenador e avance";
+    return this.isComercial()
+      ? "Bata a meta: derrote o Coordenador"
+      : "Derrote o Coordenador e avance";
   }
 
   protected getPlatSurface() {
     return { surf: "tex-baia", body: "tex-baia-body" };
   }
 
-  // Identidade "Baias": muitas plataformas BAIXAS e CURTAS bem próximas — o chão
-  // de call center apertado, cheio de divisórias de cubículo. Pulinhos rápidos e
-  // encadeados em vez de grandes saltos.
+  // Layout diverge por rota (piloto):
+  //  • Atendimento "Baias": muitas plataformas BAIXAS/CURTAS bem próximas — o
+  //    chão de call center apertado. Pulinhos rápidos encadeados.
+  //  • Comercial "Chão de Vendas": poucas plataformas ALTAS com vãos maiores —
+  //    o open space de vendas. Premia dash + verticalidade (ilhas de "mesa de
+  //    fechamento"). Chão contínuo garante jogabilidade mesmo sem pular.
   protected getPlatformLayout(): Array<[number, number, number]> {
+    if (this.isComercial()) {
+      return [
+        [280, FLOOR_Y - 46, 4],
+        [560, FLOOR_Y - 84, 3],
+        [880, FLOOR_Y - 50, 4],
+        [1180, FLOOR_Y - 84, 3],
+        [1460, FLOOR_Y - 46, 4],
+      ];
+    }
     return [
       [180, FLOOR_Y - 34, 3],
       [380, FLOOR_Y - 52, 3],
@@ -83,8 +108,12 @@ export class Phase2Scene extends BasePhaseScene {
     this.reunioes = this.physics.add.group({ runChildUpdate: false });
     this.coordenadores = this.physics.add.group({ runChildUpdate: false });
 
-    // Encontros por seed: mesma CONTAGEM, posições/densidade variam por run.
-    this.pickPositions([280, 380, 480, 580, 680, 780, 880], 5).forEach((x) => {
+    // Composição diverge por rota: Comercial = mais pressão RANGED (cold-call +
+    // quadro de metas caindo), menos atrito defensivo. Atendimento = o inverso.
+    const com = this.isComercial();
+
+    // Encontros por seed: contagem fixa por rota, posições/densidade variam por run.
+    this.pickPositions([280, 380, 480, 580, 680, 780, 880], com ? 6 : 5).forEach((x) => {
       const e = new TelemarketerZumbi(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 10);
@@ -106,13 +135,16 @@ export class Phase2Scene extends BasePhaseScene {
     guardiao.target = this.player;
     this.guardioes.add(guardiao);
 
-    [620, 1380].forEach((x) => {
+    // Quadro de metas (NuvemBoard) caindo do teto: Comercial tem 3 (pressão
+    // vertical de "meta"), Atendimento 2.
+    (com ? [560, 1040, 1440] : [620, 1380]).forEach((x) => {
       const e = new NuvemBoardSentinela(this, x, FLOOR_Y - 200);
       e.onFire = (fx, fy) => this.spawnEnemyProjectile(fx, fy, fx, fy + 300, 12, 0xff4444, 200);
       this.nuvens.add(e);
     });
 
-    this.pickPositions([900, 1030, 1130, 1240, 1340], 3).forEach((x) => {
+    // Auras de Reunião (atrito defensivo): Comercial 2 (menos), Atendimento 3.
+    this.pickPositions([900, 1030, 1130, 1240, 1340], com ? 2 : 3).forEach((x) => {
       const r = new ReuniaoCorportiva(this, x, FLOOR_Y - 60);
       r.target = this.player;
       r.onAura = () => {
