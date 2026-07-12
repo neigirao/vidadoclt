@@ -382,6 +382,14 @@ export class SpriteLabScene extends Phaser.Scene {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name, dataUrl, kind: isBg ? "background" : "sprite" }),
       });
+      // Sem o plugin do Vite (build estático / preview publicado) o endpoint não
+      // existe e o SPA responde com index.html — o JSON.parse falharia com
+      // "Unexpected token '<'". Detecta pelo content-type e cai no fallback.
+      const ct = r.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        this.previewOrExplainNoEndpoint(name, dataUrl, isBg);
+        return;
+      }
       const j = (await r.json()) as { ok: boolean; error?: string };
       if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
       this.uploadToast
@@ -392,6 +400,26 @@ export class SpriteLabScene extends Phaser.Scene {
     } catch (e) {
       this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
     }
+  }
+
+  // Endpoint de gravação ausente (fora do `vite dev`). Fundo: pré-visualiza a
+  // arte EM MEMÓRIA (o tester vê no jogo, mas NÃO persiste no repo). Sprite:
+  // não dá pra pré-visualizar 1 frame do atlas em memória — só explica.
+  private previewOrExplainNoEndpoint(name: string, dataUrl: string, isBg: boolean): void {
+    if (!isBg) {
+      this.uploadToast
+        .setText("⚠ upload de sprite só grava em modo dev (vite dev). Sem persistir aqui.")
+        .setColor("#ffaa66");
+      return;
+    }
+    if (this.textures.exists(name)) this.textures.remove(name);
+    this.textures.once(Phaser.Textures.Events.ADD, (key: string) => {
+      if (key === name) this.loadState();
+    });
+    this.textures.addBase64(name, dataUrl);
+    this.uploadToast
+      .setText("👁 pré-visualização (não salvo — rode em `vite dev` p/ persistir)")
+      .setColor("#ffcc66");
   }
 
   private reloadAtlas(onDone: () => void) {

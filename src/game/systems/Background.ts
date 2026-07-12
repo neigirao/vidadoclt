@@ -109,38 +109,28 @@ export function addParallaxLayers(
   // Fases 1/2 (bg pintado rico com janela própria): NADA de skyline/janela — a
   // arte já fala por si; só o teto (foreground) entra, sem competir com o fundo.
 
-  // ── FOREGROUND: só o TETO (viga + luminárias + planta) — sf 1.12, depth 900 ──
-  // Sem plano no chão: baias flutuantes/no canto cobriam o player e pareciam
-  // blocos soltos. O teto passa mais rápido que a ação, dá profundidade e NUNCA
-  // cobre o centro nem o spawn. Respeita reduceSanityFx (acessibilidade).
+  // ── FOREGROUND: só a VIGA do teto — sf 1.12, depth 900 ─────────────────────
+  // As luminárias/hastes pendentes (versão anterior) desciam do teto em sf 1.12
+  // e, por passarem NA FRENTE (depth 900), cruzavam o campo de jogo como "postes"
+  // sobre o player — reportado em playtest. Mantido só a viga fina COLADA no
+  // topo (nunca invade o gameplay) + um leve glow de luminária embutido nela,
+  // sem nada pendurado. Respeita reduceSanityFx (acessibilidade).
   const reduce = loadSettings().reduceSanityFx;
   if (reduce) return;
 
   const ceilY = topY + 2;
   const fgTop = scene.add.graphics().setScrollFactor(1.12, 0).setDepth(900);
   fgTop.fillStyle(cfg.beam, 0.92);
-  fgTop.fillRect(0, ceilY, levelWidth, 10); // viga contínua do teto
+  fgTop.fillRect(0, ceilY, levelWidth, 10); // viga contínua do teto (só o topo)
+  // Halos de luminária EMBUTIDOS na viga (sem haste descendo) — profundidade
+  // sem nenhum elemento vertical cruzando a ação.
   for (let x = rng.between(120, 200); x < levelWidth; x += rng.between(280, 420)) {
-    // haste + luminária pendente (silhueta) com glow
-    const stalk = rng.between(16, 30);
-    fgTop.fillStyle(cfg.beam, 0.96);
-    fgTop.fillRect(x - 1, ceilY + 10, 3, stalk);
-    const ly = ceilY + 10 + stalk;
-    fgTop.fillRect(x - 14, ly, 30, 7); // corpo da luminária
     scene.add
-      .ellipse(x + 1, ly + 10, 60, 20, cfg.lamp, 0.1)
+      .ellipse(x + 1, ceilY + 12, 54, 14, cfg.lamp, 0.09)
       .setScrollFactor(1.12, 0)
       .setDepth(899)
       .setBlendMode(Phaser.BlendModes.ADD);
   }
-  // planta pendente do teto num canto (silhueta) — só no teto, longe do combate
-  const plantX = rng.between(0, 1) ? 150 : levelWidth - 150;
-  fgTop.fillStyle(cfg.beam, 0.95);
-  for (let i = 0; i < 7; i++) {
-    const fx = plantX + rng.between(-16, 16);
-    fgTop.fillRect(fx, ceilY + 8, 2, rng.between(16, 34)); // folhas caídas
-  }
-  fgTop.fillRect(plantX - 12, ceilY + 6, 24, 8); // vaso suspenso
 }
 
 /**
