@@ -264,9 +264,13 @@ export class SpriteLabScene extends Phaser.Scene {
 
     this.loadState();
 
-    // Upload de sprite (só DEV): substitui o PNG-fonte do frame atual e
-    // re-empacota o atlas via o middleware do Vite.
-    if (import.meta.env.DEV) this.buildUploadButton();
+    // Upload de sprite: substitui o PNG-fonte do frame atual e re-empacota o
+    // atlas via o middleware do Vite. Visível para TODOS durante a fase de teste
+    // (antes era só DEV). ATENÇÃO: a gravação depende do endpoint `/__sprite-upload`
+    // do plugin Vite (`apply:"serve"`), que só existe quando o app roda em `vite
+    // dev`. Num build 100% estático o botão aparece mas o upload retorna erro
+    // (sem backend p/ gravar). Reverter p/ `if (import.meta.env.DEV)` ao sair do teste.
+    this.buildUploadButton();
   }
 
   // ── Upload do frame atual (DEV) ──────────────────────────────────────────────
