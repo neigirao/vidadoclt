@@ -74,8 +74,8 @@ const SUBJECTS: Subject[] = [
   }),
   mkChar("Sênior", "Inimigo", "senior", {
     idle: [0, 4],
-    walk: [0, 4],
-    attack: [0, 1],
+    walk: [0, 16], // ciclo premium de 16 frames (folha fatiada)
+    attack: [0, 3],
     hurt: [0, 1],
   }),
   mkChar("Gerente (boss)", "Boss", "gerente", {
@@ -275,6 +275,16 @@ export class SpriteLabScene extends Phaser.Scene {
 
   // ── Upload do frame atual (DEV) ──────────────────────────────────────────────
   private uploadToast!: Phaser.GameObjects.Text;
+  private confirmBtn!: Phaser.GameObjects.Rectangle;
+  private confirmLabel!: Phaser.GameObjects.Text;
+  // Upload preparado (escolhido, aguardando ENVIAR). null = nada pendente.
+  private pending: {
+    name: string;
+    expW: number;
+    expH: number;
+    dataUrl: string;
+    isBg: boolean;
+  } | null = null;
 
   private buildUploadButton() {
     const x = 745,
@@ -284,14 +294,14 @@ export class SpriteLabScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x66bb66)
       .setInteractive({ useHandCursor: true });
     this.add
-      .text(x, y, "⬆  SUBIR PNG NESTE FRAME", {
+      .text(x, y, "⬆  ESCOLHER PNG PARA ESTE FRAME", {
         fontFamily: "monospace",
-        fontSize: "12px",
+        fontSize: "11px",
         color: "#bfe6bf",
       })
       .setOrigin(0.5);
     this.uploadToast = this.add
-      .text(x, y + 24, "", {
+      .text(x, y + 22, "", {
         fontFamily: "monospace",
         fontSize: "10px",
         color: "#8a93a0",
@@ -302,6 +312,39 @@ export class SpriteLabScene extends Phaser.Scene {
     bg.on("pointerover", () => bg.setFillStyle(0x38513a));
     bg.on("pointerout", () => bg.setFillStyle(0x2a3d2a));
     bg.on("pointerdown", () => this.pickAndUpload());
+
+    // Botão ENVIAR — só aparece depois de escolher um PNG (2 passos: escolher →
+    // conferir a prévia no toast → ENVIAR). Some após enviar/cancelar.
+    this.confirmBtn = this.add
+      .rectangle(x, y + 62, 250, 28, 0x2a3040)
+      .setStrokeStyle(2, 0x66aaff)
+      .setInteractive({ useHandCursor: true })
+      .setVisible(false);
+    this.confirmLabel = this.add
+      .text(x, y + 62, "✓  ENVIAR", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: "#cfe0ff",
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
+    this.confirmBtn.on("pointerover", () => this.confirmBtn.setFillStyle(0x3a4256));
+    this.confirmBtn.on("pointerout", () => this.confirmBtn.setFillStyle(0x2a3040));
+    this.confirmBtn.on("pointerdown", () => this.sendPending());
+  }
+
+  private showConfirm(show: boolean) {
+    this.confirmBtn.setVisible(show);
+    this.confirmLabel.setVisible(show);
+  }
+
+  private sendPending() {
+    if (!this.pending) return;
+    const p = this.pending;
+    this.pending = null;
+    this.showConfirm(false);
+    this.validateAndSend(p.name, p.expW, p.expH, p.dataUrl, p.isBg);
   }
 
   private pickAndUpload() {
@@ -339,7 +382,14 @@ export class SpriteLabScene extends Phaser.Scene {
         return;
       }
       const reader = new FileReader();
-      reader.onload = () => this.validateAndSend(name, expW, expH, String(reader.result), isBg);
+      reader.onload = () => {
+        // Passo 1: prepara (não envia). Mostra prévia no toast + botão ENVIAR.
+        this.pending = { name, expW, expH, dataUrl: String(reader.result), isBg };
+        this.uploadToast
+          .setText(`escolhido: ${file.name}\n→ clique ENVIAR p/ ${name}.png`)
+          .setColor("#cfe0ff");
+        this.showConfirm(true);
+      };
       reader.readAsDataURL(file);
     };
     input.click();
