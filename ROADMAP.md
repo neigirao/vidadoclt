@@ -10,16 +10,16 @@ itens de engenharia do `CLAUDE.md`.
 
 ## Status por camada (GDD original)
 
-| Camada / Sprint            | Status       | Observação                                                              |
-| -------------------------- | ------------ | ----------------------------------------------------------------------- |
-| 1 — Núcleo jogável         | ✅ Concluído | Player, combo, HUD, VR, morte→Reconhecimento                            |
-| 2 — Loop de run            | ✅ Concluído | Sanidade/faixas, Copa, Ponto Eletrônico, Reconhecimento, FGTS           |
-| 3 — Fase 1 completa        | ✅ Concluído | Áreas 2/4, Gerente Microgestor (6 ataques), Autonomia, boss bar         |
+| Camada / Sprint            | Status       | Observação                                                                                                                   |
+| -------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1 — Núcleo jogável         | ✅ Concluído | Player, combo, HUD, VR, morte→Reconhecimento                                                                                 |
+| 2 — Loop de run            | ✅ Concluído | Sanidade/faixas, Copa, Ponto Eletrônico, Reconhecimento, FGTS                                                                |
+| 3 — Fase 1 completa        | ✅ Concluído | Áreas 2/4, Gerente Microgestor (6 ataques), Autonomia, boss bar                                                              |
 | 4 — Rogue-lite             | 🟢 ~95%      | 3 classes, 12 armas, perks, 12 Culturas, sinergias perk×perk + arma×perk. Falta só rota **divergente de verdade** (conteúdo) |
-| 5 — Fases 2–3              | 🟢 Boa       | Bosses temáticos com assinatura + enrage com dentes; falta conteúdo próprio (eventos/verticalidade como a Fase 1) |
-| 6 — Fases 4–5 + CEO        | ✅ Concluído | Fases 4/5, CEO, Vitória; Diretor com Cascata de Metas na phase 2       |
-| 7 — NPCs / eventos         | 🟢 Boa       | Faxineiro, Conspiracionista, LinkedIn, Veterano + eventos de RH na Copa |
-| 8 — Áudio / acessibilidade | 🟡 Parcial   | Áudio procedural ✅ + toggle de fotossensibilidade ✅; falta remap/daltônico/texto escalável |
+| 5 — Fases 2–3              | 🟢 Boa       | Bosses temáticos com assinatura + enrage com dentes; falta conteúdo próprio (eventos/verticalidade como a Fase 1)            |
+| 6 — Fases 4–5 + CEO        | ✅ Concluído | Fases 4/5, CEO, Vitória; Diretor com Cascata de Metas na phase 2                                                             |
+| 7 — NPCs / eventos         | 🟢 Boa       | Faxineiro, Conspiracionista, LinkedIn, Veterano + eventos de RH na Copa                                                      |
+| 8 — Áudio / acessibilidade | 🟡 Parcial   | Áudio procedural ✅ + toggle de fotossensibilidade ✅; falta remap/daltônico/texto escalável                                 |
 
 ### Extras entregues (fora do GDD original)
 
