@@ -2301,6 +2301,35 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       });
     }
 
+    // Teaching dos VERBOS de combate (só 1ª run): o red-flag nº1 do playtest é
+    // "ninguém usa dash/especial". Ensina por CONTEXTO — dash quando uma ameaça
+    // se aproxima (esquiva), especial quando há um grupo (AoE). Reusa o queue do
+    // TutorialPrompts (auto-some, 1× pra sempre).
+    if (getRun(this).loopCount === 0) {
+      let near = 0;
+      let nearest = Infinity;
+      for (const g of this.enemyGroups)
+        g.group.getChildren().forEach((c) => {
+          const e = c as Phaser.Physics.Arcade.Sprite;
+          if (!e.active) return;
+          const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
+          if (d < 300) near++;
+          if (d < nearest) nearest = d;
+        });
+      if (nearest < 240)
+        TutorialPrompts.maybeShow(
+          this,
+          "dash",
+          "Aperte [Shift] pra DASH — atravessa ataques, invencível no lance.",
+        );
+      if (near >= 2)
+        TutorialPrompts.maybeShow(
+          this,
+          "special",
+          "Aperte [K] pro ATAQUE ESPECIAL da arma — ótimo contra grupos.",
+        );
+    }
+
     // Teaching de parry por demonstração: quando o 1º estagiário chega perto
     // (o contato dele é parryável), um prompt ensina "aperte F para RECLAMAR".
     // A zona 1 tem 3 estagiários, então há chances repetidas de tentar.

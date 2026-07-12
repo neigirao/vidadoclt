@@ -311,7 +311,7 @@ Nenhum band-aid ativo no momento.
 
 `TutorialPrompts.maybeShow(scene, id, text)` enfileira um banner de 1 linha (💡, topo-centro, `setScrollFactor(0)` depth 1200) que **some sozinho** em 4,5s ou ao 1º `keydown`. Cada `id` aparece **1× para sempre** (flag em `localStorage` `vidaclt:tut`); a fila é por-cena (2 dicas juntas → a 2ª espera). Zero impacto em gameplay — só legenda o SISTEMA no momento em que ele aparece. `reset()` limpa as flags (retestar), `seen(id)` checa antes.
 
-Gatilhos ligados (6): `goal` (objetivo da Fase 1), `vr` (1º VR pego — moeda), `sanity` (1ª piora de faixa — Burnout, em `SanityFx`), `threat` (1º marcador de ameaça, em `ThreatMarkers`), `copa` (entrada na Copa), `death` (1ª Rescisão — explica o loop/Reconhecimento persistente, em `GameOverScene`).
+Gatilhos ligados (9): `goal` (objetivo da Fase 1), `vr` (1º VR pego — moeda), `dash` (ameaça a <240px → esquiva), `special` (grupo de ≥2 inimigos → AoE), `sanity` (1ª piora de faixa, em `SanityFx`), `burnout` (entrada no Burnout/VAI NA RAÇA, em `SanityFx`), `threat` (1º marcador de ameaça, em `ThreatMarkers`), `copa` (entrada na Copa), `death` (1ª Rescisão — explica o loop, em `GameOverScene`). Parry é ensinado à parte, por demonstração na zona 1 (`parryTaught`).
 
 ### Juice de combate (CombatFx.ts)
 
