@@ -276,11 +276,26 @@ Nenhum band-aid ativo no momento.
 
 ### Pendente / em aberto
 
-- ✅ **Spawn das Fases 2–5** — RESOLVIDO: o jogador nasce na esquerda e atravessa até o boss (pools de borda ajustados p/ spawn-seguro).
-- ✅ **Ataques especiais dos bosses 2–4** — FEITO: os três têm repertório telegrafado próprio. Coordenador @Fase2 (especial dirigido pela cena), Sênior @Fase3 (`aiState` walk→telegraph→slam), Scrum @Fase4 (`onShout` + `onRetrospectiva` com swell/glow/telegraph antes do hit). Não são mais só HP inflado.
-- ✅ **Economia de VR** — RESOLVIDO: a Copa oferece 2 armas + 2 perks (prateleira > carteira → tensão de escolha), preços subidos (café 6/pausa 9, armas 13–32, perks 16–29) e `VR_COMBO_CAP` limita o empilhamento de multiplicadores.
-- **Fase 5 falha no `LevelValidator`?** — RESOLVIDO (evangelista movida p/ fora do raio de spawn).
-- **Etapa 4 (BossCatalog dos 7 bosses)** — OBSOLETO: a arte-fonte em `_sources/` foi removida; só entra com arte nova.
+Design e combate estão fechados (ver "Aprendizados de design" abaixo). O que **resta** é
+majoritariamente conteúdo/arte, não código de sistema:
+
+- 🟨 **Fundos high-res das Fases 3/4/5 + CEO (cobertura)** — arte externa. Os 4 (`bg-comercial`/`bg-tecnologia`/`bg-diretoria`/`bg-cobertura`, ~32–42KB) são skylines chapados competentes, mas destoam dos 2 pintados ricos (`bg-openspace`/`bg-atendimento`, ~1–1.6MB). Bloqueado em geração de imagem; o botão de upload do LAB (FUNDOS) é o pipeline. **O clímax (CEO) tem o pior fundo — prioridade.**
+- 🟨 **Rotas divergentes de verdade** — a fundação existe (`RouteSelectScene`, `run.route`/`route2` + modificador), mas as rotas levam às MESMAS fases. Falta conteúdo/level-design distinto por rota.
+- 🟨 **Fases 2–3 mais "lineares"** que a Fase 1 (menos eventos/verticalidade próprios) — conteúdo.
+- ⬜ **Acessibilidade (deferida)** — remap de teclas, modo daltônico p/ telegraphs, texto escalável. (Toggle de fotossensibilidade já existe.)
+- ✅ **Resolvidos nesta sessão**: Burnout→VAI NA RAÇA, curva de bosses (enrage com dentes + assinaturas de mid-boss + Cascata do Diretor), economia in-fase (extintor/APAGÃO), onboarding dos verbos (dash/especial), sinergias arma×perk, porta da Copa, FX de Burnout alinhado.
+- **BossCatalog dos 7 bosses** — OBSOLETO: a arte-fonte em `_sources/` foi removida; só entra com arte nova.
+
+### Aprendizados de design (princípios que guiaram as últimas iterações)
+
+Regras de bolso extraídas do trabalho recente — aplicar antes de "só ajustar um número":
+
+1. **Sistema deve gerar DECISÃO, não só ajustar número.** Burnout era um relógio-de-derrota (só penalidade) → virou VAI NA RAÇA (glass-cannon opt-in com saída por agressão). Extintor era +3 VR (token) → virou JATO DE CO2 (isca a horda, AoE, VR escalado). APAGÃO só escurecia → virou stealth (inimigos longe dormem). Se o jogador não **escolhe** nada, o sistema é raso.
+2. **O visual tem que casar com a intenção mecânica.** O Burnout foi redesenhado pra empoderar, mas o FX continuava "agonia/cego" (túnel cinza) — contradizia a mecânica. Alinhado: vermelho-adrenalina, vinhete aberto (`SanityFx`). Sempre revisar se a arte diz o que o sistema faz.
+3. **Enrage/escalada deve adicionar MECÂNICA, não HP/velocidade.** Bosses "ficam mais gordos, não mais interessantes" é o anti-padrão. O enrage aos 35% agora intensifica a assinatura de cada boss (`bossEnraged` + `onBossEnrage()`): Coordenador 2→4 balões, Scrum 2→3 firewalls, Diretor ganha a Cascata. A 2ª metade da luta ramp-a com algo novo.
+4. **Ensinar VERBO por CONTEXTO, não por tela de ajuda.** Dash/Especial/Parry são legendados no momento de uso (ameaça perto → dash; grupo → especial; contato parryável → parry), não num tutorial isolado. Red-flag "ninguém usa dash/especial" atacado assim.
+5. **Docs de auditoria envelhecem — reconcilie contra o CÓDIGO, não contra a doc.** Metade dos "pendentes" já estava feita; a auditoria virou mentira parcial e parou de servir pra priorizar. Antes de agir num item "aberto", confirme no código.
+6. **Verificar mudança de gameplay dirigindo o jogo headless.** Padrão: subir `vite dev`, abrir via Playwright, acessar `window.__game.scene.getScene(...)` e chamar métodos da cena (privados de TS são chamáveis em runtime), medir desfechos numéricos + screenshots. Foi assim que o desalinhamento visual do Burnout apareceu e que as intensificações de enrage foram confirmadas (F2 2→4 balões, F4 2→3 firewalls). Cuidado com guardas de early-return ao chamar direto (ex.: `sprintReview` exige player perto do boss e `nextSprintAt` não-zero).
 
 ## Padrões e convenções
 
