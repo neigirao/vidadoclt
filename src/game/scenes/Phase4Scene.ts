@@ -253,9 +253,12 @@ export class Phase4Scene extends BasePhaseScene {
     this.nextSprintAt = time + (this.bossEnraged ? 5000 : 8000);
 
     // 2 grades entre o player e o boss (posições fixas relativas à arena)
-    const cols = [boss.x - 360, boss.x - 180].map((x) =>
-      Phaser.Math.Clamp(x, 200, LEVEL_WIDTH - 200),
-    );
+    // Enrage (assinatura F4): o Sprint Review fecha MAIS a arena — 3 grades de
+    // firewall em vez de 2, apertando os corredores. Gear-shift na 2ª metade.
+    const colXs = this.bossEnraged
+      ? [boss.x - 400, boss.x - 260, boss.x - 120]
+      : [boss.x - 360, boss.x - 180];
+    const cols = colXs.map((x) => Phaser.Math.Clamp(x, 200, LEVEL_WIDTH - 200));
     const label = this.add
       .text(boss.x, boss.y - 74, "SPRINT REVIEW!", {
         fontFamily: "monospace",

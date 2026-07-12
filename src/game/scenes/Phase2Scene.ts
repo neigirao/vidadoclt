@@ -188,7 +188,10 @@ export class Phase2Scene extends BasePhaseScene {
       .setDepth(400);
 
     // 2 balões orbitando (satélites de "pauta")
-    const balloons = [0, Math.PI].map((phase0) => {
+    // Enrage (assinatura F2): a reunião "incha" — 4 balões (cruz dupla) em vez
+    // de 2, dobrando as linhas de tiro. Gear-shift na 2ª metade, não só cadência.
+    const phases = this.bossEnraged ? [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2] : [0, Math.PI];
+    const balloons = phases.map((phase0) => {
       const b = this.add
         .text(bx, by, "💬", { fontFamily: "monospace", fontSize: "20px" })
         .setOrigin(0.5)
