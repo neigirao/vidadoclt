@@ -20,6 +20,11 @@ const WALK_FRAME_COUNTS: Record<string, number> = {
   coordenador: 4,
   senior: 16, // ciclo de caminhada premium (folha 8×2 fatiada) — elite
   rh: 4,
+  // Bosses recolor (asBoss): sem estas entradas caíam no default 2 e animavam só
+  // 2 de 6 (scrum-boss) / 2 de 4 (coord-boss) walk frames — arte válida 48×64
+  // desperdiçada. Agora usam o ciclo cheio.
+  "scrum-boss": 6,
+  "coord-boss": 4,
 };
 const IDLE_FRAME_COUNTS: Record<string, number> = {
   // estagiario/analista/facilitador: idle3 é frame CORROMPIDO (personagem
@@ -60,6 +65,10 @@ const ATTACK_FRAME_COUNTS: Record<string, number> = {
   rh: 2,
   facilitador: 2,
   analista: 2,
+  // Bosses recolor: os 3 frames de attack são 48×64 limpos (o recolor regenerou
+  // sem o lixo 32×48 do trash). Antes ciclavam só o frame 0 (default 1).
+  "scrum-boss": 3,
+  "coord-boss": 3,
 };
 const ATTACK_MS: Record<string, number> = {
   senior: 120,
