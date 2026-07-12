@@ -18,7 +18,7 @@ const WALK_FRAME_COUNTS: Record<string, number> = {
   facilitador: 2,
   scrum: 6,
   coordenador: 4,
-  senior: 4,
+  senior: 16, // ciclo de caminhada premium (folha 8×2 fatiada) — elite
   rh: 4,
 };
 const IDLE_FRAME_COUNTS: Record<string, number> = {
@@ -39,7 +39,7 @@ const WALK_MS: Record<string, number> = {
   facilitador: 180,
   scrum: 140,
   coordenador: 220,
-  senior: 280,
+  senior: 70, // 16 frames × 70ms ≈ 1.1s/ciclo — caminhada suave (era 4×280)
   rh: 200,
 };
 const IDLE_MS: Record<string, number> = {
