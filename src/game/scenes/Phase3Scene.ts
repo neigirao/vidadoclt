@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { BossPresence } from "../systems/BossPresence";
+import { getRun } from "../systems/PlayerState";
 import { AnalistaSeniorExausto } from "../entities/Enemies";
 import { BrendaDoRH } from "../entities/BrendaBoss";
 import {
@@ -26,31 +27,56 @@ export class Phase3Scene extends BasePhaseScene {
     super("Phase3Scene");
   }
 
+  // Rota divergente (2ª bifurcação, run.route2): a Brenda (RH) impõe a CULTURA
+  // da área escolhida pós-Fase 2. Produto (3A) = hype/evangelismo (bg-comercial,
+  // escada da carreira, mais evangelistas). Tecnologia (3B) = dados/débito técnico
+  // (bg-tecnologia, torres de data center, mais coletores/planilhas). Boss é a
+  // mesma Brenda — a rota diverge na jornada. Default (sem route2) = produto.
+  private isTecnologia(): boolean {
+    return getRun(this).route2 === "tecnologia";
+  }
+
   preload() {
     this.load.image("bg-comercial", "/assets/bg-comercial.png");
+    this.load.image("bg-tecnologia", "/assets/bg-tecnologia.png");
   }
 
   protected getBgKey() {
-    return "bg-comercial";
+    return this.isTecnologia() ? "bg-tecnologia" : "bg-comercial";
   }
   protected getPhaseNumber(): 3 {
     return 3;
   }
   protected getPhaseTitle() {
-    return "FASE 3 — RH / ENDOMARKETING";
+    return this.isTecnologia() ? "FASE 3 — CULTURA TECH" : "FASE 3 — CULTURA DE PRODUTO";
   }
   protected getInitialObjective() {
     return "Derrote a Brenda do RH e avance";
   }
 
   protected getPlatSurface() {
-    return { surf: "tex-degrau-rh", body: "tex-degrau-rh-body" };
+    return this.isTecnologia()
+      ? { surf: "tex-rack", body: "tex-rack-body" }
+      : { surf: "tex-degrau-rh", body: "tex-degrau-rh-body" };
   }
 
-  // Identidade "Escada da Carreira": plataformas que SOBEM da esquerda para a
-  // direita — o discurso de RH de "crescer na empresa". Premia subir; os aéreos
-  // (Coletor) pressionam quem fica no alto.
+  // Layout diverge por rota:
+  //  • Produto "Escada da Carreira": plataformas que SOBEM da esq→dir — o discurso
+  //    de "crescer na empresa". Premia subir; aéreos pressionam quem fica no alto.
+  //  • Tecnologia "Torres de Servidor": pares empilhados (degrau baixo + topo alto)
+  //    separados por vãos — pilares de rack. Cruzar exige dash.
   protected getPlatformLayout(): Array<[number, number, number]> {
+    if (this.isTecnologia()) {
+      return [
+        [240, FLOOR_Y - 42, 3],
+        [380, FLOOR_Y - 82, 3],
+        [760, FLOOR_Y - 42, 3],
+        [900, FLOOR_Y - 82, 3],
+        [1240, FLOOR_Y - 42, 3],
+        [1380, FLOOR_Y - 82, 3],
+        [1620, FLOOR_Y - 50, 4],
+      ];
+    }
     return [
       [220, FLOOR_Y - 30, 4],
       [470, FLOOR_Y - 44, 4],
@@ -84,15 +110,19 @@ export class Phase3Scene extends BasePhaseScene {
     this.impressorasV = this.physics.add.group({ runChildUpdate: false });
     this.seniors = this.physics.add.group({ runChildUpdate: false });
 
-    // Encontros por seed: contagem fixa, posições variam por run.
-    this.pickPositions([300, 420, 540, 660, 780, 900], 4).forEach((x) => {
+    // Composição diverge por rota: Produto = mais EVANGELISTAS (hype/pitch);
+    // Tecnologia = mais COLETORES + PLANILHAS (dados/débito técnico).
+    const tec = this.isTecnologia();
+
+    // Encontros por seed: contagem fixa por rota, posições variam por run.
+    this.pickPositions([300, 420, 540, 660, 780, 900], tec ? 3 : 4).forEach((x) => {
       const e = new EvangelistaCorporativo(this, x, FLOOR_Y - 60);
       e.target = this.player;
       e.onFire = (fx, fy, tx, ty) => this.spawnEnemyProjectile(fx, fy, tx, ty, 12, 0xff6600, 190);
       this.evangelistas.add(e);
     });
 
-    this.pickPositions([480, 650, 950, 1200, 1350], 3).forEach((x) => {
+    this.pickPositions([480, 650, 950, 1200, 1350], tec ? 4 : 3).forEach((x) => {
       const e = new ColetorDeDados(this, x, FLOOR_Y - 160);
       e.target = this.player;
       e.onStealVR = () => {
@@ -111,7 +141,8 @@ export class Phase3Scene extends BasePhaseScene {
       this.coletores.add(e);
     });
 
-    [940, 1140].forEach((x) => {
+    // Planilhas Vivas (débito técnico): Tecnologia 3, Produto 2.
+    (tec ? [760, 1040, 1320] : [940, 1140]).forEach((x) => {
       const planilha = new PlanilhaViva(this, x, FLOOR_Y - 60);
       planilha.target = this.player;
       planilha.onFire = (px, py) => {
