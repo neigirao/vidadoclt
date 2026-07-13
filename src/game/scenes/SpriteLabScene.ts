@@ -2,6 +2,17 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { resolveSprite, isAtlasKey, ATLAS_KEY, initSpriteLibrary } from "../systems/SpriteLibrary";
 import { bgUrl, uploadBg } from "../systems/BgOverrides";
+import {
+  WALK_FRAME_COUNTS,
+  IDLE_FRAME_COUNTS,
+  ATTACK_FRAME_COUNTS,
+  WALK_MS,
+  IDLE_MS,
+  ATTACK_MS,
+  DEFAULT_WALK_MS,
+  DEFAULT_IDLE_MS,
+  DEFAULT_ATTACK_MS,
+} from "../systems/EnemyAnimConfig";
 
 // ── Lab de Sprites: valida TODOS os assets da Fase 1 (personagens, inimigos,
 // bosses, objetos, drops, projéteis) com botões clicáveis que tocam a animação
@@ -11,6 +22,7 @@ type Subject = {
   name: string;
   cat: string;
   states: Record<string, string[]>; // estado -> lista de chaves lógicas (tex-* ou frame do atlas)
+  prefix?: string; // prefixo do atlas (p/ cruzar com a config real de animação do jogo)
 };
 
 // Constrói estados de personagem a partir de [frameInicial, quantidade].
@@ -24,7 +36,7 @@ function mkChar(
   for (const [st, [start, count]] of Object.entries(defs)) {
     states[st] = Array.from({ length: count }, (_, i) => `tex-${prefix}-${st}${start + i}`);
   }
-  return { name, cat, states };
+  return { name, cat, states, prefix };
 }
 function mkItem(name: string, cat: string, states: Record<string, string[]>): Subject {
   return { name, cat, states };
@@ -76,6 +88,20 @@ const SUBJECTS: Subject[] = [
   mkChar("Sênior", "Inimigo", "senior", {
     idle: [0, 4],
     walk: [0, 16], // ciclo premium de 16 frames (folha fatiada)
+    attack: [0, 3],
+    hurt: [0, 1],
+  }),
+  // Bosses recolor (asBoss) — arte 48×64 dedicada; o LAB cruza c/ a config real
+  // do jogo (foi aqui que 2 de 6 walk ficavam parados).
+  mkChar("Scrum (boss)", "Boss", "scrum-boss", {
+    idle: [0, 4],
+    walk: [0, 6],
+    attack: [0, 3],
+    hurt: [0, 1],
+  }),
+  mkChar("Coordenador (boss)", "Boss", "coord-boss", {
+    idle: [0, 4],
+    walk: [0, 4],
     attack: [0, 3],
     hurt: [0, 1],
   }),
@@ -181,7 +207,8 @@ export class SpriteLabScene extends Phaser.Scene {
   private frameIdx = 0;
   private playing = true;
   private nextAt = 0;
-  private frameMs = 150;
+  private frameMs = 150; // fallback quando não há config de jogo p/ o estado
+  private speedOverride: number | null = null; // ms manual ([ ]); null = usa o ms do jogo
 
   private preview!: Phaser.GameObjects.Image;
   private bbox!: Phaser.GameObjects.Graphics;
@@ -210,7 +237,7 @@ export class SpriteLabScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor("#15171c");
 
     this.add
-      .text(GAME_WIDTH / 2, 8, "LAB DE SPRITES — FASE 1", {
+      .text(GAME_WIDTH / 2, 8, "LAB DE SPRITES", {
         fontFamily: "monospace",
         fontSize: "15px",
         color: "#f2c14e",
@@ -222,7 +249,7 @@ export class SpriteLabScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         28,
-        "clique nos botões (personagem à esquerda, ação embaixo) — a ação roda em loop   ·   [ESC] sair",
+        "sujeito ← · ação embaixo · [ESPAÇO] pausa · [← →] passo a passo · [ [ ] ] velocidade · [R] reset · [ESC] sair",
         {
           fontFamily: "monospace",
           fontSize: "9px",
@@ -262,15 +289,23 @@ export class SpriteLabScene extends Phaser.Scene {
     this.input.keyboard!.on("keydown-SPACE", () => {
       this.playing = !this.playing;
     });
+    // Passo a passo (pausa e anda 1 frame) — QA de pixel por frame.
+    this.input.keyboard!.on("keydown-LEFT", () => this.stepFrame(-1));
+    this.input.keyboard!.on("keydown-RIGHT", () => this.stepFrame(1));
+    // Velocidade manual (override do ms do jogo) — julgar cadência.
+    this.input.keyboard!.on("keydown-OPEN_BRACKET", () => this.nudgeSpeed(20)); // + lento
+    this.input.keyboard!.on("keydown-CLOSED_BRACKET", () => this.nudgeSpeed(-20)); // + rápido
+    this.input.keyboard!.on("keydown-R", () => {
+      this.speedOverride = null; // volta ao ms do jogo
+      this.logDiagnostics();
+    });
 
     this.loadState();
 
-    // Upload de sprite: substitui o PNG-fonte do frame atual e re-empacota o
-    // atlas via o middleware do Vite. Visível para TODOS durante a fase de teste
-    // (antes era só DEV). ATENÇÃO: a gravação depende do endpoint `/__sprite-upload`
-    // do plugin Vite (`apply:"serve"`), que só existe quando o app roda em `vite
-    // dev`. Num build 100% estático o botão aparece mas o upload retorna erro
-    // (sem backend p/ gravar). Reverter p/ `if (import.meta.env.DEV)` ao sair do teste.
+    // Upload (visível a todos na fase de teste). FUNDO: persiste via
+    // BgOverrides (IndexedDB device-local + Supabase Storage best-effort) —
+    // funciona no build publicado. SPRITE: re-empacota o atlas pelo endpoint do
+    // `vite dev` (só em dev; no build estático avisa que não grava).
     this.buildUploadButton();
   }
 
@@ -664,15 +699,20 @@ export class SpriteLabScene extends Phaser.Scene {
       cell = 44,
       total = this.frames.length;
     const startX = this.CX - (total * cell) / 2 + cell / 2;
+    // Frames além do que o jogo cicla ficam laranja + esmaecidos ("no atlas mas
+    // o jogo não usa") — surge quando o LAB tem mais frames que a config real.
+    const gameFrames = this.gameAnim()?.frames ?? Infinity;
     this.frames.forEach((f, i) => {
       const x = startX + i * cell;
+      const unused = i >= gameFrames;
       const border = this.add
         .rectangle(x, y, cell - 4, cell - 4, 0x1a1d23)
-        .setStrokeStyle(2, f.ok ? 0x44ff88 : 0xff3333);
+        .setStrokeStyle(2, !f.ok ? 0xff3333 : unused ? 0xffaa33 : 0x44ff88);
+      border.setData("idx", i);
       this.stripG.add(border);
       if (f.ok) {
         const img = f.frame ? this.add.image(x, y, f.tex, f.frame) : this.add.image(x, y, f.tex);
-        img.setScale(Math.min((cell - 8) / f.w, (cell - 8) / f.h));
+        img.setScale(Math.min((cell - 8) / f.w, (cell - 8) / f.h)).setAlpha(unused ? 0.4 : 1);
         this.stripG.add(img);
       } else {
         this.stripG.add(
@@ -694,18 +734,15 @@ export class SpriteLabScene extends Phaser.Scene {
   }
 
   private highlightStrip() {
-    const cell = 44,
-      total = this.frames.length;
-    const startX = this.CX - (total * cell) / 2 + cell / 2;
+    const gameFrames = this.gameAnim()?.frames ?? Infinity;
     (this.stripG.list as Phaser.GameObjects.GameObject[]).forEach((o) => {
       if (o instanceof Phaser.GameObjects.Rectangle) {
-        const idx = Math.round((o.x - startX) / cell);
+        const idx = o.getData("idx") as number | undefined;
+        if (idx == null) return;
         const f = this.frames[idx];
-        if (f)
-          o.setStrokeStyle(
-            idx === this.frameIdx ? 3 : 2,
-            idx === this.frameIdx ? 0xffdd44 : f.ok ? 0x44ff88 : 0xff3333,
-          );
+        if (!f) return;
+        const base = !f.ok ? 0xff3333 : idx >= gameFrames ? 0xffaa33 : 0x44ff88;
+        o.setStrokeStyle(idx === this.frameIdx ? 3 : 2, idx === this.frameIdx ? 0xffdd44 : base);
       }
     });
   }
@@ -715,9 +752,19 @@ export class SpriteLabScene extends Phaser.Scene {
     const missing = this.frames.filter((f) => !f.ok).map((f) => f.key);
     const sizes = [...new Set(this.frames.filter((f) => f.ok).map((f) => `${f.w}x${f.h}`))];
     const cur = this.frames[this.frameIdx];
+    // Cruza com a config REAL do jogo (fonte única): quantos frames ele cicla e
+    // a que ms. Flag de divergência = o LAB mostra N mas o jogo toca M.
+    const g = this.gameAnim();
+    const diverges = !!g && g.frames !== this.frames.length;
+    const speedTag = this.speedOverride != null ? " (manual)" : g ? " (jogo)" : "";
     const lines = [
       `${subj.cat.toUpperCase()}:  ${subj.name}`,
-      `ANIMAÇÃO:  ${this.stateName}   (${this.frames.length} frames)`,
+      `ANIMAÇÃO:  ${this.stateName}   (${this.frames.length} frames no atlas)`,
+      g
+        ? `JOGO cicla:  ${g.frames} frames @ ${g.ms}ms` +
+          (diverges ? `   ⚠ LAB≠JOGO (mostra ${this.frames.length})` : "  ✓")
+        : `JOGO:  — (estado sem config de setEnemyTex)`,
+      `velocidade:  ${this.effectiveMs()}ms${speedTag}`,
       `tamanhos:  ${sizes.join(", ") || "—"}` + (sizes.length > 1 ? "  ⚠ INCONSISTENTE" : "  ✓"),
       `faltando:  ${missing.length ? "⚠ " + missing.length : "✓ 0"}`,
       ...missing.map((m) => `   ✗ ${m}`),
@@ -725,19 +772,56 @@ export class SpriteLabScene extends Phaser.Scene {
       `frame atual: ${cur ? (cur.frame ?? cur.tex) : "—"}  (${cur ? cur.w + "x" + cur.h : "—"})`,
     ];
     this.info.setText(lines.join("\n"));
-    const status = missing.length || sizes.length > 1 ? "⚠ PROBLEMA" : "OK";
+    const status = missing.length || sizes.length > 1 || diverges ? "⚠ PROBLEMA" : "OK";
 
     console.log(
-      `[SpriteLab] ${subj.name}/${this.stateName}: ${this.frames.length}f sizes=${sizes.join("|")} missing=${missing.length} → ${status}`,
+      `[SpriteLab] ${subj.name}/${this.stateName}: ${this.frames.length}f sizes=${sizes.join("|")} missing=${missing.length}` +
+        (g ? ` game=${g.frames}f@${g.ms}ms${diverges ? "(DIVERGE)" : ""}` : "") +
+        ` → ${status}`,
       missing.length ? missing : "",
     );
   }
 
   update(time: number) {
     if (this.playing && this.frames.length > 1 && time >= this.nextAt) {
-      this.nextAt = time + this.frameMs;
+      this.nextAt = time + this.effectiveMs();
       this.frameIdx = (this.frameIdx + 1) % this.frames.length;
       this.applyFrame();
     }
+  }
+
+  // ── Config REAL do jogo p/ o estado atual (fonte única EnemyAnimConfig) ──────
+  // Retorna o que o jogo cicla (frames + ms) p/ um sujeito com prefixo mapeado;
+  // null se o estado/sujeito não usa setEnemyTex (bosses próprios, fase 2+, etc.).
+  private gameAnim(): { frames: number; ms: number } | null {
+    const p = SUBJECTS[this.subjIdx].prefix;
+    if (!p) return null;
+    const st = this.stateName;
+    if (st === "walk" && p in WALK_FRAME_COUNTS)
+      return { frames: WALK_FRAME_COUNTS[p], ms: WALK_MS[p] ?? DEFAULT_WALK_MS };
+    if (st === "idle" && p in IDLE_FRAME_COUNTS)
+      return { frames: IDLE_FRAME_COUNTS[p], ms: IDLE_MS[p] ?? DEFAULT_IDLE_MS };
+    if (st === "attack" && p in ATTACK_FRAME_COUNTS)
+      return { frames: ATTACK_FRAME_COUNTS[p], ms: ATTACK_MS[p] ?? DEFAULT_ATTACK_MS };
+    return null;
+  }
+
+  /** ms do loop: override manual > ms do jogo p/ o estado > fallback. */
+  private effectiveMs(): number {
+    return this.speedOverride ?? this.gameAnim()?.ms ?? this.frameMs;
+  }
+
+  private stepFrame(dir: number) {
+    this.playing = false;
+    const n = this.frames.length;
+    if (n > 0) this.frameIdx = (this.frameIdx + dir + n) % n;
+    this.applyFrame();
+    this.logDiagnostics();
+  }
+
+  private nudgeSpeed(deltaMs: number) {
+    const base = this.speedOverride ?? this.effectiveMs();
+    this.speedOverride = Phaser.Math.Clamp(base + deltaMs, 20, 600);
+    this.logDiagnostics();
   }
 }

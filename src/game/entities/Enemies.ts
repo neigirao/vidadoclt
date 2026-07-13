@@ -2,80 +2,27 @@ import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { noise2d } from "../systems/CorporateAI";
 import { markKilled } from "../systems/BestiarySystem";
+// Config de animação (contagem de frames + ms por estado) — FONTE ÚNICA em
+// systems/EnemyAnimConfig.ts, compartilhada com o SpriteLabScene (que cruza e
+// avisa quando os frames disponíveis divergem do que o jogo cicla).
+import {
+  WALK_FRAME_COUNTS,
+  IDLE_FRAME_COUNTS,
+  ATTACK_FRAME_COUNTS,
+  WALK_MS,
+  IDLE_MS,
+  ATTACK_MS,
+  DEFAULT_WALK_FRAMES,
+  DEFAULT_IDLE_FRAMES,
+  DEFAULT_ATTACK_FRAMES,
+  DEFAULT_WALK_MS,
+  DEFAULT_IDLE_MS,
+  DEFAULT_ATTACK_MS,
+} from "../systems/EnemyAnimConfig";
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
 // Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
 const _animOffsets = new WeakMap<Phaser.Physics.Arcade.Sprite, number>();
-
-// Max walk/idle frame counts per enemy prefix — use all existing atlas frames
-// Conta só os frames de walk com tamanho de canvas consistente (48x64). Os
-// frames 64x64 extraidos a mais (estagiario 4-5, analista 4, facilitador 2-5)
-// tinham o personagem em escala errada/cortado e faziam o sprite "encolher"
-// no meio do ciclo de caminhada. Limitado aos frames bons.
-const WALK_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 4,
-  analista: 4,
-  facilitador: 2,
-  scrum: 6,
-  coordenador: 4,
-  senior: 16, // ciclo de caminhada premium (folha 8×2 fatiada) — elite
-  rh: 4,
-  // Bosses recolor (asBoss): sem estas entradas caíam no default 2 e animavam só
-  // 2 de 6 (scrum-boss) / 2 de 4 (coord-boss) walk frames — arte válida 48×64
-  // desperdiçada. Agora usam o ciclo cheio.
-  "scrum-boss": 6,
-  "coord-boss": 4,
-};
-const IDLE_FRAME_COUNTS: Record<string, number> = {
-  // estagiario/analista/facilitador: idle3 é frame CORROMPIDO (personagem
-  // trocado/embaralhado da extração) → cicla só idle0-2 p/ não exibi-lo.
-  estagiario: 3,
-  analista: 3,
-  facilitador: 3,
-  scrum: 4,
-  coordenador: 4,
-  senior: 4,
-  rh: 4,
-};
-// Per-prefix frame duration (ms) — tuned to each enemy's energy level
-const WALK_MS: Record<string, number> = {
-  estagiario: 160,
-  analista: 200,
-  facilitador: 180,
-  scrum: 140,
-  coordenador: 220,
-  senior: 70, // 16 frames × 70ms ≈ 1.1s/ciclo — caminhada suave (era 4×280)
-  rh: 200,
-};
-const IDLE_MS: Record<string, number> = {
-  estagiario: 280,
-  analista: 320,
-  facilitador: 300,
-  scrum: 260,
-  coordenador: 350,
-  senior: 500,
-  rh: 320,
-};
-// Ataque animado: whitelist de quantos frames CADA inimigo pode ciclar. Só
-// entram os frames de arte VALIDADA (48x64) — os outliers 32x48 / lixo de
-// extração (ex: facilitador-attack2, analista-attack2, scrum-attack1/2) ficam
-// de fora. Prefixo ausente → 1 (mantém o frame 0 estático, sem regressão).
-const ATTACK_FRAME_COUNTS: Record<string, number> = {
-  senior: 3,
-  rh: 2,
-  facilitador: 2,
-  analista: 2,
-  // Bosses recolor: os 3 frames de attack são 48×64 limpos (o recolor regenerou
-  // sem o lixo 32×48 do trash). Antes ciclavam só o frame 0 (default 1).
-  "scrum-boss": 3,
-  "coord-boss": 3,
-};
-const ATTACK_MS: Record<string, number> = {
-  senior: 120,
-  rh: 110,
-  facilitador: 100,
-  analista: 110,
-};
 
 function setEnemyTex(
   e: Phaser.Physics.Arcade.Sprite,
@@ -87,18 +34,18 @@ function setEnemyTex(
   const offset = _animOffsets.get(e)!;
   let frame = 0;
   if (state === "walk") {
-    const maxFrames = WALK_FRAME_COUNTS[prefix] ?? 2;
-    const ms = WALK_MS[prefix] ?? 180;
+    const maxFrames = WALK_FRAME_COUNTS[prefix] ?? DEFAULT_WALK_FRAMES;
+    const ms = WALK_MS[prefix] ?? DEFAULT_WALK_MS;
     frame = Math.floor((t + offset) / ms) % maxFrames;
   } else if (state === "idle") {
-    const maxFrames = IDLE_FRAME_COUNTS[prefix] ?? 4;
-    const ms = IDLE_MS[prefix] ?? 300;
+    const maxFrames = IDLE_FRAME_COUNTS[prefix] ?? DEFAULT_IDLE_FRAMES;
+    const ms = IDLE_MS[prefix] ?? DEFAULT_IDLE_MS;
     frame = Math.floor((t + offset) / ms) % maxFrames;
   } else if (state === "attack") {
     // Só cicla se o inimigo tem frames de ataque validados; senão fica no 0.
-    const maxFrames = ATTACK_FRAME_COUNTS[prefix] ?? 1;
+    const maxFrames = ATTACK_FRAME_COUNTS[prefix] ?? DEFAULT_ATTACK_FRAMES;
     if (maxFrames > 1) {
-      const ms = ATTACK_MS[prefix] ?? 110;
+      const ms = ATTACK_MS[prefix] ?? DEFAULT_ATTACK_MS;
       frame = Math.floor((t + offset) / ms) % maxFrames;
     }
   }
