@@ -221,6 +221,12 @@ faltam (Fases 3/4/5).
 
 Área de teste que mostra **todos os assets renderizados** (personagens, inimigos das Fases 1–4, bosses, objetos, drops, projéteis, **cenário: tiles + fundo**) com botões clicáveis: clique no sujeito (2 colunas à esquerda) e na ação (embaixo) → a animação roda em loop. Mostra bounding box, linha dos pés, strip de frames e um painel de diagnóstico; loga `[SpriteLab] nome/ação: Nf sizes=… missing=… → OK/PROBLEMA`. É a forma rápida de flagrar frame trocado/cortado/faltando. Preview auto-escala (assets grandes como o fundo 1920px encolhem para caber).
 
+**Fonte única de animação**: o LAB lê `systems/EnemyAnimConfig.ts` (mesma config que `Enemies.ts` usa em `setEnemyTex`) → o painel mostra "JOGO cicla N@Mms" e flaga **direcional**: `LAB<jogo` = ⚠ arte que o jogo usa mas o LAB esconde (PROBLEMA); `LAB>jogo` = ℹ o jogo pula um extra/corrompido (ok). Antes o LAB tinha definição paralela e podia "mentir".
+
+**Controles**: `[ESPAÇO]` pausa · `[← →]` passo a passo · `[ [ ] ]` velocidade (default = ms REAL do jogo) · `[R]` reset · `[O]` onion-skin (fantasma azul do idle0 no mesmo scale/baseline → pega pulo de tamanho entre estados) · upload em 2 passos (ENVIAR).
+
+**Audit headless (p/ o agente)**: `window.__game.scene.getScene("SpriteLabScene").runFullAudit()` varre TODOS os sujeitos/estados/frames numa chamada e retorna JSON dos frames RUINS com motivo — além de missing/tamanho/LAB<jogo, mede **conteúdo via canvas**: quase-vazio (alpha%), chapado (% cor dominante = lixo de extração) e **altura do personagem fora da mediana da família** (pulo/encolhimento). Loga `[SpriteAudit] …`. É o caminho pra localizar e priorizar sprites ruins sem dirigir a UI frame a frame.
+
 ### Validador de fase (`systems/LevelValidator.ts`)
 
 `validateLevel(spec)` roda contra uma cena **já montada** e verifica invariantes que garantem que a fase é jogável/justa num roguelite (layout varia por seed). Roda só em DEV no fim de `create()` da `OpenSpaceV2Scene` e loga `[LevelValidator] … PASS/FAIL`. Checa: chão contínuo, plataformas alcançáveis por **grafo de pulos encadeados** (`computeReachability` faz BFS do chão; aresta A→B usa a cinemática — apex `v²/2g` + alcance horizontal `walk·tAr + dash`), mesas puláveis (não bloqueiam o corredor), móveis sem sobreposição, spawn seguro (sem inimigo perto do player), inimigos nos limites, boss posicionado, saída presente, e distribuição de inimigos por zonas (ritmo de dificuldade). É agnóstico de fase — dá pra validar Fases 2–5 passando as refs no `LevelSpec`.

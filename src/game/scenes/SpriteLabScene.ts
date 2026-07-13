@@ -843,9 +843,11 @@ export class SpriteLabScene extends Phaser.Scene {
   // Retorna o que o jogo cicla (frames + ms) p/ um sujeito com prefixo mapeado;
   // null se o estado/sujeito não usa setEnemyTex (bosses próprios, fase 2+, etc.).
   private gameAnim(): { frames: number; ms: number } | null {
-    const p = SUBJECTS[this.subjIdx].prefix;
+    return this.gameAnimFor(SUBJECTS[this.subjIdx].prefix, this.stateName);
+  }
+
+  private gameAnimFor(p: string | undefined, st: string): { frames: number; ms: number } | null {
     if (!p) return null;
-    const st = this.stateName;
     if (st === "walk" && p in WALK_FRAME_COUNTS)
       return { frames: WALK_FRAME_COUNTS[p], ms: WALK_MS[p] ?? DEFAULT_WALK_MS };
     if (st === "idle" && p in IDLE_FRAME_COUNTS)
@@ -853,6 +855,122 @@ export class SpriteLabScene extends Phaser.Scene {
     if (st === "attack" && p in ATTACK_FRAME_COUNTS)
       return { frames: ATTACK_FRAME_COUNTS[p], ms: ATTACK_MS[p] ?? DEFAULT_ATTACK_MS };
     return null;
+  }
+
+  // ── Métricas de CONTEÚDO de um frame (via canvas) p/ o audit headless ────────
+  // Desenha o frame num canvas e lê os pixels: cobertura de alpha, altura do
+  // conteúdo (bbox opaco) e "achatamento" (% da cor opaca dominante — pega lixo
+  // de extração / bloco chapado). Reaproveita 1 canvas offscreen.
+  private auditCtx?: CanvasRenderingContext2D;
+  private frameMetrics(f: FrameInfo): { alphaPct: number; contentH: number; flatPct: number } {
+    if (!this.auditCtx) {
+      const cv = document.createElement("canvas");
+      this.auditCtx = cv.getContext("2d", { willReadFrequently: true }) ?? undefined;
+    }
+    const ctx = this.auditCtx;
+    const src = this.textures.get(f.tex).getSourceImage() as CanvasImageSource;
+    if (!ctx || !src) return { alphaPct: 0, contentH: 0, flatPct: 0 };
+    ctx.canvas.width = f.w;
+    ctx.canvas.height = f.h;
+    ctx.clearRect(0, 0, f.w, f.h);
+    if (f.frame) {
+      const fr = this.textures.getFrame(ATLAS_KEY, f.frame);
+      ctx.drawImage(src, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, 0, 0, f.w, f.h);
+    } else {
+      ctx.drawImage(src, 0, 0, f.w, f.h);
+    }
+    const data = ctx.getImageData(0, 0, f.w, f.h).data;
+    let opaque = 0,
+      minY = f.h,
+      maxY = -1;
+    const colors = new Map<number, number>();
+    for (let y = 0; y < f.h; y++)
+      for (let x = 0; x < f.w; x++) {
+        const i = (y * f.w + x) * 4;
+        if (data[i + 3] > 24) {
+          opaque++;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+          // quantiza a cor (5 bits/canal) p/ medir dominância
+          const q = ((data[i] >> 3) << 10) | ((data[i + 1] >> 3) << 5) | (data[i + 2] >> 3);
+          colors.set(q, (colors.get(q) ?? 0) + 1);
+        }
+      }
+    const total = f.w * f.h;
+    const domin = colors.size ? Math.max(...colors.values()) : 0;
+    return {
+      alphaPct: (opaque / total) * 100,
+      contentH: maxY >= minY ? maxY - minY + 1 : 0,
+      flatPct: opaque ? (domin / opaque) * 100 : 0,
+    };
+  }
+
+  /**
+   * AUDIT HEADLESS (1 chamada): varre todos os sujeitos/estados/frames e retorna
+   * JSON dos frames RUINS com o motivo, p/ o agente localizar e consertar. Além
+   * de missing/tamanho/LAB<jogo, mede conteúdo: quase-vazio, chapado (lixo), e
+   * altura fora da mediana da família (pulo/encolhimento). Chamar via
+   * `window.__game.scene.getScene("SpriteLabScene").runFullAudit()`.
+   */
+  runFullAudit(): { subjects: number; frames: number; bad: unknown[] } {
+    const bad: Array<Record<string, unknown>> = [];
+    let frameCount = 0;
+    const median = (a: number[]) => {
+      const s = [...a].sort((x, y) => x - y);
+      return s.length ? s[s.length >> 1] : 0;
+    };
+    for (const subj of SUBJECTS) {
+      for (const st of Object.keys(subj.states)) {
+        const infos = subj.states[st].map((k) => this.getInfo(k));
+        const g = this.gameAnimFor(subj.prefix, st);
+        if (g && infos.length < g.frames)
+          bad.push({
+            subj: subj.name,
+            state: st,
+            issue: `LAB<jogo: falta ${g.frames - infos.length}`,
+          });
+        const heights: number[] = [];
+        infos.forEach((f, idx) => {
+          frameCount++;
+          const reasons: string[] = [];
+          if (!f.ok) {
+            bad.push({ subj: subj.name, state: st, frame: idx, key: f.key, issue: "missing" });
+            return;
+          }
+          const m = this.frameMetrics(f);
+          heights.push(m.contentH);
+          if (m.alphaPct < 2) reasons.push(`quase-vazio ${m.alphaPct.toFixed(1)}%`);
+          if (m.flatPct > 90) reasons.push(`chapado ${m.flatPct.toFixed(0)}% 1cor`);
+          if (reasons.length)
+            bad.push({
+              subj: subj.name,
+              state: st,
+              frame: idx,
+              key: f.frame ?? f.tex,
+              dims: `${f.w}x${f.h}`,
+              issue: reasons.join(" · "),
+            });
+        });
+        // Altura fora da mediana da família (pulo/encolhimento) — só estados com ≥3.
+        if (heights.length >= 3) {
+          const med = median(heights.filter((h) => h > 0));
+          heights.forEach((h, idx) => {
+            if (med > 0 && h > 0 && Math.abs(h - med) / med > 0.25)
+              bad.push({
+                subj: subj.name,
+                state: st,
+                frame: idx,
+                issue: `altura ${h}px vs mediana ${med}px (pulo de tamanho)`,
+              });
+          });
+        }
+      }
+    }
+    console.log(
+      `[SpriteAudit] ${SUBJECTS.length} sujeitos, ${frameCount} frames → ${bad.length} problema(s)`,
+      bad,
+    );
+    return { subjects: SUBJECTS.length, frames: frameCount, bad };
   }
 
   /** ms do loop: override manual > ms do jogo p/ o estado > fallback. */
