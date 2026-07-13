@@ -323,6 +323,7 @@ export class SpriteLabScene extends Phaser.Scene {
     // funciona no build publicado. SPRITE: re-empacota o atlas pelo endpoint do
     // `vite dev` (só em dev; no build estático avisa que não grava).
     this.buildUploadButton();
+    this.buildFixButtons();
   }
 
   // ── Upload do frame atual (DEV) ──────────────────────────────────────────────
@@ -397,6 +398,215 @@ export class SpriteLabScene extends Phaser.Scene {
     this.pending = null;
     this.showConfirm(false);
     this.validateAndSend(p.name, p.expW, p.expH, p.dataUrl, p.isBg);
+  }
+
+  // ── Botões de CONSERTO do frame atual (determinístico, preserva o design) ────
+  // Aplicados CONSCIENTEMENTE pelo usuário no frame que ele julgou ruim (o audit
+  // só sinaliza candidatos — auto-fix cego corromperia frame de FX/pose). Só
+  // grava em `vite dev` (endpoint /__frame-fix re-empacota o atlas).
+  private buildFixButtons() {
+    const x = 745;
+    type FixMode = "rescale" | "copy-nearest" | "gemini";
+    const mk = (dx: number, y: number, w: number, label: string, mode: FixMode, col: number) => {
+      const bg = this.add
+        .rectangle(x + dx, y, w, 24, 0x3a2e18)
+        .setStrokeStyle(2, col)
+        .setInteractive({ useHandCursor: true });
+      this.add
+        .text(x + dx, y, label, { fontFamily: "monospace", fontSize: "10px", color: "#f0e0c0" })
+        .setOrigin(0.5);
+      bg.on("pointerover", () => bg.setFillStyle(0x4a3a20));
+      bg.on("pointerout", () => bg.setFillStyle(0x3a2e18));
+      bg.on("pointerdown", () => this.postFrameFix(mode));
+    };
+    // Determinísticos (preservam o design): rescale (pulo de tamanho → mediana) e
+    // copiar vizinho (vazio/quebrado).
+    mk(-63, 462, 120, "🔧 RESCALE MEDIANA", "rescale", 0xd8a441);
+    mk(65, 462, 120, "🔧 COPIAR VIZINHO", "copy-nearest", 0xc47a3a);
+    // IA (Gemini): redesenha o frame seguindo os vizinhos. Precisa GEMINI_API_KEY
+    // + billing. Pode destoar do estilo — confira antes de manter.
+    mk(0, 490, 248, "🤖 REFAZER COM IA (GEMINI)", "gemini", 0x9966ff);
+  }
+
+  private async postFrameFix(mode: "rescale" | "copy-nearest" | "gemini") {
+    const cur = this.frames[this.frameIdx];
+    if (!cur?.ok || !cur.frame) {
+      this.uploadToast.setText("⚠ conserto só p/ frame de sprite do atlas").setColor("#ffaa66");
+      return;
+    }
+    this.uploadToast
+      .setText(
+        mode === "gemini"
+          ? `🤖 redesenhando ${cur.frame} com IA (pode demorar)…`
+          : `consertando ${cur.frame} (${mode})…`,
+      )
+      .setColor("#cfd6e0");
+    try {
+      const r = await fetch("/__frame-fix", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ frame: cur.frame, mode }),
+      });
+      const ct = r.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        this.uploadToast
+          .setText("⚠ conserto só grava em `vite dev` (re-empacota o atlas).")
+          .setColor("#ffaa66");
+        return;
+      }
+      const j = (await r.json()) as {
+        ok: boolean;
+        error?: string;
+        beforeH?: number;
+        afterH?: number;
+        copiedFrom?: string;
+        refs?: string[];
+        previewDataUrl?: string;
+      };
+      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      // IA (Gemini): não trocou nada ainda — abre a PRÉVIA antes/depois com
+      // Aprovar/Descartar. Só ao Aprovar o frame é substituído e commitado.
+      if (mode === "gemini") {
+        if (!j.previewDataUrl) throw new Error("a IA não devolveu prévia");
+        this.uploadToast
+          .setText(`🤖 prévia de ${cur.frame} pronta — APROVE ou DESCARTE`)
+          .setColor("#c9a6ff");
+        this.showGeminiPreview(cur.frame, cur.tex, j.previewDataUrl, j.refs ?? []);
+        return;
+      }
+      const detail = mode === "rescale" ? `${j.beforeH}px → ${j.afterH}px` : `← ${j.copiedFrom}`;
+      this.uploadToast.setText(`✓ ${cur.frame} refeito (${detail})`).setColor("#88ff88");
+      this.reloadAtlas(() => this.loadState());
+    } catch (e) {
+      this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
+    }
+  }
+
+  // ── Prévia da IA: modal ANTES/DEPOIS + Aprovar (troca+commita) / Descartar ────
+  private geminiPreview?: Phaser.GameObjects.Container;
+  private readonly GEMINI_PREVIEW_TEX = "__gemini_preview";
+
+  private showGeminiPreview(frame: string, atlasTex: string, dataUrl: string, refs: string[]) {
+    this.clearGeminiPreview();
+    const W = this.scale.width,
+      H = this.scale.height;
+    const box = this.add.container(0, 0).setDepth(5000);
+    const backdrop = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.72).setInteractive(); // bloqueia cliques atrás
+    const panelW = 360,
+      panelH = 240;
+    const panel = this.add
+      .rectangle(W / 2, H / 2, panelW, panelH, 0x1a1526)
+      .setStrokeStyle(2, 0x9966ff);
+    const title = this.add
+      .text(W / 2, H / 2 - panelH / 2 + 16, `PRÉVIA IA — ${frame}`, {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#c9a6ff",
+      })
+      .setOrigin(0.5);
+    // ANTES (frame atual do atlas) × DEPOIS (base64 da IA), ampliados.
+    const cellY = H / 2 - 14;
+    const antesX = W / 2 - 78,
+      depoisX = W / 2 + 78;
+    const cur = this.frames[this.frameIdx];
+    const scaleUp = Math.max(1, Math.floor(84 / Math.max(cur?.w ?? 32, cur?.h ?? 48)));
+    const antes = this.add.image(antesX, cellY, atlasTex, frame).setScale(scaleUp);
+    antes.setOrigin(0.5);
+    const lblA = this.add
+      .text(antesX, cellY + 52, "ANTES", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#cfd6e0",
+      })
+      .setOrigin(0.5);
+    const lblB = this.add
+      .text(depoisX, cellY + 52, `DEPOIS · ${refs.length} refs`, {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#88ff88",
+      })
+      .setOrigin(0.5);
+    box.add([backdrop, panel, title, antes, lblA, lblB]);
+    this.geminiPreview = box;
+
+    // Carrega o DEPOIS (base64) como textura e insere quando pronto.
+    if (this.textures.exists(this.GEMINI_PREVIEW_TEX))
+      this.textures.remove(this.GEMINI_PREVIEW_TEX);
+    this.textures.once(Phaser.Textures.Events.ADD, (key: string) => {
+      if (key !== this.GEMINI_PREVIEW_TEX || !this.geminiPreview) return;
+      const depois = this.add
+        .image(depoisX, cellY, this.GEMINI_PREVIEW_TEX)
+        .setScale(scaleUp)
+        .setOrigin(0.5);
+      this.geminiPreview.add(depois);
+    });
+    this.textures.addBase64(this.GEMINI_PREVIEW_TEX, dataUrl);
+
+    // Botões APROVAR (troca + git commit) / DESCARTAR (some com a prévia).
+    const mkBtn = (dx: number, label: string, col: number, onClick: () => void) => {
+      const bx = W / 2 + dx,
+        by = H / 2 + panelH / 2 - 24;
+      const bg = this.add
+        .rectangle(bx, by, 150, 26, 0x2a2140)
+        .setStrokeStyle(2, col)
+        .setInteractive({ useHandCursor: true });
+      const tx = this.add
+        .text(bx, by, label, { fontFamily: "monospace", fontSize: "11px", color: "#f0e0c0" })
+        .setOrigin(0.5);
+      bg.on("pointerover", () => bg.setFillStyle(0x3a2e58));
+      bg.on("pointerout", () => bg.setFillStyle(0x2a2140));
+      bg.on("pointerdown", onClick);
+      this.geminiPreview?.add([bg, tx]);
+    };
+    mkBtn(-82, "✅ APROVAR", 0x66dd66, () => void this.approveGemini(frame));
+    mkBtn(82, "✖ DESCARTAR", 0xdd6666, () => void this.discardGemini(frame));
+  }
+
+  private clearGeminiPreview() {
+    this.geminiPreview?.destroy(true);
+    this.geminiPreview = undefined;
+    if (this.textures.exists(this.GEMINI_PREVIEW_TEX))
+      this.textures.remove(this.GEMINI_PREVIEW_TEX);
+  }
+
+  private async approveGemini(frame: string) {
+    this.uploadToast.setText(`aprovando ${frame} (troca + commit)…`).setColor("#cfd6e0");
+    try {
+      const r = await fetch("/__frame-approve", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ frame }),
+      });
+      const ct = r.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) throw new Error("só em `vite dev`");
+      const j = (await r.json()) as { ok: boolean; error?: string; committed?: boolean };
+      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      this.uploadToast
+        .setText(
+          j.committed
+            ? `✓ ${frame} aprovado, atlas re-empacotado e COMMITADO`
+            : `✓ ${frame} aprovado e re-empacotado (git commit falhou — commite manualmente)`,
+        )
+        .setColor(j.committed ? "#88ff88" : "#ffcc66");
+      this.clearGeminiPreview();
+      this.reloadAtlas(() => this.loadState());
+    } catch (e) {
+      this.uploadToast.setText(`✗ aprovar falhou: ${e}`).setColor("#ff6666");
+    }
+  }
+
+  private async discardGemini(frame: string) {
+    this.clearGeminiPreview();
+    this.uploadToast.setText(`prévia de ${frame} descartada`).setColor("#cfd6e0");
+    try {
+      await fetch("/__frame-discard", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ frame }),
+      });
+    } catch {
+      /* prévia é gitignored — falha ao remover não importa */
+    }
   }
 
   private pickAndUpload() {

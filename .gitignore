@@ -33,3 +33,6 @@ dist-ssr
 extract_all_remaining.cjs
 generate_remaining_sprites.cjs
 .claude/
+
+# Prévia da IA do LAB (frame-gemini --preview) — nunca commitada
+public/assets/.frame-preview/
