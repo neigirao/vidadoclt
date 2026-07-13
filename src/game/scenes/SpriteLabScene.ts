@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { resolveSprite, isAtlasKey, ATLAS_KEY, initSpriteLibrary } from "../systems/SpriteLibrary";
-import { bgUrl, uploadBg, dataUrlToBlob } from "../systems/BgOverrides";
+import { bgUrl, uploadBg } from "../systems/BgOverrides";
 
 // ── Lab de Sprites: valida TODOS os assets da Fase 1 (personagens, inimigos,
 // bosses, objetos, drops, projéteis) com botões clicáveis que tocam a animação
@@ -432,13 +432,17 @@ export class SpriteLabScene extends Phaser.Scene {
     // fases. É o "subir e salvar" de verdade.
     if (isBg) {
       try {
-        await uploadBg(name, dataUrlToBlob(dataUrl));
+        const r = await uploadBg(name, dataUrl);
         this.uploadToast
-          .setText(`✓ SALVO na nuvem: ${name}.png — aparece p/ todos no jogo`)
-          .setColor("#88ff88");
+          .setText(
+            r.cloud
+              ? `✓ SALVO na nuvem: ${name}.png — aparece p/ TODOS no jogo`
+              : `✓ SALVO neste device: ${name}.png (nuvem indisponível — só aqui)`,
+          )
+          .setColor(r.cloud ? "#88ff88" : "#bfe0a0");
         this.reloadImage(name, () => this.loadState());
       } catch (e) {
-        this.uploadToast.setText(`✗ falhou (nuvem): ${e}`).setColor("#ff6666");
+        this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
       }
       return;
     }
@@ -481,9 +485,17 @@ export class SpriteLabScene extends Phaser.Scene {
   private reloadImage(name: string, onDone: () => void) {
     const t = Date.now();
     this.textures.remove(name);
-    // Fundo: recarrega do override na nuvem (bgUrl já traz a URL do Storage com
-    // cache-bust); demais imagens, do asset embutido.
+    // Fundo: recarrega do override (bgUrl traz dataURL local OU URL da nuvem);
+    // demais imagens, do asset embutido.
     const src = /^bg-/.test(name) ? bgUrl(name) : `/assets/${name}.png?t=${t}`;
+    if (src.startsWith("data:")) {
+      // override device-local (base64) — addBase64 em vez do loader de URL.
+      this.textures.once(Phaser.Textures.Events.ADD, (key: string) => {
+        if (key === name) onDone();
+      });
+      this.textures.addBase64(name, src);
+      return;
+    }
     this.load.image(name, src);
     this.load.once(Phaser.Loader.Events.COMPLETE, onDone);
     this.load.start();

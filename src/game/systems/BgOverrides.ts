@@ -1,73 +1,155 @@
 import { supabase } from "../../integrations/supabase/client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Overrides de fundo via Supabase Storage (bucket `bg-overrides`).
+// Overrides de fundo de fase, subidos pelo LAB (fase de teste).
 //
 // PROBLEMA: o build publicado é estático — não há backend pra gravar
-// public/assets/bg-*.png. O upload do LAB pelo plugin do Vite só funciona em
-// `vite dev`. SOLUÇÃO: subir o PNG pro Storage e o jogo carregar de lá se
-// existir override, senão o asset embutido. Persiste na nuvem, visível a todos
-// os testers, sem redeploy.
+// public/assets/bg-*.png, e o endpoint do plugin do Vite só existe em `vite dev`.
+//
+// SOLUÇÃO em 2 camadas (a 1ª funciona SEM nenhum setup):
+//   1. IndexedDB (device-local): grava o PNG no navegador do tester. Persiste
+//      entre reloads, zero infra. É o "subir e salvar" que funciona já.
+//   2. Supabase Storage (compartilhado): se o bucket `bg-overrides` existir,
+//      também sobe pra nuvem → aparece p/ TODOS os testers. Best-effort: se o
+//      bucket não existir / offline, ignora e mantém a persistência local.
+//
+// Precedência ao carregar: override local (deste device) > override na nuvem >
+// asset embutido. Assim quem subiu vê a própria arte na hora.
 //
 // Uso:
-//   • BootScene: `await loadBgManifest()` (1×) — descobre quais fundos têm override.
-//   • Preload das fases: `this.load.image(key, bgUrl(key))` no lugar do caminho fixo.
-//   • LAB (upload de fundo): `await uploadBg(key, blob)`.
+//   • BootScene/Preload: `await loadBgManifest()` (1×).
+//   • Preload das fases: `this.load.image(key, bgUrl(key))`.
+//   • LAB: `await uploadBg(key, dataUrl)`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BUCKET = "bg-overrides";
-const _overrides = new Map<string, string>(); // key (bg-*) → URL pública com cache-bust
+const DB_NAME = "vidaclt-bg";
+const STORE = "overrides";
+const _overrides = new Map<string, string>(); // key (bg-*) → dataURL local ou URL da nuvem
 let _loaded = false;
 
-/** URL a usar p/ um fundo: override do Storage se houver, senão o asset embutido. */
+// ── IndexedDB mínimo (sem dependência) ──────────────────────────────────────
+function openDb(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === "undefined") return resolve(null);
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+async function idbAll(): Promise<Record<string, string>> {
+  const db = await openDb();
+  if (!db) return {};
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, "readonly").objectStore(STORE);
+      const keysReq = tx.getAllKeys();
+      const valsReq = tx.getAll();
+      keysReq.onsuccess = () => {
+        valsReq.onsuccess = () => {
+          const out: Record<string, string> = {};
+          (keysReq.result as IDBValidKey[]).forEach((k, i) => {
+            out[String(k)] = valsReq.result[i] as string;
+          });
+          resolve(out);
+        };
+      };
+      tx.transaction.onerror = () => resolve({});
+    } catch {
+      resolve({});
+    }
+  });
+}
+async function idbSet(key: string, dataUrl: string): Promise<void> {
+  const db = await openDb();
+  if (!db) return;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(dataUrl, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
+
+// ── API ─────────────────────────────────────────────────────────────────────
+/** URL/dataURL a usar p/ um fundo: override (local ou nuvem) senão asset embutido. */
 export function bgUrl(key: string): string {
   return _overrides.get(key) ?? `/assets/${key}.png`;
 }
 
-/** Há override em nuvem p/ este fundo? (usado pelo LAB p/ sinalizar "salvo"). */
+/** Há override (local ou nuvem) p/ este fundo? */
 export function hasBgOverride(key: string): boolean {
   return _overrides.has(key);
 }
 
 /**
- * Lê o bucket 1× e monta o manifesto de overrides. Falha silenciosa (Supabase
- * off / bucket ausente) → jogo segue com os assets embutidos.
+ * Monta o manifesto 1×: overrides locais (IndexedDB, este device) têm precedência;
+ * depois completa com os da nuvem (Supabase) que ainda não têm local. Fail-safe.
  */
 export async function loadBgManifest(): Promise<void> {
   if (_loaded) return;
   _loaded = true;
+  // 1) locais (device) — sempre disponíveis, sem rede.
+  try {
+    const local = await idbAll();
+    for (const [k, v] of Object.entries(local)) if (v) _overrides.set(k, v);
+  } catch {
+    /* ignore */
+  }
+  // 2) nuvem (compartilhado) — só preenche o que não veio local.
   try {
     const { data, error } = await supabase.storage.from(BUCKET).list("", { limit: 100 });
-    if (error || !data) return;
-    for (const obj of data) {
-      if (!obj.name.endsWith(".png")) continue;
-      const key = obj.name.replace(/\.png$/, "");
-      const pub = supabase.storage.from(BUCKET).getPublicUrl(obj.name).data.publicUrl;
-      // cache-bust por updated_at p/ pegar re-uploads sem cache velho do CDN.
-      const t = obj.updated_at ? new Date(obj.updated_at).getTime() : Date.now();
-      _overrides.set(key, `${pub}?t=${t}`);
+    if (!error && data) {
+      for (const obj of data) {
+        if (!obj.name.endsWith(".png")) continue;
+        const key = obj.name.replace(/\.png$/, "");
+        if (_overrides.has(key)) continue; // local vence
+        const pub = supabase.storage.from(BUCKET).getPublicUrl(obj.name).data.publicUrl;
+        const t = obj.updated_at ? new Date(obj.updated_at).getTime() : Date.now();
+        _overrides.set(key, `${pub}?t=${t}`);
+      }
     }
   } catch {
-    /* offline / sem bucket — segue com assets embutidos */
+    /* offline / sem bucket — segue com locais + embutidos */
   }
 }
 
-/** Sobe/atualiza o PNG de um fundo no Storage. Retorna a URL pública (cache-bust). */
-export async function uploadBg(key: string, blob: Blob): Promise<string> {
-  const path = `${key}.png`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
-    upsert: true,
-    contentType: "image/png",
-    cacheControl: "3600",
-  });
-  if (error) throw new Error(error.message);
-  const pub = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  const url = `${pub}?t=${Date.now()}`;
-  _overrides.set(key, url);
-  return url;
+/**
+ * Salva o fundo. SEMPRE persiste local (IndexedDB) — funciona já. Tenta também a
+ * nuvem (best-effort). Retorna { local:true, cloud:boolean } p/ o LAB avisar.
+ */
+export async function uploadBg(
+  key: string,
+  dataUrl: string,
+): Promise<{ local: boolean; cloud: boolean }> {
+  // 1) local (garantido)
+  await idbSet(key, dataUrl);
+  _overrides.set(key, dataUrl);
+  // 2) nuvem (best-effort)
+  let cloud = false;
+  try {
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(`${key}.png`, dataUrlToBlob(dataUrl), {
+        upsert: true,
+        contentType: "image/png",
+        cacheControl: "3600",
+      });
+    cloud = !error;
+  } catch {
+    cloud = false;
+  }
+  return { local: true, cloud };
 }
 
-/** Converte um dataURL (base64) num Blob p/ o upload. */
+/** Converte um dataURL (base64) num Blob. */
 export function dataUrlToBlob(dataUrl: string): Blob {
   const [head, b64] = dataUrl.split(",");
   const mime = /:(.*?);/.exec(head)?.[1] ?? "image/png";
