@@ -67,15 +67,15 @@ const SUBJECTS: Subject[] = [
   mkChar("Analista", "Inimigo", "analista", {
     idle: [0, 4],
     walk: [0, 4],
-    attack: [0, 1],
+    attack: [0, 2], // o jogo cicla 2 (attack2 é lixo, fora)
     hurt: [0, 1],
   }),
   mkChar("Analista Novo", "Inimigo", "analista-novo", { idle: [0, 4], walk: [0, 5], hurt: [0, 1] }),
-  mkChar("RH", "Inimigo", "rh", { idle: [0, 4], walk: [0, 4], attack: [0, 1], hurt: [0, 1] }),
+  mkChar("RH", "Inimigo", "rh", { idle: [0, 4], walk: [0, 4], attack: [0, 2], hurt: [0, 1] }),
   mkChar("Facilitador", "Inimigo", "facilitador", {
     idle: [0, 4],
     walk: [0, 2],
-    attack: [0, 1],
+    attack: [0, 2], // o jogo cicla 2 (attack2 é lixo, fora)
     hurt: [0, 1],
   }),
   mkChar("Scrum", "Inimigo", "scrum", { idle: [0, 4], walk: [0, 6], attack: [0, 1], hurt: [0, 1] }),
@@ -112,9 +112,9 @@ const SUBJECTS: Subject[] = [
     hurt: [0, 3],
     death: [0, 3],
     attack: [0, 2],
-    "atk-deadline": [0, 4],
-    "atk-escopo": [0, 4],
-    "atk-sprint": [0, 3],
+    "attack-deadline": [0, 4], // eram "atk-*" → chave não resolvia (frames são "attack-*")
+    "attack-escopo": [0, 4],
+    "attack-sprint": [0, 4],
     "run-charge": [0, 3],
   }),
   mkChar("CEO (boss)", "Boss", "boss-ceo", {
@@ -755,15 +755,21 @@ export class SpriteLabScene extends Phaser.Scene {
     // Cruza com a config REAL do jogo (fonte única): quantos frames ele cicla e
     // a que ms. Flag de divergência = o LAB mostra N mas o jogo toca M.
     const g = this.gameAnim();
-    const diverges = !!g && g.frames !== this.frames.length;
+    const labN = this.frames.length;
+    const labFewer = !!g && labN < g.frames; // LAB não mostra arte que o jogo USA → BUG do LAB
+    const labMore = !!g && labN > g.frames; // LAB mostra extras que o jogo PULA → info (ex.: idle corrompido)
     const speedTag = this.speedOverride != null ? " (manual)" : g ? " (jogo)" : "";
+    const gameLine = !g
+      ? `JOGO:  — (estado sem config de setEnemyTex)`
+      : labFewer
+        ? `JOGO cicla:  ${g.frames} @ ${g.ms}ms   ⚠ LAB FALTA ${g.frames - labN} que o jogo usa`
+        : labMore
+          ? `JOGO cicla:  ${g.frames} @ ${g.ms}ms   ℹ jogo pula ${labN - g.frames} (extra/corrompido)`
+          : `JOGO cicla:  ${g.frames} @ ${g.ms}ms  ✓`;
     const lines = [
       `${subj.cat.toUpperCase()}:  ${subj.name}`,
-      `ANIMAÇÃO:  ${this.stateName}   (${this.frames.length} frames no atlas)`,
-      g
-        ? `JOGO cicla:  ${g.frames} frames @ ${g.ms}ms` +
-          (diverges ? `   ⚠ LAB≠JOGO (mostra ${this.frames.length})` : "  ✓")
-        : `JOGO:  — (estado sem config de setEnemyTex)`,
+      `ANIMAÇÃO:  ${this.stateName}   (${labN} frames no atlas)`,
+      gameLine,
       `velocidade:  ${this.effectiveMs()}ms${speedTag}`,
       `tamanhos:  ${sizes.join(", ") || "—"}` + (sizes.length > 1 ? "  ⚠ INCONSISTENTE" : "  ✓"),
       `faltando:  ${missing.length ? "⚠ " + missing.length : "✓ 0"}`,
@@ -772,11 +778,13 @@ export class SpriteLabScene extends Phaser.Scene {
       `frame atual: ${cur ? (cur.frame ?? cur.tex) : "—"}  (${cur ? cur.w + "x" + cur.h : "—"})`,
     ];
     this.info.setText(lines.join("\n"));
-    const status = missing.length || sizes.length > 1 || diverges ? "⚠ PROBLEMA" : "OK";
+    const status = missing.length || sizes.length > 1 || labFewer ? "⚠ PROBLEMA" : "OK";
 
     console.log(
-      `[SpriteLab] ${subj.name}/${this.stateName}: ${this.frames.length}f sizes=${sizes.join("|")} missing=${missing.length}` +
-        (g ? ` game=${g.frames}f@${g.ms}ms${diverges ? "(DIVERGE)" : ""}` : "") +
+      `[SpriteLab] ${subj.name}/${this.stateName}: ${labN}f sizes=${sizes.join("|")} missing=${missing.length}` +
+        (g
+          ? ` game=${g.frames}f@${g.ms}ms${labFewer ? "(LAB<JOGO)" : labMore ? "(lab>jogo)" : ""}`
+          : "") +
         ` → ${status}`,
       missing.length ? missing : "",
     );
