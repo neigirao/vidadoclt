@@ -211,6 +211,8 @@ export class SpriteLabScene extends Phaser.Scene {
   private speedOverride: number | null = null; // ms manual ([ ]); null = usa o ms do jogo
 
   private preview!: Phaser.GameObjects.Image;
+  private onion!: Phaser.GameObjects.Image; // fantasma do idle0 p/ comparar tamanho
+  private onionOn = false;
   private bbox!: Phaser.GameObjects.Graphics;
   private feetLine!: Phaser.GameObjects.Graphics;
   private info!: Phaser.GameObjects.Text;
@@ -249,7 +251,7 @@ export class SpriteLabScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         28,
-        "sujeito ← · ação embaixo · [ESPAÇO] pausa · [← →] passo a passo · [ [ ] ] velocidade · [R] reset · [ESC] sair",
+        "[ESPAÇO] pausa · [← →] passo · [ [ ] ] velocidade · [R] reset · [O] onion-skin (comparar tamanho) · [ESC] sair",
         {
           fontFamily: "monospace",
           fontSize: "9px",
@@ -267,6 +269,15 @@ export class SpriteLabScene extends Phaser.Scene {
       }
 
     this.feetLine = this.add.graphics().setDepth(1);
+    // Onion-skin: fantasma azul do frame de referência (idle0) ATRÁS do preview,
+    // mesmo scale + mesma linha dos pés → pulo de tamanho entre estados fica óbvio.
+    this.onion = this.add
+      .image(this.CX, this.FEET_Y, ATLAS_KEY)
+      .setOrigin(0.5, 1)
+      .setDepth(1.5)
+      .setAlpha(0.3)
+      .setTint(0x66ccff)
+      .setVisible(false);
     this.bbox = this.add.graphics().setDepth(3);
     this.preview = this.add.image(this.CX, this.FEET_Y, ATLAS_KEY).setOrigin(0.5, 1).setDepth(2);
 
@@ -298,6 +309,11 @@ export class SpriteLabScene extends Phaser.Scene {
     this.input.keyboard!.on("keydown-R", () => {
       this.speedOverride = null; // volta ao ms do jogo
       this.logDiagnostics();
+    });
+    // Onion-skin: liga/desliga o fantasma de referência (pega pulo de tamanho).
+    this.input.keyboard!.on("keydown-O", () => {
+      this.onionOn = !this.onionOn;
+      this.applyFrame();
     });
 
     this.loadState();
@@ -690,7 +706,31 @@ export class SpriteLabScene extends Phaser.Scene {
       this.preview.setVisible(false);
       this.feetLine.lineStyle(2, 0xff3333, 1).strokeRect(this.CX - 40, this.FEET_Y - 80, 80, 80);
     }
+    this.applyOnion(f);
     this.highlightStrip();
+  }
+
+  /** Frame de referência p/ o onion-skin: idle0 do sujeito (a pose de repouso). */
+  private referenceFrame(): FrameInfo | null {
+    const subj = SUBJECTS[this.subjIdx];
+    const refKeys = subj.states["idle"] ?? Object.values(subj.states)[0];
+    if (!refKeys?.length) return null;
+    const info = this.getInfo(refKeys[0]);
+    return info.ok ? info : null;
+  }
+
+  private applyOnion(cur: FrameInfo | undefined) {
+    const ref = this.onionOn ? this.referenceFrame() : null;
+    // Não mostra se: desligado, sem referência, frame atual quebrado, ou a
+    // referência É o frame atual (idle0 vendo a si mesmo → nada a comparar).
+    if (!ref || !cur?.ok || ref.frame === cur.frame) {
+      this.onion.setVisible(false);
+      return;
+    }
+    const rscale = Math.min(this.SCALE, 340 / ref.w, 300 / ref.h);
+    if (ref.frame) this.onion.setTexture(ref.tex, ref.frame);
+    else this.onion.setTexture(ref.tex);
+    this.onion.setScale(rscale).setPosition(this.CX, this.FEET_Y).setVisible(true);
   }
 
   private buildStrip() {
@@ -771,6 +811,7 @@ export class SpriteLabScene extends Phaser.Scene {
       `ANIMAÇÃO:  ${this.stateName}   (${labN} frames no atlas)`,
       gameLine,
       `velocidade:  ${this.effectiveMs()}ms${speedTag}`,
+      ...(this.onionOn ? [`onion-skin:  👻 fantasma azul = idle0 (compara tamanho)`] : []),
       `tamanhos:  ${sizes.join(", ") || "—"}` + (sizes.length > 1 ? "  ⚠ INCONSISTENTE" : "  ✓"),
       `faltando:  ${missing.length ? "⚠ " + missing.length : "✓ 0"}`,
       ...missing.map((m) => `   ✗ ${m}`),
