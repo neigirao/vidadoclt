@@ -11,10 +11,13 @@
 // retorna 429 p/ geração de imagem). Uso: node scripts/frame-gemini.mjs <frame>
 // ─────────────────────────────────────────────────────────────────────────────
 import sharp from "sharp";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const DIR = resolve(process.cwd(), "public/assets/sprites");
+// Prévia da IA fica FORA de sprites/ (o pack-atlas varre sprites/*.png, então a
+// prévia jamais vaza pro atlas). Aprovar depois copia daqui pro frame real.
+const PREVIEW_DIR = resolve(process.cwd(), "public/assets/.frame-preview");
 const MODEL = "gemini-2.5-flash-image";
 
 function apiKey() {
@@ -42,7 +45,11 @@ function neighbors(frame) {
 
 async function main() {
   const frame = process.argv[2];
-  if (!frame) throw new Error("uso: node scripts/frame-gemini.mjs <frame>");
+  // --preview: grava a saída em .frame-preview/<frame>.png (não sobrescreve o
+  // frame real, não re-empacota) e devolve o PNG em base64 p/ o LAB mostrar o
+  // "depois". Sem a flag, sobrescreve o frame direto (uso por CLI).
+  const preview = process.argv.includes("--preview");
+  if (!frame) throw new Error("uso: node scripts/frame-gemini.mjs <frame> [--preview]");
   const key = apiKey();
   if (!key) throw new Error("GEMINI_API_KEY ausente (env ou .env.local)");
   const file = `${DIR}/${frame}.png`;
@@ -95,11 +102,22 @@ async function main() {
   // Redimensiona a saída (o modelo devolve grande) p/ a dimensão EXATA do frame,
   // encaixando o conteúdo com fundo transparente (nearest p/ manter pixel-art).
   const gen = Buffer.from(b64, "base64");
-  await sharp(gen)
+  const outPng = await sharp(gen)
     .resize(W, H, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 }, kernel: "nearest" })
     .png()
-    .toFile(file);
-  return { mode: "gemini", frame, dims: `${W}x${H}`, refs: refs.map((r) => r.name) };
+    .toBuffer();
+  const dest = preview ? `${PREVIEW_DIR}/${frame}.png` : file;
+  if (preview) mkdirSync(PREVIEW_DIR, { recursive: true });
+  await sharp(outPng).toFile(dest);
+  return {
+    mode: "gemini",
+    frame,
+    dims: `${W}x${H}`,
+    refs: refs.map((r) => r.name),
+    preview,
+    // dataUrl p/ o LAB renderizar o "depois" sem passar pelo atlas.
+    ...(preview ? { previewDataUrl: `data:image/png;base64,${outPng.toString("base64")}` } : {}),
+  };
 }
 
 main()

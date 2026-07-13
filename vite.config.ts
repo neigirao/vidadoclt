@@ -1,5 +1,5 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync, copyFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 import type { Plugin } from "vite";
@@ -96,44 +96,61 @@ function spriteUploadDevPlugin(): Plugin {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Plugin DEV: conserto determinístico de UM frame (botão "CORRIGIR FRAME" do
-// LAB). Spawna scripts/frame-fix.mjs <frame> <mode> (rescale p/ a mediana da
-// família | copy-nearest) e re-empacota o atlas. Preserva o design (reusa os
-// pixels) — não é redesenho de IA. Só em `vite dev`.
+// Plugin DEV: conserto de UM frame (botões do LAB). Três endpoints:
+//   • POST /__frame-fix  — rescale/copy-nearest (determinístico, frame-fix.mjs) →
+//     grava o frame e re-empacota o atlas na hora (seguro, preserva o design).
+//     mode=gemini → gera uma PRÉVIA (frame-gemini.mjs --preview) em
+//     .frame-preview/<frame>.png SEM tocar no frame real nem re-empacotar; devolve
+//     o PNG (dataUrl) p/ o LAB mostrar o "depois".
+//   • POST /__frame-approve — aprova a prévia da IA: copia .frame-preview/<frame>
+//     por cima do frame real, re-empacota o atlas e faz `git commit` do PNG+atlas.
+//   • POST /__frame-discard — descarta a prévia (remove o arquivo).
+// Só em `vite dev` (apply:"serve").
 // ─────────────────────────────────────────────────────────────────────────────
+const FRAME_RE = /^[a-z0-9][a-z0-9_-]*$/i;
+const SPRITES_DIR = "public/assets/sprites";
+const PREVIEW_DIR = "public/assets/.frame-preview";
+
+function readBody(req: import("node:http").IncomingMessage): Promise<string> {
+  return new Promise((ok) => {
+    let b = "";
+    req.on("data", (c: Buffer) => (b += c));
+    req.on("end", () => ok(b));
+  });
+}
+
 function frameFixDevPlugin(): Plugin {
   return {
     name: "frame-fix-dev",
     apply: "serve",
     configureServer(server) {
+      const json = (res: import("node:http").ServerResponse, code: number, obj: unknown) => {
+        res.statusCode = code;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify(obj));
+      };
+
       server.middlewares.use("/__frame-fix", (req, res, next) => {
         if (req.method !== "POST") return next();
-        let body = "";
-        req.on("data", (c) => (body += c));
-        req.on("end", () => {
-          const send = (code: number, obj: unknown) => {
-            res.statusCode = code;
-            res.setHeader("content-type", "application/json");
-            res.end(JSON.stringify(obj));
-          };
+        void readBody(req).then((body) => {
           try {
             const { frame, mode } = JSON.parse(body) as { frame?: string; mode?: string };
-            if (!frame || !/^[a-z0-9][a-z0-9_-]*$/i.test(frame))
-              throw new Error("nome de frame inválido");
-            // gemini → redesenho por IA (frame-gemini.mjs, precisa GEMINI_API_KEY);
-            // rescale/copy-nearest → conserto determinístico (frame-fix.mjs).
-            const fix =
-              mode === "gemini"
-                ? spawn("node", ["scripts/frame-gemini.mjs", frame], { cwd: process.cwd() })
-                : spawn(
-                    "node",
-                    [
-                      "scripts/frame-fix.mjs",
-                      frame,
-                      mode === "copy-nearest" ? "copy-nearest" : "rescale",
-                    ],
-                    { cwd: process.cwd() },
-                  );
+            if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
+            const isGemini = mode === "gemini";
+            // gemini → PRÉVIA (não sobrescreve, não re-empacota).
+            const fix = isGemini
+              ? spawn("node", ["scripts/frame-gemini.mjs", frame, "--preview"], {
+                  cwd: process.cwd(),
+                })
+              : spawn(
+                  "node",
+                  [
+                    "scripts/frame-fix.mjs",
+                    frame,
+                    mode === "copy-nearest" ? "copy-nearest" : "rescale",
+                  ],
+                  { cwd: process.cwd() },
+                );
             let out = "";
             fix.stdout.on("data", (d) => (out += d));
             fix.stderr.on("data", (d) => (out += d));
@@ -144,18 +161,86 @@ function frameFixDevPlugin(): Plugin {
               } catch {
                 result = { ok: false, error: out.slice(-300) };
               }
-              if (fixCode !== 0) return send(500, result);
-              // re-empacota o atlas com o frame consertado
+              if (fixCode !== 0) return json(res, 500, result);
+              // Prévia da IA: nada de re-empacotar — o LAB só mostra o "depois".
+              if (isGemini) return json(res, 200, result);
+              // Determinístico: re-empacota o atlas com o frame consertado.
               const pack = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
               pack.on("close", (packCode) =>
-                send(packCode === 0 ? 200 : 500, {
+                json(res, packCode === 0 ? 200 : 500, {
                   ...(result as object),
                   repacked: packCode === 0,
                 }),
               );
             });
           } catch (e) {
-            send(400, { ok: false, error: String(e) });
+            json(res, 400, { ok: false, error: String(e) });
+          }
+        });
+      });
+
+      server.middlewares.use("/__frame-approve", (req, res, next) => {
+        if (req.method !== "POST") return next();
+        void readBody(req).then((body) => {
+          try {
+            const { frame } = JSON.parse(body) as { frame?: string };
+            if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
+            const preview = resolve(process.cwd(), PREVIEW_DIR, `${frame}.png`);
+            const dest = resolve(process.cwd(), SPRITES_DIR, `${frame}.png`);
+            if (!preview.startsWith(resolve(process.cwd(), PREVIEW_DIR) + "/"))
+              throw new Error("caminho inválido");
+            if (!existsSync(preview))
+              throw new Error("sem prévia p/ aprovar (gere com a IA antes)");
+            copyFileSync(preview, dest);
+            rmSync(preview, { force: true });
+            // re-empacota o atlas e commita PNG-fonte + atlas gerado.
+            const pack = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
+            pack.on("close", (packCode) => {
+              if (packCode !== 0) return json(res, 500, { ok: false, error: "pack-atlas falhou" });
+              const files = [
+                `${SPRITES_DIR}/${frame}.png`,
+                "public/assets/atlas.png",
+                "public/assets/atlas.json",
+              ];
+              const git = spawn(
+                "bash",
+                [
+                  "-c",
+                  `git add ${files.join(" ")} && git commit -m ${JSON.stringify(`LAB: refaz frame ${frame} via IA (Gemini)`)}`,
+                ],
+                { cwd: process.cwd() },
+              );
+              let glog = "";
+              git.stdout.on("data", (d) => (glog += d));
+              git.stderr.on("data", (d) => (glog += d));
+              git.on("close", (gitCode) =>
+                json(res, 200, {
+                  ok: true,
+                  frame,
+                  committed: gitCode === 0,
+                  gitLog: glog.slice(-300),
+                }),
+              );
+            });
+          } catch (e) {
+            json(res, 400, { ok: false, error: String(e) });
+          }
+        });
+      });
+
+      server.middlewares.use("/__frame-discard", (req, res, next) => {
+        if (req.method !== "POST") return next();
+        void readBody(req).then((body) => {
+          try {
+            const { frame } = JSON.parse(body) as { frame?: string };
+            if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
+            const preview = resolve(process.cwd(), PREVIEW_DIR, `${frame}.png`);
+            if (!preview.startsWith(resolve(process.cwd(), PREVIEW_DIR) + "/"))
+              throw new Error("caminho inválido");
+            rmSync(preview, { force: true });
+            json(res, 200, { ok: true, frame, discarded: true });
+          } catch (e) {
+            json(res, 400, { ok: false, error: String(e) });
           }
         });
       });
