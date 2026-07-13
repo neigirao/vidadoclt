@@ -178,13 +178,25 @@ function frameFixDevPlugin(): Plugin {
         if (req.method !== "POST") return next();
         void readBody(req).then(async (body) => {
           try {
-            const { frame, mode } = JSON.parse(body) as { frame?: string; mode?: string };
+            const { frame, mode, hint, refs } = JSON.parse(body) as {
+              frame?: string;
+              mode?: string;
+              hint?: string;
+              refs?: string[];
+            };
             if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
             const isGemini = mode === "gemini";
-            // gemini → PRÉVIA (não sobrescreve, não re-empacota). Timeout de 120s
-            // (a chamada de imagem do Gemini pode travar sem retornar).
+            // gemini → PRÉVIA (não sobrescreve, não re-empacota). Timeout de 120s.
+            // Passa hint (refina o prompt) e refs (vizinhos escolhidos) quando vierem.
+            const geminiArgs = ["scripts/frame-gemini.mjs", frame, "--preview"];
+            if (typeof hint === "string" && hint.trim())
+              geminiArgs.push("--hint", hint.slice(0, 300));
+            if (Array.isArray(refs) && refs.length) {
+              const clean = refs.filter((r) => typeof r === "string" && FRAME_RE.test(r));
+              if (clean.length) geminiArgs.push("--refs", clean.join(","));
+            }
             const args = isGemini
-              ? ["scripts/frame-gemini.mjs", frame, "--preview"]
+              ? geminiArgs
               : [
                   "scripts/frame-fix.mjs",
                   frame,
