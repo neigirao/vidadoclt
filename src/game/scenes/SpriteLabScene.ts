@@ -324,6 +324,9 @@ export class SpriteLabScene extends Phaser.Scene {
     // `vite dev` (só em dev; no build estático avisa que não grava).
     this.buildUploadButton();
     this.buildFixButtons();
+    // Ao sair do LAB, garante limpeza do modal de prévia e da textura base64
+    // (senão `__gemini_preview` + o listener de ADD vazam no TextureManager global).
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.clearGeminiPreview());
   }
 
   // ── Upload do frame atual (DEV) ──────────────────────────────────────────────
@@ -485,9 +488,15 @@ export class SpriteLabScene extends Phaser.Scene {
   // ── Prévia da IA: modal ANTES/DEPOIS + Aprovar (troca+commita) / Descartar ────
   private geminiPreview?: Phaser.GameObjects.Container;
   private readonly GEMINI_PREVIEW_TEX = "__gemini_preview";
+  // Token por-abertura: invalida listeners/timeouts pendentes de uma prévia
+  // anterior quando outra abre (o addBase64 decodifica de forma assíncrona).
+  private geminiToken = 0;
+  private geminiReady = false;
 
   private showGeminiPreview(frame: string, atlasTex: string, dataUrl: string, refs: string[]) {
     this.clearGeminiPreview();
+    const token = ++this.geminiToken;
+    this.geminiReady = false;
     const W = this.scale.width,
       H = this.scale.height;
     const box = this.add.container(0, 0).setDepth(5000);
@@ -526,19 +535,39 @@ export class SpriteLabScene extends Phaser.Scene {
         color: "#88ff88",
       })
       .setOrigin(0.5);
-    box.add([backdrop, panel, title, antes, lblA, lblB]);
+    // Placeholder "carregando…" no lugar do DEPOIS até a textura decodificar.
+    const loading = this.add
+      .text(depoisX, cellY, "…", { fontFamily: "monospace", fontSize: "20px", color: "#8a7fb0" })
+      .setOrigin(0.5);
+    box.add([backdrop, panel, title, antes, lblA, lblB, loading]);
     this.geminiPreview = box;
 
-    // Carrega o DEPOIS (base64) como textura e insere quando pronto.
+    // Carrega o DEPOIS (base64) como textura e insere quando pronto. O listener
+    // é guardado pelo token: se outra prévia abrir antes deste ADD, ele é ignorado.
     if (this.textures.exists(this.GEMINI_PREVIEW_TEX))
       this.textures.remove(this.GEMINI_PREVIEW_TEX);
-    this.textures.once(Phaser.Textures.Events.ADD, (key: string) => {
-      if (key !== this.GEMINI_PREVIEW_TEX || !this.geminiPreview) return;
+    const onAdd = (key: string) => {
+      if (key !== this.GEMINI_PREVIEW_TEX) return;
+      this.textures.off(Phaser.Textures.Events.ADD, onAdd);
+      if (token !== this.geminiToken || !this.geminiPreview) return; // prévia trocou
+      loading.destroy();
       const depois = this.add
         .image(depoisX, cellY, this.GEMINI_PREVIEW_TEX)
         .setScale(scaleUp)
         .setOrigin(0.5);
       this.geminiPreview.add(depois);
+      this.geminiReady = true;
+    };
+    this.textures.on(Phaser.Textures.Events.ADD, onAdd);
+    // Timeout de segurança: se o base64 for inválido, o Image interno nunca dispara
+    // ADD — sem isso o DEPOIS ficaria em branco e o APROVAR liberado por engano.
+    this.time.delayedCall(5000, () => {
+      if (token !== this.geminiToken || this.geminiReady) return;
+      this.textures.off(Phaser.Textures.Events.ADD, onAdd);
+      loading.setText("⚠ falhou").setColor("#ff8866");
+      this.uploadToast
+        .setText("✗ prévia da IA inválida — descarte e tente de novo")
+        .setColor("#ff6666");
     });
     this.textures.addBase64(this.GEMINI_PREVIEW_TEX, dataUrl);
 
@@ -558,11 +587,19 @@ export class SpriteLabScene extends Phaser.Scene {
       bg.on("pointerdown", onClick);
       this.geminiPreview?.add([bg, tx]);
     };
-    mkBtn(-82, "✅ APROVAR", 0x66dd66, () => void this.approveGemini(frame));
+    mkBtn(-82, "✅ APROVAR", 0x66dd66, () => {
+      if (!this.geminiReady) {
+        this.uploadToast.setText("⚠ aguarde a prévia carregar").setColor("#ffaa66");
+        return;
+      }
+      void this.approveGemini(frame);
+    });
     mkBtn(82, "✖ DESCARTAR", 0xdd6666, () => void this.discardGemini(frame));
   }
 
   private clearGeminiPreview() {
+    this.geminiToken++; // invalida qualquer listener/timeout pendente
+    this.geminiReady = false;
     this.geminiPreview?.destroy(true);
     this.geminiPreview = undefined;
     if (this.textures.exists(this.GEMINI_PREVIEW_TEX))

@@ -80,14 +80,26 @@ async function main() {
       },
     });
 
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-goog-api-key": key },
-      body: JSON.stringify({ contents: [{ parts }] }),
-    },
-  );
+  // Timeout de 90s: a chamada de imagem pode travar sem retornar — aborta em vez
+  // de pendurar o endpoint (o /__frame-fix ainda tem um kill-timer de 120s por cima).
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 90000);
+  let resp;
+  try {
+    resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-goog-api-key": key },
+        body: JSON.stringify({ contents: [{ parts }] }),
+        signal: ctrl.signal,
+      },
+    );
+  } catch (e) {
+    throw new Error(ctrl.signal.aborted ? "Gemini não respondeu em 90s (abort)" : String(e));
+  } finally {
+    clearTimeout(timer);
+  }
   const j = await resp.json();
   if (!resp.ok) {
     const msg = j?.error?.message ?? `HTTP ${resp.status}`;
