@@ -7,6 +7,7 @@ import {
   applyBackgroundFilters,
 } from "../systems/TextureFactory";
 import { initSpriteLibrary } from "../systems/SpriteLibrary";
+import { loadBgManifest } from "../systems/BgOverrides";
 
 // ─── Palette (AMI BIOS style) ────────────────────────────────────────────────
 const C_BG = 0x000000; // black background
@@ -53,6 +54,10 @@ export class PreloadScene extends Phaser.Scene {
 
   // ─── Boot sequence ────────────────────────────────────────────────────────
   create() {
+    // Descobre overrides de fundo na nuvem (Supabase Storage) enquanto o menu
+    // carrega — pronto muito antes de qualquer fase 2–5 iniciar. Fire-and-forget:
+    // se falhar/offline, o jogo segue com os fundos embutidos.
+    void loadBgManifest();
     makeUiTextures(this);
     makeFurnitureTextures(this);
     makeObjectTextures(this);

@@ -1,3 +1,4 @@
+import { bgUrl } from "../systems/BgOverrides";
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { BossPresence } from "../systems/BossPresence";
@@ -25,7 +26,7 @@ export class Phase4Scene extends BasePhaseScene {
   }
 
   preload() {
-    this.load.image("bg-tecnologia", "/assets/bg-tecnologia.png");
+    this.load.image("bg-tecnologia", bgUrl("bg-tecnologia"));
   }
 
   protected getBgKey() {

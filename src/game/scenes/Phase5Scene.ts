@@ -1,3 +1,4 @@
+import { bgUrl } from "../systems/BgOverrides";
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { BossPresence } from "../systems/BossPresence";
@@ -26,7 +27,7 @@ export class Phase5Scene extends BasePhaseScene {
   }
 
   preload() {
-    this.load.image("bg-diretoria", "/assets/bg-diretoria.png");
+    this.load.image("bg-diretoria", bgUrl("bg-diretoria"));
   }
 
   protected getBgKey() {

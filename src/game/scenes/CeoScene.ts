@@ -1,3 +1,4 @@
+import { bgUrl } from "../systems/BgOverrides";
 import Phaser from "phaser";
 import { Telemetry } from "../systems/Telemetry";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
@@ -40,7 +41,7 @@ export class CeoScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("bg-cobertura", "/assets/bg-cobertura.png");
+    this.load.image("bg-cobertura", bgUrl("bg-cobertura"));
   }
 
   create() {

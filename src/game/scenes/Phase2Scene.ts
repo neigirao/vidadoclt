@@ -1,3 +1,4 @@
+import { bgUrl } from "../systems/BgOverrides";
 import Phaser from "phaser";
 import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
 import { BossPresence } from "../systems/BossPresence";
@@ -33,8 +34,8 @@ export class Phase2Scene extends BasePhaseScene {
   }
 
   preload() {
-    this.load.image("bg-atendimento", "/assets/bg-atendimento.png");
-    this.load.image("bg-comercial", "/assets/bg-comercial.png");
+    this.load.image("bg-atendimento", bgUrl("bg-atendimento"));
+    this.load.image("bg-comercial", bgUrl("bg-comercial"));
   }
 
   protected getBgKey() {
