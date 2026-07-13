@@ -95,12 +95,80 @@ function spriteUploadDevPlugin(): Plugin {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Plugin DEV: conserto determinístico de UM frame (botão "CORRIGIR FRAME" do
+// LAB). Spawna scripts/frame-fix.mjs <frame> <mode> (rescale p/ a mediana da
+// família | copy-nearest) e re-empacota o atlas. Preserva o design (reusa os
+// pixels) — não é redesenho de IA. Só em `vite dev`.
+// ─────────────────────────────────────────────────────────────────────────────
+function frameFixDevPlugin(): Plugin {
+  return {
+    name: "frame-fix-dev",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use("/__frame-fix", (req, res, next) => {
+        if (req.method !== "POST") return next();
+        let body = "";
+        req.on("data", (c) => (body += c));
+        req.on("end", () => {
+          const send = (code: number, obj: unknown) => {
+            res.statusCode = code;
+            res.setHeader("content-type", "application/json");
+            res.end(JSON.stringify(obj));
+          };
+          try {
+            const { frame, mode } = JSON.parse(body) as { frame?: string; mode?: string };
+            if (!frame || !/^[a-z0-9][a-z0-9_-]*$/i.test(frame))
+              throw new Error("nome de frame inválido");
+            // gemini → redesenho por IA (frame-gemini.mjs, precisa GEMINI_API_KEY);
+            // rescale/copy-nearest → conserto determinístico (frame-fix.mjs).
+            const fix =
+              mode === "gemini"
+                ? spawn("node", ["scripts/frame-gemini.mjs", frame], { cwd: process.cwd() })
+                : spawn(
+                    "node",
+                    [
+                      "scripts/frame-fix.mjs",
+                      frame,
+                      mode === "copy-nearest" ? "copy-nearest" : "rescale",
+                    ],
+                    { cwd: process.cwd() },
+                  );
+            let out = "";
+            fix.stdout.on("data", (d) => (out += d));
+            fix.stderr.on("data", (d) => (out += d));
+            fix.on("close", (fixCode) => {
+              let result: unknown;
+              try {
+                result = JSON.parse(out.trim().split("\n").pop() ?? "{}");
+              } catch {
+                result = { ok: false, error: out.slice(-300) };
+              }
+              if (fixCode !== 0) return send(500, result);
+              // re-empacota o atlas com o frame consertado
+              const pack = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
+              pack.on("close", (packCode) =>
+                send(packCode === 0 ? 200 : 500, {
+                  ...(result as object),
+                  repacked: packCode === 0,
+                }),
+              );
+            });
+          } catch (e) {
+            send(400, { ok: false, error: String(e) });
+          }
+        });
+      });
+    },
+  };
+}
+
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
   vite: {
     server: { host: "0.0.0.0" },
-    plugins: [spriteUploadDevPlugin()],
+    plugins: [spriteUploadDevPlugin(), frameFixDevPlugin()],
   },
 });

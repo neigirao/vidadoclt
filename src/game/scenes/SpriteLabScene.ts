@@ -323,6 +323,7 @@ export class SpriteLabScene extends Phaser.Scene {
     // funciona no build publicado. SPRITE: re-empacota o atlas pelo endpoint do
     // `vite dev` (só em dev; no build estático avisa que não grava).
     this.buildUploadButton();
+    this.buildFixButtons();
   }
 
   // ── Upload do frame atual (DEV) ──────────────────────────────────────────────
@@ -397,6 +398,82 @@ export class SpriteLabScene extends Phaser.Scene {
     this.pending = null;
     this.showConfirm(false);
     this.validateAndSend(p.name, p.expW, p.expH, p.dataUrl, p.isBg);
+  }
+
+  // ── Botões de CONSERTO do frame atual (determinístico, preserva o design) ────
+  // Aplicados CONSCIENTEMENTE pelo usuário no frame que ele julgou ruim (o audit
+  // só sinaliza candidatos — auto-fix cego corromperia frame de FX/pose). Só
+  // grava em `vite dev` (endpoint /__frame-fix re-empacota o atlas).
+  private buildFixButtons() {
+    const x = 745;
+    type FixMode = "rescale" | "copy-nearest" | "gemini";
+    const mk = (dx: number, y: number, w: number, label: string, mode: FixMode, col: number) => {
+      const bg = this.add
+        .rectangle(x + dx, y, w, 24, 0x3a2e18)
+        .setStrokeStyle(2, col)
+        .setInteractive({ useHandCursor: true });
+      this.add
+        .text(x + dx, y, label, { fontFamily: "monospace", fontSize: "10px", color: "#f0e0c0" })
+        .setOrigin(0.5);
+      bg.on("pointerover", () => bg.setFillStyle(0x4a3a20));
+      bg.on("pointerout", () => bg.setFillStyle(0x3a2e18));
+      bg.on("pointerdown", () => this.postFrameFix(mode));
+    };
+    // Determinísticos (preservam o design): rescale (pulo de tamanho → mediana) e
+    // copiar vizinho (vazio/quebrado).
+    mk(-63, 462, 120, "🔧 RESCALE MEDIANA", "rescale", 0xd8a441);
+    mk(65, 462, 120, "🔧 COPIAR VIZINHO", "copy-nearest", 0xc47a3a);
+    // IA (Gemini): redesenha o frame seguindo os vizinhos. Precisa GEMINI_API_KEY
+    // + billing. Pode destoar do estilo — confira antes de manter.
+    mk(0, 490, 248, "🤖 REFAZER COM IA (GEMINI)", "gemini", 0x9966ff);
+  }
+
+  private async postFrameFix(mode: "rescale" | "copy-nearest" | "gemini") {
+    const cur = this.frames[this.frameIdx];
+    if (!cur?.ok || !cur.frame) {
+      this.uploadToast.setText("⚠ conserto só p/ frame de sprite do atlas").setColor("#ffaa66");
+      return;
+    }
+    this.uploadToast
+      .setText(
+        mode === "gemini"
+          ? `🤖 redesenhando ${cur.frame} com IA (pode demorar)…`
+          : `consertando ${cur.frame} (${mode})…`,
+      )
+      .setColor("#cfd6e0");
+    try {
+      const r = await fetch("/__frame-fix", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ frame: cur.frame, mode }),
+      });
+      const ct = r.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        this.uploadToast
+          .setText("⚠ conserto só grava em `vite dev` (re-empacota o atlas).")
+          .setColor("#ffaa66");
+        return;
+      }
+      const j = (await r.json()) as {
+        ok: boolean;
+        error?: string;
+        beforeH?: number;
+        afterH?: number;
+        copiedFrom?: string;
+        refs?: string[];
+      };
+      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      const detail =
+        mode === "rescale"
+          ? `${j.beforeH}px → ${j.afterH}px`
+          : mode === "gemini"
+            ? `IA · ${(j.refs ?? []).length} refs — CONFIRA se casa`
+            : `← ${j.copiedFrom}`;
+      this.uploadToast.setText(`✓ ${cur.frame} refeito (${detail})`).setColor("#88ff88");
+      this.reloadAtlas(() => this.loadState());
+    } catch (e) {
+      this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
+    }
   }
 
   private pickAndUpload() {
