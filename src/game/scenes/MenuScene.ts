@@ -5,8 +5,20 @@ import { Music } from "../systems/MusicSystem";
 import { loadSettings, setVolume, toggleMuted, toggleReduceSanityFx } from "../systems/Settings";
 import { applyAudioSettings } from "../systems/applyAudio";
 import { Telemetry } from "../systems/Telemetry";
-import { WEAPONS } from "../systems/WeaponSystem";
+import { WEAPONS, CLASSES, ClassId } from "../systems/WeaponSystem";
 import { PERKS } from "../systems/PerkSystem";
+
+// FERRAMENTA DE TESTE (temporária): pular direto pra uma fase criada, p/ os
+// testadores validarem uma fase específica sem jogar desde o começo. Boota a
+// cena com os mesmos dados do smoke (fromRoute p/ Fases 2–5). Remover depois.
+const TEST_PHASES: { label: string; scene: string; data: object }[] = [
+  { label: "Fase 1 — Open Space", scene: "OpenSpaceV2Scene", data: {} },
+  { label: "Fase 2 — Atendimento", scene: "Phase2Scene", data: { fromRoute: true } },
+  { label: "Fase 3 — Comercial", scene: "Phase3Scene", data: { fromRoute: true } },
+  { label: "Fase 4 — Tecnologia", scene: "Phase4Scene", data: { fromRoute: true } },
+  { label: "Fase 5 — Diretoria", scene: "Phase5Scene", data: { fromRoute: true } },
+  { label: "CEO — Cobertura", scene: "CeoScene", data: {} },
+];
 
 const ACCENT = 0xf2a800;
 const ACCENT_DIM = 0xb87a00;
@@ -23,6 +35,7 @@ type MenuItem = { label: string; icon: string; firstRun?: boolean };
 // no primeiro contato com o jogo.
 const ALL_MENU_ITEMS: MenuItem[] = [
   { label: "JOGAR", icon: "▶", firstRun: true },
+  { label: "TESTAR FASE", icon: "🧪", firstRun: true },
   { label: "HORA EXTRA", icon: "🔥" },
   { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
@@ -426,6 +439,8 @@ export class MenuScene extends Phaser.Scene {
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("SpriteLabScene");
       });
+    } else if (item.label === "TESTAR FASE") {
+      this.showOverlay("testfase");
     } else if (item.label === "ARSENAL") {
       this.showOverlay("arsenal");
     } else if (item.label === "CONQUISTAS") {
@@ -475,6 +490,8 @@ export class MenuScene extends Phaser.Scene {
       this.buildArsenalOverlay(OW, OH);
     } else if (type === "conquistas") {
       this.buildConquistasOverlay(OW, OH);
+    } else if (type === "testfase") {
+      this.buildTestFaseOverlay(OW, OH);
     } else {
       this.buildConfigOverlay(OW, OH);
     }
@@ -699,6 +716,110 @@ export class MenuScene extends Phaser.Scene {
         );
       });
     }
+  }
+
+  // FERRAMENTA DE TESTE (temporária): lista de fases → pula direto pra ela.
+  private buildTestFaseOverlay(OW: number, OH: number) {
+    if (!this.overlay) return;
+    const ov = this.overlay;
+    ov.add(
+      this.add
+        .text(OW / 2, 14, "🧪 TESTAR FASE", {
+          fontFamily: "monospace",
+          fontSize: "16px",
+          fontStyle: "bold",
+          color: TEXT_ACCENT,
+        })
+        .setOrigin(0.5, 0),
+    );
+    ov.add(
+      this.add
+        .text(OW / 2, 34, "Pula direto pra uma fase (ferramenta de teste — temporária)", {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        })
+        .setOrigin(0.5, 0),
+    );
+
+    const rowH = 40;
+    const startY = 58;
+    TEST_PHASES.forEach((ph, i) => {
+      const y = startY + i * rowH;
+      const card = this.add.graphics();
+      card.fillStyle(0x141820, 1);
+      card.fillRect(16, y, OW - 32, rowH - 6);
+      card.lineStyle(1, 0x2a3040, 1);
+      card.strokeRect(16, y, OW - 32, rowH - 6);
+      ov.add(card);
+      ov.add(
+        this.add.text(28, y + 6, `[${i + 1}]`, {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          fontStyle: "bold",
+          color: "#88ccff",
+        }),
+      );
+      ov.add(
+        this.add.text(64, y + 6, ph.label, {
+          fontFamily: "monospace",
+          fontSize: "13px",
+          fontStyle: "bold",
+          color: TEXT_LIGHT,
+        }),
+      );
+      ov.add(
+        this.add.text(64, y + 22, `→ ${ph.scene}`, {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        }),
+      );
+      const hit = this.add
+        .rectangle(16 + (OW - 32) / 2, y + (rowH - 6) / 2, OW - 32, rowH - 6, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
+      hit.on("pointerover", () =>
+        card
+          .clear()
+          .fillStyle(0x24304a, 1)
+          .fillRect(16, y, OW - 32, rowH - 6)
+          .lineStyle(2, ACCENT, 1)
+          .strokeRect(16, y, OW - 32, rowH - 6),
+      );
+      hit.on("pointerout", () =>
+        card
+          .clear()
+          .fillStyle(0x141820, 1)
+          .fillRect(16, y, OW - 32, rowH - 6)
+          .lineStyle(1, 0x2a3040, 1)
+          .strokeRect(16, y, OW - 32, rowH - 6),
+      );
+      hit.on("pointerdown", () => this.startTestPhase(ph.scene, ph.data));
+      ov.add(hit);
+    });
+
+    // Atalhos de teclado 1..N
+    const kb = this.input.keyboard!;
+    TEST_PHASES.forEach((ph, i) => {
+      const code =
+        Phaser.Input.Keyboard.KeyCodes[
+          (["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX"] as const)[i]
+        ];
+      if (code != null) kb.addKey(code).once("down", () => this.startTestPhase(ph.scene, ph.data));
+    });
+  }
+
+  // Prepara uma run mínima e válida (classe/arma padrão) e boota a fase.
+  private startTestPhase(sceneKey: string, data: object) {
+    const run = getRun(this);
+    const cls = (run.characterClass ?? "analista") as ClassId;
+    run.characterClass = cls;
+    run.weaponId = run.weaponId ?? CLASSES[cls].startWeapon;
+    run.culturas = run.culturas ?? [];
+    run.perks = run.perks ?? [];
+    this.hideOverlay();
+    this.cameras.main.fadeOut(200, 0, 0, 0);
+    this.cameras.main.once("camerafadeoutcomplete", () => this.scene.start(sceneKey, data));
   }
 
   private buildConfigOverlay(OW: number, OH: number) {

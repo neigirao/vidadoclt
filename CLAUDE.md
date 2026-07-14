@@ -34,7 +34,7 @@ src/
     scenes/
       PreloadScene.ts        # Splash estilo AMI BIOS enquanto o atlas carrega
       BootScene.ts           # Carrega atlas + backgrounds, gera texturas restantes
-      MenuScene.ts           # Menu principal (JOGAR / RECONHECIMENTO / RANKING / BESTIÁRIO / HORA EXTRA / LAB)
+      MenuScene.ts           # Menu principal (JOGAR / TESTAR FASE* / RECONHECIMENTO / RANKING / BESTIÁRIO / HORA EXTRA / LAB). *TESTAR FASE = ferramenta TEMPORÁRIA de teste (pula direto pra qualquer fase criada; remover depois)
       ClassSelectScene.ts    # Seleção de classe (Estagiário/Analista/Terceirizado)
       CulturaSelectScene.ts  # Modificador de run (Cultura Corporativa)
       ReconhecimentoScene.ts # Loja de upgrades permanentes (meta-progressão)
