@@ -40,7 +40,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
   { label: "BESTIARIO", icon: "👾" },
-  { label: "LAB SPRITES", icon: "🔬" },
+  { label: "LAB SPRITES", icon: "🔬", firstRun: true }, // ferramenta de teste — visível já na 1ª run (remover depois)
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
   { label: "CONFIGURAÇÕES", icon: "⚙", firstRun: true },
