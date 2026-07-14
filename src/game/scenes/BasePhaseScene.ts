@@ -635,35 +635,46 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 2. Subclass phase logic
     this.onPhaseUpdate(time, delta);
 
-    // 3. Collect all enemies for homing ink logic
-    const allEnemies: Phaser.Physics.Arcade.Sprite[] = [];
-    for (const def of this.enemyGroups) {
-      def.group.getChildren().forEach((e) => allEnemies.push(e as Phaser.Physics.Arcade.Sprite));
+    // 3. Homing ink projectile logic (lifetime + homing). Só monta a lista de
+    // inimigos e faz a busca do mais próximo se HÁ tinta viva — na maioria dos
+    // frames não há, então evita o O(n) por frame + o filter/sort por projétil.
+    const inks = this.inkProjectiles.getChildren();
+    if (inks.length) {
+      let allEnemies: Phaser.Physics.Arcade.Sprite[] | null = null;
+      for (const obj of inks) {
+        const ink = obj as Phaser.Physics.Arcade.Sprite;
+        if (!ink.active) continue;
+        const lifetime = ink.getData("lifetime") as number;
+        if (lifetime && lifetime < time) {
+          ink.destroy();
+          continue;
+        }
+        if (!ink.getData("homing")) continue;
+        // Monta a lista de inimigos 1× (lazy) e acha o mais próximo por min-scan
+        // (sem filter+sort que aloca e é O(n log n) por projétil).
+        if (!allEnemies) {
+          allEnemies = [];
+          for (const def of this.enemyGroups)
+            for (const e of def.group.getChildren())
+              allEnemies.push(e as Phaser.Physics.Arcade.Sprite);
+        }
+        let nearest: Phaser.Physics.Arcade.Sprite | null = null;
+        let bestD = Infinity;
+        for (const e of allEnemies) {
+          if (!e.active) continue;
+          const d = Phaser.Math.Distance.Squared(ink.x, ink.y, e.x, e.y);
+          if (d < bestD) {
+            bestD = d;
+            nearest = e;
+          }
+        }
+        if (nearest) {
+          const ibody = ink.body as Phaser.Physics.Arcade.Body;
+          const angle = Phaser.Math.Angle.Between(ink.x, ink.y, nearest.x, nearest.y);
+          ibody.setVelocity(Math.cos(angle) * 480, Math.sin(angle) * 480);
+        }
+      }
     }
-
-    // Homing ink projectile logic (lifetime + homing)
-    this.inkProjectiles.getChildren().forEach((obj) => {
-      const ink = obj as Phaser.Physics.Arcade.Sprite;
-      if (!ink.active) return;
-      const lifetime = ink.getData("lifetime") as number;
-      if (lifetime && lifetime < time) {
-        ink.destroy();
-        return;
-      }
-      if (!ink.getData("homing")) return;
-      const nearest = allEnemies
-        .filter((e) => e.active)
-        .sort(
-          (a, b) =>
-            Phaser.Math.Distance.Between(ink.x, ink.y, a.x, a.y) -
-            Phaser.Math.Distance.Between(ink.x, ink.y, b.x, b.y),
-        )[0];
-      if (nearest) {
-        const ibody = ink.body as Phaser.Physics.Arcade.Body;
-        const angle = Phaser.Math.Angle.Between(ink.x, ink.y, nearest.x, nearest.y);
-        ibody.setVelocity(Math.cos(angle) * 480, Math.sin(angle) * 480);
-      }
-    });
 
     // 4. Boss contact damage + HUD update
     if (this.boss?.active) {

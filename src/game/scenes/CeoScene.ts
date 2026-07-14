@@ -3,7 +3,12 @@ import Phaser from "phaser";
 import { Telemetry } from "../systems/Telemetry";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
-import { addPhaseBackground } from "../systems/Background";
+import {
+  addPhaseBackground,
+  addParallaxLayers,
+  addPhaseAmbience,
+  addPhaseParticles,
+} from "../systems/Background";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { EstagiarioDesesperado } from "../entities/Enemies";
@@ -55,6 +60,13 @@ export class CeoScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
 
     addPhaseBackground(this, "bg-cobertura", HUD_TOP_H, FLOOR_Y);
+    // A cena do CEO não é fase numerada, então caía fora da compensação procedural
+    // que as Fases 3/4/5 recebem — o clímax ficava com o fundo mais pobre e chapado.
+    // Reusa o tratamento da Fase 5 (janela só-moldura + céu/pôr-do-sol da cobertura)
+    // + poeira/ambiência, fechando o gap sem depender de arte nova.
+    addParallaxLayers(this, 5, HUD_TOP_H, FLOOR_Y, LEVEL_WIDTH);
+    addPhaseAmbience(this, HUD_TOP_H, FLOOR_Y, LEVEL_WIDTH);
+    addPhaseParticles(this, 5, HUD_TOP_H, FLOOR_Y);
 
     // Add dramatic dark overlay
     this.add

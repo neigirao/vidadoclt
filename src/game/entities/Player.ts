@@ -21,6 +21,65 @@ const PARRY_COOLDOWN_MS = 1000; // cooldown após parry bem-sucedido
 const PARRY_SANITY_RESTORE = 12; // sanidade restaurada num parry bem-sucedido
 const PARRY_WHIFF_ENERGY_COST = 6; // energia perdida ao errar o parry
 
+// Modificadores por faixa de sanidade (VAI NA RAÇA). São CONSTANTES por faixa —
+// congelados no módulo e reusados, pois getBurnoutMods() é chamado várias vezes
+// por frame (Player.update, MeleeCombat, HUD.update, SanityFx). Antes alocava um
+// objeto novo a cada chamada.
+export type BurnoutMods = {
+  speedMult: number;
+  parryWindowDelta: number; // ms adicionados (negativo = penalidade)
+  parryDisabled: boolean;
+  specialCooldownMult: number;
+  damageTakenMult: number;
+  vrDropMult: number;
+  damageDealtMult: number; // upside do Burnout: bate mais forte
+  sanityHealOnKill: number; // saída por agressão: matar recupera sanidade
+};
+const BURNOUT_MODS: Record<"stressed" | "anxious" | "burnout" | "ok", BurnoutMods> = {
+  stressed: Object.freeze({
+    speedMult: 0.9,
+    parryWindowDelta: -40,
+    parryDisabled: false,
+    specialCooldownMult: 1.0,
+    damageTakenMult: 1.0,
+    vrDropMult: 1.0,
+    damageDealtMult: 1.0,
+    sanityHealOnKill: 0,
+  }),
+  anxious: Object.freeze({
+    speedMult: 0.9,
+    parryWindowDelta: -40,
+    parryDisabled: false,
+    specialCooldownMult: 1.3,
+    damageTakenMult: 1.0,
+    vrDropMult: 0.8,
+    damageDealtMult: 1.0,
+    sanityHealOnKill: 0,
+  }),
+  // VAI NA RAÇA: presas (dano+VR) e saída (cura/kill) contra fragilidade
+  // (dano recebido) e parry apertado — trade-off legível, não punição.
+  burnout: Object.freeze({
+    speedMult: 0.9,
+    parryWindowDelta: -60,
+    parryDisabled: false,
+    specialCooldownMult: 1.0,
+    damageTakenMult: 1.4,
+    vrDropMult: 1.5,
+    damageDealtMult: 1.35,
+    sanityHealOnKill: 4,
+  }),
+  ok: Object.freeze({
+    speedMult: 1.0,
+    parryWindowDelta: 0,
+    parryDisabled: false,
+    specialCooldownMult: 1.0,
+    damageTakenMult: 1.0,
+    vrDropMult: 1.0,
+    damageDealtMult: 1.0,
+    sanityHealOnKill: 0,
+  }),
+};
+
 export type PlayerKeys = {
   left: Phaser.Input.Keyboard.Key;
   right: Phaser.Input.Keyboard.Key;
@@ -359,65 +418,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    * fragilidade (dano recebido) e parry apertado (difícil, não desligado). As
    * faixas "stressed"/"anxious" são a rampa de aviso (só penalidade leve).
    */
-  getBurnoutMods(): {
-    speedMult: number;
-    parryWindowDelta: number; // ms adicionados (negativo = penalidade)
-    parryDisabled: boolean;
-    specialCooldownMult: number;
-    damageTakenMult: number;
-    vrDropMult: number;
-    damageDealtMult: number; // upside do Burnout: bate mais forte
-    sanityHealOnKill: number; // saída por agressão: matar recupera sanidade
-  } {
+  getBurnoutMods(): BurnoutMods {
     const band = sanityBand(this.sanity);
-    switch (band) {
-      case "stressed":
-        return {
-          speedMult: 0.9,
-          parryWindowDelta: -40,
-          parryDisabled: false,
-          specialCooldownMult: 1.0,
-          damageTakenMult: 1.0,
-          vrDropMult: 1.0,
-          damageDealtMult: 1.0,
-          sanityHealOnKill: 0,
-        };
-      case "anxious":
-        return {
-          speedMult: 0.9,
-          parryWindowDelta: -40,
-          parryDisabled: false,
-          specialCooldownMult: 1.3,
-          damageTakenMult: 1.0,
-          vrDropMult: 0.8,
-          damageDealtMult: 1.0,
-          sanityHealOnKill: 0,
-        };
-      case "burnout":
-        // VAI NA RAÇA: presas (dano+VR) e saída (cura/kill) contra fragilidade
-        // (dano recebido) e parry apertado — trade-off legível, não punição.
-        return {
-          speedMult: 0.9,
-          parryWindowDelta: -60,
-          parryDisabled: false,
-          specialCooldownMult: 1.0,
-          damageTakenMult: 1.4,
-          vrDropMult: 1.5,
-          damageDealtMult: 1.35,
-          sanityHealOnKill: 4,
-        };
-      default:
-        return {
-          speedMult: 1.0,
-          parryWindowDelta: 0,
-          parryDisabled: false,
-          specialCooldownMult: 1.0,
-          damageTakenMult: 1.0,
-          vrDropMult: 1.0,
-          damageDealtMult: 1.0,
-          sanityHealOnKill: 0,
-        };
-    }
+    return BURNOUT_MODS[band as "stressed" | "anxious" | "burnout" | "ok"] ?? BURNOUT_MODS.ok;
   }
 
   /** Retorna true se os controles L/R devem inverter agora (tremor de ansiedade). */

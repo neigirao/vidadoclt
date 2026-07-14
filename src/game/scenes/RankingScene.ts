@@ -56,6 +56,9 @@ export class RankingScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const entries = await getTopScores(15);
+    // Se o jogador saiu da cena durante o await (voltou/ESC → scene.start), a cena
+    // já foi desmontada — não mexer no display list morto.
+    if (!this.scene.isActive()) return;
     loading.destroy();
 
     if (entries.length === 0) {
