@@ -39,6 +39,18 @@ export function initSpriteLibrary(scene: Phaser.Scene): void {
 // Cache de resolução por chave (resolveSprite roda a cada frame nas animações).
 const _resolveCache = new Map<string, [string, string?]>();
 
+// Override de frame por runtime (arte refeita pela IA online, salva no Supabase
+// Storage e aplicada por cima do atlas — sem re-empacotar). Injetado por
+// SpriteOverrides p/ não acoplar SpriteLibrary ao supabase. Dado um nome de frame
+// do atlas, retorna a KEY de textura standalone do override, ou undefined.
+let _overrideResolver: ((frame: string) => string | undefined) | null = null;
+export function setSpriteOverrideResolver(
+  fn: ((frame: string) => string | undefined) | null,
+): void {
+  _overrideResolver = fn;
+  _resolveCache.clear();
+}
+
 /**
  * Candidatos de nome de frame para uma chave lógica, em ordem de prioridade.
  * A nomenclatura das chaves `tex-*` não bate 1:1 com os frames do atlas (que
@@ -107,7 +119,10 @@ export function resolveSprite(key: string): [string, string?] {
     const stripped = key.startsWith("tex-") ? key.slice(4) : key;
     for (const frame of candidateFrames(stripped)) {
       if (atlasFrames.has(frame)) {
-        result = [ATLAS_KEY, frame];
+        // Override de runtime (IA online): se houver arte refeita p/ este frame,
+        // usa a textura standalone do override em vez do frame do atlas.
+        const ovr = _overrideResolver?.(frame);
+        result = ovr ? [ovr] : [ATLAS_KEY, frame];
         break;
       }
     }
