@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { Player } from "../entities/Player";
 import { WEAPONS, WeaponId } from "./WeaponSystem";
+import { meleeComboHits, meleeDamage, meleeKnockback, meleeVrDrop } from "./MeleeMath";
 import { CombatFx } from "./CombatFx";
 import { Sfx } from "./AudioSystem";
 import { ParticleFactory } from "./ParticleFactory";
@@ -68,9 +69,7 @@ export function resolveMeleeAttack(
 
   const { scene, player, combatFx } = host;
   const def = WEAPONS[player.weaponId as WeaponId] ?? WEAPONS.grampeador;
-  const comboHits = def.hitDamages[2] === 0 ? 2 : 3;
-  const dmgIndex = Math.min(step - 1, def.hitDamages.length - 1);
-  const baseDmg = def.hitDamages[dmgIndex] || def.hitDamages[0];
+  const comboHits = meleeComboHits(def);
   let strikeMult = 1.0;
   if (firstFrame && player.firstStrikeReady) {
     player.firstStrikeReady = false;
@@ -79,8 +78,8 @@ export function resolveMeleeAttack(
   }
   // VAI NA RAÇA: no Burnout o dano causado sobe (glass-cannon opt-in).
   const burnoutDealtMult = player.getBurnoutMods().damageDealtMult;
-  const damage = Math.round(baseDmg * player.damageMult * strikeMult * burnoutDealtMult);
-  const knockback = (step >= comboHits ? def.comboKnockback : 80) * player.facing;
+  const damage = meleeDamage(def, step, player.damageMult, strikeMult, burnoutDealtMult);
+  const knockback = meleeKnockback(def, step, player.facing);
   const slowMs = def.hitSlow;
   const isFinisher = step >= comboHits;
 
@@ -147,11 +146,7 @@ export function resolveMeleeAttack(
         ParticleFactory.enemyDeath(scene, e.x, e.y - 10);
         const mult = host.killVrMult?.(e.x, e.y) ?? 1;
         const burnout = player.getBurnoutMods();
-        host.dropVR(
-          e.x,
-          e.y,
-          Math.max(1, Math.round(vrDrop * player.vrDropMult * mult * burnout.vrDropMult)),
-        );
+        host.dropVR(e.x, e.y, meleeVrDrop(vrDrop, player.vrDropMult, mult, burnout.vrDropMult));
         if (player.healOnKill > 0)
           player.energy = Math.min(player.maxEnergy, player.energy + player.healOnKill);
         // VAI NA RAÇA: matar de dentro do Burnout devolve sanidade — a saída
