@@ -80,21 +80,21 @@ Vindos do uso real do REFAZER COM IA online:
 - ✅ **Fundo transparente** — a saída da IA às vezes vinha sobre fundo opaco (bloco).
   `applyGuardrails` agora roda `stripBackground` (flood-fill das bordas, amostrando
   a cor dos cantos) antes da trava de paleta. Corrigido.
-- 🟡 **Gerar frames faltantes (multi-frame)** — hoje o REFAZER refaz **1 frame por
-  vez**. Ações com menos frames que o padrão da família (ex.: um `walk` com 2 de 4)
-  não são completadas. Quando pedir para gerar, deveria detectar a lacuna e preencher
-  os frames que faltam de forma consistente. **Por que é maior do que parece:** a
-  contagem por estado é `const` compile-time em `systems/EnemyAnimConfig.ts`
-  (`WALK/IDLE/ATTACK_FRAME_COUNTS`), e o override é _por frame já existente no atlas_
-  (`SpriteOverrides.ts`) — um frame **novo** não é ciclado pelo jogo. Plano:
-  1. Tornar a contagem de frames **dinâmica**: derivar do manifesto de overrides +
-     atlas em runtime (não do `const`), para novos frames entrarem no ciclo.
-  2. `resolveSprite` passar a resolver frame de override **inexistente no atlas**
-     (hoje o override só substitui frame existente).
-  3. Chamada Gemini **em lote**: gerar os N faltantes usando os vizinhos válidos como
-     referência de pose/paleta, com os mesmos guardrails por frame.
-  4. UI do modal: mostrar "esta ação tem 2/4 frames do padrão" e um botão
-     "COMPLETAR FAMÍLIA" além do refazer single-frame.
+- ✅ **Gerar frames faltantes (multi-frame)** — implementado. O LAB detecta a lacuna
+  do estado atual vs o padrão (`TARGET_FRAMES`: walk 4 / idle 4 / attack 2) e o botão
+  **🎞 COMPLETAR FAMÍLIA `[C]`** gera por IA o próximo frame faltante, reusando o
+  preview/guardrails/transparência do REFAZER. Ao aprovar, o frame novo entra como
+  override de runtime e o jogo passa a ciclá-lo. Como funcionou:
+  1. Contagem **dinâmica**: `EnemyAnimConfig` ganhou `frameCount(state,prefix)` =
+     `max(base const, aumentos de runtime)`; `setEnemyTex` e o LAB leem via os
+     acessores (`walkFrames`/`idleFrames`/`attackFrames`).
+  2. `resolveSprite` agora serve override **inexistente no atlas** (frame virtual).
+  3. `SpriteOverrides.registerFrameSlot` parseia `enemy-<prefixo>-<estado><n>` no
+     boot/upload e registra o aumento de contagem.
+  4. Testes: `EnemyAnimConfig.test.ts` (7) cobrem base/default/max/reset/estados.
+  - Aberto p/ evoluir: geração **em lote** (hoje 1 frame por clique, com preview
+    individual — que é o gate de qualidade); e multi-frame p/ inimigos das Fases 2–5
+    (que usam `animPhase` com `nFrames` explícito, fora do `setEnemyTex`).
 
 ---
 

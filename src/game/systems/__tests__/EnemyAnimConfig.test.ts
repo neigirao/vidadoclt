@@ -1,0 +1,67 @@
+import { describe, it, expect } from "bun:test";
+import {
+  frameCount,
+  walkFrames,
+  idleFrames,
+  attackFrames,
+  registerFrameAddition,
+  resetFrameAdditions,
+  WALK_FRAME_COUNTS,
+  DEFAULT_WALK_FRAMES,
+  DEFAULT_IDLE_FRAMES,
+} from "../EnemyAnimConfig";
+
+// Contagem EFETIVA de frames = max(base do atlas, aumentos por override de
+// runtime). É o que faz o multi-frame do LAB de fato animar no jogo: um frame
+// novo (enemy-<prefixo>-walk2) sobe a contagem e o setEnemyTex cicla até ele.
+describe("EnemyAnimConfig frameCount", () => {
+  it("usa a base do atlas quando não há override", () => {
+    resetFrameAdditions();
+    expect(walkFrames("estagiario")).toBe(WALK_FRAME_COUNTS.estagiario); // 4
+    expect(walkFrames("facilitador")).toBe(WALK_FRAME_COUNTS.facilitador); // 2
+  });
+
+  it("cai no default quando o prefixo é desconhecido", () => {
+    resetFrameAdditions();
+    expect(walkFrames("desconhecido")).toBe(DEFAULT_WALK_FRAMES); // 2
+    expect(idleFrames("desconhecido")).toBe(DEFAULT_IDLE_FRAMES); // 4
+  });
+
+  it("um override ALÉM da base aumenta a contagem", () => {
+    resetFrameAdditions();
+    // facilitador walk base 2 → adiciona walk2 (índice 2 → conta 3)
+    registerFrameAddition("walk", "facilitador", 3);
+    expect(walkFrames("facilitador")).toBe(3);
+    // completar até 4 (walk3 → conta 4)
+    registerFrameAddition("walk", "facilitador", 4);
+    expect(walkFrames("facilitador")).toBe(4);
+  });
+
+  it("nunca REDUZ abaixo da base (substituir frame existente não encolhe)", () => {
+    resetFrameAdditions();
+    // estagiario walk base 4; um override no índice 1 (conta 2) não reduz.
+    registerFrameAddition("walk", "estagiario", 2);
+    expect(walkFrames("estagiario")).toBe(4);
+  });
+
+  it("mantém o MAIOR aumento visto (idempotente, não retrocede)", () => {
+    resetFrameAdditions();
+    registerFrameAddition("idle", "scrum", 6);
+    registerFrameAddition("idle", "scrum", 5); // menor → ignorado
+    expect(idleFrames("scrum")).toBe(6);
+  });
+
+  it("separa os estados (walk/idle/attack não se contaminam)", () => {
+    resetFrameAdditions();
+    registerFrameAddition("attack", "rh", 5);
+    expect(attackFrames("rh")).toBe(5);
+    expect(walkFrames("rh")).toBe(WALK_FRAME_COUNTS.rh); // 4, intacto
+    expect(frameCount("idle", "rh")).toBe(4); // idle base do rh, intacto
+  });
+
+  it("reset limpa os aumentos", () => {
+    registerFrameAddition("walk", "facilitador", 4);
+    resetFrameAdditions();
+    expect(walkFrames("facilitador")).toBe(2);
+  });
+});
