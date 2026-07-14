@@ -28,19 +28,19 @@ export const CULTURAS: Record<CulturaId, CulturaDef> = {
     id: "alinhamento_total",
     name: "Alinhamento Total",
     icon: ">>",
-    description: "+20% velocidade de movimento.",
+    description: "+25% velocidade de movimento, mas -15% de alcance.",
   },
   overtime_bonus: {
     id: "overtime_bonus",
     name: "Bonus de Overtime",
     icon: "$$",
-    description: "+20% dano em todos os ataques.",
+    description: "+30% dano causado, porem voce recebe +20% de dano.",
   },
   meta_batida: {
     id: "meta_batida",
     name: "Meta Batida",
     icon: "<>",
-    description: "Inimigos dropam 50% mais VR.",
+    description: "Inimigos dropam +60% VR, mas Energia maxima -20%.",
   },
   gestao_burnout: {
     id: "gestao_burnout",
@@ -58,13 +58,13 @@ export const CULTURAS: Record<CulturaId, CulturaDef> = {
     id: "daily_scrum",
     name: "Daily Scrum",
     icon: "[]",
-    description: "Cooldown do especial -40%.",
+    description: "Cooldown do especial -50%, mas Sanidade maxima -20.",
   },
   pdi_completo: {
     id: "pdi_completo",
     name: "PDI Completo",
     icon: "**",
-    description: "Velocidade de ataque +25%.",
+    description: "Velocidade de ataque +35%, mas -20% de dano por golpe.",
   },
   banco_horas: {
     id: "banco_horas",
@@ -76,7 +76,7 @@ export const CULTURAS: Record<CulturaId, CulturaDef> = {
     id: "feedback_semanal",
     name: "Feedback Semanal",
     icon: "~~",
-    description: "+25% alcance de ataque.",
+    description: "+35% de alcance, mas -12% de velocidade de movimento.",
   },
   refeicao_executiva: {
     id: "refeicao_executiva",
@@ -120,14 +120,20 @@ export function reapplyAllCulturas(player: Player, run: RunState) {
   // Called AFTER reapplyAllPerks. Applies stat changes additively.
   for (const id of run.culturas ?? []) {
     switch (id as CulturaId) {
-      case "alinhamento_total":
-        player.walkSpeed *= 1.2;
+      // ── Tradeoffs (decisão, não só número): cada um tem presa E custo, para o
+      // pick (inclusive o pós-boss) virar uma escolha de COMO jogar, não só qual
+      // stat inflar. Distingue-se do meta-shop (que é buff permanente puro).
+      case "alinhamento_total": // mobilidade × alcance
+        player.walkSpeed *= 1.25;
+        player.attackRange *= 0.85;
         break;
-      case "overtime_bonus":
-        player.damageMult *= 1.2;
+      case "overtime_bonus": // glass cannon: bate mais forte, apanha mais
+        player.damageMult *= 1.3;
+        player.damageReductionMult *= 1.2;
         break;
-      case "meta_batida":
-        player.vrDropMult *= 1.5;
+      case "meta_batida": // ganância custa fôlego
+        player.vrDropMult *= 1.6;
+        player.maxEnergy = Math.round(player.maxEnergy * 0.8);
         break;
       case "gestao_burnout":
         player.maxSanity += 30;
@@ -135,15 +141,18 @@ export function reapplyAllCulturas(player: Player, run: RunState) {
       case "happy_hour":
         player.maxEnergy += 25;
         break;
-      case "daily_scrum":
-        player.specialCooldown = Math.round(player.specialCooldown * 0.6);
+      case "daily_scrum": // spam de especial pesa na saúde mental
+        player.specialCooldown = Math.round(player.specialCooldown * 0.5);
+        player.maxSanity -= 20;
         break;
-      case "pdi_completo":
-        player.attackIntervalMs = Math.round(player.attackIntervalMs * 0.75);
+      case "pdi_completo": // cadência × peso (muda o feel do combo, DPS ~neutro)
+        player.attackIntervalMs = Math.round(player.attackIntervalMs * 0.65);
+        player.damageMult *= 0.8;
         break;
       // banco_horas is NOT applied here — only at selection time
-      case "feedback_semanal":
-        player.attackRange *= 1.25;
+      case "feedback_semanal": // alcance × mobilidade
+        player.attackRange *= 1.35;
+        player.walkSpeed *= 0.88;
         break;
       case "refeicao_executiva":
         player.maxEnergy += 20;

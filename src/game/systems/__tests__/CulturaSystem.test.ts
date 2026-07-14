@@ -8,6 +8,7 @@ const fakePlayer = () =>
   ({
     walkSpeed: 200,
     damageMult: 1,
+    damageReductionMult: 1,
     vrDropMult: 1,
     maxSanity: 100,
     maxEnergy: 100,
@@ -63,23 +64,32 @@ describe("CulturaSystem — efeitos aplicados na run", () => {
     expect(p.maxSanity).toBe(120);
   });
 
-  it("multiplicadores: alinhamento/overtime/meta/feedback", () => {
+  it("tradeoffs: alinhamento/overtime/meta/feedback aplicam presa E custo", () => {
     const p = fakePlayer();
     reapplyAllCulturas(
       p,
       run(["alinhamento_total", "overtime_bonus", "meta_batida", "feedback_semanal"]),
     );
-    expect(p.walkSpeed).toBeCloseTo(240); // x1.2
-    expect(p.damageMult).toBeCloseTo(1.2);
-    expect(p.vrDropMult).toBeCloseTo(1.5);
-    expect(p.attackRange).toBeCloseTo(40); // 32 x1.25
+    // alinhamento (x1.25 vel, x0.85 alcance) + feedback (x1.35 alcance, x0.88 vel)
+    expect(p.walkSpeed).toBeCloseTo(200 * 1.25 * 0.88); // 220
+    expect(p.attackRange).toBeCloseTo(32 * 0.85 * 1.35); // 36.72
+    // overtime: +30% dano causado, +20% dano recebido (custo)
+    expect(p.damageMult).toBeCloseTo(1.3);
+    expect(p.damageReductionMult).toBeCloseTo(1.2);
+    // meta: +60% VR, -20% energia máx (custo)
+    expect(p.vrDropMult).toBeCloseTo(1.6);
+    expect(p.maxEnergy).toBe(80);
   });
 
-  it("cooldowns: daily_scrum e pdi_completo arredondam", () => {
+  it("tradeoffs de cooldown: daily_scrum e pdi_completo (presa + custo)", () => {
     const p = fakePlayer();
-    reapplyAllCulturas(p, run(["daily_scrum", "pdi_completo"]));
-    expect(p.specialCooldown).toBe(600); // round(1000*0.6)
-    expect(p.attackIntervalMs).toBe(165); // round(220*0.75)
+    reapplyAllCulturas(p, run(["daily_scrum"]));
+    expect(p.specialCooldown).toBe(500); // round(1000*0.5)
+    expect(p.maxSanity).toBe(80); // custo: -20 sanidade
+    const q = fakePlayer();
+    reapplyAllCulturas(q, run(["pdi_completo"]));
+    expect(q.attackIntervalMs).toBe(143); // round(220*0.65)
+    expect(q.damageMult).toBeCloseTo(0.8); // custo: -20% dano/golpe
   });
 
   it("autonomia_total liga a flag", () => {

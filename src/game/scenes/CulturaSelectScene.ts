@@ -55,11 +55,16 @@ export class CulturaSelectScene extends Phaser.Scene {
 
     // Subtitle
     this.add
-      .text(panelX, panelY - panelH / 2 + 44, "Escolha um beneficio para esta run:", {
-        fontFamily: "monospace",
-        fontSize: "9px",
-        color: "#aaaacc",
-      })
+      .text(
+        panelX,
+        panelY - panelH / 2 + 44,
+        "Escolha um modo pra esta run — cada um tem presa E custo (ou recuse):",
+        {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: "#aaaacc",
+        },
+      )
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(1002);
@@ -142,13 +147,8 @@ export class CulturaSelectScene extends Phaser.Scene {
         .setDepth(1003);
     });
 
-    const select = (id: CulturaId) => {
-      Sfx.culturaSelect();
-      run.culturas = [...(run.culturas ?? []), id];
-      // Apply banco_horas immediately on selection (not via reapplyAllCulturas)
-      if (id === "banco_horas") {
-        run.extraLives = (run.extraLives ?? 0) + 1;
-      }
+    // Sai da tela (inicia a próxima cena OU resume o caller pausado do pós-boss).
+    const proceed = () => {
       if (data.nextScene) {
         this.scene.start(data.nextScene);
       } else {
@@ -157,10 +157,41 @@ export class CulturaSelectScene extends Phaser.Scene {
       }
     };
 
+    const select = (id: CulturaId) => {
+      Sfx.culturaSelect();
+      run.culturas = [...(run.culturas ?? []), id];
+      // Apply banco_horas immediately on selection (not via reapplyAllCulturas)
+      if (id === "banco_horas") {
+        run.extraLives = (run.extraLives ?? 0) + 1;
+      }
+      proceed();
+    };
+
+    // RECUSAR: como cada Cultura agora carrega um CUSTO, recusar (manter o build
+    // limpo) é uma escolha legítima de custo de oportunidade — não um "pulo" grátis.
+    const decline = () => {
+      Sfx.culturaSelect();
+      proceed();
+    };
+    const declineBtn = this.add
+      .text(panelX, panelY + panelH / 2 - 16, "[R] Recusar — manter o build limpo", {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#9a9ab0",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1003)
+      .setInteractive({ useHandCursor: true });
+    declineBtn.on("pointerover", () => declineBtn.setColor("#e0e0ff"));
+    declineBtn.on("pointerout", () => declineBtn.setColor("#9a9ab0"));
+    declineBtn.on("pointerdown", () => decline());
+
     // Key bindings
     const kb = this.input.keyboard!;
     kb.once("keydown-ONE", () => select(data.options[0]));
     kb.once("keydown-TWO", () => select(data.options[1]));
     kb.once("keydown-THREE", () => select(data.options[2]));
+    kb.once("keydown-R", () => decline());
   }
 }
