@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { resolveSprite, applyTexture } from "../systems/SpriteLibrary";
 import { markKilled } from "../systems/BestiarySystem";
 import { fxGlow, showTelegraph } from "./Enemies";
+import { runtimeFrameAddition } from "../systems/EnemyAnimConfig";
 
 const HIT_INVULN_MS = 400;
 
@@ -22,8 +23,11 @@ function animPhase(
   if (!body) return;
   if (!_phaseAnimOff.has(e)) _phaseAnimOff.set(e, (Math.random() * 1500) | 0);
   const off = _phaseAnimOff.get(e)!;
+  // Multi-frame: se o LAB adicionou frames de walk por IA (override de runtime),
+  // cicla até eles — max(base hardcoded, aumento registrado).
+  const total = Math.max(frames, runtimeFrameAddition("walk", prefix));
   if (Math.abs(body.velocity.x) > 5 || Math.abs(body.velocity.y) > 5) {
-    const f = Math.floor((t + off) / ms) % frames;
+    const f = Math.floor((t + off) / ms) % total;
     applyTexture(e, `tex-${prefix}-walk${f}`);
   } else {
     applyTexture(e, `tex-${prefix}`);

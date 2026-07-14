@@ -15,6 +15,7 @@ import {
   DEFAULT_IDLE_MS,
   DEFAULT_ATTACK_MS,
   frameCount,
+  hasAnimConfig,
   type AnimState,
 } from "../systems/EnemyAnimConfig";
 
@@ -620,19 +621,42 @@ export class SpriteLabScene extends Phaser.Scene {
     }
   }
 
-  // Quantos frames FALTAM p/ o estado atual chegar ao padrão (TARGET_FRAMES), e o
-  // índice do próximo slot a preencher. null se o sujeito/estado não se aplica
-  // (sem prefixo, ou estado que não é walk/idle/attack).
-  private familyGap(): { state: AnimState; prefix: string; next: number; missing: number } | null {
+  // Prefixo do atlas do estado atual: do sujeito (personagens/Fase 1) ou inferido
+  // das chaves do estado (inimigos de Fase 2–5 são mkItem, sem prefix próprio; suas
+  // chaves de walk são enemy-<prefixo>-walkN).
+  private statePrefix(st: string): string | undefined {
     const subj = SUBJECTS[this.subjIdx];
-    const p = subj.prefix;
+    if (subj.prefix) return subj.prefix;
+    const k = subj.states[st]?.[0];
+    const m = k ? new RegExp(`^(?:tex-|enemy-)(.+)-${st}\\d+$`).exec(k) : null;
+    return m?.[1] ?? undefined;
+  }
+
+  // Quantos frames FALTAM p/ o estado atual chegar ao padrão (TARGET_FRAMES) e o
+  // índice do próximo slot. null quando não se aplica: estado sem padrão, sem
+  // prefixo, OU categoria cujos frames NÃO ciclam no jogo (objeto/fundo são
+  // renderizados estáticos — completar frames ali não animaria).
+  private familyGap(): { state: AnimState; prefix: string; next: number; missing: number } | null {
     const st = this.stateName;
-    if (!p || (st !== "walk" && st !== "idle" && st !== "attack")) return null;
+    if (st !== "walk" && st !== "idle" && st !== "attack") return null;
     const state = st as AnimState;
-    const current = frameCount(state, p);
+    const prefix = this.statePrefix(st);
+    if (!prefix) return null;
+    // Só onde há consumidor de animação por frame: setEnemyTex (Fase 1 + recolor
+    // bosses) ou animPhase (Fases 2–4).
+    const cat = SUBJECTS[this.subjIdx].cat;
+    const animates =
+      hasAnimConfig(prefix) || cat === "Fase 2" || cat === "Fase 3" || cat === "Fase 4";
+    if (!animates) return null;
+    // Contagem ATUAL: para setEnemyTex usa a contagem efetiva (respeita a whitelist
+    // de frames validados); para animPhase (mkItem, sem config) usa os frames
+    // presentes neste estado. next = próximo índice a preencher.
+    const current = hasAnimConfig(prefix)
+      ? frameCount(state, prefix)
+      : this.frames.filter((f) => f.ok).length;
     return {
       state,
-      prefix: p,
+      prefix,
       next: current,
       missing: Math.max(0, TARGET_FRAMES[state] - current),
     };
@@ -954,11 +978,15 @@ export class SpriteLabScene extends Phaser.Scene {
     const m = /^enemy-(.+)-(walk|idle|attack)(\d+)$/.exec(frame);
     if (!m) return;
     const subj = SUBJECTS[this.subjIdx];
-    if (subj.prefix !== m[1]) return;
     const list = subj.states[m[2]];
     if (!list) return;
-    // Respeita a convenção de chave dos irmãos (uns usam `tex-*`, outros `enemy-*`).
+    // Confirma que o estado pertence a este prefixo (o sujeito tem prefix próprio,
+    // ou suas chaves referenciam o prefixo — caso dos inimigos de Fase 2–5).
     const logical = `tex-${m[1]}-${m[2]}${m[3]}`;
+    const belongs =
+      subj.prefix === m[1] || list.some((k) => k.includes(`-${m[1]}-`) || k.startsWith(`${m[1]}-`));
+    if (!belongs) return;
+    // Respeita a convenção de chave dos irmãos (uns usam `tex-*`, outros `enemy-*`).
     const key = list[0]?.startsWith("enemy-") ? frame : logical;
     if (!list.includes(key) && !list.includes(logical) && !list.includes(frame)) list.push(key);
   }

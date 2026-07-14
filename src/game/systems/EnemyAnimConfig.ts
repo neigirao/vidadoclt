@@ -114,6 +114,21 @@ export function resetFrameAdditions(): void {
   _additions.attack = {};
 }
 
+/** Só o aumento REGISTRADO por override (0 se nenhum). Usado por consumidores que
+ *  têm a base própria (ex.: animPhase das Fases 2–5 passa a contagem hardcoded). */
+export function runtimeFrameAddition(state: AnimState, prefix: string): number {
+  return _additions[state][prefix] ?? 0;
+}
+
+/** true se o prefixo tem config de animação por `setEnemyTex` (Fase 1 + recolor
+ *  bosses). O LAB usa p/ liberar o COMPLETAR FAMÍLIA só onde os frames de fato
+ *  ciclam. */
+export function hasAnimConfig(prefix: string): boolean {
+  return (
+    prefix in WALK_FRAME_COUNTS || prefix in IDLE_FRAME_COUNTS || prefix in ATTACK_FRAME_COUNTS
+  );
+}
+
 const _baseFor = (state: AnimState): Record<string, number> =>
   state === "walk" ? WALK_FRAME_COUNTS : state === "idle" ? IDLE_FRAME_COUNTS : ATTACK_FRAME_COUNTS;
 const _defaultFor = (state: AnimState): number =>

@@ -91,10 +91,23 @@ Vindos do uso real do REFAZER COM IA online:
   2. `resolveSprite` agora serve override **inexistente no atlas** (frame virtual).
   3. `SpriteOverrides.registerFrameSlot` parseia `enemy-<prefixo>-<estado><n>` no
      boot/upload e registra o aumento de contagem.
-  4. Testes: `EnemyAnimConfig.test.ts` (7) cobrem base/default/max/reset/estados.
-  - Aberto p/ evoluir: geração **em lote** (hoje 1 frame por clique, com preview
-    individual — que é o gate de qualidade); e multi-frame p/ inimigos das Fases 2–5
-    (que usam `animPhase` com `nFrames` explícito, fora do `setEnemyTex`).
+  4. Testes: `EnemyAnimConfig.test.ts` cobrem base/default/max/reset/estados +
+     `runtimeFrameAddition`/`hasAnimConfig`.
+- ✅ **Multi-frame nos inimigos das Fases 2–5** — `animPhase` passou a ciclar
+  `max(frames hardcoded, runtimeFrameAddition("walk", prefix))`, então os frames
+  extras aprovados no LAB também animam nesses inimigos. O COMPLETAR FAMÍLIA é
+  liberado por consumidor de animação (`hasAnimConfig` p/ setEnemyTex; categorias
+  Fase 2–4 p/ animPhase), com o prefixo inferido das chaves quando o sujeito não
+  tem `prefix` próprio.
+- 🟨 **Geração em lote** — adiada (roadmap): hoje 1 frame por clique, com preview
+  individual (o gate de qualidade).
+- 🟨 **Multi-frame em objetos e fundos** — bloqueado por design, não por código:
+  objetos (baía/café/monitor) e fundos (`bg-*`) são renderizados **estáticos** no
+  jogo (nada cicla seus frames). Multi-frame só apareceria se eles **animassem** —
+  o que é uma mudança de gameplay/visual (móveis/fundos animados). Decisão a tomar:
+  (a) fazer animar (idle sutil + fundo animado); (b) só objetos animam; (c) manter
+  estáticos e usar o REFAZER (troca de arte única, já com fundo transparente). Para
+  trocar a arte de um objeto/fundo hoje, o caminho é o REFAZER / upload.
 
 ---
 
