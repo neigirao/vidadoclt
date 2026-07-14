@@ -14,6 +14,7 @@ import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
+import { menaceEnrageThreshold } from "../systems/Menace";
 import { WEAPONS, WEAPON_ICONS, WeaponId, WeaponDef } from "../systems/WeaponSystem";
 import { applyClassAndWeapon } from "../systems/PlayerLoadout";
 import { SanityFx } from "../systems/SanityFx";
@@ -63,6 +64,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   /** Labels das sinergias perk×perk ativas (ícone + nome) p/ o badge do HUD. */
   protected synergyLabels: string[] = [];
   private _bossMaxHp = 0;
+  // % de HP do enrage do boss — sobe com a ameaça (loop+Heat+NG+) para o boss
+  // enraivecer mais cedo e rodar as assinaturas por mais tempo (mecânica, não HP).
+  private _enrageThreshold = 0.35;
   /**
    * Enrage do boss (1ª vez abaixo de 35% HP). Exposto p/ as cenas apertarem a
    * cadência de especial na 2ª metade da luta — a virada tem que ter dentes, não
@@ -395,7 +399,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 8a. Loop HP scaling — each completed loop adds 15% HP to all enemies.
     // New Game+ "Quinta-feira" (run.ngPlus): +40% de HP por cima de tudo.
+    // A ameaça (loop+Heat+NG+) também ANTECIPA o enrage do boss (mecânica, não só
+    // HP): assinaturas do 2º terço rodam por mais tempo em dificuldade alta.
     const loopCount = run.loopCount ?? 0;
+    this._enrageThreshold = menaceEnrageThreshold(loopCount, !!run.ngPlus, run.heatLevel ?? 0);
     const ngMult = run.ngPlus ? 1.4 : 1;
     if (loopCount > 0 || run.ngPlus) {
       const mult = (1 + loopCount * 0.15) * ngMult;
@@ -679,9 +686,13 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 4. Boss contact damage + HUD update
     if (this.boss?.active) {
       this.bossPresence?.update(delta);
-      // Momento de enrage: 1ª vez que o boss cai abaixo de 35% de HP → beat
-      // legível (aprendizado do Lovable). Genérico p/ todos os 5 bosses.
-      if (!this.bossEnraged && this._bossMaxHp > 0 && this.boss.hp <= this._bossMaxHp * 0.35) {
+      // Momento de enrage: 1ª vez que o boss cai abaixo do limiar (35% na
+      // dificuldade normal; mais cedo com ameaça) → beat legível. Genérico p/ os 5.
+      if (
+        !this.bossEnraged &&
+        this._bossMaxHp > 0 &&
+        this.boss.hp <= this._bossMaxHp * this._enrageThreshold
+      ) {
         this.bossEnraged = true;
         this.playBossEnrageMoment(this.boss.x, this.boss.y);
         this.onBossEnrage(); // cenas scene-driven disparam um especial imediato
