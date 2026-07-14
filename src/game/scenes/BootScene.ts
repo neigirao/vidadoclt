@@ -8,6 +8,7 @@ import {
   applyBackgroundFilters,
 } from "../systems/TextureFactory";
 import { initSpriteLibrary } from "../systems/SpriteLibrary";
+import { loadSpriteOverrides, installSpriteOverrides } from "../systems/SpriteOverrides";
 import { applyAudioSettings } from "../systems/applyAudio";
 
 /**
@@ -43,6 +44,12 @@ export class BootScene extends Phaser.Scene {
     // Indexa o atlas para que entidades/cenas resolvam sprites a partir de
     // uma única textura compartilhada (fim do rebind por frame = fim do flicker).
     initSpriteLibrary(this);
+
+    // Overrides de FRAME refeitos pela IA online (Supabase Storage/IndexedDB) —
+    // aplicados POR CIMA do atlas sem reempacotar. Fire-and-forget: carrega e
+    // instala em background (o MenuScene não usa sprites de jogo; as fases só
+    // começam bem depois, já com os overrides no lugar).
+    void loadSpriteOverrides().then(() => installSpriteOverrides(this));
 
     // Aplica volumes/mudo salvos antes de qualquer áudio tocar.
     applyAudioSettings();

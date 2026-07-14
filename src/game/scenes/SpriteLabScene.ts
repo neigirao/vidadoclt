@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { resolveSprite, isAtlasKey, ATLAS_KEY, initSpriteLibrary } from "../systems/SpriteLibrary";
 import { bgUrl, uploadBg, hasBgOverride } from "../systems/BgOverrides";
+import { uploadSpriteOverride } from "../systems/SpriteOverrides";
+import { supabase } from "../../integrations/supabase/client";
 import {
   WALK_FRAME_COUNTS,
   IDLE_FRAME_COUNTS,
@@ -595,40 +597,43 @@ export class SpriteLabScene extends Phaser.Scene {
   private async runGemini() {
     const t = this.geminiTarget;
     if (!t) return;
-    const refs = this.geminiCandRefs.filter((r) => r.sel).map((r) => r.frame);
+    const cur = this.frames[this.frameIdx];
+    const w = cur?.w ?? 48,
+      h = cur?.h ?? 64;
+    const refFrames = this.geminiCandRefs.filter((r) => r.sel).map((r) => r.frame);
     this.uploadToast
       .setText(`🤖 redesenhando ${t.frame} com IA (pode demorar)…`)
       .setColor("#c9a6ff");
     try {
-      const r = await fetch("/__frame-fix", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          frame: t.frame,
-          mode: "gemini",
+      // ONLINE: chama a Edge Function do Supabase (Gemini server-side, chave
+      // secreta) — funciona no jogo publicado, sem `bun dev`.
+      const { data, error } = await supabase.functions.invoke("frame-refazer", {
+        body: {
+          frameB64: this.framePngB64(t.frame),
+          refs: refFrames.map((f) => this.framePngB64(f)),
+          w,
+          h,
           hint: this.geminiHint || undefined,
-          refs: refs.length ? refs : undefined,
-        }),
+        },
       });
-      const ct = r.headers.get("content-type") ?? "";
-      if (!ct.includes("application/json")) {
-        this.uploadToast.setText("⚠ IA só em `vite dev`").setColor("#ffaa66");
-        return;
+      const res = (data ?? {}) as { ok?: boolean; error?: string; imageB64?: string };
+      if (error || !res.ok || !res.imageB64) {
+        throw new Error(res.error ?? error?.message ?? "Edge Function frame-refazer indisponível");
       }
-      const j = (await r.json()) as {
-        ok: boolean;
-        error?: string;
-        refs?: string[];
-        previewDataUrl?: string;
-        guardrails?: { warn?: string[]; paletteSize?: number };
-      };
-      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
-      if (!j.previewDataUrl) throw new Error("a IA não devolveu prévia");
-      const w = j.guardrails?.warn ?? [];
+      // Guardrails de pixel-art no CLIENTE (canvas): dimensão exata, halos limpos,
+      // paleta travada aos vizinhos e pés alinhados à baseline mediana.
+      const { dataUrl, warn } = await this.applyGuardrails(
+        `data:image/png;base64,${res.imageB64}`,
+        w,
+        h,
+        refFrames,
+      );
       this.uploadToast
-        .setText(w.length ? `⚠ prévia com alerta: ${w.join(", ")}` : `🤖 prévia pronta — confira`)
-        .setColor(w.length ? "#ffcc66" : "#c9a6ff");
-      this.showGeminiPreview(t.frame, t.tex, j.previewDataUrl, w);
+        .setText(
+          warn.length ? `⚠ prévia com alerta: ${warn.join(", ")}` : `🤖 prévia pronta — confira`,
+        )
+        .setColor(warn.length ? "#ffcc66" : "#c9a6ff");
+      this.showGeminiPreview(t.frame, t.tex, dataUrl, warn);
     } catch (e) {
       this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
     }
@@ -643,8 +648,10 @@ export class SpriteLabScene extends Phaser.Scene {
   private geminiCandRefs: { frame: string; sel: boolean }[] = [];
   private geminiHint = "";
   private geminiAnim?: Phaser.Time.TimerEvent;
+  private geminiPreviewDataUrl?: string; // PNG da prévia (p/ o approve subir ao Storage)
 
   private showGeminiPreview(frame: string, atlasTex: string, dataUrl: string, warns: string[]) {
+    this.geminiPreviewDataUrl = dataUrl;
     this.clearGeminiPreview();
     const token = ++this.geminiToken;
     this.geminiReady = false;
@@ -845,43 +852,208 @@ export class SpriteLabScene extends Phaser.Scene {
   }
 
   private async approveGemini(frame: string) {
-    this.uploadToast.setText(`aprovando ${frame} (troca + commit)…`).setColor("#cfd6e0");
+    const dataUrl = this.geminiPreviewDataUrl;
+    if (!dataUrl) {
+      this.uploadToast.setText("⚠ sem prévia p/ aprovar").setColor("#ffaa66");
+      return;
+    }
+    this.uploadToast.setText(`aprovando ${frame} (aplica em produção)…`).setColor("#cfd6e0");
     try {
-      const r = await fetch("/__frame-approve", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ frame }),
-      });
-      const ct = r.headers.get("content-type") ?? "";
-      if (!ct.includes("application/json")) throw new Error("só em `vite dev`");
-      const j = (await r.json()) as { ok: boolean; error?: string; committed?: boolean };
-      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      // ONLINE: salva o override no Supabase Storage (+ IndexedDB) e aplica na hora
+      // por cima do atlas — sem reempacotar, sem `bun dev`. Aparece em produção.
+      const r = await uploadSpriteOverride(this, frame, dataUrl);
       this.uploadToast
         .setText(
-          j.committed
-            ? `✓ ${frame} aprovado, atlas re-empacotado e COMMITADO`
-            : `✓ ${frame} aprovado e re-empacotado (git commit falhou — commite manualmente)`,
+          r.cloud
+            ? `✓ ${frame} aprovado — no ar pra TODOS (Storage)`
+            : `✓ ${frame} aplicado neste device (nuvem indisponível — só aqui)`,
         )
-        .setColor(j.committed ? "#88ff88" : "#ffcc66");
+        .setColor(r.cloud ? "#88ff88" : "#bfe0a0");
       this.clearGeminiPreview();
+      // Recarrega o estado do LAB p/ o preview mostrar o override já aplicado.
       this.reloadAtlas(() => this.loadState());
     } catch (e) {
       this.uploadToast.setText(`✗ aprovar falhou: ${e}`).setColor("#ff6666");
     }
   }
 
-  private async discardGemini(frame: string) {
+  private discardGemini(frame: string) {
     this.clearGeminiPreview();
     this.uploadToast.setText(`prévia de ${frame} descartada`).setColor("#cfd6e0");
-    try {
-      await fetch("/__frame-discard", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ frame }),
+  }
+
+  // Extrai o PNG de um frame do atlas como base64 (sem prefixo dataURL) — p/ mandar
+  // pro Gemini via Edge Function.
+  private framePngB64(frame: string): string {
+    const src = this.textures.get(ATLAS_KEY).getSourceImage() as CanvasImageSource;
+    const fr = this.textures.getFrame(ATLAS_KEY, frame);
+    const cv = document.createElement("canvas");
+    cv.width = fr.cutWidth;
+    cv.height = fr.cutHeight;
+    const ctx = cv.getContext("2d");
+    ctx?.drawImage(
+      src,
+      fr.cutX,
+      fr.cutY,
+      fr.cutWidth,
+      fr.cutHeight,
+      0,
+      0,
+      fr.cutWidth,
+      fr.cutHeight,
+    );
+    return cv.toDataURL("image/png").split(",")[1] ?? "";
+  }
+
+  // GUARDRAILS de pixel-art no cliente (canvas): redimensiona a saída da IA p/ a
+  // dimensão EXATA do frame, limpa halos semi-transparentes, trava a paleta às
+  // cores dos vizinhos e alinha os pés à baseline mediana da família.
+  private async applyGuardrails(
+    genDataUrl: string,
+    w: number,
+    h: number,
+    refFrames: string[],
+  ): Promise<{ dataUrl: string; warn: string[] }> {
+    const warn: string[] = [];
+    const load = (u: string) =>
+      new Promise<HTMLImageElement>((res, rej) => {
+        const im = new Image();
+        im.onload = () => res(im);
+        im.onerror = () => rej(new Error("img inválida"));
+        im.src = u;
       });
-    } catch {
-      /* prévia é gitignored — falha ao remover não importa */
+    const gen = await load(genDataUrl);
+    // contain no wxh
+    const scale = Math.min(w / gen.width, h / gen.height);
+    const dw = Math.max(1, Math.round(gen.width * scale)),
+      dh = Math.max(1, Math.round(gen.height * scale));
+    const cv = document.createElement("canvas");
+    cv.width = w;
+    cv.height = h;
+    const ctx = cv.getContext("2d", { willReadFrequently: true })!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(gen, Math.floor((w - dw) / 2), Math.floor((h - dh) / 2), dw, dh);
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    // paleta + baseline mediana dos vizinhos
+    const { palette, medFeet, medH } = this.refPalette(refFrames);
+    const cache = new Map<number, [number, number, number]>();
+    for (let p = 0; p < w * h; p++) {
+      const i = p * 4;
+      if (d[i + 3] < 40) {
+        d[i + 3] = 0;
+        continue;
+      }
+      d[i + 3] = 255;
+      if (!palette.length) continue;
+      const q = ((d[i] >> 3) << 10) | ((d[i + 1] >> 3) << 5) | (d[i + 2] >> 3);
+      let snap = cache.get(q);
+      if (!snap) {
+        let best = palette[0],
+          bd = Infinity;
+        for (const c of palette) {
+          const dr = c[0] - d[i],
+            dg = c[1] - d[i + 1],
+            db = c[2] - d[i + 2];
+          const dist = dr * dr + dg * dg + db * db;
+          if (dist < bd) {
+            bd = dist;
+            best = c;
+          }
+        }
+        snap = best;
+        cache.set(q, snap);
+      }
+      d[i] = snap[0];
+      d[i + 1] = snap[1];
+      d[i + 2] = snap[2];
     }
+    // bbox + baseline align
+    let minX = w,
+      minY = h,
+      maxX = -1,
+      maxY = -1;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++)
+        if (d[(y * w + x) * 4 + 3] > 0) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+    if (maxY < 0) {
+      warn.push("output quase-vazio");
+      return { dataUrl: cv.toDataURL("image/png"), warn };
+    }
+    const bw = maxX - minX + 1,
+      bh = maxY - minY + 1;
+    if (medH > 0 && Math.abs(bh - medH) / medH > 0.25)
+      warn.push(`altura ${bh}px vs mediana ${medH}px`);
+    // recorta o conteúdo e recompõe centrado + pés na baseline mediana
+    const content = ctx.getImageData(minX, minY, bw, bh);
+    ctx.clearRect(0, 0, w, h);
+    const left = Math.max(0, Math.round((w - bw) / 2));
+    const top = Math.max(0, h - medFeet - bh);
+    ctx.putImageData(content, left, top);
+    return { dataUrl: cv.toDataURL("image/png"), warn };
+  }
+
+  // Paleta (cores opacas) + baseline/altura medianas dos frames vizinhos.
+  private refPalette(refFrames: string[]): {
+    palette: [number, number, number][];
+    medFeet: number;
+    medH: number;
+  } {
+    const palette: [number, number, number][] = [];
+    const seen = new Set<number>();
+    const feets: number[] = [];
+    const heights: number[] = [];
+    const median = (a: number[]) => {
+      const s = [...a].sort((x, y) => x - y);
+      return s.length ? s[s.length >> 1] : 0;
+    };
+    for (const frame of refFrames) {
+      const fr = this.textures.getFrame(ATLAS_KEY, frame);
+      if (!fr) continue;
+      const src = this.textures.get(ATLAS_KEY).getSourceImage() as CanvasImageSource;
+      const cv = document.createElement("canvas");
+      cv.width = fr.cutWidth;
+      cv.height = fr.cutHeight;
+      const ctx = cv.getContext("2d", { willReadFrequently: true });
+      if (!ctx) continue;
+      ctx.drawImage(
+        src,
+        fr.cutX,
+        fr.cutY,
+        fr.cutWidth,
+        fr.cutHeight,
+        0,
+        0,
+        fr.cutWidth,
+        fr.cutHeight,
+      );
+      const d = ctx.getImageData(0, 0, fr.cutWidth, fr.cutHeight).data;
+      let minY = fr.cutHeight,
+        maxY = -1;
+      for (let y = 0; y < fr.cutHeight; y++)
+        for (let x = 0; x < fr.cutWidth; x++) {
+          const i = (y * fr.cutWidth + x) * 4;
+          if (d[i + 3] > 40) {
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            const q = ((d[i] >> 3) << 10) | ((d[i + 1] >> 3) << 5) | (d[i + 2] >> 3);
+            if (!seen.has(q)) {
+              seen.add(q);
+              palette.push([d[i], d[i + 1], d[i + 2]]);
+            }
+          }
+        }
+      if (maxY >= minY) {
+        heights.push(maxY - minY + 1);
+        feets.push(fr.cutHeight - 1 - maxY);
+      }
+    }
+    return { palette, medFeet: median(feets), medH: median(heights) };
   }
 
   private pickAndUpload() {
