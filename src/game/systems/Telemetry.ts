@@ -43,8 +43,16 @@ async function sendRemote(ev: TelemetryEvent) {
   }
 }
 
+// Entropia NÃO-semeada (capturada antes de qualquer applyRunSeed clobbar o global).
+// Sem isso o id de sessão herda o PRNG da run (dois jogadores na mesma seed → mesmo
+// id) e colidem na telemetria. Inline aqui p/ não acoplar Telemetry ao RNG/Phaser.
+const nativeRandom: () => number =
+  typeof crypto !== "undefined" && crypto.getRandomValues
+    ? () => crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000
+    : Math.random.bind(Math);
+
 function randId(): string {
-  return Math.random().toString(36).slice(2, 10);
+  return nativeRandom().toString(36).slice(2, 10);
 }
 
 function load(): TelemetryEvent[] {

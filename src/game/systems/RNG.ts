@@ -17,13 +17,27 @@ const PREFIXES = [
   "CNPJ",
 ];
 
+// Entropia NATIVA capturada no load do módulo, ANTES de qualquer `applyRunSeed`
+// clobbar `Math.random`. Geração de seed/ids NÃO pode herdar o PRNG semeado da
+// run (senão dois jogadores na mesma seed geram a MESMA "próxima" seed e o mesmo
+// id de sessão de telemetria). Gameplay determinístico segue usando o global.
+const nativeRandom: () => number =
+  typeof crypto !== "undefined" && crypto.getRandomValues
+    ? () => crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000
+    : Math.random.bind(Math);
+
+/** Aleatório NÃO-semeado (não afetado por `applyRunSeed`). Para seeds/ids. */
+export function unseededRandom(): number {
+  return nativeRandom();
+}
+
 /**
  * Generates a human-readable, thematic seed string for a new run.
  * Format: PREFIX-NNNN  (e.g. "FGTS-4821", "META-3319")
  */
 export function generateSeed(): string {
-  const prefix = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
-  const num = String(Math.floor(Math.random() * 9000) + 1000);
+  const prefix = PREFIXES[Math.floor(unseededRandom() * PREFIXES.length)];
+  const num = String(Math.floor(unseededRandom() * 9000) + 1000);
   return `${prefix}-${num}`;
 }
 
