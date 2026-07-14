@@ -212,10 +212,19 @@ validado no cliente (feedback na hora) E no servidor (rejeita sem gravar).
 
 **Fundos de fase** (categoria FUNDOS no Lab: `bg-atendimento`/`bg-comercial`/
 `bg-tecnologia`/`bg-diretoria`/`bg-cobertura`) também aceitam upload pelo mesmo
-botão, com `kind:"background"`: grava em `public/assets/<bg-*>.png` (imagem solta,
-não vai pro atlas), **sem re-empacotar** e **sem** a regra de dimensão (o fundo é
-esticado p/ preencher a fase). É o caminho pra subir as artes de alta-res que
-faltam (Fases 3/4/5).
+botão. O upload de fundo persiste via `BgOverrides` (IndexedDB device-local +
+Supabase Storage bucket `bg-overrides`) — **override em runtime**, funciona no
+build publicado, mas **não** entra no repo/git.
+
+**`💾 FIXAR FUNDO NO REPO (dev)`** (SpriteLabScene, dev-only): "promove" o override
+de fundo (que vive no Storage/IndexedDB do navegador) para o REPO — pega o dataURL
+(local direto; nuvem via `fetch`→dataURL no navegador do usuário, que tem acesso ao
+Supabase) e manda pro endpoint `/__sprite-upload` com `kind:"background"`, que grava
+`public/assets/<bg-*>.png` (imagem solta, **sem** re-empacotar e **sem** regra de
+dimensão). Assim o fundo subido pelo LAB deixa de ser só override em runtime e passa
+a ser **versionado** (entra no bundle/commit). É o caminho pra fixar as artes de
+alta-res no repo. (O sandbox do agente não alcança o Supabase — 403 no proxy —, por
+isso a promoção roda no navegador do usuário.)
 
 ### SpriteLabScene — validação visual (menu "LAB SPRITES")
 
