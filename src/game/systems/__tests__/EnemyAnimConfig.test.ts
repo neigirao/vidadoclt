@@ -6,6 +6,8 @@ import {
   attackFrames,
   registerFrameAddition,
   resetFrameAdditions,
+  runtimeFrameAddition,
+  hasAnimConfig,
   WALK_FRAME_COUNTS,
   DEFAULT_WALK_FRAMES,
   DEFAULT_IDLE_FRAMES,
@@ -63,5 +65,22 @@ describe("EnemyAnimConfig frameCount", () => {
     registerFrameAddition("walk", "facilitador", 4);
     resetFrameAdditions();
     expect(walkFrames("facilitador")).toBe(2);
+  });
+
+  // runtimeFrameAddition = só o aumento cru (0 se nenhum). É o que o animPhase das
+  // Fases 2–5 usa como max(base hardcoded, aumento) — o prefixo não está nos consts.
+  it("runtimeFrameAddition devolve só o aumento (Fase 2–5 via animPhase)", () => {
+    resetFrameAdditions();
+    expect(runtimeFrameAddition("walk", "telemarketer")).toBe(0);
+    registerFrameAddition("walk", "telemarketer", 5); // aprovou enemy-telemarketer-walk4
+    expect(runtimeFrameAddition("walk", "telemarketer")).toBe(5);
+    // animPhase(prefix, frames=4) passaria a ciclar max(4, 5) = 5.
+    expect(Math.max(4, runtimeFrameAddition("walk", "telemarketer"))).toBe(5);
+  });
+
+  it("hasAnimConfig separa setEnemyTex (Fase 1 + recolor) de mkItem (Fase 2–5)", () => {
+    expect(hasAnimConfig("facilitador")).toBe(true); // Fase 1 (setEnemyTex)
+    expect(hasAnimConfig("scrum-boss")).toBe(true); // recolor boss
+    expect(hasAnimConfig("telemarketer")).toBe(false); // Fase 2 (animPhase, sem const)
   });
 });
