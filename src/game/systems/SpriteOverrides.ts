@@ -1,6 +1,22 @@
 import Phaser from "phaser";
 import { supabase } from "../../integrations/supabase/client";
 import { setSpriteOverrideResolver } from "./SpriteLibrary";
+import { registerFrameAddition, type AnimState } from "./EnemyAnimConfig";
+
+// Nome de frame de inimigo com slot de animação: enemy-<prefixo>-<estado><n>.
+// Usado p/ o multi-frame: um override num índice ALÉM do que o atlas declara
+// (ex.: enemy-facilitador-walk2 com walk base 2) precisa registrar o aumento de
+// contagem, senão o jogo nunca cicla até esse frame. `.+` guloso cobre prefixos
+// compostos (scrum-boss, coord-boss).
+const SLOT_RE = /^enemy-(.+)-(walk|idle|attack)(\d+)$/;
+
+/** Se `frame` é um slot de animação de inimigo, registra o aumento de contagem
+ *  correspondente (índice + 1) em EnemyAnimConfig. No-op caso contrário. */
+export function registerFrameSlot(frame: string): void {
+  const m = SLOT_RE.exec(frame);
+  if (!m) return;
+  registerFrameAddition(m[2] as AnimState, m[1], Number(m[3]) + 1);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Override de FRAME de sprite por runtime — arte refeita pela IA ONLINE.
@@ -124,6 +140,9 @@ export async function loadSpriteOverrides(): Promise<void> {
   } catch {
     /* offline / sem bucket — segue só com locais + atlas embutido */
   }
+  // Registra aumentos de contagem p/ os frames NOVOS (multi-frame): o jogo passa
+  // a ciclar os slots extras assim que o BootScene instala os overrides.
+  for (const frame of _overrides.keys()) registerFrameSlot(frame);
 }
 
 // addBase64 é assíncrono (decodifica via Image interno) — resolve quando a textura
@@ -163,6 +182,7 @@ export async function uploadSpriteOverride(
   await idbSet(frame, dataUrl);
   _overrides.set(frame, dataUrl);
   await addTexture(scene, spriteOverrideKey(frame), dataUrl);
+  registerFrameSlot(frame); // frame novo (multi-frame) → o jogo passa a ciclá-lo
   // re-registra o resolver (limpa o cache do resolveSprite p/ pegar o novo frame).
   setSpriteOverrideResolver((f) => (_overrides.has(f) ? spriteOverrideKey(f) : undefined));
   let cloud = false;

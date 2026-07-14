@@ -14,7 +14,14 @@ import {
   DEFAULT_WALK_MS,
   DEFAULT_IDLE_MS,
   DEFAULT_ATTACK_MS,
+  frameCount,
+  type AnimState,
 } from "../systems/EnemyAnimConfig";
+
+// Contagem "padrão" almejada por estado no COMPLETAR FAMÍLIA: quando uma ação tem
+// menos frames que isto, o LAB oferece gerar os que faltam por IA. Alinhado ao que
+// as famílias ricas já usam (walk/idle de 4; attack de 2 na whitelist validada).
+const TARGET_FRAMES: Record<AnimState, number> = { walk: 4, idle: 4, attack: 2 };
 
 // ── Lab de Sprites: valida TODOS os assets da Fase 1 (personagens, inimigos,
 // bosses, objetos, drops, projéteis) com botões clicáveis que tocam a animação
@@ -342,6 +349,8 @@ export class SpriteLabScene extends Phaser.Scene {
     });
     // [A]: abre/fecha a fila de PROBLEMAS (audit clicável → pula pro frame ruim).
     this.input.keyboard!.on("keydown-A", () => this.toggleAuditQueue());
+    // [C]: COMPLETAR FAMÍLIA — gera por IA o próximo frame faltante deste estado.
+    this.input.keyboard!.on("keydown-C", () => void this.completeFamily());
     // Scroll do mouse rola a fila de problemas quando aberta.
     this.input.on("wheel", (_p: unknown, _o: unknown, _dx: number, dy: number) => {
       if (!this.auditOverlay) return;
@@ -467,6 +476,23 @@ export class SpriteLabScene extends Phaser.Scene {
     // IA (Gemini): redesenha o frame seguindo os vizinhos. Precisa GEMINI_API_KEY
     // + billing. Pode destoar do estilo — confira antes de manter.
     mk(0, 490, 248, "🤖 REFAZER COM IA (GEMINI)", "gemini", 0x9966ff);
+    // MULTI-FRAME: gera por IA o próximo frame FALTANTE deste estado, até o padrão.
+    // Reusa o mesmo preview/guardrails do REFAZER; ao aprovar entra como frame novo
+    // e o jogo passa a ciclá-lo. Label mostra a lacuna (atualizada em logDiagnostics).
+    const cbg = this.add
+      .rectangle(x, 436, 248, 24, 0x2a1840)
+      .setStrokeStyle(2, 0x66cc99)
+      .setInteractive({ useHandCursor: true });
+    this.completeBtnLabel = this.add
+      .text(x, 436, "🎞 COMPLETAR FAMÍLIA  [C]", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#cfeede",
+      })
+      .setOrigin(0.5);
+    cbg.on("pointerover", () => cbg.setFillStyle(0x3a2450));
+    cbg.on("pointerout", () => cbg.setFillStyle(0x2a1840));
+    cbg.on("pointerdown", () => void this.completeFamily());
   }
 
   // FUNDOS (dev): "promove" o override de fundo (que vive no Supabase Storage /
@@ -553,6 +579,7 @@ export class SpriteLabScene extends Phaser.Scene {
     if (mode === "gemini") {
       // Inicializa alvo + candidatos de vizinho (frames irmãos do estado atual, os
       // mais próximos por índice selecionados por padrão) + hint vazio, e gera.
+      this.geminiSeedFrame = undefined; // refaz o próprio frame (não é multi-frame)
       this.geminiTarget = { frame: cur.frame, tex: cur.tex };
       const cands = this.frames
         .map((f, i) => ({ f, i }))
@@ -593,6 +620,69 @@ export class SpriteLabScene extends Phaser.Scene {
     }
   }
 
+  // Quantos frames FALTAM p/ o estado atual chegar ao padrão (TARGET_FRAMES), e o
+  // índice do próximo slot a preencher. null se o sujeito/estado não se aplica
+  // (sem prefixo, ou estado que não é walk/idle/attack).
+  private familyGap(): { state: AnimState; prefix: string; next: number; missing: number } | null {
+    const subj = SUBJECTS[this.subjIdx];
+    const p = subj.prefix;
+    const st = this.stateName;
+    if (!p || (st !== "walk" && st !== "idle" && st !== "attack")) return null;
+    const state = st as AnimState;
+    const current = frameCount(state, p);
+    return {
+      state,
+      prefix: p,
+      next: current,
+      missing: Math.max(0, TARGET_FRAMES[state] - current),
+    };
+  }
+
+  // COMPLETAR FAMÍLIA: gera por IA o PRÓXIMO frame que falta neste estado, reusando
+  // o pipeline do REFAZER (preview + guardrails + transparência + APROVAR). Ao
+  // aprovar, o override entra como frame NOVO (enemy-<prefixo>-<estado><n>) e o jogo
+  // passa a ciclá-lo — SpriteOverrides.registerFrameSlot aumenta a contagem.
+  private async completeFamily() {
+    if (this.geminiPreview) return; // já há uma prévia aberta
+    const gap = this.familyGap();
+    if (!gap) {
+      this.uploadToast
+        .setText("⚠ COMPLETAR só p/ inimigo com walk/idle/attack")
+        .setColor("#ffaa66");
+      return;
+    }
+    if (gap.missing <= 0) {
+      this.uploadToast
+        .setText(
+          `✓ ${gap.prefix}/${gap.state} já tem ${gap.next} frames (padrão ${TARGET_FRAMES[gap.state]})`,
+        )
+        .setColor("#88ff88");
+      return;
+    }
+    // Irmãos válidos (no atlas) do estado → semente + referências de pose/paleta.
+    const sibs = this.frames.filter((f) => f.ok && !!f.frame);
+    if (!sibs.length) {
+      this.uploadToast.setText("⚠ sem frame-base válido p/ referência").setColor("#ffaa66");
+      return;
+    }
+    // Seleciona um irmão bom no preview (assim runGemini lê w/h de um frame real
+    // da família) e monta o alvo VIRTUAL do próximo índice.
+    const seed = sibs[sibs.length - 1];
+    const seedIdx = this.frames.indexOf(seed);
+    if (seedIdx >= 0) {
+      this.frameIdx = seedIdx;
+      this.applyFrame();
+    }
+    this.geminiSeedFrame = seed.frame;
+    this.geminiTarget = { frame: `enemy-${gap.prefix}-${gap.state}${gap.next}`, tex: ATLAS_KEY };
+    this.geminiCandRefs = sibs.map((f, k) => ({ frame: f.frame as string, sel: k < 3 }));
+    this.geminiHint = `frame ${gap.next} de ${gap.state}: pose intermediária coerente com os vizinhos (completando ${gap.next}→${TARGET_FRAMES[gap.state]})`;
+    this.uploadToast
+      .setText(`🎞 gerando ${gap.state} #${gap.next} (faltam ${gap.missing})…`)
+      .setColor("#c9a6ff");
+    await this.runGemini();
+  }
+
   // Gera (ou re-gera) a prévia da IA com os vizinhos SELECIONADOS + o hint atual.
   private async runGemini() {
     const t = this.geminiTarget;
@@ -609,7 +699,8 @@ export class SpriteLabScene extends Phaser.Scene {
       // secreta) — funciona no jogo publicado, sem `bun dev`.
       const { data, error } = await supabase.functions.invoke("frame-refazer", {
         body: {
-          frameB64: this.framePngB64(t.frame),
+          // Frame novo (multi-frame) não existe no atlas → usa a semente (irmão bom).
+          frameB64: this.framePngB64(this.geminiSeedFrame ?? t.frame),
           refs: refFrames.map((f) => this.framePngB64(f)),
           w,
           h,
@@ -647,6 +738,10 @@ export class SpriteLabScene extends Phaser.Scene {
   private geminiTarget?: { frame: string; tex: string };
   private geminiCandRefs: { frame: string; sel: boolean }[] = [];
   private geminiHint = "";
+  // Frame do atlas usado como SEMENTE (fonte PNG) quando o alvo é um frame NOVO
+  // (multi-frame) que ainda não existe no atlas. undefined = refaz o próprio alvo.
+  private geminiSeedFrame?: string;
+  private completeBtnLabel?: Phaser.GameObjects.Text;
   private geminiAnim?: Phaser.Time.TimerEvent;
   private geminiPreviewDataUrl?: string; // PNG da prévia (p/ o approve subir ao Storage)
 
@@ -847,8 +942,25 @@ export class SpriteLabScene extends Phaser.Scene {
     this.geminiAnim = undefined;
     this.geminiPreview?.destroy(true);
     this.geminiPreview = undefined;
+    this.geminiSeedFrame = undefined;
     if (this.textures.exists(this.GEMINI_PREVIEW_TEX))
       this.textures.remove(this.GEMINI_PREVIEW_TEX);
+  }
+
+  // multi-frame: se `frame` é um slot NOVO (enemy-<prefixo>-<estado><n>) além dos
+  // já listados pelo sujeito atual, adiciona a chave lógica correspondente à lista
+  // de estados do sujeito p/ o LAB passar a exibi-lo (o jogo já cicla via override).
+  private extendSubjectForNewFrame(frame: string): void {
+    const m = /^enemy-(.+)-(walk|idle|attack)(\d+)$/.exec(frame);
+    if (!m) return;
+    const subj = SUBJECTS[this.subjIdx];
+    if (subj.prefix !== m[1]) return;
+    const list = subj.states[m[2]];
+    if (!list) return;
+    // Respeita a convenção de chave dos irmãos (uns usam `tex-*`, outros `enemy-*`).
+    const logical = `tex-${m[1]}-${m[2]}${m[3]}`;
+    const key = list[0]?.startsWith("enemy-") ? frame : logical;
+    if (!list.includes(key) && !list.includes(logical) && !list.includes(frame)) list.push(key);
   }
 
   private async approveGemini(frame: string) {
@@ -862,6 +974,7 @@ export class SpriteLabScene extends Phaser.Scene {
       // ONLINE: salva o override no Supabase Storage (+ IndexedDB) e aplica na hora
       // por cima do atlas — sem reempacotar, sem `bun dev`. Aparece em produção.
       const r = await uploadSpriteOverride(this, frame, dataUrl);
+      this.extendSubjectForNewFrame(frame); // multi-frame: LAB passa a listar o novo slot
       this.uploadToast
         .setText(
           r.cloud
@@ -1548,6 +1661,15 @@ export class SpriteLabScene extends Phaser.Scene {
       `frame atual: ${cur ? (cur.frame ?? cur.tex) : "—"}  (${cur ? cur.w + "x" + cur.h : "—"})`,
     ];
     this.info.setText(lines.join("\n"));
+    // Atualiza o rótulo do botão COMPLETAR FAMÍLIA com a lacuna atual do estado.
+    const gap = this.familyGap();
+    if (this.completeBtnLabel) {
+      this.completeBtnLabel.setText(
+        gap && gap.missing > 0
+          ? `🎞 COMPLETAR: +${gap.missing} frame(s)  [C]`
+          : `🎞 COMPLETAR FAMÍLIA  [C]`,
+      );
+    }
     const status = missing.length || sizes.length > 1 || labFewer ? "⚠ PROBLEMA" : "OK";
 
     console.log(
@@ -1577,12 +1699,14 @@ export class SpriteLabScene extends Phaser.Scene {
 
   private gameAnimFor(p: string | undefined, st: string): { frames: number; ms: number } | null {
     if (!p) return null;
+    // Usa a contagem EFETIVA (base + aumentos por override de runtime), então o
+    // diagnóstico reflete os frames extras adicionados pelo multi-frame.
     if (st === "walk" && p in WALK_FRAME_COUNTS)
-      return { frames: WALK_FRAME_COUNTS[p], ms: WALK_MS[p] ?? DEFAULT_WALK_MS };
+      return { frames: frameCount("walk", p), ms: WALK_MS[p] ?? DEFAULT_WALK_MS };
     if (st === "idle" && p in IDLE_FRAME_COUNTS)
-      return { frames: IDLE_FRAME_COUNTS[p], ms: IDLE_MS[p] ?? DEFAULT_IDLE_MS };
+      return { frames: frameCount("idle", p), ms: IDLE_MS[p] ?? DEFAULT_IDLE_MS };
     if (st === "attack" && p in ATTACK_FRAME_COUNTS)
-      return { frames: ATTACK_FRAME_COUNTS[p], ms: ATTACK_MS[p] ?? DEFAULT_ATTACK_MS };
+      return { frames: frameCount("attack", p), ms: ATTACK_MS[p] ?? DEFAULT_ATTACK_MS };
     return null;
   }
 

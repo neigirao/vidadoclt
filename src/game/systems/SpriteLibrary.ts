@@ -118,11 +118,18 @@ export function resolveSprite(key: string): [string, string?] {
   if (atlasFrames && atlasFrames.size) {
     const stripped = key.startsWith("tex-") ? key.slice(4) : key;
     for (const frame of candidateFrames(stripped)) {
+      const ovr = _overrideResolver?.(frame);
       if (atlasFrames.has(frame)) {
         // Override de runtime (IA online): se houver arte refeita p/ este frame,
         // usa a textura standalone do override em vez do frame do atlas.
-        const ovr = _overrideResolver?.(frame);
         result = ovr ? [ovr] : [ATLAS_KEY, frame];
+        break;
+      }
+      // Frame VIRTUAL: não existe no atlas, mas há override (frame NOVO adicionado
+      // pelo multi-frame do LAB, ex.: enemy-facilitador-walk2). Serve o override —
+      // é o que permite o jogo ciclar frames além do atlas empacotado.
+      if (ovr) {
+        result = [ovr];
         break;
       }
     }

@@ -6,15 +6,12 @@ import { markKilled } from "../systems/BestiarySystem";
 // systems/EnemyAnimConfig.ts, compartilhada com o SpriteLabScene (que cruza e
 // avisa quando os frames disponíveis divergem do que o jogo cicla).
 import {
-  WALK_FRAME_COUNTS,
-  IDLE_FRAME_COUNTS,
-  ATTACK_FRAME_COUNTS,
+  walkFrames,
+  idleFrames,
+  attackFrames,
   WALK_MS,
   IDLE_MS,
   ATTACK_MS,
-  DEFAULT_WALK_FRAMES,
-  DEFAULT_IDLE_FRAMES,
-  DEFAULT_ATTACK_FRAMES,
   DEFAULT_WALK_MS,
   DEFAULT_IDLE_MS,
   DEFAULT_ATTACK_MS,
@@ -34,16 +31,16 @@ function setEnemyTex(
   const offset = _animOffsets.get(e)!;
   let frame = 0;
   if (state === "walk") {
-    const maxFrames = WALK_FRAME_COUNTS[prefix] ?? DEFAULT_WALK_FRAMES;
+    const maxFrames = walkFrames(prefix);
     const ms = WALK_MS[prefix] ?? DEFAULT_WALK_MS;
     frame = Math.floor((t + offset) / ms) % maxFrames;
   } else if (state === "idle") {
-    const maxFrames = IDLE_FRAME_COUNTS[prefix] ?? DEFAULT_IDLE_FRAMES;
+    const maxFrames = idleFrames(prefix);
     const ms = IDLE_MS[prefix] ?? DEFAULT_IDLE_MS;
     frame = Math.floor((t + offset) / ms) % maxFrames;
   } else if (state === "attack") {
     // Só cicla se o inimigo tem frames de ataque validados; senão fica no 0.
-    const maxFrames = ATTACK_FRAME_COUNTS[prefix] ?? DEFAULT_ATTACK_FRAMES;
+    const maxFrames = attackFrames(prefix);
     if (maxFrames > 1) {
       const ms = ATTACK_MS[prefix] ?? DEFAULT_ATTACK_MS;
       frame = Math.floor((t + offset) / ms) % maxFrames;

@@ -84,3 +84,51 @@ export const DEFAULT_ATTACK_FRAMES = 1;
 export const DEFAULT_WALK_MS = 180;
 export const DEFAULT_IDLE_MS = 300;
 export const DEFAULT_ATTACK_MS = 110;
+
+export type AnimState = "walk" | "idle" | "attack";
+
+// ── Aumentos de contagem por overrides de RUNTIME (multi-frame do LAB) ───────
+// As contagens acima são `const` (arte validada empacotada no atlas). Mas o LAB
+// permite ADICIONAR frames novos por IA que persistem como override em runtime
+// (Supabase Storage/IndexedDB), sem reempacotar o atlas. `SpriteOverrides`
+// registra aqui, ao carregar/subir, quantos frames o override implica para um
+// prefixo+estado (índice do frame extra + 1). Os acessores abaixo devolvem
+// max(base, registrado), então `setEnemyTex` e o LAB passam a ciclar os extras.
+const _additions: Record<AnimState, Record<string, number>> = {
+  walk: {},
+  idle: {},
+  attack: {},
+};
+
+/** Registra que um override adiciona frames a `prefix`/`state` (conta = maior
+ *  índice de frame + 1). Idempotente: mantém o maior já visto. */
+export function registerFrameAddition(state: AnimState, prefix: string, count: number): void {
+  const reg = _additions[state];
+  if (!reg[prefix] || count > reg[prefix]) reg[prefix] = count;
+}
+
+/** Limpa os aumentos registrados (usado em testes). */
+export function resetFrameAdditions(): void {
+  _additions.walk = {};
+  _additions.idle = {};
+  _additions.attack = {};
+}
+
+const _baseFor = (state: AnimState): Record<string, number> =>
+  state === "walk" ? WALK_FRAME_COUNTS : state === "idle" ? IDLE_FRAME_COUNTS : ATTACK_FRAME_COUNTS;
+const _defaultFor = (state: AnimState): number =>
+  state === "walk"
+    ? DEFAULT_WALK_FRAMES
+    : state === "idle"
+      ? DEFAULT_IDLE_FRAMES
+      : DEFAULT_ATTACK_FRAMES;
+
+/** Contagem EFETIVA de frames de um estado: max(base do atlas, override runtime). */
+export function frameCount(state: AnimState, prefix: string): number {
+  const base = _baseFor(state)[prefix] ?? _defaultFor(state);
+  return Math.max(base, _additions[state][prefix] ?? 0);
+}
+
+export const walkFrames = (prefix: string): number => frameCount("walk", prefix);
+export const idleFrames = (prefix: string): number => frameCount("idle", prefix);
+export const attackFrames = (prefix: string): number => frameCount("attack", prefix);
