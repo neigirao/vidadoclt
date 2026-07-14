@@ -111,9 +111,13 @@ export async function loadBgManifest(): Promise<void> {
         if (!obj.name.endsWith(".png")) continue;
         const key = obj.name.replace(/\.png$/, "");
         if (_overrides.has(key)) continue; // local vence
-        const pub = supabase.storage.from(BUCKET).getPublicUrl(obj.name).data.publicUrl;
-        const t = obj.updated_at ? new Date(obj.updated_at).getTime() : Date.now();
-        _overrides.set(key, `${pub}?t=${t}`);
+        // Signed URL (funciona em bucket PRIVADO e público — a workspace do Lovable
+        // bloqueia bucket público). Validade LONGA porque o fundo é carregado sob
+        // demanda ao entrar na fase (bem depois do boot), não convertido na hora.
+        const { data: signed } = await supabase.storage
+          .from(BUCKET)
+          .createSignedUrl(obj.name, 604800); // 7 dias
+        if (signed?.signedUrl) _overrides.set(key, signed.signedUrl);
       }
     }
   } catch {
