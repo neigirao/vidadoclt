@@ -201,6 +201,17 @@ const LAB_BGS = [
 
 type FrameInfo = { key: string; ok: boolean; tex: string; frame?: string; w: number; h: number };
 
+// Item da fila de PROBLEMAS (saída do audit, enriquecida p/ navegar/consertar).
+type AuditItem = {
+  subjIdx?: number;
+  subj: string;
+  state: string;
+  frame?: number;
+  atlasFrame?: string; // nome do PNG-fonte (p/ o conserto), quando é frame do atlas
+  dims?: string;
+  issue: string;
+};
+
 export class SpriteLabScene extends Phaser.Scene {
   private subjIdx = 0;
   private stateName = "idle";
@@ -220,6 +231,13 @@ export class SpriteLabScene extends Phaser.Scene {
   private stateBtns!: Phaser.GameObjects.Container;
   private subjBtns: { idx: number; bg: Phaser.GameObjects.Rectangle }[] = [];
   private frames: FrameInfo[] = [];
+
+  // Fila de PROBLEMAS (audit clicável)
+  private auditOverlay?: Phaser.GameObjects.Container;
+  private auditItems: AuditItem[] = [];
+  private auditTotalFrames = 0;
+  private auditScroll = 0;
+  private readonly AUDIT_ROWS = 15;
 
   private readonly SCALE = 4;
   private readonly CX = 350;
@@ -251,7 +269,7 @@ export class SpriteLabScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         28,
-        "[ESPAÇO] pausa · [← →] passo · [ [ ] ] velocidade · [R] reset · [O] onion-skin (comparar tamanho) · [ESC] sair",
+        "[ESPAÇO] pausa · [← →] passo · [ [ ] ] velocidade · [R] reset · [O] onion-skin · [A] fila PROBLEMAS · [ESC] sair",
         {
           fontFamily: "monospace",
           fontSize: "9px",
@@ -296,7 +314,12 @@ export class SpriteLabScene extends Phaser.Scene {
 
     this.buildSubjectButtons();
 
-    this.input.keyboard!.on("keydown-ESC", () => this.scene.start("MenuScene"));
+    this.input.keyboard!.on("keydown-ESC", () => {
+      // ESC fecha primeiro os overlays abertos; só sai do LAB se não houver nenhum.
+      if (this.geminiPreview) return this.clearGeminiPreview();
+      if (this.auditOverlay) return this.closeAuditQueue();
+      this.scene.start("MenuScene");
+    });
     this.input.keyboard!.on("keydown-SPACE", () => {
       this.playing = !this.playing;
     });
@@ -315,6 +338,15 @@ export class SpriteLabScene extends Phaser.Scene {
       this.onionOn = !this.onionOn;
       this.applyFrame();
     });
+    // [A]: abre/fecha a fila de PROBLEMAS (audit clicável → pula pro frame ruim).
+    this.input.keyboard!.on("keydown-A", () => this.toggleAuditQueue());
+    // Scroll do mouse rola a fila de problemas quando aberta.
+    this.input.on("wheel", (_p: unknown, _o: unknown, _dx: number, dy: number) => {
+      if (!this.auditOverlay) return;
+      const max = Math.max(0, this.auditItems.length - this.AUDIT_ROWS);
+      this.auditScroll = Phaser.Math.Clamp(this.auditScroll + (dy > 0 ? 3 : -3), 0, max);
+      this.renderAuditQueue();
+    });
 
     this.loadState();
 
@@ -324,6 +356,12 @@ export class SpriteLabScene extends Phaser.Scene {
     // `vite dev` (só em dev; no build estático avisa que não grava).
     this.buildUploadButton();
     this.buildFixButtons();
+    // Ao sair do LAB, garante limpeza do modal de prévia e da textura base64
+    // (senão `__gemini_preview` + o listener de ADD vazam no TextureManager global).
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.clearGeminiPreview();
+      this.closeAuditQueue();
+    });
   }
 
   // ── Upload do frame atual (DEV) ──────────────────────────────────────────────
@@ -434,13 +472,20 @@ export class SpriteLabScene extends Phaser.Scene {
       this.uploadToast.setText("⚠ conserto só p/ frame de sprite do atlas").setColor("#ffaa66");
       return;
     }
-    this.uploadToast
-      .setText(
-        mode === "gemini"
-          ? `🤖 redesenhando ${cur.frame} com IA (pode demorar)…`
-          : `consertando ${cur.frame} (${mode})…`,
-      )
-      .setColor("#cfd6e0");
+    if (mode === "gemini") {
+      // Inicializa alvo + candidatos de vizinho (frames irmãos do estado atual, os
+      // mais próximos por índice selecionados por padrão) + hint vazio, e gera.
+      this.geminiTarget = { frame: cur.frame, tex: cur.tex };
+      const cands = this.frames
+        .map((f, i) => ({ f, i }))
+        .filter(({ f, i }) => i !== this.frameIdx && f.ok && !!f.frame)
+        .sort((a, b) => Math.abs(a.i - this.frameIdx) - Math.abs(b.i - this.frameIdx));
+      this.geminiCandRefs = cands.map(({ f }, k) => ({ frame: f.frame as string, sel: k < 3 }));
+      this.geminiHint = "";
+      await this.runGemini();
+      return;
+    }
+    this.uploadToast.setText(`consertando ${cur.frame} (${mode})…`).setColor("#cfd6e0");
     try {
       const r = await fetch("/__frame-fix", {
         method: "POST",
@@ -460,20 +505,8 @@ export class SpriteLabScene extends Phaser.Scene {
         beforeH?: number;
         afterH?: number;
         copiedFrom?: string;
-        refs?: string[];
-        previewDataUrl?: string;
       };
       if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
-      // IA (Gemini): não trocou nada ainda — abre a PRÉVIA antes/depois com
-      // Aprovar/Descartar. Só ao Aprovar o frame é substituído e commitado.
-      if (mode === "gemini") {
-        if (!j.previewDataUrl) throw new Error("a IA não devolveu prévia");
-        this.uploadToast
-          .setText(`🤖 prévia de ${cur.frame} pronta — APROVE ou DESCARTE`)
-          .setColor("#c9a6ff");
-        this.showGeminiPreview(cur.frame, cur.tex, j.previewDataUrl, j.refs ?? []);
-        return;
-      }
       const detail = mode === "rescale" ? `${j.beforeH}px → ${j.afterH}px` : `← ${j.copiedFrom}`;
       this.uploadToast.setText(`✓ ${cur.frame} refeito (${detail})`).setColor("#88ff88");
       this.reloadAtlas(() => this.loadState());
@@ -482,87 +515,253 @@ export class SpriteLabScene extends Phaser.Scene {
     }
   }
 
-  // ── Prévia da IA: modal ANTES/DEPOIS + Aprovar (troca+commita) / Descartar ────
+  // Gera (ou re-gera) a prévia da IA com os vizinhos SELECIONADOS + o hint atual.
+  private async runGemini() {
+    const t = this.geminiTarget;
+    if (!t) return;
+    const refs = this.geminiCandRefs.filter((r) => r.sel).map((r) => r.frame);
+    this.uploadToast
+      .setText(`🤖 redesenhando ${t.frame} com IA (pode demorar)…`)
+      .setColor("#c9a6ff");
+    try {
+      const r = await fetch("/__frame-fix", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          frame: t.frame,
+          mode: "gemini",
+          hint: this.geminiHint || undefined,
+          refs: refs.length ? refs : undefined,
+        }),
+      });
+      const ct = r.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        this.uploadToast.setText("⚠ IA só em `vite dev`").setColor("#ffaa66");
+        return;
+      }
+      const j = (await r.json()) as {
+        ok: boolean;
+        error?: string;
+        refs?: string[];
+        previewDataUrl?: string;
+        guardrails?: { warn?: string[]; paletteSize?: number };
+      };
+      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      if (!j.previewDataUrl) throw new Error("a IA não devolveu prévia");
+      const w = j.guardrails?.warn ?? [];
+      this.uploadToast
+        .setText(w.length ? `⚠ prévia com alerta: ${w.join(", ")}` : `🤖 prévia pronta — confira`)
+        .setColor(w.length ? "#ffcc66" : "#c9a6ff");
+      this.showGeminiPreview(t.frame, t.tex, j.previewDataUrl, w);
+    } catch (e) {
+      this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
+    }
+  }
+
+  // ── Prévia da IA: modal ANTES/DEPOIS(+animado) + refs + hint + regen/aprovar ──
   private geminiPreview?: Phaser.GameObjects.Container;
   private readonly GEMINI_PREVIEW_TEX = "__gemini_preview";
+  private geminiToken = 0; // invalida listeners/timeouts de uma prévia anterior
+  private geminiReady = false;
+  private geminiTarget?: { frame: string; tex: string };
+  private geminiCandRefs: { frame: string; sel: boolean }[] = [];
+  private geminiHint = "";
+  private geminiAnim?: Phaser.Time.TimerEvent;
 
-  private showGeminiPreview(frame: string, atlasTex: string, dataUrl: string, refs: string[]) {
+  private showGeminiPreview(frame: string, atlasTex: string, dataUrl: string, warns: string[]) {
     this.clearGeminiPreview();
+    const token = ++this.geminiToken;
+    this.geminiReady = false;
     const W = this.scale.width,
       H = this.scale.height;
     const box = this.add.container(0, 0).setDepth(5000);
-    const backdrop = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.72).setInteractive(); // bloqueia cliques atrás
-    const panelW = 360,
-      panelH = 240;
+    const backdrop = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.74).setInteractive();
+    const panelW = 470,
+      panelH = 336;
     const panel = this.add
       .rectangle(W / 2, H / 2, panelW, panelH, 0x1a1526)
       .setStrokeStyle(2, 0x9966ff);
+    const top0 = H / 2 - panelH / 2;
     const title = this.add
-      .text(W / 2, H / 2 - panelH / 2 + 16, `PRÉVIA IA — ${frame}`, {
+      .text(W / 2, top0 + 14, `PRÉVIA IA — ${frame}`, {
         fontFamily: "monospace",
         fontSize: "12px",
         color: "#c9a6ff",
       })
       .setOrigin(0.5);
-    // ANTES (frame atual do atlas) × DEPOIS (base64 da IA), ampliados.
-    const cellY = H / 2 - 14;
-    const antesX = W / 2 - 78,
-      depoisX = W / 2 + 78;
-    const cur = this.frames[this.frameIdx];
-    const scaleUp = Math.max(1, Math.floor(84 / Math.max(cur?.w ?? 32, cur?.h ?? 48)));
-    const antes = this.add.image(antesX, cellY, atlasTex, frame).setScale(scaleUp);
-    antes.setOrigin(0.5);
-    const lblA = this.add
-      .text(antesX, cellY + 52, "ANTES", {
-        fontFamily: "monospace",
-        fontSize: "10px",
-        color: "#cfd6e0",
-      })
-      .setOrigin(0.5);
-    const lblB = this.add
-      .text(depoisX, cellY + 52, `DEPOIS · ${refs.length} refs`, {
-        fontFamily: "monospace",
-        fontSize: "10px",
-        color: "#88ff88",
-      })
-      .setOrigin(0.5);
-    box.add([backdrop, panel, title, antes, lblA, lblB]);
+    box.add([backdrop, panel, title]);
     this.geminiPreview = box;
 
-    // Carrega o DEPOIS (base64) como textura e insere quando pronto.
+    // Três células: ANTES · DEPOIS (estático) · ANIMADO (loop do estado c/ o DEPOIS
+    // no lugar do frame-alvo → pega pulo de baseline/silhueta em movimento).
+    const cur = this.frames[this.frameIdx];
+    const scaleUp = Math.max(1, Math.floor(72 / Math.max(cur?.w ?? 32, cur?.h ?? 48)));
+    const cellY = top0 + 74;
+    const antesX = W / 2 - 130,
+      depoisX = W / 2,
+      animX = W / 2 + 130;
+    const antes = this.add.image(antesX, cellY, atlasTex, frame).setScale(scaleUp).setOrigin(0.5);
+    const mkLbl = (x: number, t: string, c: string) =>
+      this.add
+        .text(x, cellY + 46, t, { fontFamily: "monospace", fontSize: "9px", color: c })
+        .setOrigin(0.5);
+    box.add([antes, mkLbl(antesX, "ANTES", "#cfd6e0"), mkLbl(depoisX, "DEPOIS", "#88ff88")]);
+    box.add(mkLbl(animX, "ANIMADO", "#9fd0ff"));
+    const loading = this.add
+      .text(depoisX, cellY, "…", { fontFamily: "monospace", fontSize: "20px", color: "#8a7fb0" })
+      .setOrigin(0.5);
+    box.add(loading);
+    if (warns.length)
+      box.add(
+        this.add
+          .text(W / 2, cellY + 62, `⚠ ${warns.join(" · ")}`, {
+            fontFamily: "monospace",
+            fontSize: "9px",
+            color: "#ffcc66",
+          })
+          .setOrigin(0.5),
+      );
+
+    // Família do estado (p/ animar), com o alvo marcado p/ trocar pelo DEPOIS.
+    const famIdx = this.frameIdx;
+    const fam = this.frames.map((f) => ({ tex: f.tex, frame: f.frame }));
+
     if (this.textures.exists(this.GEMINI_PREVIEW_TEX))
       this.textures.remove(this.GEMINI_PREVIEW_TEX);
-    this.textures.once(Phaser.Textures.Events.ADD, (key: string) => {
-      if (key !== this.GEMINI_PREVIEW_TEX || !this.geminiPreview) return;
+    const onAdd = (key: string) => {
+      if (key !== this.GEMINI_PREVIEW_TEX) return;
+      this.textures.off(Phaser.Textures.Events.ADD, onAdd);
+      if (token !== this.geminiToken || !this.geminiPreview) return;
+      loading.destroy();
       const depois = this.add
         .image(depoisX, cellY, this.GEMINI_PREVIEW_TEX)
         .setScale(scaleUp)
         .setOrigin(0.5);
-      this.geminiPreview.add(depois);
+      const animImg = this.add
+        .image(animX, cellY, this.GEMINI_PREVIEW_TEX)
+        .setScale(scaleUp)
+        .setOrigin(0.5);
+      this.geminiPreview.add([depois, animImg]);
+      this.geminiReady = true;
+      // Loop da animação com o DEPOIS substituído no frame-alvo.
+      if (fam.length > 1) {
+        let k = 0;
+        const ms = this.effectiveMs();
+        this.geminiAnim = this.time.addEvent({
+          delay: ms,
+          loop: true,
+          callback: () => {
+            k = (k + 1) % fam.length;
+            if (k === famIdx) animImg.setTexture(this.GEMINI_PREVIEW_TEX);
+            else if (fam[k].frame) animImg.setTexture(fam[k].tex, fam[k].frame);
+            else animImg.setTexture(fam[k].tex);
+          },
+        });
+      }
+    };
+    this.textures.on(Phaser.Textures.Events.ADD, onAdd);
+    this.time.delayedCall(5000, () => {
+      if (token !== this.geminiToken || this.geminiReady) return;
+      this.textures.off(Phaser.Textures.Events.ADD, onAdd);
+      loading.setText("⚠ falhou").setColor("#ff8866");
+      this.uploadToast.setText("✗ prévia da IA inválida — descarte/regere").setColor("#ff6666");
     });
     this.textures.addBase64(this.GEMINI_PREVIEW_TEX, dataUrl);
 
-    // Botões APROVAR (troca + git commit) / DESCARTAR (some com a prévia).
-    const mkBtn = (dx: number, label: string, col: number, onClick: () => void) => {
-      const bx = W / 2 + dx,
-        by = H / 2 + panelH / 2 - 24;
+    // Linha de REFS (vizinhos): thumbnail + borda verde quando selecionado. Clique
+    // liga/desliga o vizinho enviado como referência de estilo à IA.
+    const refsY = top0 + 154;
+    box.add(
+      this.add
+        .text(W / 2 - panelW / 2 + 14, refsY - 10, "REFS (clique liga/desliga):", {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: "#9aa0b0",
+        })
+        .setOrigin(0, 0),
+    );
+    const cands = this.geminiCandRefs.slice(0, 7);
+    const thumbScale = Math.max(1, Math.floor(28 / Math.max(cur?.w ?? 32, cur?.h ?? 48)));
+    let tx0 = W / 2 - panelW / 2 + 24;
+    cands.forEach((cref) => {
+      const cx = tx0 + 20;
+      const border = this.add
+        .rectangle(cx, refsY + 22, 40, 40, 0x0d0b14)
+        .setStrokeStyle(2, cref.sel ? 0x66dd66 : 0x555)
+        .setInteractive({ useHandCursor: true });
+      const img = this.add.image(cx, refsY + 22, atlasTex, cref.frame).setScale(thumbScale);
+      border.on("pointerdown", () => {
+        cref.sel = !cref.sel;
+        border.setStrokeStyle(2, cref.sel ? 0x66dd66 : 0x555);
+      });
+      this.geminiPreview?.add([border, img]);
+      tx0 += 58;
+    });
+
+    // Hint (refina o prompt) — usa prompt() do browser (dev-only, sem lib de UI).
+    const hintY = top0 + 226;
+    const hintTxt = this.add
+      .text(
+        W / 2 - panelW / 2 + 14,
+        hintY,
+        `HINT: ${this.geminiHint ? this.geminiHint.slice(0, 46) : "(nenhum)"}`,
+        { fontFamily: "monospace", fontSize: "9px", color: "#cfd6e0" },
+      )
+      .setOrigin(0, 0);
+    const hintBtn = this.add
+      .rectangle(W / 2 + panelW / 2 - 60, hintY + 4, 96, 20, 0x2a2140)
+      .setStrokeStyle(1, 0x8a7fb0)
+      .setInteractive({ useHandCursor: true });
+    const hintBtnT = this.add
+      .text(W / 2 + panelW / 2 - 60, hintY + 4, "✏ EDITAR HINT", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#d8cff0",
+      })
+      .setOrigin(0.5);
+    hintBtn.on("pointerdown", () => {
+      const v = window.prompt(
+        "Instrução extra p/ a IA (ex.: manter camisa azul):",
+        this.geminiHint,
+      );
+      if (v != null) {
+        this.geminiHint = v.trim();
+        hintTxt.setText(`HINT: ${this.geminiHint ? this.geminiHint.slice(0, 46) : "(nenhum)"}`);
+      }
+    });
+    box.add([hintTxt, hintBtn, hintBtnT]);
+
+    // Botões: GERAR DE NOVO · APROVAR · DESCARTAR.
+    const by = H / 2 + panelH / 2 - 22;
+    const mkBtn = (bx: number, w: number, label: string, col: number, onClick: () => void) => {
       const bg = this.add
-        .rectangle(bx, by, 150, 26, 0x2a2140)
+        .rectangle(bx, by, w, 26, 0x2a2140)
         .setStrokeStyle(2, col)
         .setInteractive({ useHandCursor: true });
-      const tx = this.add
-        .text(bx, by, label, { fontFamily: "monospace", fontSize: "11px", color: "#f0e0c0" })
+      const tt = this.add
+        .text(bx, by, label, { fontFamily: "monospace", fontSize: "10px", color: "#f0e0c0" })
         .setOrigin(0.5);
       bg.on("pointerover", () => bg.setFillStyle(0x3a2e58));
       bg.on("pointerout", () => bg.setFillStyle(0x2a2140));
       bg.on("pointerdown", onClick);
-      this.geminiPreview?.add([bg, tx]);
+      this.geminiPreview?.add([bg, tt]);
     };
-    mkBtn(-82, "✅ APROVAR", 0x66dd66, () => void this.approveGemini(frame));
-    mkBtn(82, "✖ DESCARTAR", 0xdd6666, () => void this.discardGemini(frame));
+    mkBtn(W / 2 - 150, 130, "🔄 GERAR DE NOVO", 0x9966ff, () => void this.runGemini());
+    mkBtn(W / 2, 120, "✅ APROVAR", 0x66dd66, () => {
+      if (!this.geminiReady) {
+        this.uploadToast.setText("⚠ aguarde a prévia carregar").setColor("#ffaa66");
+        return;
+      }
+      void this.approveGemini(frame);
+    });
+    mkBtn(W / 2 + 150, 130, "✖ DESCARTAR", 0xdd6666, () => void this.discardGemini(frame));
   }
 
   private clearGeminiPreview() {
+    this.geminiToken++; // invalida qualquer listener/timeout pendente
+    this.geminiReady = false;
+    this.geminiAnim?.remove();
+    this.geminiAnim = undefined;
     this.geminiPreview?.destroy(true);
     this.geminiPreview = undefined;
     if (this.textures.exists(this.GEMINI_PREVIEW_TEX))
@@ -1130,11 +1329,13 @@ export class SpriteLabScene extends Phaser.Scene {
       return s.length ? s[s.length >> 1] : 0;
     };
     for (const subj of SUBJECTS) {
+      const subjIdx = SUBJECTS.indexOf(subj);
       for (const st of Object.keys(subj.states)) {
         const infos = subj.states[st].map((k) => this.getInfo(k));
         const g = this.gameAnimFor(subj.prefix, st);
         if (g && infos.length < g.frames)
           bad.push({
+            subjIdx,
             subj: subj.name,
             state: st,
             issue: `LAB<jogo: falta ${g.frames - infos.length}`,
@@ -1144,7 +1345,15 @@ export class SpriteLabScene extends Phaser.Scene {
           frameCount++;
           const reasons: string[] = [];
           if (!f.ok) {
-            bad.push({ subj: subj.name, state: st, frame: idx, key: f.key, issue: "missing" });
+            bad.push({
+              subjIdx,
+              subj: subj.name,
+              state: st,
+              frame: idx,
+              key: f.key,
+              atlasFrame: f.frame,
+              issue: "missing",
+            });
             return;
           }
           const m = this.frameMetrics(f);
@@ -1153,10 +1362,12 @@ export class SpriteLabScene extends Phaser.Scene {
           if (m.flatPct > 90) reasons.push(`chapado ${m.flatPct.toFixed(0)}% 1cor`);
           if (reasons.length)
             bad.push({
+              subjIdx,
               subj: subj.name,
               state: st,
               frame: idx,
               key: f.frame ?? f.tex,
+              atlasFrame: f.frame,
               dims: `${f.w}x${f.h}`,
               issue: reasons.join(" · "),
             });
@@ -1167,9 +1378,11 @@ export class SpriteLabScene extends Phaser.Scene {
           heights.forEach((h, idx) => {
             if (med > 0 && h > 0 && Math.abs(h - med) / med > 0.25)
               bad.push({
+                subjIdx,
                 subj: subj.name,
                 state: st,
                 frame: idx,
+                atlasFrame: infos[idx]?.frame,
                 issue: `altura ${h}px vs mediana ${med}px (pulo de tamanho)`,
               });
           });
@@ -1181,6 +1394,143 @@ export class SpriteLabScene extends Phaser.Scene {
       bad,
     );
     return { subjects: SUBJECTS.length, frames: frameCount, bad };
+  }
+
+  // ── Fila de PROBLEMAS: audit clicável (achar → pular → consertar) ────────────
+  private jumpTo(subjIdx: number, state: string, frameIdx: number) {
+    this.subjIdx = subjIdx;
+    const states = SUBJECTS[subjIdx].states;
+    this.stateName = state in states ? state : Object.keys(states)[0];
+    this.loadState();
+    const n = this.frames.length;
+    this.frameIdx = n ? Phaser.Math.Clamp(frameIdx, 0, n - 1) : 0;
+    this.playing = false;
+    this.applyFrame();
+    this.logDiagnostics();
+  }
+
+  private toggleAuditQueue() {
+    if (this.auditOverlay) {
+      this.closeAuditQueue();
+      return;
+    }
+    this.uploadToast.setText("rodando audit…").setColor("#cfd6e0");
+    const rep = this.runFullAudit();
+    this.auditItems = rep.bad as AuditItem[];
+    this.auditTotalFrames = rep.frames;
+    this.auditScroll = 0;
+    this.renderAuditQueue();
+  }
+
+  private closeAuditQueue() {
+    this.auditOverlay?.destroy(true);
+    this.auditOverlay = undefined;
+  }
+
+  private renderAuditQueue() {
+    this.auditOverlay?.destroy(true);
+    const W = this.scale.width,
+      H = this.scale.height;
+    const box = this.add.container(0, 0).setDepth(4900);
+    const backdrop = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.74).setInteractive();
+    const panelW = 640,
+      panelH = 470;
+    const panel = this.add
+      .rectangle(W / 2, H / 2, panelW, panelH, 0x14121c)
+      .setStrokeStyle(2, 0xe0a441);
+    const items = this.auditItems;
+    const shown = `${this.auditScroll + 1}–${Math.min(this.auditScroll + this.AUDIT_ROWS, items.length)}`;
+    const title = this.add
+      .text(
+        W / 2,
+        H / 2 - panelH / 2 + 14,
+        items.length
+          ? `PROBLEMAS — ${items.length} em ${this.auditTotalFrames} frames · vendo ${shown} · roda p/ scroll · clique = pular`
+          : `PROBLEMAS — nenhum! ${this.auditTotalFrames} frames OK · [A]/[ESC] fecha`,
+        { fontFamily: "monospace", fontSize: "11px", color: "#f0d49a" },
+      )
+      .setOrigin(0.5);
+    box.add([backdrop, panel, title]);
+    this.auditOverlay = box;
+
+    const rowH = 20;
+    const top = H / 2 - panelH / 2 + 40;
+    items.slice(this.auditScroll, this.auditScroll + this.AUDIT_ROWS).forEach((it, r) => {
+      const y = top + r * rowH;
+      const canJump = it.subjIdx != null;
+      const tag = it.frame != null ? ` #${it.frame}` : "";
+      const label = `${it.subj} / ${it.state}${tag} — ${it.issue}`;
+      const rowBg = this.add
+        .rectangle(W / 2, y, panelW - 24, rowH - 2, 0x201b2c)
+        .setInteractive({ useHandCursor: canJump });
+      const tx = this.add
+        .text(W / 2 - panelW / 2 + 18, y - 6, label.slice(0, 92), {
+          fontFamily: "monospace",
+          fontSize: "10px",
+          color: canJump ? "#e6dcff" : "#8a8598",
+        })
+        .setOrigin(0, 0);
+      if (canJump) {
+        rowBg.on("pointerover", () => rowBg.setFillStyle(0x2e2740));
+        rowBg.on("pointerout", () => rowBg.setFillStyle(0x201b2c));
+        rowBg.on("pointerdown", () => {
+          this.closeAuditQueue();
+          this.jumpTo(it.subjIdx!, it.state, it.frame ?? 0);
+        });
+      }
+      this.auditOverlay!.add([rowBg, tx]);
+    });
+
+    // Batch: conserta em lote os defeitos MECÂNICOS seguros (frame do atlas com
+    // vazio/chapado/missing → copiar-vizinho). rescale/altura fica de fora (pode
+    // ser pose legítima) — esses o usuário resolve 1 a 1 com o gate.
+    const safe = items.filter(
+      (it) => it.atlasFrame && /missing|quase-vazio|chapado/.test(it.issue),
+    );
+    const by = H / 2 + panelH / 2 - 22;
+    const has = safe.length > 0;
+    const batchBg = this.add
+      .rectangle(W / 2, by, 380, 26, has ? 0x243a24 : 0x24242a)
+      .setStrokeStyle(2, has ? 0x66dd66 : 0x444)
+      .setInteractive({ useHandCursor: has });
+    const batchTx = this.add
+      .text(W / 2, by, `🔧 CONSERTAR SEGUROS c/ copiar-vizinho (${safe.length})`, {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: has ? "#c9f0c0" : "#6a6a72",
+      })
+      .setOrigin(0.5);
+    if (has) batchBg.on("pointerdown", () => void this.batchFixSafe(safe));
+    this.auditOverlay.add([batchBg, batchTx]);
+  }
+
+  private async batchFixSafe(items: AuditItem[]) {
+    this.closeAuditQueue();
+    let done = 0,
+      fail = 0;
+    for (const it of items) {
+      this.uploadToast
+        .setText(`conserto em lote ${done + fail + 1}/${items.length}: ${it.atlasFrame}…`)
+        .setColor("#cfd6e0");
+      try {
+        const r = await fetch("/__frame-fix", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ frame: it.atlasFrame, mode: "copy-nearest" }),
+        });
+        const ct = r.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) throw new Error("só em `vite dev`");
+        const j = (await r.json()) as { ok: boolean; error?: string };
+        if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+        done++;
+      } catch {
+        fail++;
+      }
+    }
+    this.uploadToast
+      .setText(`✓ lote: ${done} consertado(s)${fail ? `, ${fail} falha(s)` : ""}`)
+      .setColor(fail ? "#ffcc66" : "#88ff88");
+    this.reloadAtlas(() => this.loadState());
   }
 
   /** ms do loop: override manual > ms do jogo p/ o estado > fallback. */

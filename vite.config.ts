@@ -74,16 +74,12 @@ function spriteUploadDevPlugin(): Plugin {
               send(200, { ok: true, file: `assets/${name}.png` });
               return;
             }
-            // re-empacota o atlas a partir de sprites/
-            const child = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
-            let log = "";
-            child.stdout.on("data", (d) => (log += d));
-            child.stderr.on("data", (d) => (log += d));
-            child.on("close", (code) =>
-              send(code === 0 ? 200 : 500, {
-                ok: code === 0,
+            // re-empacota o atlas a partir de sprites/ (serializado com os demais
+            // endpoints que também re-empacotam — evita atlas truncado por corrida).
+            void repackAtlas().then((packed) =>
+              send(packed ? 200 : 500, {
+                ok: packed,
                 file: `assets/sprites/${name}.png`,
-                log: log.slice(-600),
               }),
             );
           } catch (e) {
@@ -119,6 +115,54 @@ function readBody(req: import("node:http").IncomingMessage): Promise<string> {
   });
 }
 
+// Serializa TODOS os re-empacotamentos do atlas. `/__sprite-upload`,
+// `/__frame-fix` e `/__frame-approve` spawnam pack-atlas.mjs (readdirSync +
+// writeFile de atlas.png/json). Dois repacks concorrentes intercalariam as
+// escritas → atlas.png/json truncados/dessincronizados. Esta fila garante um de
+// cada vez, mesmo entre plugins (módulo compartilhado).
+let packChain: Promise<unknown> = Promise.resolve();
+function repackAtlas(): Promise<boolean> {
+  const run = () =>
+    new Promise<boolean>((ok) => {
+      const p = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
+      p.on("close", (code) => ok(code === 0));
+      p.on("error", () => ok(false));
+    });
+  const result = packChain.then(run, run);
+  packChain = result.catch(() => {});
+  return result;
+}
+
+// Spawn com coleta de stdout/stderr e timeout opcional (mata o processo se
+// estourar — ex.: a chamada de imagem do Gemini que pode travar sem retornar).
+function spawnCollect(
+  cmd: string,
+  args: string[],
+  timeoutMs?: number,
+): Promise<{ code: number | null; out: string; timedOut: boolean }> {
+  return new Promise((ok) => {
+    const child = spawn(cmd, args, { cwd: process.cwd() });
+    let out = "";
+    let timedOut = false;
+    const timer = timeoutMs
+      ? setTimeout(() => {
+          timedOut = true;
+          child.kill("SIGKILL");
+        }, timeoutMs)
+      : null;
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (out += d));
+    child.on("close", (code) => {
+      if (timer) clearTimeout(timer);
+      ok({ code, out, timedOut });
+    });
+    child.on("error", (e) => {
+      if (timer) clearTimeout(timer);
+      ok({ code: 1, out: out + String(e), timedOut });
+    });
+  });
+}
+
 function frameFixDevPlugin(): Plugin {
   return {
     name: "frame-fix-dev",
@@ -132,47 +176,51 @@ function frameFixDevPlugin(): Plugin {
 
       server.middlewares.use("/__frame-fix", (req, res, next) => {
         if (req.method !== "POST") return next();
-        void readBody(req).then((body) => {
+        void readBody(req).then(async (body) => {
           try {
-            const { frame, mode } = JSON.parse(body) as { frame?: string; mode?: string };
+            const { frame, mode, hint, refs } = JSON.parse(body) as {
+              frame?: string;
+              mode?: string;
+              hint?: string;
+              refs?: string[];
+            };
             if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
             const isGemini = mode === "gemini";
-            // gemini → PRÉVIA (não sobrescreve, não re-empacota).
-            const fix = isGemini
-              ? spawn("node", ["scripts/frame-gemini.mjs", frame, "--preview"], {
-                  cwd: process.cwd(),
-                })
-              : spawn(
-                  "node",
-                  [
-                    "scripts/frame-fix.mjs",
-                    frame,
-                    mode === "copy-nearest" ? "copy-nearest" : "rescale",
-                  ],
-                  { cwd: process.cwd() },
-                );
-            let out = "";
-            fix.stdout.on("data", (d) => (out += d));
-            fix.stderr.on("data", (d) => (out += d));
-            fix.on("close", (fixCode) => {
-              let result: unknown;
-              try {
-                result = JSON.parse(out.trim().split("\n").pop() ?? "{}");
-              } catch {
-                result = { ok: false, error: out.slice(-300) };
-              }
-              if (fixCode !== 0) return json(res, 500, result);
-              // Prévia da IA: nada de re-empacotar — o LAB só mostra o "depois".
-              if (isGemini) return json(res, 200, result);
-              // Determinístico: re-empacota o atlas com o frame consertado.
-              const pack = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
-              pack.on("close", (packCode) =>
-                json(res, packCode === 0 ? 200 : 500, {
-                  ...(result as object),
-                  repacked: packCode === 0,
-                }),
-              );
-            });
+            // gemini → PRÉVIA (não sobrescreve, não re-empacota). Timeout de 120s.
+            // Passa hint (refina o prompt) e refs (vizinhos escolhidos) quando vierem.
+            const geminiArgs = ["scripts/frame-gemini.mjs", frame, "--preview"];
+            if (typeof hint === "string" && hint.trim())
+              geminiArgs.push("--hint", hint.slice(0, 300));
+            if (Array.isArray(refs) && refs.length) {
+              const clean = refs.filter((r) => typeof r === "string" && FRAME_RE.test(r));
+              if (clean.length) geminiArgs.push("--refs", clean.join(","));
+            }
+            const args = isGemini
+              ? geminiArgs
+              : [
+                  "scripts/frame-fix.mjs",
+                  frame,
+                  mode === "copy-nearest" ? "copy-nearest" : "rescale",
+                ];
+            const { code, out, timedOut } = await spawnCollect(
+              "node",
+              args,
+              isGemini ? 120000 : 30000,
+            );
+            if (timedOut)
+              return json(res, 504, { ok: false, error: "a IA demorou demais (timeout 120s)" });
+            let result: unknown;
+            try {
+              result = JSON.parse(out.trim().split("\n").pop() ?? "{}");
+            } catch {
+              result = { ok: false, error: out.slice(-300) };
+            }
+            if (code !== 0) return json(res, 500, result);
+            // Prévia da IA: nada de re-empacotar — o LAB só mostra o "depois".
+            if (isGemini) return json(res, 200, result);
+            // Determinístico: re-empacota o atlas (serializado) com o frame consertado.
+            const packed = await repackAtlas();
+            return json(res, packed ? 200 : 500, { ...(result as object), repacked: packed });
           } catch (e) {
             json(res, 400, { ok: false, error: String(e) });
           }
@@ -181,7 +229,7 @@ function frameFixDevPlugin(): Plugin {
 
       server.middlewares.use("/__frame-approve", (req, res, next) => {
         if (req.method !== "POST") return next();
-        void readBody(req).then((body) => {
+        void readBody(req).then(async (body) => {
           try {
             const { frame } = JSON.parse(body) as { frame?: string };
             if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
@@ -191,36 +239,40 @@ function frameFixDevPlugin(): Plugin {
               throw new Error("caminho inválido");
             if (!existsSync(preview))
               throw new Error("sem prévia p/ aprovar (gere com a IA antes)");
+            // approve CONSERTA um frame existente — não cria frame novo no atlas.
+            if (!existsSync(dest))
+              throw new Error("frame não existe em sprites/ (approve não cria)");
+            // ATÔMICO: guarda o original, troca, re-empacota; se o pack falhar,
+            // restaura o original e mantém a prévia (nada é perdido).
+            const backup = readFileSync(dest);
             copyFileSync(preview, dest);
-            rmSync(preview, { force: true });
-            // re-empacota o atlas e commita PNG-fonte + atlas gerado.
-            const pack = spawn("node", ["scripts/pack-atlas.mjs"], { cwd: process.cwd() });
-            pack.on("close", (packCode) => {
-              if (packCode !== 0) return json(res, 500, { ok: false, error: "pack-atlas falhou" });
-              const files = [
-                `${SPRITES_DIR}/${frame}.png`,
-                "public/assets/atlas.png",
-                "public/assets/atlas.json",
-              ];
-              const git = spawn(
-                "bash",
-                [
-                  "-c",
-                  `git add ${files.join(" ")} && git commit -m ${JSON.stringify(`LAB: refaz frame ${frame} via IA (Gemini)`)}`,
-                ],
-                { cwd: process.cwd() },
-              );
-              let glog = "";
-              git.stdout.on("data", (d) => (glog += d));
-              git.stderr.on("data", (d) => (glog += d));
-              git.on("close", (gitCode) =>
-                json(res, 200, {
-                  ok: true,
-                  frame,
-                  committed: gitCode === 0,
-                  gitLog: glog.slice(-300),
-                }),
-              );
+            const packed = await repackAtlas();
+            if (!packed) {
+              writeFileSync(dest, backup); // rollback do frame
+              await repackAtlas(); // restaura o atlas ao estado bom
+              return json(res, 500, {
+                ok: false,
+                error: "pack-atlas falhou — frame original restaurado, prévia mantida",
+              });
+            }
+            rmSync(preview, { force: true }); // só some com a prévia após sucesso
+            // commit ESCOPADO (só estes 3 paths — não arrasta staged não-relacionado).
+            const files = [
+              `${SPRITES_DIR}/${frame}.png`,
+              "public/assets/atlas.png",
+              "public/assets/atlas.json",
+            ];
+            const msg = `LAB: refaz frame ${frame} via IA (Gemini)`;
+            const { code: gitCode, out: glog } = await spawnCollect(
+              "git",
+              ["commit", "-m", msg, "--", ...files],
+              30000,
+            );
+            return json(res, 200, {
+              ok: true,
+              frame,
+              committed: gitCode === 0,
+              gitLog: glog.slice(-300),
             });
           } catch (e) {
             json(res, 400, { ok: false, error: String(e) });

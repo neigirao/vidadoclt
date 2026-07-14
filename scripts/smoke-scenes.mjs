@@ -86,9 +86,16 @@ async function waitForServer(timeoutMs = 40000) {
 
 async function main() {
   // 1) sobe o vite dev (a menos que já haja um servidor externo: SMOKE_NO_SERVER)
+  //    `--mode smoke`: NÃO carrega o componentTagger do lovable-tagger (ele só
+  //    entra em `mode === "development"`). Esse tagger injeta `data-tsd-source`
+  //    nos elementos e, sob timing de CI, o número de linha da tag diverge entre
+  //    o SSR e o cliente → React loga um "hydration mismatch" (console.error) que
+  //    derrubava o smoke por ruído puramente de dev-tooling (a tag nem existe no
+  //    build de produção). Rodar em outro mode elimina a corrida na raiz; o resto
+  //    do dev server (apply:"serve", import.meta.env.DEV) segue ligado.
   let server = null;
   if (!process.env.SMOKE_NO_SERVER) {
-    server = spawn("bunx", ["vite", "dev", "--port", String(PORT)], {
+    server = spawn("bunx", ["vite", "dev", "--port", String(PORT), "--mode", "smoke"], {
       stdio: "ignore",
       detached: false,
     });
