@@ -1,1 +1,4 @@
 project_id = "aemjxklvzignuuebxxoy"
+
+[functions.frame-refazer]
+verify_jwt = false
