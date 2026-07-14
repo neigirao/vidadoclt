@@ -935,6 +935,13 @@ export class SpriteLabScene extends Phaser.Scene {
     ctx.drawImage(gen, Math.floor((w - dw) / 2), Math.floor((h - dh) / 2), dw, dh);
     const img = ctx.getImageData(0, 0, w, h);
     const d = img.data;
+    // REMOÇÃO DE FUNDO: a IA às vezes devolve a arte sobre um fundo OPACO (sólido
+    // ou quase). Sem tratar, esse fundo fica com alpha 255 e vira um bloco. Faz
+    // flood-fill a partir das bordas: tudo conectado à borda E próximo da cor de
+    // fundo (amostrada nos 4 cantos) vira transparente. Flood-fill (não match
+    // global) preserva cores iguais que aparecem DENTRO do personagem.
+    const removed = this.stripBackground(d, w, h);
+    if (removed) warn.push("fundo opaco removido");
     // paleta + baseline mediana dos vizinhos
     const { palette, medFeet, medH } = this.refPalette(refFrames);
     const cache = new Map<number, [number, number, number]>();
@@ -996,6 +1003,71 @@ export class SpriteLabScene extends Phaser.Scene {
     const top = Math.max(0, h - medFeet - bh);
     ctx.putImageData(content, left, top);
     return { dataUrl: cv.toDataURL("image/png"), warn };
+  }
+
+  // Remove o fundo OPACO que a IA às vezes devolve: flood-fill (BFS) a partir de
+  // todos os pixels de borda, zerando o alpha de quem está conectado à borda E
+  // perto da cor de fundo amostrada nos cantos. Retorna true se removeu algo.
+  // Só age se os cantos concordarem numa cor (evita apagar arte que encosta na
+  // borda de propósito). Muta `d` in-place.
+  private stripBackground(d: Uint8ClampedArray, w: number, h: number): boolean {
+    const at = (x: number, y: number) => (y * w + x) * 4;
+    // amostra os 4 cantos; só trata como fundo se pelo menos 3 concordarem.
+    const corners = [
+      [0, 0],
+      [w - 1, 0],
+      [0, h - 1],
+      [w - 1, h - 1],
+    ].map(([x, y]) => {
+      const i = at(x, y);
+      return { r: d[i], g: d[i + 1], b: d[i + 2], a: d[i + 3] };
+    });
+    // fundo só existe se os cantos são OPACOS (senão já é transparente = ok).
+    const opaque = corners.filter((c) => c.a > 200);
+    if (opaque.length < 3) return false;
+    const bg = opaque[0];
+    const near = (i: number, tol: number) => {
+      const dr = d[i] - bg.r,
+        dg = d[i + 1] - bg.g,
+        db = d[i + 2] - bg.b;
+      return dr * dr + dg * dg + db * db <= tol * tol * 3;
+    };
+    // cantos precisam ser parecidos entre si, senão não é um fundo uniforme.
+    if (
+      !opaque.every((c) => (c.r - bg.r) ** 2 + (c.g - bg.g) ** 2 + (c.b - bg.b) ** 2 <= 40 * 40 * 3)
+    )
+      return false;
+    const TOL = 48; // tolerância de cor (nearest-resize borra a borda do fundo)
+    const seen = new Uint8Array(w * h);
+    const stack: number[] = [];
+    const pushIf = (x: number, y: number) => {
+      if (x < 0 || y < 0 || x >= w || y >= h) return;
+      const p = y * w + x;
+      if (seen[p]) return;
+      seen[p] = 1;
+      if (d[p * 4 + 3] > 40 && near(p * 4, TOL)) stack.push(p);
+    };
+    for (let x = 0; x < w; x++) {
+      pushIf(x, 0);
+      pushIf(x, h - 1);
+    }
+    for (let y = 0; y < h; y++) {
+      pushIf(0, y);
+      pushIf(w - 1, y);
+    }
+    let removed = 0;
+    while (stack.length) {
+      const p = stack.pop()!;
+      d[p * 4 + 3] = 0;
+      removed++;
+      const x = p % w,
+        y = (p / w) | 0;
+      pushIf(x - 1, y);
+      pushIf(x + 1, y);
+      pushIf(x, y - 1);
+      pushIf(x, y + 1);
+    }
+    return removed > 0;
   }
 
   // Paleta (cores opacas) + baseline/altura medianas dos frames vizinhos.

@@ -73,6 +73,106 @@ itens de engenharia do `CLAUDE.md`.
 
 ---
 
+## LAB SPRITES — melhorias no fluxo de IA (a fazer juntos)
+
+Vindos do uso real do REFAZER COM IA online:
+
+- ✅ **Fundo transparente** — a saída da IA às vezes vinha sobre fundo opaco (bloco).
+  `applyGuardrails` agora roda `stripBackground` (flood-fill das bordas, amostrando
+  a cor dos cantos) antes da trava de paleta. Corrigido.
+- 🟡 **Gerar frames faltantes (multi-frame)** — hoje o REFAZER refaz **1 frame por
+  vez**. Ações com menos frames que o padrão da família (ex.: um `walk` com 2 de 4)
+  não são completadas. Quando pedir para gerar, deveria detectar a lacuna e preencher
+  os frames que faltam de forma consistente. **Por que é maior do que parece:** a
+  contagem por estado é `const` compile-time em `systems/EnemyAnimConfig.ts`
+  (`WALK/IDLE/ATTACK_FRAME_COUNTS`), e o override é _por frame já existente no atlas_
+  (`SpriteOverrides.ts`) — um frame **novo** não é ciclado pelo jogo. Plano:
+  1. Tornar a contagem de frames **dinâmica**: derivar do manifesto de overrides +
+     atlas em runtime (não do `const`), para novos frames entrarem no ciclo.
+  2. `resolveSprite` passar a resolver frame de override **inexistente no atlas**
+     (hoje o override só substitui frame existente).
+  3. Chamada Gemini **em lote**: gerar os N faltantes usando os vizinhos válidos como
+     referência de pose/paleta, com os mesmos guardrails por frame.
+  4. UI do modal: mostrar "esta ação tem 2/4 frames do padrão" e um botão
+     "COMPLETAR FAMÍLIA" além do refazer single-frame.
+
+---
+
+## Auditoria — Sistema de Configurações (Lovable, guardar p/ ver juntos)
+
+Análise das "configurações" (tela ⚙, painel de acessibilidade do Pause, `Settings.ts`
+e as configs de run espalhadas). Plano priorizado por esforço×impacto.
+
+**Quick wins (1 sessão):** remover texto morto (Resolução/Idioma/Controles fixos) e
+pôr info útil (versão, seed copiável, loops) [P5]; tela cheia [F11] [P6]; portar as 3
+barras de volume + Mudo para o PauseScene [P15]; toggle "mostrar dicas de novo"
+(`TutorialPrompts.reset`) [P9]; botão Créditos (`CREDITS.md`) [P16]; mover "Exportar
+dados de teste" para sub-seção Desenvolvedor [P13].
+
+**UX médio (2–3 sessões):** sliders de volume clicáveis/arrastáveis, passo 5% [P1];
+reestruturar o overlay em abas ÁUDIO·VÍDEO·CONTROLES·ACESSIBILIDADE·JOGO·DADOS·SOBRE
+com scroll [P14]; aba CONTROLES mostrando a tabela do Pause (fonte única) [P2]; aba
+DADOS com reset de progresso em 2 etapas (Reconhecimento/FGTS/Loops/NG+/Bestiário/
+tutoriais/overrides) [P8].
+
+**Estrutural (múltiplas sessões):** toggle "reduzir movimento/impacto" (screen-shake/
+hitstop/zoom-pop de `CombatFx`, distinto do reduceSanityFx) [P10]; modo daltônico
+(3 perfis, usado em `ThreatMarkers` + projéteis) [P11]; escala de HUD/texto 100/125/
+150% [P12]; remap de teclas (nova camada `Input.ts` ação→tecla, refatorar os 8+
+`addKey`) [P3]; gamepad na navegação de UI [P4]; cross-link de dificuldade na aba JOGO
+("Heat atual / NG+ ativo — abrir tela") [P7]; aba SOBRE com seed copiável + "usar
+seed…" [P7].
+
+**`Settings.ts`:** estender schema (`fullscreen`, `reduceMotion`, `colorblindMode`,
+`hudScale`, `showTutorials`, `keyBindings`, `gamepadEnabled`, `preferredSeed?`) e
+criar `applyAll(settings)` (hoje só `applyAudioSettings`).
+
+---
+
+## Auditoria HOLÍSTICA de game design (Lovable, guardar p/ ver juntos)
+
+Passada por todas as áreas. Sequência sugerida em 5 sprints.
+
+**Sprint 1 — percepção (quick wins):**
+1. Death recap na `GameOverScene` (causa, kills, VR, sanidade, +Reconhecimento, recorde).
+2. Popup de VR flutuante ao matar.
+3. Cooldown/carga do Especial (K) visível na HUD.
+4. HUD mostra perks ativos com tooltip.
+6. Beat de entrada de boss médio (câmera para, stinger, portal fecha).
+
+**Sprint 2 — identidade:**
+10. NPC que lembra do loop (Faxineiro comenta mortes/culturas/bosses por milestone).
+11. Storytelling ambiental (`AmbientLore`: post-its com piada corporativa BR por seed).
+5. Remover "TESTAR FASE" do menu (ou esconder atrás de dev-only).
+8. Tela de vitória com epílogo (carta de demissão + gancho NG+).
+7. Micro-legenda de perda de sanidade por evento ("−2 sanidade: viu email do chefe").
+
+**Sprint 3 — onboarding:**
+9. 1ª run fixa (classe default, sem cultura/loja); sistemas destravam após 1ª morte,
+   cada tela nova ganha 1 tutorial.
+14. Modo assistido opcional (dano recebido ×0.7, +1 vida/fase; sem estigma na UI).
+
+**Sprint 4 — conteúdo (tirar Fases 2–5 da magreza):**
+12. 1 evento de sala próprio por fase 2–5 (inventar por tema, não copiar APAGÃO).
+13. 1 healer + 1 arquétipo verticalizador por fase 2–5 (força usar plataformas).
+20. Fundos high-res Fases 3/4/5 + CEO (CEO é o mais crítico; pipeline do LAB pronto).
+
+**Sprint 5 — estrutural (teto do jogo):**
+16. Rotas divergentes de verdade (cada rota → variante da fase: encontros/layout/boss mod).
+18. Sala de aposta/tesouro entre zonas (40 VR agora VS arma aleatória VS reroll perk).
+19. Heat com modificadores _flavored_ (inimigos revivem 1×, boss ganha 2ª fase, sem Copa).
+17. Meta-loja projeta impacto ("sua próxima run começa com X").
+15. Especial/Dash ofensivos (dash cancela recovery; especial ganha variante aérea).
+
+Problemas de fundo transversais (severidade GD): classes não se _sentem_ diferentes no
+1º minuto (arma-assinatura + habilidade única, não só stats); especial/parry/dash
+sub-utilizados; Fases 2–3 mais magras que a 1; nenhum inimigo pede verticalidade;
+paralysis-by-analysis no 1º build; HUD não conta a história do build; nenhum NPC
+lembra do loop (referência Hades); CEO chega sem buildup; sem modo fácil/assistido;
+sem death recap. Cada item vira 1 plano executável quando escolhermos a direção.
+
+---
+
 ## Como este roadmap se relaciona com os outros docs
 
 - **`.lovable/plan.md`** — plano de trabalho ativo do Lovable (onboarding + burnout). Este ROADMAP absorve o status; o plano detalha a execução.
