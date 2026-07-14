@@ -110,9 +110,14 @@ export async function loadSpriteOverrides(): Promise<void> {
         if (!obj.name.endsWith(".png")) continue;
         const frame = obj.name.replace(/\.png$/, "");
         if (_overrides.has(frame)) continue; // local vence
-        const pub = supabase.storage.from(BUCKET).getPublicUrl(obj.name).data.publicUrl;
-        const t = obj.updated_at ? new Date(obj.updated_at).getTime() : Date.now();
-        const dataUrl = await urlToDataUrl(`${pub}?t=${t}`);
+        // Signed URL (funciona em bucket PRIVADO e público — a workspace do
+        // Lovable bloqueia bucket público). Convertido pra dataURL na hora, então
+        // expiry curto basta.
+        const { data: signed } = await supabase.storage
+          .from(BUCKET)
+          .createSignedUrl(obj.name, 3600);
+        if (!signed?.signedUrl) continue;
+        const dataUrl = await urlToDataUrl(signed.signedUrl);
         if (dataUrl) _overrides.set(frame, dataUrl);
       }
     }
