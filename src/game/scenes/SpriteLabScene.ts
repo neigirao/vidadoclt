@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { resolveSprite, isAtlasKey, ATLAS_KEY, initSpriteLibrary } from "../systems/SpriteLibrary";
-import { bgUrl, uploadBg } from "../systems/BgOverrides";
+import { bgUrl, uploadBg, hasBgOverride } from "../systems/BgOverrides";
 import {
   WALK_FRAME_COUNTS,
   IDLE_FRAME_COUNTS,
@@ -356,6 +356,7 @@ export class SpriteLabScene extends Phaser.Scene {
     // `vite dev` (só em dev; no build estático avisa que não grava).
     this.buildUploadButton();
     this.buildFixButtons();
+    this.buildBgRepoButton();
     // Ao sair do LAB, garante limpeza do modal de prévia e da textura base64
     // (senão `__gemini_preview` + o listener de ADD vazam no TextureManager global).
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -464,6 +465,81 @@ export class SpriteLabScene extends Phaser.Scene {
     // IA (Gemini): redesenha o frame seguindo os vizinhos. Precisa GEMINI_API_KEY
     // + billing. Pode destoar do estilo — confira antes de manter.
     mk(0, 490, 248, "🤖 REFAZER COM IA (GEMINI)", "gemini", 0x9966ff);
+  }
+
+  // FUNDOS (dev): "promove" o override de fundo (que vive no Supabase Storage /
+  // IndexedDB do navegador) para o REPO — grava public/assets/<bg-*>.png via o
+  // endpoint do `vite dev`. Assim o fundo subido pelo LAB deixa de ser só um
+  // override em runtime e passa a ser versionado (entra no bundle/commit).
+  private buildBgRepoButton() {
+    const x = 745,
+      y = 518;
+    const bg = this.add
+      .rectangle(x, y, 250, 24, 0x24344a)
+      .setStrokeStyle(2, 0x5c9ad8)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(x, y, "💾 FIXAR FUNDO NO REPO (dev)", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#cfe4ff",
+      })
+      .setOrigin(0.5);
+    bg.on("pointerover", () => bg.setFillStyle(0x30455f));
+    bg.on("pointerout", () => bg.setFillStyle(0x24344a));
+    bg.on("pointerdown", () => void this.promoteBgToRepo());
+  }
+
+  private async promoteBgToRepo() {
+    const cur = this.frames[this.frameIdx];
+    const isBg = !!cur && !cur.frame && /^bg-/.test(cur.tex);
+    if (!isBg) {
+      this.uploadToast.setText("⚠ selecione um FUNDO (categoria FUNDOS)").setColor("#ffaa66");
+      return;
+    }
+    const name = cur.tex;
+    if (!hasBgOverride(name)) {
+      this.uploadToast
+        .setText(`⚠ ${name} não tem override subido (já é o embutido)`)
+        .setColor("#ffaa66");
+      return;
+    }
+    try {
+      // O override é dataURL (local) OU URL da nuvem — o navegador do usuário tem
+      // acesso ao Supabase, então busca a URL e converte pra dataURL.
+      const src = bgUrl(name);
+      let dataUrl: string;
+      if (src.startsWith("data:")) {
+        dataUrl = src;
+      } else {
+        this.uploadToast.setText(`buscando ${name} da nuvem…`).setColor("#cfd6e0");
+        const blob = await (await fetch(src)).blob();
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result));
+          fr.onerror = () => reject(new Error("falha ao ler o PNG da nuvem"));
+          fr.readAsDataURL(blob);
+        });
+      }
+      if (!dataUrl.startsWith("data:image/png")) throw new Error("override não é PNG");
+      const r = await fetch("/__sprite-upload", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, dataUrl, kind: "background" }),
+      });
+      const ct = r.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        this.uploadToast.setText("⚠ só grava no repo em `vite dev`").setColor("#ffaa66");
+        return;
+      }
+      const j = (await r.json()) as { ok: boolean; error?: string; file?: string };
+      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      this.uploadToast
+        .setText(`✓ gravado em ${j.file ?? `assets/${name}.png`} — commite o arquivo`)
+        .setColor("#88ff88");
+    } catch (e) {
+      this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
+    }
   }
 
   private async postFrameFix(mode: "rescale" | "copy-nearest" | "gemini") {
