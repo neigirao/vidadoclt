@@ -13,6 +13,7 @@ import {
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { seedAmbientLore } from "../systems/AmbientLore";
+import { applyCinematicPostFx } from "../systems/PostFx";
 import { loadSettings, ASSIST_DAMAGE_TAKEN_MULT, ASSIST_MIN_LIVES } from "../systems/Settings";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
@@ -295,6 +296,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
+    // Polimento cinematográfico (grade + bloom) na base da pilha de filtros —
+    // ANTES do SanityFx, que adiciona vignette/barrel por sanidade por cima.
+    applyCinematicPostFx(this);
   }
 
   /** Parry "Reclamar": congela o inimigo mais próximo + burst dourado. */
