@@ -414,11 +414,23 @@ export class MenuScene extends Phaser.Scene {
   private confirm() {
     const item = this.MENU_ITEMS[this.selectedIndex];
     if (item.label === "JOGAR" || item.label === "QUINTA-FEIRA") {
+      const run = getRun(this);
       // Quinta-feira = New Game+: liga o modificador na run atual antes de começar.
-      getRun(this).ngPlus = item.label === "QUINTA-FEIRA";
+      run.ngPlus = item.label === "QUINTA-FEIRA";
       this.cameras.main.fadeOut(300, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
-        this.scene.start("ClassSelectScene");
+        // 1ª run FIXA (onboarding): sem tela de Classe/Cultura — começa direto na
+        // Fase 1 com o Analista (default equilibrado) e Cultura neutra. Evita o
+        // "paralysis by analysis" do novato. A escolha de Classe/Cultura destrava
+        // a partir da 2ª run (loopCount > 0). A Cultura já era pulada na 1ª run no
+        // ClassSelect; aqui pulamos a tela de Classe também.
+        if (run.loopCount === 0 && item.label === "JOGAR") {
+          run.characterClass = "analista";
+          run.culturas = ["padrao_clt"];
+          this.scene.start("OpenSpaceV2Scene");
+        } else {
+          this.scene.start("ClassSelectScene");
+        }
       });
     } else if (item.label === "HORA EXTRA") {
       this.cameras.main.fadeOut(200, 0, 0, 0);
