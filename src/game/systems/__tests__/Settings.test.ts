@@ -1,5 +1,11 @@
 import { describe, it, expect } from "bun:test";
-import { DEFAULT_SETTINGS, loadSettings, saveSettings, toggleReduceSanityFx } from "../Settings";
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  saveSettings,
+  toggleReduceSanityFx,
+  toggleAssistMode,
+} from "../Settings";
 
 // localStorage fake mínimo para o ambiente bun:test (sem browser).
 const store = new Map<string, string>();
@@ -31,6 +37,15 @@ describe("Settings", () => {
     expect(loadSettings().reduceSanityFx).toBe(true);
     expect(toggleReduceSanityFx()).toBe(false);
     expect(loadSettings().reduceSanityFx).toBe(false);
+  });
+
+  it("assistMode default é false e o toggle alterna/persiste", () => {
+    store.clear();
+    expect(DEFAULT_SETTINGS.assistMode).toBe(false);
+    expect(toggleAssistMode()).toBe(true);
+    expect(loadSettings().assistMode).toBe(true);
+    expect(toggleAssistMode()).toBe(false);
+    expect(loadSettings().assistMode).toBe(false);
   });
 
   it("JSON corrompido não quebra (volta ao default)", () => {

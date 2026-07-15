@@ -19,6 +19,12 @@ export interface Settings {
   sfxVolume: number;
   /** Mudo total (música + SFX). */
   muted: boolean;
+  /**
+   * Modo assistido (acessibilidade / onboarding): reduz o dano recebido e dá uma
+   * vida de segurança por fase. NÃO estigmatizado na UI — é opção, não "fácil".
+   * Diferente de reduceSanityFx (visual): este MEXE no gameplay de propósito.
+   */
+  assistMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   musicVolume: 1,
   sfxVolume: 1,
   muted: false,
+  assistMode: false,
 };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -73,3 +80,15 @@ export function toggleReduceSanityFx(): boolean {
   saveSettings(s);
   return s.reduceSanityFx;
 }
+
+/** Alterna o modo assistido, persiste e devolve o novo valor. */
+export function toggleAssistMode(): boolean {
+  const s = loadSettings();
+  s.assistMode = !s.assistMode;
+  saveSettings(s);
+  return s.assistMode;
+}
+
+// Parâmetros do modo assistido (fonte única — reusados pelo buildPlayer e testes).
+export const ASSIST_DAMAGE_TAKEN_MULT = 0.7; // recebe 30% menos dano
+export const ASSIST_MIN_LIVES = 1; // piso de vidas por fase (rede de segurança)

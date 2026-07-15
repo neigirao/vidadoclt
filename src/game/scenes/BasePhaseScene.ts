@@ -13,6 +13,7 @@ import {
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { seedAmbientLore } from "../systems/AmbientLore";
+import { loadSettings, ASSIST_DAMAGE_TAKEN_MULT, ASSIST_MIN_LIVES } from "../systems/Settings";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { menaceEnrageThreshold } from "../systems/Menace";
@@ -197,6 +198,15 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         this.time.delayedCall(600, () =>
           TutorialPrompts.maybeShow(this, `sig-${run.characterClass}`, line),
         );
+    }
+
+    // Modo assistido (acessibilidade/onboarding, opt-in nas Configurações): recebe
+    // 30% menos dano e ganha uma vida de segurança que se renova a cada fase. Sem
+    // estigma — só destrava quem quer atravessar a curva. Aplicado por último p/
+    // multiplicar sobre tudo (uma vez por build).
+    if (loadSettings().assistMode) {
+      this.player.damageReductionMult *= ASSIST_DAMAGE_TAKEN_MULT;
+      run.extraLives = Math.max(run.extraLives ?? 0, ASSIST_MIN_LIVES);
     }
 
     // Sinergias perk×perk — ANTES ficava só na Fase 1 (OpenSpaceV2), então
