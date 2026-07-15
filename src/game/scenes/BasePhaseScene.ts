@@ -560,8 +560,16 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     for (const def of this.enemyGroups) {
       if (!def.aerial) {
         this.physics.add.overlap(this.player, def.group, (_p, eObj) => {
-          if (this.player.isInvulnerable(this.time.now)) return;
           const e = eObj as GameEnemy;
+          const now = this.time.now;
+          // Dash OFENSIVO: atravessar um inimigo durante o dash o fere (1×/dash),
+          // se o perk de dash-dano estiver ativo. Só então; senão o dash segue
+          // como esquiva pura (i-frames). Resolvido ANTES do dano de contato.
+          if (this.player.isDashing(now) && this.player.dashDamage > 0) {
+            this.dashThroughEnemy(e, def.vrDrop);
+            return;
+          }
+          if (this.player.isInvulnerable(now)) return;
           this.player.takeDamage(e.contactDamage ?? 8, 4, e.x);
         });
       }
@@ -1341,6 +1349,30 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       body.setVelocity(Phaser.Math.Between(-120, 120), Phaser.Math.Between(-260, -160));
       body.setBounce(0.4);
       body.setDrag(120, 0);
+    }
+  }
+
+  /**
+   * Dash OFENSIVO: fere um inimigo atravessado durante o dash. Dedup por dashId
+   * (1 hit por inimigo por dash). Ativa só com o perk de dash-dano (dashDamage>0).
+   * Espelha o caminho de morte do projétil (VR/sanidade/arma + hooks).
+   */
+  protected dashThroughEnemy(e: GameEnemy, vrDrop: number) {
+    const spr = e as unknown as Phaser.Physics.Arcade.Sprite & {
+      hit?: (d: number, k: number) => boolean;
+    };
+    if (!spr.active || !spr.hit) return;
+    if ((spr.getData("dashHitId") as number) === this.player.dashId) return; // já bateu neste dash
+    spr.setData("dashHitId", this.player.dashId);
+    const dir = this.player.facing || (e.x < this.player.x ? -1 : 1);
+    const died = spr.hit(Math.round(this.player.dashDamage * this.player.damageMult), 4 * dir);
+    ParticleFactory.hitLight(this, e.x, e.y);
+    if (died) {
+      this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
+      this.rollSanityDrop(e.x, e.y);
+      this.rollWeaponDrop(e.x, e.y);
+      spr.destroy();
+      this.onEnemyKilledByProjectile(e);
     }
   }
 
