@@ -35,6 +35,11 @@ const BUCKET = "sprite-overrides";
 const DB_NAME = "vidaclt-sprite";
 const STORE = "overrides";
 const _overrides = new Map<string, string>(); // frame → dataURL
+// Frames cuja textura `ovr:<frame>` foi instalada com SUCESSO (source válido).
+// O resolver e o registro de slot de animação só valem p/ estes — um dataURL
+// que decodifica quebrado (source null) NÃO pode ser usado, senão o render lê
+// `frame.source.resolution` de null e crasha TODO frame.
+const _installed = new Set<string>();
 let _loaded = false;
 
 export function spriteOverrideKey(frame: string): string {
@@ -140,35 +145,60 @@ export async function loadSpriteOverrides(): Promise<void> {
   } catch {
     /* offline / sem bucket — segue só com locais + atlas embutido */
   }
-  // Registra aumentos de contagem p/ os frames NOVOS (multi-frame): o jogo passa
-  // a ciclar os slots extras assim que o BootScene instala os overrides.
-  for (const frame of _overrides.keys()) registerFrameSlot(frame);
+  // NÃO registramos os slots de animação aqui: só depois de a textura instalar com
+  // sucesso (installSpriteOverrides). Registrar um slot cujo override falhou faz o
+  // jogo tentar ciclar até um frame quebrado → crash de render.
 }
 
-// addBase64 é assíncrono (decodifica via Image interno) — resolve quando a textura
-// entra no TextureManager.
-function addTexture(scene: Phaser.Scene, key: string, dataUrl: string): Promise<void> {
+// addBase64 é assíncrono (decodifica via Image interno). Resolve com `true` só se a
+// textura entrou no TextureManager com um source VÁLIDO; `false` se o dataURL era
+// inválido (evento ERROR), se estourou o fail-safe, ou se o source ficou nulo.
+function addTexture(scene: Phaser.Scene, key: string, dataUrl: string): Promise<boolean> {
   return new Promise((resolve) => {
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    const onAdd = (added: string) => {
-      if (added !== key) return;
+    let done = false;
+    const finish = (ok: boolean) => {
+      if (done) return;
+      done = true;
       scene.textures.off(Phaser.Textures.Events.ADD, onAdd);
-      resolve();
+      scene.textures.off(Phaser.Textures.Events.ERROR, onErr);
+      // Valida o source mesmo no caminho de sucesso: um PNG corrompido pode
+      // disparar ADD com source de dimensão zero → null 'resolution' no render.
+      if (ok) {
+        const src = scene.textures.get(key)?.source?.[0] as
+          | { width?: number; height?: number }
+          | undefined;
+        ok = !!src && (src.width ?? 0) > 0 && (src.height ?? 0) > 0;
+      }
+      if (!ok && scene.textures.exists(key)) scene.textures.remove(key);
+      resolve(ok);
     };
+    const onAdd = (added: string) => added === key && finish(true);
+    const onErr = (errored: string) => errored === key && finish(false);
     scene.textures.on(Phaser.Textures.Events.ADD, onAdd);
-    scene.time?.delayedCall?.(4000, () => resolve()); // fail-safe: não trava o boot
+    scene.textures.on(Phaser.Textures.Events.ERROR, onErr);
+    scene.time?.delayedCall?.(4000, () => finish(false)); // fail-safe: não trava o boot
     scene.textures.addBase64(key, dataUrl);
   });
 }
 
 /** Instala os overrides carregados como texturas `ovr:<frame>` e liga o resolver
- *  do resolveSprite. Chamar no BootScene, DEPOIS do atlas carregar. */
+ *  do resolveSprite. Chamar no BootScene, DEPOIS do atlas carregar. Overrides
+ *  inválidos são DESCARTADOS (caem de volta no frame do atlas — nunca crasham). */
 export async function installSpriteOverrides(scene: Phaser.Scene): Promise<void> {
   for (const [frame, dataUrl] of _overrides) {
-    await addTexture(scene, spriteOverrideKey(frame), dataUrl);
+    const ok = await addTexture(scene, spriteOverrideKey(frame), dataUrl);
+    if (ok) {
+      _installed.add(frame);
+      registerFrameSlot(frame); // só cicla o slot extra se a arte instalou de fato
+    } else {
+      _overrides.delete(frame);
+      if (typeof console !== "undefined")
+        console.warn(`[SpriteOverrides] override inválido descartado: ${frame}`);
+    }
   }
   setSpriteOverrideResolver((frame) =>
-    _overrides.has(frame) ? spriteOverrideKey(frame) : undefined,
+    _installed.has(frame) ? spriteOverrideKey(frame) : undefined,
   );
 }
 
@@ -179,12 +209,18 @@ export async function uploadSpriteOverride(
   frame: string,
   dataUrl: string,
 ): Promise<{ local: boolean; cloud: boolean }> {
+  const ok = await addTexture(scene, spriteOverrideKey(frame), dataUrl);
+  if (!ok) {
+    // Arte inválida (não decodificou) — NÃO aplica (evitaria crash de render) e
+    // NÃO persiste no IndexedDB. Deixa o caller tratar (toast de falha).
+    throw new Error("override inválido: a imagem não pôde ser decodificada");
+  }
   await idbSet(frame, dataUrl);
   _overrides.set(frame, dataUrl);
-  await addTexture(scene, spriteOverrideKey(frame), dataUrl);
+  _installed.add(frame);
   registerFrameSlot(frame); // frame novo (multi-frame) → o jogo passa a ciclá-lo
   // re-registra o resolver (limpa o cache do resolveSprite p/ pegar o novo frame).
-  setSpriteOverrideResolver((f) => (_overrides.has(f) ? spriteOverrideKey(f) : undefined));
+  setSpriteOverrideResolver((f) => (_installed.has(f) ? spriteOverrideKey(f) : undefined));
   let cloud = false;
   try {
     const [head, b64] = dataUrl.split(",");

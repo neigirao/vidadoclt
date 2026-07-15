@@ -2276,6 +2276,7 @@ export class SpriteLabScene extends Phaser.Scene {
     this.renderFramesPanel();
     let done = 0,
       fail = 0,
+      consecFails = 0,
       aborted = false;
     const setProg = (msg: string, color = "#f0c9c9") => {
       this.framesGoText?.setText(msg).setColor(color);
@@ -2313,19 +2314,22 @@ export class SpriteLabScene extends Phaser.Scene {
         ]);
         if (r.ok) {
           done++;
+          consecFails = 0;
         } else {
           fail++;
+          consecFails++;
           console.warn(`[FramesBatch] falha em ${targetFrame}: ${r.error}`);
-          // Se a função nem responde (offline/sem deploy/timeout) OU bateu o teto
-          // de gasto/cota (429/quota), aborta — as próximas falham igual; não
-          // adianta martelar 300× (e cada chamada em 429 ainda conta tentativa).
-          if (
-            /indispon|Failed|network|fetch|timeout|invoke|429|cota|quota|limite/i.test(
+          // Aborta o lote quando o servidor está claramente indisponível/limitado
+          // — não adianta martelar dezenas de chamadas (cota, 5xx, rede, timeout).
+          // Duas falhas SEGUIDAS já bastam: erro transitório isolado não derruba o
+          // lote, mas um servidor caído/limitado para na hora.
+          const fatal =
+            /indispon|Failed|network|fetch|timeout|invoke|quota|cota|limite|429|50[0-9]|53[0-9]|service|unavailable|non-2xx/i.test(
               r.error ?? "",
-            )
-          ) {
+            );
+          if (fatal || consecFails >= 2) {
             aborted = true;
-            setProg(`✗ IA parou: ${r.error}`, "#ff6666");
+            setProg(`✗ IA parou (${r.error ?? "erro"}). Tente de novo mais tarde.`, "#ff6666");
             break outer;
           }
         }
