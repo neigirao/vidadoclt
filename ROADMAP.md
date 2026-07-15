@@ -101,13 +101,16 @@ Vindos do uso real do REFAZER COM IA online:
   tem `prefix` próprio.
 - 🟨 **Geração em lote** — adiada (roadmap): hoje 1 frame por clique, com preview
   individual (o gate de qualidade).
-- 🟨 **Multi-frame em objetos e fundos** — bloqueado por design, não por código:
-  objetos (baía/café/monitor) e fundos (`bg-*`) são renderizados **estáticos** no
-  jogo (nada cicla seus frames). Multi-frame só apareceria se eles **animassem** —
-  o que é uma mudança de gameplay/visual (móveis/fundos animados). Decisão a tomar:
-  (a) fazer animar (idle sutil + fundo animado); (b) só objetos animam; (c) manter
-  estáticos e usar o REFAZER (troca de arte única, já com fundo transparente). Para
-  trocar a arte de um objeto/fundo hoje, o caminho é o REFAZER / upload.
+- ✅ **Objetos e fundos ANIMAM (procedural)** — decisão: "fazer animar". Descoberta:
+  objetos usam variantes de estado semânticas (não ciclos numerados) e fundos são
+  imagens **full-res soltas** (não frames de atlas) — frame-a-frame por IA seria
+  pesado/propenso a flicker. Implementado com **animação procedural** (sem gerar
+  frames): `addPhaseDecor` dá um balanço/respiração idle sutil aos props; e
+  `addPhaseBackground` dá um "respiro" de luz + micro-zoom muito lentos ao fundo.
+  Ambos respeitam `reduceSanityFx` (acessibilidade). Verificado headless (tint do
+  fundo variando, tweens ativos na Phase2). Aberto: se quiser frames de IA de
+  verdade nos objetos (ciclo numerado `obj-<nome>-idleN` + gerador no LAB), é um
+  subsistema à parte — dá pra fazer sob demanda.
 
 ---
 
