@@ -559,7 +559,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.physics.add.overlap(this.player, this.postits, (_p, pObj) => {
       const p = pObj as PostIt;
       if (!p.active || this.player.isInvulnerable(this.time.now)) return;
-      this.player.sanity = Math.max(0, this.player.sanity - p.sanityDamage);
+      this.player.drainSanity(p.sanityDamage, "post-it na cara");
       p.setActive(false).setVisible(false);
       (p.body as Phaser.Physics.Arcade.Body).enable = false;
     });
