@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
-import { getRun, resetRun, savePersisted } from "../systems/PlayerState";
+import { getRun, resetRun, savePersisted, getRecordVr, bumpRecordVr } from "../systems/PlayerState";
+import { runKills } from "../systems/BestiarySystem";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
 import { submitScore, phaseLabel } from "../systems/Ranking";
 import { Sfx } from "../systems/AudioSystem";
@@ -13,11 +14,23 @@ export class GameOverScene extends Phaser.Scene {
     super("GameOverScene");
   }
 
-  create(data: { vr?: number; cause?: "burnout" | "energy"; reachedScene?: string }) {
+  create(data: {
+    vr?: number;
+    cause?: "burnout" | "energy";
+    reachedScene?: string;
+    sanity?: number;
+  }) {
     const vr = data?.vr ?? 0;
     const cause = data?.cause ?? "energy";
     const reachedScene = data?.reachedScene ?? "OpenSpaceV2Scene";
     const earned = Math.floor(vr * 0.25);
+    // Death recap (Sprint 1 — percepção): kills desta run, sanidade final e recorde
+    // de VR. runKills() é o total da run (zera no resetRun); o recorde persiste.
+    const kills = runKills();
+    const sanityFinal = data?.sanity ?? 0;
+    const prevRecord = getRecordVr();
+    const brokeRecord = bumpRecordVr(vr);
+    const recordVr = Math.max(prevRecord, vr);
     // A cena da morte já é a "cena atual" fixada pelo phaseEnter da fase. Não
     // sobrescrever com reachedScene (que os call sites não passam).
     Telemetry.death(cause, vr);
@@ -127,7 +140,7 @@ export class GameOverScene extends Phaser.Scene {
     const msgs = NARRATORS[cause];
     const narratorMsg = msgs[run.loopCount % msgs.length];
     this.add
-      .text(GAME_WIDTH / 2, 258, narratorMsg, {
+      .text(GAME_WIDTH / 2, 250, narratorMsg, {
         fontFamily: "monospace",
         fontSize: "12px",
         color: "#555555",
@@ -140,9 +153,10 @@ export class GameOverScene extends Phaser.Scene {
     this.add
       .text(
         GAME_WIDTH / 2,
-        300,
+        306,
         [
-          `VR coletado:          ${vr}`,
+          `VR coletado:          ${vr}${brokeRecord ? "   ⭐ NOVO RECORDE!" : `   (recorde ${recordVr})`}`,
+          `Inimigos vencidos:  ${kills}${sanityFinal > 0 ? `   •   Sanidade final: ${sanityFinal}` : ""}`,
           `Reconhecimento:   +${earned}  (total ${run.reconhecimento})`,
           `FGTS acumulado:    ${run.fgts} pts   •   Loop #${run.loopCount}`,
         ].join("\n"),
@@ -157,7 +171,7 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // ── Build summary — a "história" desta run (perks + culturas + sinergias) ──
-    this.drawBuildSummary(run, 342);
+    this.drawBuildSummary(run, 344);
 
     // FGTS sacar option (only when there's enough)
     if (run.fgts >= 10) {

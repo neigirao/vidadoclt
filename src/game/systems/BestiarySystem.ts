@@ -55,7 +55,20 @@ function counts(): Record<string, number> {
   return _counts;
 }
 
+// Contador de kills da RUN atual (volátil, não persiste). markKilled é o caminho
+// comum de TODA morte de inimigo/boss, então é o lugar certo p/ contar. Reiniciado
+// por resetRunKills() no começo de cada run (PlayerState.resetRun). Consumido pelo
+// death recap da Rescisão.
+let _runKills = 0;
+export function runKills(): number {
+  return _runKills;
+}
+export function resetRunKills(): void {
+  _runKills = 0;
+}
+
 export function markKilled(id: EnemyId): void {
+  _runKills++;
   const s = cache();
   if (!s.has(id)) {
     s.add(id);

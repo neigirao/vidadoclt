@@ -193,7 +193,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         return;
       }
       this.persist();
-      this.scene.start("GameOverScene", { vr: this.player.vr, cause });
+      this.scene.start("GameOverScene", {
+        vr: this.player.vr,
+        cause,
+        sanity: Math.max(0, Math.round(this.player.sanity)),
+      });
     };
 
     // Combate canônico (MeleeCombat): janela ativa com dedup por swingId —

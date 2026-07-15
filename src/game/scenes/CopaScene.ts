@@ -175,7 +175,11 @@ export class CopaScene extends Phaser.Scene {
 
     this.player.onDeath = (cause) => {
       this.persist();
-      this.scene.start("GameOverScene", { vr: this.player.vr, cause });
+      this.scene.start("GameOverScene", {
+        vr: this.player.vr,
+        cause,
+        sanity: Math.max(0, Math.round(this.player.sanity)),
+      });
     };
     // Janela ativa do golpe re-dispara onAttack por frame; sem dedup aqui,
     // processa só o 1º frame (evita slash/SFX 8x por golpe).

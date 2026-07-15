@@ -2,11 +2,13 @@ import Phaser from "phaser";
 import { PerkId } from "./PerkSystem";
 import { WeaponId } from "./WeaponSystem";
 import { generateSeed } from "./RNG";
+import { resetRunKills } from "./BestiarySystem";
 import type { CulturaId } from "./CulturaSystem";
 
 const LS_RECNH = "vidadoclt_recnh";
 const LS_FGTS = "vidadoclt_fgts";
 const LS_LOOPS = "vidadoclt_loops";
+const LS_RECORD_VR = "vidadoclt_record_vr";
 
 export type RunState = {
   energy: number;
@@ -87,6 +89,19 @@ export function savePersisted(reconhecimento: number, fgts: number, loopCount: n
   lsSet(LS_LOOPS, loopCount);
 }
 
+/** Recorde de VR coletado numa única run (persistido). Mostrado no death recap. */
+export function getRecordVr(): number {
+  return lsGet(LS_RECORD_VR);
+}
+/** Atualiza o recorde se `vr` for maior; retorna true se bateu recorde. */
+export function bumpRecordVr(vr: number): boolean {
+  if (vr > getRecordVr()) {
+    lsSet(LS_RECORD_VR, vr);
+    return true;
+  }
+  return false;
+}
+
 const LS_NGPLUS = "vidaclt:ngPlusUnlocked";
 
 /** Marca o New Game+ "Quinta-feira" como desbloqueado (após a 1ª vitória). */
@@ -144,6 +159,7 @@ export function resetRun(scene: Phaser.Scene): RunState {
     shopPerks: undefined,
   };
   scene.registry.set("run", fresh);
+  resetRunKills(); // zera o contador de kills da run (death recap)
   return fresh;
 }
 

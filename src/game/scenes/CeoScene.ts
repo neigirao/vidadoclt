@@ -119,7 +119,11 @@ export class CeoScene extends Phaser.Scene {
         return;
       }
       this.persist();
-      this.scene.start("GameOverScene", { vr: this.player.vr, cause });
+      this.scene.start("GameOverScene", {
+        vr: this.player.vr,
+        cause,
+        sanity: Math.max(0, Math.round(this.player.sanity)),
+      });
     };
 
     // Combate canônico com janela ativa + dedup por swingId (MeleeCombat).
