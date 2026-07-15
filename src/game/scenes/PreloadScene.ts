@@ -7,7 +7,7 @@ import {
   applyBackgroundFilters,
 } from "../systems/TextureFactory";
 import { initSpriteLibrary } from "../systems/SpriteLibrary";
-import { loadBgManifest } from "../systems/BgOverrides";
+import { loadBgManifest, bgUrl } from "../systems/BgOverrides";
 
 // ─── Palette (AMI BIOS style) ────────────────────────────────────────────────
 const C_BG = 0x000000; // black background
@@ -34,8 +34,8 @@ export class PreloadScene extends Phaser.Scene {
   // ─── Asset loading ────────────────────────────────────────────────────────
   preload() {
     // Only what's needed before the menu — gameplay backgrounds load per-scene
-    this.load.image("bg-menu", "/assets/bg-menu.png");
-    this.load.image("bg-openspace", "/assets/bg-openspace.png");
+    this.load.image("bg-menu", bgUrl("bg-menu"));
+    this.load.image("bg-openspace", bgUrl("bg-openspace"));
     this.load.image("tex-floor", "/assets/sprites/tile-floor.png");
     this.load.image("tex-vr", "/assets/sprites/item-vr-coin.png");
     this.load.image("tex-inkproj", "/assets/sprites/item-inkproj.png");

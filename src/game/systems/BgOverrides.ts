@@ -78,10 +78,15 @@ async function idbSet(key: string, dataUrl: string): Promise<void> {
   });
 }
 
+// Fundos pintados grandes convertidos p/ WebP (−94% de peso no boot). Os skylines
+// chapados das Fases 2–5 seguem em PNG (já são pequenos, 32–44KB). Extension-aware
+// aqui num set p/ os phase loaders e o LAB pegarem o arquivo certo via bgUrl.
+const WEBP_BGS = new Set(["bg-menu", "bg-openspace", "bg-atendimento"]);
+
 // ── API ─────────────────────────────────────────────────────────────────────
 /** URL/dataURL a usar p/ um fundo: override (local ou nuvem) senão asset embutido. */
 export function bgUrl(key: string): string {
-  return _overrides.get(key) ?? `/assets/${key}.png`;
+  return _overrides.get(key) ?? `/assets/${key}.${WEBP_BGS.has(key) ? "webp" : "png"}`;
 }
 
 /** Há override (local ou nuvem) p/ este fundo? */
