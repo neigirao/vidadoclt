@@ -1023,18 +1023,25 @@ export class SpriteLabScene extends Phaser.Scene {
   private extendSubjectForNewFrame(frame: string): void {
     const m = /^enemy-(.+)-(walk|idle|attack)(\d+)$/.exec(frame);
     if (!m) return;
-    const subj = SUBJECTS[this.subjIdx];
-    const list = subj.states[m[2]];
-    if (!list) return;
-    // Confirma que o estado pertence a este prefixo (o sujeito tem prefix próprio,
-    // ou suas chaves referenciam o prefixo — caso dos inimigos de Fase 2–5).
-    const logical = `tex-${m[1]}-${m[2]}${m[3]}`;
-    const belongs =
-      subj.prefix === m[1] || list.some((k) => k.includes(`-${m[1]}-`) || k.startsWith(`${m[1]}-`));
-    if (!belongs) return;
-    // Respeita a convenção de chave dos irmãos (uns usam `tex-*`, outros `enemy-*`).
-    const key = list[0]?.startsWith("enemy-") ? frame : logical;
-    if (!list.includes(key) && !list.includes(logical) && !list.includes(frame)) list.push(key);
+    const [, prefix, state] = m;
+    const logical = `tex-${prefix}-${state}${m[3]}`;
+    // Acha o sujeito DONO pelo prefixo do frame — NÃO usar o selecionado
+    // (this.subjIdx): o LOTE gera p/ vários sujeitos e antes só o selecionado
+    // ganhava o slot novo → os demais "não refletiam" na lista do LAB.
+    for (const subj of SUBJECTS) {
+      const list = subj.states[state];
+      if (!list) continue;
+      // O sujeito tem prefix próprio, ou suas chaves referenciam o prefixo
+      // (caso dos inimigos de Fase 2–5, que usam chaves `enemy-<prefixo>-*`).
+      const belongs =
+        subj.prefix === prefix ||
+        list.some((k) => k.includes(`-${prefix}-`) || k.startsWith(`${prefix}-`));
+      if (!belongs) continue;
+      // Respeita a convenção de chave dos irmãos (uns usam `tex-*`, outros `enemy-*`).
+      const key = list[0]?.startsWith("enemy-") ? frame : logical;
+      if (!list.includes(key) && !list.includes(logical) && !list.includes(frame)) list.push(key);
+      return; // achou o dono — pronto
+    }
   }
 
   private async approveGemini(frame: string) {
