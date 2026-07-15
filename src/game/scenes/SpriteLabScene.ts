@@ -597,7 +597,7 @@ export class SpriteLabScene extends Phaser.Scene {
         .map((f, i) => ({ f, i }))
         .filter(({ f, i }) => i !== this.frameIdx && f.ok && !!f.frame)
         .sort((a, b) => Math.abs(a.i - this.frameIdx) - Math.abs(b.i - this.frameIdx));
-      this.geminiCandRefs = cands.map(({ f }, k) => ({ frame: f.frame as string, sel: k < 3 }));
+      this.geminiCandRefs = cands.map(({ f }, k) => ({ frame: f.frame as string, sel: k < 6 }));
       this.geminiHint = "";
       await this.runGemini();
       return;
@@ -710,7 +710,7 @@ export class SpriteLabScene extends Phaser.Scene {
     }
     this.geminiSeedFrame = seed.frame;
     this.geminiTarget = { frame: `enemy-${gap.prefix}-${gap.state}${gap.next}`, tex: ATLAS_KEY };
-    this.geminiCandRefs = sibs.map((f, k) => ({ frame: f.frame as string, sel: k < 3 }));
+    this.geminiCandRefs = sibs.map((f, k) => ({ frame: f.frame as string, sel: k < 6 }));
     this.geminiHint = `frame ${gap.next} de ${gap.state}: pose intermediária coerente com os vizinhos (completando ${gap.next}→${TARGET_FRAMES[gap.state]})`;
     this.uploadToast
       .setText(`🎞 gerando ${gap.state} #${gap.next} (faltam ${gap.missing})…`)

@@ -59,7 +59,9 @@ Deno.serve(async (req: Request) => {
       },
       { inline_data: { mime_type: "image/png", data: frameB64 } },
     ];
-    for (const r of refs.slice(0, 3))
+    // Até 6 vizinhos de referência (era 3): famílias grandes (16 frames) ganham
+    // mais contexto de estilo/pose sem estourar o payload do modelo.
+    for (const r of refs.slice(0, 6))
       parts.push({ inline_data: { mime_type: "image/png", data: r } });
 
     const ctrl = new AbortController();
