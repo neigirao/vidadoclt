@@ -744,6 +744,8 @@ export class SpriteLabScene extends Phaser.Scene {
       });
       const res = (data ?? {}) as { ok?: boolean; error?: string; imageB64?: string };
       if (error || !res.ok || !res.imageB64) {
+        // Loga o erro CRU no console (antes só ia pro toast do jogo → console vazio).
+        console.error("[frame-refazer] falha:", { error, data });
         throw new Error(res.error ?? error?.message ?? "Edge Function frame-refazer indisponível");
       }
       // Guardrails de pixel-art no CLIENTE (canvas): dimensão exata, halos limpos,
@@ -2213,6 +2215,7 @@ export class SpriteLabScene extends Phaser.Scene {
       });
       const res = (data ?? {}) as { ok?: boolean; error?: string; imageB64?: string };
       if (error || !res.ok || !res.imageB64) {
+        console.error("[frame-refazer] falha (lote):", { targetFrame, error, data });
         return { ok: false, error: res.error ?? error?.message ?? "Edge Function indisponível" };
       }
       const { dataUrl } = await this.applyGuardrails(
