@@ -732,6 +732,7 @@ export class CeoScene extends Phaser.Scene {
       startTime: this.startTimeMs,
       playerX: this.player.x,
       dashCooldown: this.player.getDashCooldownRatio(time),
+      specialCooldown: this.player.specialChargeRatio(time),
       burnoutMods: this.player.getBurnoutMods(),
       tremoring: this.player.isTremoring(time),
       tremorWarnMs: this.player.getTremorWarnMs(time),
