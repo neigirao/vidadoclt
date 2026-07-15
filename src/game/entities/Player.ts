@@ -406,9 +406,42 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return false;
   }
 
-  drainSanity(amount: number) {
+  /** Reduz a Sanidade. Passe `reason` (motivo temático) p/ mostrar a micro-legenda
+   *  flutuante "−N Sanidade · <motivo>" — só nos drenos DISCRETOS (evento/projétil),
+   *  nunca no dreno passivo do expediente (que spam-aria a cada tick). */
+  drainSanity(amount: number, reason?: string) {
+    const before = this.sanity;
     this.sanity = Math.max(this.sanityFloor, this.sanity - amount);
+    const lost = Math.round(before - this.sanity);
+    if (reason && lost > 0) this.showSanityLossLegend(lost, reason);
     if (this.sanity <= 0) this.onDeath?.("burnout");
+  }
+
+  private lastSanityLegendAt = 0;
+  /** Micro-legenda flutuante do porquê a Sanidade caiu (UX: "por que perdi?"). */
+  private showSanityLossLegend(lost: number, reason: string) {
+    const now = this.scene.time.now;
+    if (now - this.lastSanityLegendAt < 400) return; // anti-spam (overlap multi-frame)
+    this.lastSanityLegendAt = now;
+    const t = this.scene.add
+      .text(this.x, this.y - 52, `−${lost} Sanidade · ${reason}`, {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        fontStyle: "bold",
+        color: "#d98cc0", // roxo-sanidade (distingue do dourado do VR e do ciano do café)
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(500);
+    this.scene.tweens.add({
+      targets: t,
+      y: t.y - 24,
+      alpha: 0,
+      duration: 1100,
+      ease: "Sine.easeOut",
+      onComplete: () => t.destroy(),
+    });
   }
 
   addVR(n: number) {

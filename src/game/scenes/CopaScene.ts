@@ -788,7 +788,7 @@ export class CopaScene extends Phaser.Scene {
         )
       ) {
         this.lastHazardAt = time;
-        this.player.sanity = Math.max(0, this.player.sanity - 5);
+        this.player.drainSanity(5, "peixe no micro-ondas");
       }
     }
 
