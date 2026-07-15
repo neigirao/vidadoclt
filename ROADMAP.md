@@ -182,8 +182,14 @@ Passada por todas as áreas. Sequência sugerida em 5 sprints.
 17. Meta-loja projeta impacto ("sua próxima run começa com X").
 15. Especial/Dash ofensivos (dash cancela recovery; especial ganha variante aérea).
 
-Problemas de fundo transversais (severidade GD): classes não se _sentem_ diferentes no
-1º minuto (arma-assinatura + habilidade única, não só stats); especial/parry/dash
+✅ **Classes se sentem diferentes no 1º minuto** — cada classe ganhou uma ASSINATURA
+(forma de jogo, não só stat), sentida já na primeira luta: Estagiário = dash quase 2×
+mais frequente (kiter intocável); Analista = combo de 4 golpes (brawler); Terceirizado
+= blindagem −15% dano recebido (juggernaut). Legendado 1× na Fase 1 + descrições/traits
+da tela de seleção reescritas. Reusa campos já consumidos (`dashCooldownBonus`/
+`comboHits`/`damageReductionMult`), sem mecânica nova.
+
+Problemas de fundo transversais (severidade GD): especial/parry/dash
 sub-utilizados; Fases 2–3 mais magras que a 1; nenhum inimigo pede verticalidade;
 paralysis-by-analysis no 1º build; HUD não conta a história do build; nenhum NPC
 lembra do loop (referência Hades); CEO chega sem buildup; sem modo fácil/assistido;

@@ -171,6 +171,34 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     if (run.route2 === "produto") this.player.damageMult *= 1.15;
     else if (run.route2 === "tecnologia") this.player.dashCooldownBonus += 250;
 
+    // ── Assinatura de CLASSE — uma FORMA de jogar (não só stat), sentida já no 1º
+    // minuto. Reforça a identidade de cada classe além dos números:
+    //   • Estagiário  → dash quase 2× mais frequente (kiter intocável, hit-and-run).
+    //   • Terceirizado→ blindagem: -15% de dano recebido (aguenta o tranco e martela).
+    //   • Analista    → +1 golpe no combo (brawler) — aplicado em applyWeaponStats,
+    //     pois comboHits reseta a cada troca de arma.
+    if (run.characterClass === "estagiario") this.player.dashCooldownBonus += 450;
+    else if (run.characterClass === "terceirizado") this.player.damageReductionMult *= 0.85;
+    // Analista: combo de 4 no build inicial (applyClassAndWeapon setou 3). Em trocas
+    // de arma, applyWeaponStats reaplica (comboHits reseta lá).
+    else if (run.characterClass === "analista" && this.player.comboHits === 3) {
+      this.player.comboHits = 4;
+    }
+
+    // Legenda a assinatura 1× (só na Fase 1) — pro jogador PERCEBER a forma.
+    if (this.scene.key === "OpenSpaceV2Scene") {
+      const sig: Record<string, string> = {
+        estagiario: "ESTAGIÁRIO: seu dash recarrega quase 2× mais rápido — dança pela horda.",
+        terceirizado: "TERCEIRIZADO: blindagem de crachá — você aguenta o tranco e revida.",
+        analista: "ANALISTA: combo mais longo (4 golpes) — encadeie o corpo-a-corpo.",
+      };
+      const line = sig[run.characterClass ?? ""];
+      if (line)
+        this.time.delayedCall(600, () =>
+          TutorialPrompts.maybeShow(this, `sig-${run.characterClass}`, line),
+        );
+    }
+
     // Sinergias perk×perk — ANTES ficava só na Fase 1 (OpenSpaceV2), então
     // sumiam da Fase 2 em diante. Agora aplicam em TODAS as fases (player é
     // recriado a cada cena, então roda 1× sobre stats limpos — sem acúmulo).
@@ -1340,6 +1368,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.player.isRangedPrimary = w.type === "ranged";
     this.player.comboHits = w.type === "melee" && w.hitDamages[2] === 0 ? 2 : 3;
     if ((getRun(this).upgComboHitsBonus ?? 0) >= 1) this.player.comboHits = 4;
+    // Assinatura de classe (brawler): o Analista encadeia combos mais longos.
+    // Reaplicada aqui (não no buildPlayer) porque comboHits reseta a cada troca de
+    // arma. Só sobe p/ 4 em arma de 3 golpes (não força num coldre de 2).
+    if (getRun(this).characterClass === "analista" && this.player.comboHits === 3) {
+      this.player.comboHits = 4;
+    }
     this.player.attackIntervalMs = Math.round(220 / (w.attackSpeedMult ?? 1));
     this.hud?.setWeapon(`${WEAPON_ICONS[weaponId]} ${w.name}`);
     this.hud?.setSpecial(w.specialName);
