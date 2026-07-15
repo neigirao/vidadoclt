@@ -159,7 +159,11 @@ export class SalaBonusScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
     this.player.onDeath = (cause) => {
       this.persist();
-      this.scene.start("GameOverScene", { vr: this.player.vr, cause });
+      this.scene.start("GameOverScene", {
+        vr: this.player.vr,
+        cause,
+        sanity: Math.max(0, Math.round(this.player.sanity)),
+      });
     };
 
     this.drops = this.physics.add.group();
