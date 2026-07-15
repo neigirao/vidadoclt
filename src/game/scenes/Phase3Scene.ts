@@ -1,6 +1,6 @@
 import { bgUrl } from "../systems/BgOverrides";
 import Phaser from "phaser";
-import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
+import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH, type PhaseEventDef } from "./BasePhaseScene";
 import { BossPresence } from "../systems/BossPresence";
 import { getRun } from "../systems/PlayerState";
 import { AnalistaSeniorExausto } from "../entities/Enemies";
@@ -102,6 +102,42 @@ export class Phase3Scene extends BasePhaseScene {
 
   protected getBossName() {
     return "Brenda do RH";
+  }
+
+  // Eventos de sala próprios da Fase 3 (comercial) — pressão de meta e recompensa.
+  protected getPhaseEvents(): PhaseEventDef[] {
+    return [
+      {
+        id: "pressao-meta",
+        name: "PRESSÃO POR META",
+        desc: "VR começa alto e DESPENCA em ~35s — feche a fase rápido.",
+        tip: "Corra: cada segundo parado vale menos VR por kill.",
+        color: "#ff5566",
+        apply: () => {
+          this.phaseEventVrMult = 1.8;
+          this.tweens.addCounter({
+            from: 1.8,
+            to: 1.0,
+            duration: 35000,
+            ease: "Linear",
+            onUpdate: (tw) => {
+              this.phaseEventVrMult = tw.getValue() ?? 1;
+            },
+          });
+        },
+      },
+      {
+        id: "sextou-comercial",
+        name: "SEXTOU NO COMERCIAL",
+        desc: "Meta batida cedo — +25% velocidade e dash mais rápido.",
+        tip: "Abuse do dash pra encadear kills e sair ileso.",
+        color: "#ffdd44",
+        apply: () => {
+          this.player.walkSpeed *= 1.25;
+          this.player.dashCooldownBonus += 250;
+        },
+      },
+    ];
   }
 
   protected setupEnemiesAndGroups() {

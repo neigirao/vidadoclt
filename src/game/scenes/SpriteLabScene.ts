@@ -253,6 +253,8 @@ export class SpriteLabScene extends Phaser.Scene {
   private framesOverlay?: Phaser.GameObjects.Container;
   private framesTarget = 4; // piso combinado; botão sobe p/ 16 (ciclo premium)
   private framesBusy = false;
+  private framesCancel = false;
+  private framesGoText?: Phaser.GameObjects.Text; // atualizado ao vivo com o progresso
 
   private readonly SCALE = 4;
   private readonly CX = 350;
@@ -333,6 +335,7 @@ export class SpriteLabScene extends Phaser.Scene {
       // ESC fecha primeiro os overlays abertos; só sai do LAB se não houver nenhum.
       if (this.geminiPreview) return this.clearGeminiPreview();
       if (this.auditOverlay) return this.closeAuditQueue();
+      if (this.framesBusy) return void (this.framesCancel = true); // ESC durante o lote = cancela
       if (this.framesOverlay) return this.toggleFramesPanel();
       this.scene.start("MenuScene");
     });
@@ -741,6 +744,8 @@ export class SpriteLabScene extends Phaser.Scene {
       });
       const res = (data ?? {}) as { ok?: boolean; error?: string; imageB64?: string };
       if (error || !res.ok || !res.imageB64) {
+        // Loga o erro CRU no console (antes só ia pro toast do jogo → console vazio).
+        console.error("[frame-refazer] falha:", { error, data });
         throw new Error(res.error ?? error?.message ?? "Edge Function frame-refazer indisponível");
       }
       // Guardrails de pixel-art no CLIENTE (canvas): dimensão exata, halos limpos,
@@ -2152,21 +2157,40 @@ export class SpriteLabScene extends Phaser.Scene {
     const by = H / 2 + panelH / 2 - 20;
     const has = gaps.length > 0 && !this.framesBusy;
     const goBg = this.add
-      .rectangle(W / 2, by, 420, 26, has ? 0x243a2c : 0x24242a)
-      .setStrokeStyle(2, has ? 0x66dd99 : 0x444)
-      .setInteractive({ useHandCursor: has });
+      .rectangle(W / 2, by, 420, 26, this.framesBusy ? 0x3a2424 : has ? 0x243a2c : 0x24242a)
+      .setStrokeStyle(2, this.framesBusy ? 0xdd6666 : has ? 0x66dd99 : 0x444)
+      .setInteractive({ useHandCursor: this.framesBusy || has });
     const goTx = this.add
       .text(
         W / 2,
         by,
         this.framesBusy
-          ? "⏳ gerando… (não feche)"
-          : `🤖 COMPLETAR TODOS c/ IA (${totalMissing} frames)`,
-        { fontFamily: "monospace", fontSize: "11px", color: has ? "#c9f0d6" : "#6a6a72" },
+          ? "⏳ gerando… (clique/ESC = CANCELAR)"
+          : `🤖 COMPLETAR TODOS c/ IA (${totalMissing} frames${totalMissing > 60 ? " — LENTO!" : ""})`,
+        {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: this.framesBusy ? "#f0c9c9" : has ? "#c9f0d6" : "#6a6a72",
+        },
       )
       .setOrigin(0.5);
-    if (has) goBg.on("pointerdown", () => void this.batchCompleteFrames(this.framesTarget));
+    this.framesGoText = goTx;
+    if (this.framesBusy) goBg.on("pointerdown", () => (this.framesCancel = true));
+    else if (has) goBg.on("pointerdown", () => void this.batchCompleteFrames(this.framesTarget));
     box.add([goBg, goTx]);
+    // Aviso de escala quando o lote é grande (ex.: alvo 16 = centenas de frames).
+    if (!this.framesBusy && totalMissing > 60) {
+      box.add(
+        this.add
+          .text(
+            W / 2,
+            by - 20,
+            `⚠ ${totalMissing} frames = uma chamada de IA cada (minutos). Comece com ALVO 4.`,
+            { fontFamily: "monospace", fontSize: "9px", color: "#ffcc66" },
+          )
+          .setOrigin(0.5),
+      );
+    }
   }
 
   // Gera 1 frame por IA (Edge Function) e aplica como override — SEM modal (uso em
@@ -2191,6 +2215,7 @@ export class SpriteLabScene extends Phaser.Scene {
       });
       const res = (data ?? {}) as { ok?: boolean; error?: string; imageB64?: string };
       if (error || !res.ok || !res.imageB64) {
+        console.error("[frame-refazer] falha (lote):", { targetFrame, error, data });
         return { ok: false, error: res.error ?? error?.message ?? "Edge Function indisponível" };
       }
       const { dataUrl } = await this.applyGuardrails(
@@ -2212,11 +2237,17 @@ export class SpriteLabScene extends Phaser.Scene {
     if (this.framesBusy) return;
     const gaps = this.frameGaps(target);
     if (!gaps.length) return;
+    const totalToGen = gaps.reduce((a, g) => a + (target - g.current), 0);
     this.framesBusy = true;
+    this.framesCancel = false;
     this.renderFramesPanel();
     let done = 0,
       fail = 0,
       aborted = false;
+    const setProg = (msg: string, color = "#f0c9c9") => {
+      this.framesGoText?.setText(msg).setColor(color);
+      this.uploadToast.setText(msg).setColor(color);
+    };
     outer: for (const g of gaps) {
       const keys = SUBJECTS[g.subjIdx].states[g.state];
       const sibs = keys.map((k) => this.getInfo(k)).filter((f) => f.ok && !!f.frame);
@@ -2224,11 +2255,16 @@ export class SpriteLabScene extends Phaser.Scene {
       const seed = sibs[sibs.length - 1];
       const refFrames = sibs.map((f) => f.frame as string);
       for (let idx = g.current; idx < target; idx++) {
+        if (this.framesCancel) {
+          aborted = true;
+          break outer;
+        }
+        const n = done + fail + 1;
         const targetFrame = `enemy-${g.prefix}-${g.state}${idx}`;
-        this.uploadToast
-          .setText(`🤖 ${g.subj}/${g.state} #${idx} — gerando (${done + 1}/${done + fail + 1})…`)
-          .setColor("#c9a6ff");
-        const r = await this.generateFrameToOverride(
+        setProg(`⏳ ${n}/${totalToGen} — ${g.subj}/${g.state} #${idx}  (ESC=cancela)`);
+        console.log(`[FramesBatch] ${n}/${totalToGen} gerando ${targetFrame}…`);
+        // Timeout por frame: se a IA travar, não congela o lote inteiro.
+        const gen = this.generateFrameToOverride(
           targetFrame,
           seed.frame as string,
           refFrames,
@@ -2236,26 +2272,40 @@ export class SpriteLabScene extends Phaser.Scene {
           seed.h,
           `frame ${idx} de ${g.state}: pose intermediária coerente com os vizinhos (completando até ${target})`,
         );
+        const r = await Promise.race([
+          gen,
+          new Promise<{ ok: boolean; error?: string }>((res) =>
+            this.time.delayedCall(95000, () => res({ ok: false, error: "timeout" })),
+          ),
+        ]);
         if (r.ok) {
           done++;
         } else {
           fail++;
-          // Se a função nem responde (offline/sem deploy), aborta o lote todo.
-          if (/indisponível|Failed|network|fetch/i.test(r.error ?? "")) {
-            this.uploadToast
-              .setText(`✗ IA indisponível — rode no navegador publicado. (${r.error})`)
-              .setColor("#ff6666");
+          console.warn(`[FramesBatch] falha em ${targetFrame}: ${r.error}`);
+          // Se a função nem responde (offline/sem deploy/timeout), aborta — as
+          // próximas provavelmente falham igual; não adianta martelar 300×.
+          if (/indispon|Failed|network|fetch|timeout|invoke/i.test(r.error ?? "")) {
             aborted = true;
+            setProg(
+              `✗ IA indisponível/lenta (${r.error}). Rode no navegador publicado; tente ALVO 4.`,
+              "#ff6666",
+            );
             break outer;
           }
         }
       }
     }
     this.framesBusy = false;
+    this.framesCancel = false;
     if (!aborted) {
       this.uploadToast
         .setText(`✓ lote: ${done} frame(s) gerado(s)${fail ? `, ${fail} falha(s)` : ""}`)
         .setColor(fail ? "#ffcc66" : "#88ff88");
+    } else if (done > 0) {
+      this.uploadToast
+        .setText(`⏹ cancelado: ${done} gerado(s) foram salvos${fail ? `, ${fail} falha(s)` : ""}`)
+        .setColor("#ffcc66");
     }
     this.reloadAtlas(() => {
       this.loadState();
