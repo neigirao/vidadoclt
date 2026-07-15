@@ -158,7 +158,9 @@ Passada por todas as áreas. Sequência sugerida em 5 sprints.
 
 **Sprint 2 — identidade:**
 10. NPC que lembra do loop (Faxineiro comenta mortes/culturas/bosses por milestone).
-11. Storytelling ambiental (`AmbientLore`: post-its com piada corporativa BR por seed).
+11. ✅ Storytelling ambiental (`AmbientLore`: post-its com piada corporativa BR por
+    seed, revelados por proximidade) — feito. NPC-lembra-do-loop já existia (Faxineiro
+    + NPCs escalam por loopCount/causa da morte).
 5. Remover "TESTAR FASE" do menu (ou esconder atrás de dev-only).
 8. Tela de vitória com epílogo (carta de demissão + gancho NG+).
 7. Micro-legenda de perda de sanidade por evento ("−2 sanidade: viu email do chefe").
