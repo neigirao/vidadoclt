@@ -198,6 +198,16 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         this.time.delayedCall(600, () =>
           TutorialPrompts.maybeShow(this, `sig-${run.characterClass}`, line),
         );
+      // 1ª run fixa: avisa que Classe e Cultura destravam depois — pra não parecer
+      // que o jogo "escolheu por ele" sem explicar.
+      if (run.loopCount === 0)
+        this.time.delayedCall(1400, () =>
+          TutorialPrompts.maybeShow(
+            this,
+            "onboard-fixed",
+            "1ª tentativa: você é Analista. Escolher Classe e Cultura destrava na próxima.",
+          ),
+        );
     }
 
     // Modo assistido (acessibilidade/onboarding, opt-in nas Configurações): recebe

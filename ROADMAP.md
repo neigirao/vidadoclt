@@ -166,8 +166,10 @@ Passada por todas as áreas. Sequência sugerida em 5 sprints.
 7. Micro-legenda de perda de sanidade por evento ("−2 sanidade: viu email do chefe").
 
 **Sprint 3 — onboarding:**
-9. 1ª run fixa (classe default, sem cultura/loja); sistemas destravam após 1ª morte,
-   cada tela nova ganha 1 tutorial.
+9. ✅ 1ª run FIXA — feito. Na 1ª run (`loopCount === 0`) o JOGAR pula as telas de
+   Classe e Cultura e começa direto na Fase 1 com o Analista (default) + Cultura
+   neutra; escolha destrava a partir da 2ª run. Meta-loja (EVOLUÇÃO) já era gated
+   por `firstRun` no menu. Dica contextual 1× explica a run fixa.
 14. ✅ Modo assistido opcional (dano recebido ×0.7, +1 vida/fase; sem estigma) —
     feito. Toggle em CONFIGURAÇÕES (`Settings.assistMode`), aplicado no `buildPlayer`
     (`damageReductionMult ×0.7` + piso de `extraLives` por fase). Testado (Settings)
