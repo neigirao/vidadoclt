@@ -9,6 +9,7 @@ import {
 } from "../systems/TextureFactory";
 import { initSpriteLibrary } from "../systems/SpriteLibrary";
 import { loadSpriteOverrides, installSpriteOverrides } from "../systems/SpriteOverrides";
+import { bgUrl } from "../systems/BgOverrides";
 import { applyAudioSettings } from "../systems/applyAudio";
 
 /**
@@ -23,8 +24,8 @@ export class BootScene extends Phaser.Scene {
   preload() {
     // BootScene is kept as fallback only — PreloadScene handles the real load.
     // If BootScene is ever started directly, load the same minimal set.
-    this.load.image("bg-menu", "/assets/bg-menu.png");
-    this.load.image("bg-openspace", "/assets/bg-openspace.png");
+    this.load.image("bg-menu", bgUrl("bg-menu"));
+    this.load.image("bg-openspace", bgUrl("bg-openspace"));
     this.load.image("tex-floor", "/assets/sprites/tile-floor.png");
     this.load.image("tex-vr", "/assets/sprites/item-vr-coin.png");
     this.load.image("tex-inkproj", "/assets/sprites/item-inkproj.png");
