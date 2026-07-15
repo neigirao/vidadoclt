@@ -90,13 +90,30 @@ export function addParallaxLayers(
   if (WINDOW_GLASS.has(phase)) {
     // Janela DESENHADA (bg fraco/baixa-res): vidro (céu) cobre o topo + skyline
     // + caixilho. Tudo em sf 0.2 (plano do bg) — vira uma janela limpa e coesa.
+    // ANTES o céu era chapado (fill sólido + faixa escura) → destoava dos fundos
+    // PINTADOS das Fases 1/2. Agora: GRADIENTE de céu (topo escuro → horizonte com
+    // brilho da fase) + faixa de glow no horizonte + uma camada de prédios DISTANTE
+    // e desbotada atrás da principal. Dá profundidade "pintada" sem arte nova.
+    const shade = (c: number, f: number) => {
+      const r = Math.min(255, Math.round(((c >> 16) & 0xff) * f));
+      const g2 = Math.min(255, Math.round(((c >> 8) & 0xff) * f));
+      const bl = Math.min(255, Math.round((c & 0xff) * f));
+      return (r << 16) | (g2 << 8) | bl;
+    };
     const winTop = topY + 6;
     const winBot = topY + band * 0.44;
     const glass = scene.add.graphics().setScrollFactor(0.2, 0).setDepth(2);
-    glass.fillStyle(cfg.sky, 1);
+    const skyTop = shade(cfg.sky, 0.5); // topo mais escuro
+    const skyHorizon = shade(cfg.sky, 1.22); // horizonte mais claro
+    glass.fillGradientStyle(skyTop, skyTop, skyHorizon, skyHorizon, 1);
     glass.fillRect(0, winTop, levelWidth, winBot - winTop);
-    glass.fillStyle(0x000000, 0.26); // topo do céu mais escuro (gradiente simples)
-    glass.fillRect(0, winTop, levelWidth, (winBot - winTop) * 0.35);
+    // Brilho do horizonte (cor da fase) — "hora dourada"/neon suave.
+    const glowBand = (winBot - winTop) * 0.32;
+    glass.fillStyle(cfg.glow, 0.18);
+    glass.fillRect(0, winBot - glowBand, levelWidth, glowBand);
+    // Camada de prédios DISTANTE (parallax mais lento + desbotada) → profundidade.
+    const far = scene.add.graphics().setScrollFactor(0.13, 0).setDepth(2).setAlpha(0.45);
+    drawSkyline(far);
     drawSkyline(glass);
     drawFrame(winTop, winBot);
   } else if (WINDOW_FRAME_ONLY.has(phase)) {
