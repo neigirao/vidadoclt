@@ -249,6 +249,11 @@ export class SpriteLabScene extends Phaser.Scene {
   private auditScroll = 0;
   private readonly AUDIT_ROWS = 15;
 
+  // Painel FRAMES FALTANTES ([F]): sprites/ações abaixo do alvo de frames.
+  private framesOverlay?: Phaser.GameObjects.Container;
+  private framesTarget = 4; // piso combinado; botão sobe p/ 16 (ciclo premium)
+  private framesBusy = false;
+
   private readonly SCALE = 4;
   private readonly CX = 350;
   private readonly FEET_Y = 430;
@@ -328,6 +333,7 @@ export class SpriteLabScene extends Phaser.Scene {
       // ESC fecha primeiro os overlays abertos; só sai do LAB se não houver nenhum.
       if (this.geminiPreview) return this.clearGeminiPreview();
       if (this.auditOverlay) return this.closeAuditQueue();
+      if (this.framesOverlay) return this.toggleFramesPanel();
       this.scene.start("MenuScene");
     });
     this.input.keyboard!.on("keydown-SPACE", () => {
@@ -352,6 +358,8 @@ export class SpriteLabScene extends Phaser.Scene {
     this.input.keyboard!.on("keydown-A", () => this.toggleAuditQueue());
     // [C]: COMPLETAR FAMÍLIA — gera por IA o próximo frame faltante deste estado.
     this.input.keyboard!.on("keydown-C", () => void this.completeFamily());
+    // [F]: painel FRAMES FALTANTES — lista sprites abaixo do alvo e completa em lote.
+    this.input.keyboard!.on("keydown-F", () => this.toggleFramesPanel());
     // Scroll do mouse rola a fila de problemas quando aberta.
     this.input.on("wheel", (_p: unknown, _o: unknown, _dx: number, dy: number) => {
       if (!this.auditOverlay) return;
@@ -2003,6 +2011,256 @@ export class SpriteLabScene extends Phaser.Scene {
       .setText(`✓ lote: ${done} consertado(s)${fail ? `, ${fail} falha(s)` : ""}`)
       .setColor(fail ? "#ffcc66" : "#88ff88");
     this.reloadAtlas(() => this.loadState());
+  }
+
+  // ── FRAMES FALTANTES ([F]): completar animações abaixo do alvo por IA ────────
+  // Prefixo do atlas de um sujeito/estado quaisquer (o do sujeito, ou inferido das
+  // chaves — inimigos de Fase 2–5 são mkItem sem prefix próprio).
+  private prefixOf(subjIdx: number, state: string): string | undefined {
+    const subj = SUBJECTS[subjIdx];
+    if (subj.prefix) return subj.prefix;
+    const k = subj.states[state]?.[0];
+    const m = k ? new RegExp(`^(?:tex-|enemy-)(.+)-${state}\\d+$`).exec(k) : null;
+    return m?.[1] ?? undefined;
+  }
+
+  // Varre TODOS os sujeitos e retorna as ações cicláveis (walk/idle/attack) abaixo
+  // do alvo, SÓ onde o jogo de fato cicla frames (setEnemyTex ou animPhase). Objetos/
+  // fundos/player/bosses-com-anim-própria ficam de fora (frames não ciclariam).
+  private frameGaps(
+    target: number,
+  ): { subjIdx: number; subj: string; state: AnimState; prefix: string; current: number }[] {
+    const gaps: {
+      subjIdx: number;
+      subj: string;
+      state: AnimState;
+      prefix: string;
+      current: number;
+    }[] = [];
+    const STATES: AnimState[] = ["walk", "idle", "attack"];
+    SUBJECTS.forEach((subj, subjIdx) => {
+      for (const state of STATES) {
+        const keys = subj.states[state];
+        if (!keys?.length) continue;
+        const prefix = this.prefixOf(subjIdx, state);
+        if (!prefix) continue;
+        const animates =
+          hasAnimConfig(prefix) ||
+          subj.cat === "Fase 2" ||
+          subj.cat === "Fase 3" ||
+          subj.cat === "Fase 4";
+        if (!animates) continue;
+        const current = hasAnimConfig(prefix)
+          ? frameCount(state, prefix)
+          : keys.filter((k) => this.getInfo(k).ok).length;
+        if (current < target) gaps.push({ subjIdx, subj: subj.name, state, prefix, current });
+      }
+    });
+    return gaps;
+  }
+
+  private toggleFramesPanel() {
+    if (this.framesOverlay) {
+      this.framesOverlay.destroy(true);
+      this.framesOverlay = undefined;
+      return;
+    }
+    this.renderFramesPanel();
+  }
+
+  private renderFramesPanel() {
+    this.framesOverlay?.destroy(true);
+    const W = this.scale.width,
+      H = this.scale.height;
+    const gaps = this.frameGaps(this.framesTarget);
+    const box = this.add.container(0, 0).setDepth(4900);
+    const backdrop = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.74).setInteractive();
+    const panelW = 640,
+      panelH = 470;
+    const panel = this.add
+      .rectangle(W / 2, H / 2, panelW, panelH, 0x121a14)
+      .setStrokeStyle(2, 0x66cc99);
+    const totalMissing = gaps.reduce((a, g) => a + (this.framesTarget - g.current), 0);
+    const title = this.add
+      .text(
+        W / 2,
+        H / 2 - panelH / 2 + 14,
+        gaps.length
+          ? `FRAMES FALTANTES (alvo ${this.framesTarget}) — ${gaps.length} ações · ${totalMissing} frames a gerar · [F]/[ESC] fecha`
+          : `FRAMES FALTANTES (alvo ${this.framesTarget}) — nenhuma! tudo ≥ ${this.framesTarget} · [F]/[ESC] fecha`,
+        { fontFamily: "monospace", fontSize: "11px", color: "#c9f0d6" },
+      )
+      .setOrigin(0.5);
+    box.add([backdrop, panel, title]);
+    this.framesOverlay = box;
+
+    const rowH = 20;
+    const top = H / 2 - panelH / 2 + 40;
+    gaps.slice(0, 16).forEach((g, r) => {
+      const y = top + r * rowH;
+      const label = `${g.subj} / ${g.state}: ${g.current} → ${this.framesTarget}  (faltam ${this.framesTarget - g.current})`;
+      const rowBg = this.add
+        .rectangle(W / 2, y, panelW - 24, rowH - 2, 0x1a241c)
+        .setInteractive({ useHandCursor: true });
+      const tx = this.add
+        .text(W / 2 - panelW / 2 + 18, y - 6, label.slice(0, 92), {
+          fontFamily: "monospace",
+          fontSize: "10px",
+          color: "#dcffe6",
+        })
+        .setOrigin(0, 0);
+      rowBg.on("pointerover", () => rowBg.setFillStyle(0x27402e));
+      rowBg.on("pointerout", () => rowBg.setFillStyle(0x1a241c));
+      rowBg.on("pointerdown", () => {
+        this.toggleFramesPanel();
+        this.jumpTo(g.subjIdx, g.state, Math.max(0, g.current - 1));
+      });
+      box.add([rowBg, tx]);
+    });
+    if (gaps.length > 16) {
+      box.add(
+        this.add
+          .text(W / 2, top + 16 * rowH + 4, `… +${gaps.length - 16} (alvo menor mostra menos)`, {
+            fontFamily: "monospace",
+            fontSize: "9px",
+            color: "#7fae90",
+          })
+          .setOrigin(0.5),
+      );
+    }
+
+    // Alternar alvo 4 ↔ 16 (piso vs ciclo premium).
+    const ty = H / 2 + panelH / 2 - 50;
+    const tgtBg = this.add
+      .rectangle(W / 2 - 150, ty, 150, 24, 0x1c2c3a)
+      .setStrokeStyle(1, 0x5c9ad8)
+      .setInteractive({ useHandCursor: true });
+    const tgtTx = this.add
+      .text(W / 2 - 150, ty, `ALVO: ${this.framesTarget}  (trocar 4↔16)`, {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#cfe4ff",
+      })
+      .setOrigin(0.5);
+    tgtBg.on("pointerdown", () => {
+      this.framesTarget = this.framesTarget === 4 ? 16 : 4;
+      this.renderFramesPanel();
+    });
+    box.add([tgtBg, tgtTx]);
+
+    // Completar TODOS por IA (roda no navegador — a Edge Function tem a chave).
+    const by = H / 2 + panelH / 2 - 20;
+    const has = gaps.length > 0 && !this.framesBusy;
+    const goBg = this.add
+      .rectangle(W / 2, by, 420, 26, has ? 0x243a2c : 0x24242a)
+      .setStrokeStyle(2, has ? 0x66dd99 : 0x444)
+      .setInteractive({ useHandCursor: has });
+    const goTx = this.add
+      .text(
+        W / 2,
+        by,
+        this.framesBusy
+          ? "⏳ gerando… (não feche)"
+          : `🤖 COMPLETAR TODOS c/ IA (${totalMissing} frames)`,
+        { fontFamily: "monospace", fontSize: "11px", color: has ? "#c9f0d6" : "#6a6a72" },
+      )
+      .setOrigin(0.5);
+    if (has) goBg.on("pointerdown", () => void this.batchCompleteFrames(this.framesTarget));
+    box.add([goBg, goTx]);
+  }
+
+  // Gera 1 frame por IA (Edge Function) e aplica como override — SEM modal (uso em
+  // lote). Reusa os guardrails + transparência do fluxo single-frame.
+  private async generateFrameToOverride(
+    targetFrame: string,
+    seedFrame: string,
+    refFrames: string[],
+    w: number,
+    h: number,
+    hint: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { data, error } = await supabase.functions.invoke("frame-refazer", {
+        body: {
+          frameB64: this.framePngB64(seedFrame),
+          refs: refFrames.map((f) => this.framePngB64(f)),
+          w,
+          h,
+          hint,
+        },
+      });
+      const res = (data ?? {}) as { ok?: boolean; error?: string; imageB64?: string };
+      if (error || !res.ok || !res.imageB64) {
+        return { ok: false, error: res.error ?? error?.message ?? "Edge Function indisponível" };
+      }
+      const { dataUrl } = await this.applyGuardrails(
+        `data:image/png;base64,${res.imageB64}`,
+        w,
+        h,
+        refFrames,
+      );
+      await uploadSpriteOverride(this, targetFrame, dataUrl);
+      this.extendSubjectForNewFrame(targetFrame);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
+  }
+
+  // Completa em lote TODAS as ações abaixo do alvo (gera os frames faltantes por IA).
+  private async batchCompleteFrames(target: number) {
+    if (this.framesBusy) return;
+    const gaps = this.frameGaps(target);
+    if (!gaps.length) return;
+    this.framesBusy = true;
+    this.renderFramesPanel();
+    let done = 0,
+      fail = 0,
+      aborted = false;
+    outer: for (const g of gaps) {
+      const keys = SUBJECTS[g.subjIdx].states[g.state];
+      const sibs = keys.map((k) => this.getInfo(k)).filter((f) => f.ok && !!f.frame);
+      if (!sibs.length) continue;
+      const seed = sibs[sibs.length - 1];
+      const refFrames = sibs.map((f) => f.frame as string);
+      for (let idx = g.current; idx < target; idx++) {
+        const targetFrame = `enemy-${g.prefix}-${g.state}${idx}`;
+        this.uploadToast
+          .setText(`🤖 ${g.subj}/${g.state} #${idx} — gerando (${done + 1}/${done + fail + 1})…`)
+          .setColor("#c9a6ff");
+        const r = await this.generateFrameToOverride(
+          targetFrame,
+          seed.frame as string,
+          refFrames,
+          seed.w,
+          seed.h,
+          `frame ${idx} de ${g.state}: pose intermediária coerente com os vizinhos (completando até ${target})`,
+        );
+        if (r.ok) {
+          done++;
+        } else {
+          fail++;
+          // Se a função nem responde (offline/sem deploy), aborta o lote todo.
+          if (/indisponível|Failed|network|fetch/i.test(r.error ?? "")) {
+            this.uploadToast
+              .setText(`✗ IA indisponível — rode no navegador publicado. (${r.error})`)
+              .setColor("#ff6666");
+            aborted = true;
+            break outer;
+          }
+        }
+      }
+    }
+    this.framesBusy = false;
+    if (!aborted) {
+      this.uploadToast
+        .setText(`✓ lote: ${done} frame(s) gerado(s)${fail ? `, ${fail} falha(s)` : ""}`)
+        .setColor(fail ? "#ffcc66" : "#88ff88");
+    }
+    this.reloadAtlas(() => {
+      this.loadState();
+      this.renderFramesPanel();
+    });
   }
 
   /** ms do loop: override manual > ms do jogo p/ o estado > fallback. */
