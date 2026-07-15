@@ -718,6 +718,39 @@ export class SpriteLabScene extends Phaser.Scene {
     await this.runGemini();
   }
 
+  // Traduz o erro do supabase.functions.invoke numa mensagem ÚTIL. O cliente
+  // Supabase NÃO parseia o corpo em respostas não-2xx (data vem null), então a
+  // mensagem amigável do servidor (ex.: "quota — habilite billing") não chega em
+  // `data`. Aqui lemos o corpo via `error.context` (o Response cru) e mapeamos os
+  // status comuns — 429 (teto de gasto/cota do Gemini) é o mais frequente.
+  private async explainInvokeError(
+    error: unknown,
+    data: { error?: string } | null,
+  ): Promise<string> {
+    if (data?.error) return data.error;
+    // FunctionsHttpError expõe o Response em `.context`.
+    const ctx = (error as { context?: Response } | null)?.context;
+    if (ctx && typeof ctx.status === "number") {
+      let serverMsg = "";
+      try {
+        const body = (await ctx.clone().json()) as { error?: string };
+        serverMsg = body?.error ?? "";
+      } catch {
+        /* corpo não-JSON — segue só com o status */
+      }
+      if (ctx.status === 429)
+        return (
+          serverMsg ||
+          "Limite de gasto/cota do Gemini atingido (429) — ajuste o 'Gasto máximo mensal' na conta Google."
+        );
+      if (ctx.status === 500 && /GEMINI_API_KEY/i.test(serverMsg))
+        return "GEMINI_API_KEY não configurada no servidor (Edge Function).";
+      if (serverMsg) return `${serverMsg} (HTTP ${ctx.status})`;
+      return `Edge Function retornou HTTP ${ctx.status}.`;
+    }
+    return (error as { message?: string } | null)?.message ?? "Edge Function indisponível";
+  }
+
   // Gera (ou re-gera) a prévia da IA com os vizinhos SELECIONADOS + o hint atual.
   private async runGemini() {
     const t = this.geminiTarget;
@@ -746,7 +779,7 @@ export class SpriteLabScene extends Phaser.Scene {
       if (error || !res.ok || !res.imageB64) {
         // Loga o erro CRU no console (antes só ia pro toast do jogo → console vazio).
         console.error("[frame-refazer] falha:", { error, data });
-        throw new Error(res.error ?? error?.message ?? "Edge Function frame-refazer indisponível");
+        throw new Error(res.error ?? (await this.explainInvokeError(error, data)));
       }
       // Guardrails de pixel-art no CLIENTE (canvas): dimensão exata, halos limpos,
       // paleta travada aos vizinhos e pés alinhados à baseline mediana.
@@ -2216,7 +2249,7 @@ export class SpriteLabScene extends Phaser.Scene {
       const res = (data ?? {}) as { ok?: boolean; error?: string; imageB64?: string };
       if (error || !res.ok || !res.imageB64) {
         console.error("[frame-refazer] falha (lote):", { targetFrame, error, data });
-        return { ok: false, error: res.error ?? error?.message ?? "Edge Function indisponível" };
+        return { ok: false, error: res.error ?? (await this.explainInvokeError(error, data)) };
       }
       const { dataUrl } = await this.applyGuardrails(
         `data:image/png;base64,${res.imageB64}`,
@@ -2283,14 +2316,16 @@ export class SpriteLabScene extends Phaser.Scene {
         } else {
           fail++;
           console.warn(`[FramesBatch] falha em ${targetFrame}: ${r.error}`);
-          // Se a função nem responde (offline/sem deploy/timeout), aborta — as
-          // próximas provavelmente falham igual; não adianta martelar 300×.
-          if (/indispon|Failed|network|fetch|timeout|invoke/i.test(r.error ?? "")) {
+          // Se a função nem responde (offline/sem deploy/timeout) OU bateu o teto
+          // de gasto/cota (429/quota), aborta — as próximas falham igual; não
+          // adianta martelar 300× (e cada chamada em 429 ainda conta tentativa).
+          if (
+            /indispon|Failed|network|fetch|timeout|invoke|429|cota|quota|limite/i.test(
+              r.error ?? "",
+            )
+          ) {
             aborted = true;
-            setProg(
-              `✗ IA indisponível/lenta (${r.error}). Rode no navegador publicado; tente ALVO 4.`,
-              "#ff6666",
-            );
+            setProg(`✗ IA parou: ${r.error}`, "#ff6666");
             break outer;
           }
         }
