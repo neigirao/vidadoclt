@@ -238,11 +238,27 @@ export function addPhaseDecor(scene: Phaser.Scene, phase: 1 | 2 | 3 | 4 | 5, flo
   const keys = PHASE_PROP_KEYS[phase] ?? [];
   if (!keys.length) return;
 
+  const reduce = loadSettings().reduceSanityFx;
   const spacing = Math.floor(LEVEL_WIDTH / (keys.length * 2 + 1));
   keys.forEach((key, i) => {
     const x = spacing + i * spacing * 2;
     const [tex, frame] = resolveSprite(`tex-${key}`);
-    scene.add.image(x, floorY, tex, frame).setOrigin(0.5, 1).setDepth(1).setAlpha(0.7);
+    const prop = scene.add.image(x, floorY, tex, frame).setOrigin(0.5, 1).setDepth(1).setAlpha(0.7);
+    // Vida ambiente: um balanço/respiração idle sutil (ancorado nos pés, então a
+    // base fica no chão). Fase de cada prop dessincroniza o conjunto. Desligado
+    // por reduceSanityFx (acessibilidade / fotossensibilidade / motion sickness).
+    if (reduce) return;
+    const phase0 = (i * 777) % 1000;
+    scene.tweens.add({
+      targets: prop,
+      scaleY: { from: 1, to: 1.018 }, // "respira" (topo sobe ~1.8%, pés fixos)
+      angle: { from: -0.6, to: 0.6 }, // balanço quase imperceptível
+      duration: 2200 + (i % 3) * 260,
+      delay: phase0,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.InOut",
+    });
   });
 }
 
@@ -384,9 +400,41 @@ export function addPhaseBackground(
 ): void {
   const midY = (topY + bottomY) / 2;
   const availableH = bottomY - topY;
-  scene.add
+  const bg = scene.add
     .image(LEVEL_WIDTH / 2, midY, key)
     .setDisplaySize(LEVEL_WIDTH, availableH)
     .setScrollFactor(0.2, 0)
     .setDepth(0);
+  // Vida ambiente no fundo: um "respiro" de luz muito lento (brilho pulsando ±6%)
+  // + micro-zoom (±0,8%) — dá movimento orgânico sem gerar frames full-res por IA
+  // (que seriam pesados/propensos a flicker). Desligado por reduceSanityFx.
+  if (loadSettings().reduceSanityFx) return;
+  const baseW = LEVEL_WIDTH,
+    baseH = availableH;
+  scene.tweens.add({
+    targets: bg,
+    duration: 7000,
+    yoyo: true,
+    repeat: -1,
+    ease: "Sine.InOut",
+    displayWidth: { from: baseW, to: baseW * 1.008 },
+    displayHeight: { from: baseH, to: baseH * 1.008 },
+  });
+  // Pulso de brilho independente (período diferente → nunca "bate" com o zoom,
+  // evitando padrão perceptível). tint branco→levemente mais claro via alpha de um
+  // overlay seria custoso; aqui variamos o próprio tint entre branco e um cinza
+  // quente muito sutil, o que o Phaser interpola como leve escurecer/clarear.
+  const glow = { v: 0 };
+  scene.tweens.add({
+    targets: glow,
+    v: 1,
+    duration: 5200,
+    yoyo: true,
+    repeat: -1,
+    ease: "Sine.InOut",
+    onUpdate: () => {
+      const c = 230 + Math.round(glow.v * 25); // 230..255 (respiro de luz sutil)
+      bg.setTint(Phaser.Display.Color.GetColor(c, c, c));
+    },
+  });
 }
