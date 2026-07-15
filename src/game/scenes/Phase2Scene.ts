@@ -1,6 +1,6 @@
 import { bgUrl } from "../systems/BgOverrides";
 import Phaser from "phaser";
-import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH } from "./BasePhaseScene";
+import { BasePhaseScene, FLOOR_Y, LEVEL_WIDTH, type PhaseEventDef } from "./BasePhaseScene";
 import { BossPresence } from "../systems/BossPresence";
 import { getRun } from "../systems/PlayerState";
 import { CoordenadorDeSinergia } from "../entities/Enemies";
@@ -99,6 +99,44 @@ export class Phase2Scene extends BasePhaseScene {
 
   protected getBossName() {
     return "Coordenador de Sinergia";
+  }
+
+  // Eventos de sala próprios da Fase 2 (call center) — personalidade além do boss.
+  protected getPhaseEvents(): PhaseEventDef[] {
+    return [
+      {
+        id: "sistema-fora",
+        name: "SISTEMA FORA DO AR",
+        desc: "O sistema cai de tempos em tempos — os inimigos travam. +30% VR",
+        tip: "Aproveite o freeze pra encaixar combos de graça.",
+        color: "#66ddff",
+        apply: () => {
+          this.phaseEventVrMult = 1.3;
+          this.time.addEvent({
+            delay: 9000,
+            loop: true,
+            callback: () => {
+              this.forEachEnemy((e) =>
+                (e as unknown as { applyFreeze?: (ms: number) => void }).applyFreeze?.(1200),
+              );
+              this.cameras.main.shake(160, 0.006);
+              this.cameras.main.flash(120, 90, 200, 255);
+            },
+          });
+        },
+      },
+      {
+        id: "pausa-cafe",
+        name: "PAUSA PRO CAFÉ",
+        desc: "Ninguém liga por um instante — sua sanidade não cai. +20% VR",
+        tip: "Explore o alto com calma e junte tudo.",
+        color: "#ffcc66",
+        apply: () => {
+          this.phaseEventNoSanityDrain = true;
+          this.phaseEventVrMult = 1.2;
+        },
+      },
+    ];
   }
 
   protected setupEnemiesAndGroups() {

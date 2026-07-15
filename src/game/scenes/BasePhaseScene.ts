@@ -47,6 +47,17 @@ export interface EnemyGroupDef {
   aerial?: boolean;
 }
 
+/** Evento de sala de fase (walk/idle-like da personalidade): nome/desc/dica +
+ *  color pro badge, e apply() com o efeito (mexe em phaseEvent* / player / timers). */
+export interface PhaseEventDef {
+  id: string;
+  name: string;
+  desc: string;
+  tip: string;
+  color: string;
+  apply: () => void;
+}
+
 export abstract class BasePhaseScene extends Phaser.Scene {
   protected platIdx = 0;
   protected player!: Player;
@@ -87,6 +98,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected levelWidth = LEVEL_WIDTH;
   protected enemyGroups: EnemyGroupDef[] = [];
   protected combatFx!: CombatFx;
+  // Evento de sala da fase (personalidade própria por fase, como os da Fase 1).
+  // O apply() do evento mexe nestes; dropVR/sanityDrain os leem.
+  protected phaseEventVrMult = 1;
+  protected phaseEventNoSanityDrain = false;
   /** RNG semeado por (seed, fase) — usado p/ variar encontros por run. */
   protected rng!: Phaser.Math.RandomDataGenerator;
   private _layoutVariant = 0;
@@ -125,9 +140,15 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected onPhaseUpdate(_t: number, _d: number): void {}
   protected onEnemyKilledByMelee(_e: GameEnemy): void {}
   protected onEnemyKilledByProjectile(_e: GameEnemy): void {}
-  /** Drena sanidade passiva no update? A Fase 1 desativa no evento HOME OFFICE. */
+  /** Drena sanidade passiva no update? A Fase 1 desativa no evento HOME OFFICE.
+   *  As Fases 2–5 respeitam o flag do evento de sala (ex.: PAUSA PRO CAFÉ). */
   protected sanityDrainEnabled(): boolean {
-    return true;
+    return !this.phaseEventNoSanityDrain;
+  }
+
+  /** Eventos de sala próprios da fase (subclasse sobrescreve). Vazio = sem evento. */
+  protected getPhaseEvents(): PhaseEventDef[] {
+    return [];
   }
 
   /**
@@ -474,6 +495,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         if (this.boss.maxHp !== undefined) this.boss.maxHp = Math.round(this.boss.maxHp * mult);
       }
     }
+
+    // 8b. Evento de sala próprio da fase (personalidade — como os da Fase 1).
+    // Depois do player + inimigos + escalonamento existirem.
+    this.rollPhaseEvent(run);
 
     // Pulinho ao travar de lado num móvel (chão): sem isso o perseguidor
     // encalha atrás da mesa fora da câmera. Espelha OpenSpaceV2.hopOverFurniture.
@@ -1245,7 +1270,58 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     });
   }
 
+  /** Itera cada inimigo vivo dos enemyGroups (trash — não o boss). */
+  protected forEachEnemy(fn: (e: GameEnemy) => void) {
+    for (const def of this.enemyGroups) {
+      def.group.getChildren().forEach((o) => {
+        const e = o as GameEnemy & { active?: boolean };
+        if (e.active !== false) fn(e);
+      });
+    }
+  }
+
+  /** Escolhe (por seed, gated na 1ª run) e aplica um evento de sala da fase, com
+   *  badge fixo no canto (mesma linguagem visual dos eventos da Fase 1). */
+  protected rollPhaseEvent(run: ReturnType<typeof getRun>) {
+    const events = this.getPhaseEvents();
+    if (!events.length) return;
+    // 1ª run (loopCount 0): sala NORMAL — o novato conhece a fase base antes da
+    // variedade (mesma regra da Fase 1).
+    if ((run.loopCount ?? 0) === 0) return;
+    const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
+    // +1 slot de "sala normal" na roleta (nem toda run tem evento).
+    const idx = (seedNum + (run.loopCount ?? 0)) % (events.length + 1);
+    const ev = events[idx];
+    if (!ev) return; // caiu no slot "normal"
+    ev.apply();
+    this.showEventBadge(ev);
+  }
+
+  private showEventBadge(ev: PhaseEventDef) {
+    const badge = this.add
+      .text(12, HUD_TOP_H + 10, `◉ ${ev.name}\n${ev.desc}\n→ ${ev.tip}`, {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: ev.color,
+        stroke: "#000000",
+        strokeThickness: 3,
+        lineSpacing: 2,
+        wordWrap: { width: 250 },
+      })
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(972);
+    this.add
+      .rectangle(badge.x - 4, badge.y - 3, badge.width + 8, badge.height + 6, 0x0a0d12, 0.6)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(971);
+  }
+
   protected dropVR(x: number, y: number, count = 1) {
+    // Evento de sala pode multiplicar o VR (ex.: PRESSÃO POR META / SISTEMA FORA
+    // DO AR). Aplicado central aqui → vale p/ melee, projétil, boss e cache.
+    count = Math.max(1, Math.round(count * this.phaseEventVrMult));
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(
         x + (i - count / 2) * 8,
