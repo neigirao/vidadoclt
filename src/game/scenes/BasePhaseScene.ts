@@ -504,6 +504,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // Depois do player + inimigos + escalonamento existirem.
     this.rollPhaseEvent(run);
 
+    // 8c. Verticalidade com propósito (paridade com a Fase 1): cache no topo +
+    // um inimigo ranged/healer relocado pra lá. Depois dos inimigos existirem.
+    this.spawnPhaseVerticalReward();
+
     // Pulinho ao travar de lado num móvel (chão): sem isso o perseguidor
     // encalha atrás da mesa fora da câmera. Espelha OpenSpaceV2.hopOverFurniture.
     const hopOverFurniture: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (eObj) => {
@@ -1337,6 +1341,91 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       body.setVelocity(Phaser.Math.Between(-120, 120), Phaser.Math.Between(-260, -160));
       body.setBounce(0.4);
       body.setDrag(120, 0);
+    }
+  }
+
+  /**
+   * Verticalidade com PROPÓSITO nas Fases 2–5 (paridade com a Fase 1). Coloca um
+   * cache de VR flutuante + café de Sanidade + um facho luminoso na plataforma
+   * mais alta do layout, e RELOCA um inimigo ranged/healer pra lá quando existe —
+   * o alto passa a ter valor tático (calar o atirador / cortar a cura), não só
+   * loot. Alcançabilidade garantida pelo LevelValidator (que roda no fim do
+   * create). Chamada genérica: vale pra qualquer layout/fase por seed.
+   */
+  protected spawnPhaseVerticalReward() {
+    let bestTop = Infinity;
+    let best: Phaser.Physics.Arcade.StaticBody | undefined;
+    this.platforms.getChildren().forEach((p) => {
+      const b = (p as Phaser.GameObjects.GameObject & { body?: Phaser.Physics.Arcade.StaticBody })
+        .body;
+      if (!b) return;
+      // Só plataformas realmente elevadas (não a base do chão) e longe do boss.
+      if (b.y < FLOOR_Y - 45 && b.x + b.width / 2 < LEVEL_WIDTH - 260 && b.y < bestTop) {
+        bestTop = b.y;
+        best = b;
+      }
+    });
+    if (!best) return;
+    const cx = best.x + best.width / 2;
+
+    // Cache de VR flutuante (sem gravidade → fica na borda em vez de cair/pousar
+    // num móvel inalcançável). Coletado ao toque pelo overlap de drops.
+    for (let i = 0; i < 5; i++) {
+      const d = this.drops.create(cx + (i - 2) * 12, best.y - 12, "tex-vr") as
+        | Phaser.Physics.Arcade.Sprite
+        | undefined;
+      if (!d) continue;
+      d.setDepth(9);
+      const body = d.body as Phaser.Physics.Arcade.Body;
+      body.setAllowGravity(false);
+      body.setVelocity(0, 0);
+    }
+    this.spawnSanityDrop(cx, best.y - 18, 15);
+    this.add
+      .text(cx, best.y - 34, "💰", { fontSize: "16px" })
+      .setOrigin(0.5)
+      .setDepth(9);
+
+    // Facho vertical: coluna luminosa do cache até o chão, pulsando — sinaliza
+    // "vale subir aqui" sem texto.
+    const beam = this.add
+      .rectangle(cx, (best.y + FLOOR_Y) / 2, 10, FLOOR_Y - best.y, 0xffdd66, 0.12)
+      .setDepth(2);
+    this.tweens.add({
+      targets: beam,
+      alpha: 0.28,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    // Valor tático: reloca um inimigo ranged/healer de chão pro topo (preferindo
+    // healer — cortar a cura recompensa subir). Só reposiciona um já existente,
+    // sem alterar a contagem (o orçamento de ameaça/validador fica estável).
+    type MarkedEnemy = Phaser.Physics.Arcade.Sprite & { threatType?: ThreatType };
+    let pick: MarkedEnemy | undefined;
+    let pickIsHealer = false;
+    for (const def of this.enemyGroups) {
+      if (def.aerial) continue;
+      for (const obj of def.group.getChildren()) {
+        const e = obj as MarkedEnemy;
+        if (!e.active) continue;
+        if (e.threatType === "healer") {
+          pick = e;
+          pickIsHealer = true;
+          break;
+        }
+        if (e.threatType === "ranged" && !pick) pick = e;
+      }
+      if (pickIsHealer) break;
+    }
+    if (pick) {
+      const body = pick.body as Phaser.Physics.Arcade.Body | undefined;
+      if (body) {
+        pick.setPosition(cx, best.y - 24);
+        body.reset(cx, best.y - 24);
+      }
     }
   }
 
