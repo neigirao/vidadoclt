@@ -12,6 +12,7 @@ import {
 } from "../systems/Background";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
+import { seedAmbientLore } from "../systems/AmbientLore";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { menaceEnrageThreshold } from "../systems/Menace";
@@ -309,6 +310,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       addParallaxLayers(this, pn, HUD_TOP_H, FLOOR_Y); // planos de profundidade
       addPhaseDecor(this, pn, FLOOR_Y);
       addThemedFloorDecor(this, pn, FLOOR_Y); // prop de chão próprio da fase
+      // Storytelling ambiental: post-its de piada corporativa BR (revelam por
+      // proximidade). O player é criado adiante; o poll só lê X depois.
+      seedAmbientLore(this, pn, FLOOR_Y, LEVEL_WIDTH, run.seed ?? "CLT", () => this.player?.x ?? 0);
     }
     addPhaseAmbience(this, HUD_TOP_H, FLOOR_Y); // poeira + luzes falhando
     if (pn !== null) addPhaseParticles(this, pn, HUD_TOP_H, FLOOR_Y); // partículas da fase
