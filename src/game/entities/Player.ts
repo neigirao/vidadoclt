@@ -120,6 +120,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   dashResetOnKill = false;
   firstStrikeStun = false;
   dashDamage = 0;
+  dashId = 0; // incrementa a cada dash — a cena deduz 1 hit por inimigo por dash
 
   parryWindowBonus = 0; // ms adicionais ao PARRY_WINDOW_MS via upgrade
   dashCooldownBonus = 0; // ms subtraídos do cooldown do dash
@@ -312,6 +313,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   isInvulnerable(now: number) {
     return now < this.invulnUntil || now < this.dashUntil;
+  }
+
+  /** true durante a janela ativa do dash (i-frames). Base do dash OFENSIVO:
+   *  a cena confere isDashing + dashDamage>0 pra ferir quem for atravessado. */
+  isDashing(now: number) {
+    return now < this.dashUntil;
   }
 
   applyFreeze(ms: number) {
@@ -700,6 +707,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       const effectiveDashCooldown = Math.max(200, DASH_COOLDOWN_MS - this.dashCooldownBonus);
       this.dashUntil = time + DASH_MS;
       this.dashCooldownUntil = time + effectiveDashCooldown;
+      this.dashId++; // nova janela de dash → nova dedup de hits ofensivos
       Sfx.dash();
       body.setVelocityY(0);
       this.setAlpha(0.6);

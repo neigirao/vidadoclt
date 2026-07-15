@@ -4,6 +4,7 @@ import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
 import { addPhaseBackground, addParallaxLayers } from "../systems/Background";
 import { seedAmbientLore } from "../systems/AmbientLore";
+import type { GameEnemy } from "../entities/types";
 import {
   EstagiarioDesesperado,
   EstagiarioSobrecarregado,
@@ -529,22 +530,31 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     );
 
     // Contact damage
+    // vrDrop por grupo p/ o dash OFENSIVO (mesma tabela do enemyGroups acima).
     const contactDamage = (
       group: Phaser.Physics.Arcade.Group,
       dmg: (e: Phaser.Physics.Arcade.Sprite) => number,
+      vrDrop = 1,
     ) => {
       this.physics.add.overlap(this.player, group, (_p, eObj) => {
-        if (this.player.isInvulnerable(this.time.now)) return;
         const e = eObj as Phaser.Physics.Arcade.Sprite;
+        const now = this.time.now;
+        // Dash OFENSIVO: atravessar um inimigo durante o dash o fere (1×/dash),
+        // se o perk de dash-dano estiver ativo. Antes do dano de contato.
+        if (this.player.isDashing(now) && this.player.dashDamage > 0) {
+          this.dashThroughEnemy(e as unknown as GameEnemy, vrDrop);
+          return;
+        }
+        if (this.player.isInvulnerable(now)) return;
         this.player.takeDamage(dmg(e), 4, e.x);
       });
     };
-    contactDamage(this.estagiarios, (e) => (e as EstagiarioDesesperado).contactDamage);
-    contactDamage(this.sobrecarregados, (e) => (e as EstagiarioSobrecarregado).contactDamage);
-    contactDamage(this.scrums, (e) => (e as ScrumMasterCaotico).contactDamage);
-    contactDamage(this.coordenadores, (e) => (e as CoordenadorDeSinergia).contactDamage);
-    contactDamage(this.seniors, (e) => (e as AnalistaSeniorExausto).contactDamage);
-    contactDamage(this.rhs, (e) => (e as EnemyRH).contactDamage);
+    contactDamage(this.estagiarios, (e) => (e as EstagiarioDesesperado).contactDamage, 1);
+    contactDamage(this.sobrecarregados, (e) => (e as EstagiarioSobrecarregado).contactDamage, 2);
+    contactDamage(this.scrums, (e) => (e as ScrumMasterCaotico).contactDamage, 2);
+    contactDamage(this.coordenadores, (e) => (e as CoordenadorDeSinergia).contactDamage, 4);
+    contactDamage(this.seniors, (e) => (e as AnalistaSeniorExausto).contactDamage, 6);
+    contactDamage(this.rhs, (e) => (e as EnemyRH).contactDamage, 3);
 
     this.physics.add.overlap(this.player, this.postits, (_p, pObj) => {
       const p = pObj as PostIt;
