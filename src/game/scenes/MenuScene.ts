@@ -2,7 +2,13 @@ import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from "../constants";
 import { getRun, isNgPlusUnlocked } from "../systems/PlayerState";
 import { Music } from "../systems/MusicSystem";
-import { loadSettings, setVolume, toggleMuted, toggleReduceSanityFx } from "../systems/Settings";
+import {
+  loadSettings,
+  setVolume,
+  toggleMuted,
+  toggleReduceSanityFx,
+  toggleAssistMode,
+} from "../systems/Settings";
 import { applyAudioSettings } from "../systems/applyAudio";
 import { Telemetry } from "../systems/Telemetry";
 import { WEAPONS, CLASSES, ClassId } from "../systems/WeaponSystem";
@@ -962,6 +968,14 @@ export class MenuScene extends Phaser.Scene {
       toggleReduceSanityFx,
       iy,
       4,
+    );
+    iy += rowH;
+    toggleRow(
+      "Modo assistido  (−30% dano · +1 vida/fase)",
+      () => loadSettings().assistMode,
+      toggleAssistMode,
+      iy,
+      5,
     );
     iy += rowH + 8;
 

@@ -168,7 +168,10 @@ Passada por todas as áreas. Sequência sugerida em 5 sprints.
 **Sprint 3 — onboarding:**
 9. 1ª run fixa (classe default, sem cultura/loja); sistemas destravam após 1ª morte,
    cada tela nova ganha 1 tutorial.
-14. Modo assistido opcional (dano recebido ×0.7, +1 vida/fase; sem estigma na UI).
+14. ✅ Modo assistido opcional (dano recebido ×0.7, +1 vida/fase; sem estigma) —
+    feito. Toggle em CONFIGURAÇÕES (`Settings.assistMode`), aplicado no `buildPlayer`
+    (`damageReductionMult ×0.7` + piso de `extraLives` por fase). Testado (Settings)
+    + verificado headless (OFF 1.0 / ON 0.7 + 1 vida).
 
 **Sprint 4 — conteúdo (tirar Fases 2–5 da magreza):**
 12. 1 evento de sala próprio por fase 2–5 (inventar por tema, não copiar APAGÃO).
