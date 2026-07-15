@@ -559,7 +559,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       );
       Sfx.vrPickup();
       ParticleFactory.pickupSparkle(this, spr.x, spr.y);
-      this.combatFx.spawnDamageNumber(spr.x, spr.y - 6, 1, "#f2c14e");
+      this.floatVrToHud(spr.x, spr.y - 6, 1);
       this.cameras.main.shake(40, 0.0025);
       spr.destroy();
     });
@@ -741,6 +741,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
           ? `[ E ]  Pegar ${WEAPONS[this.nearestPickup.weaponId].name}`
           : undefined,
       dashCooldown: this.player.getDashCooldownRatio(time),
+      specialCooldown: this.player.specialChargeRatio(time),
       perks: run.perks,
       burnoutMods: this.player.getBurnoutMods(),
       tremoring: this.player.isTremoring(time),
@@ -1162,6 +1163,34 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     ink.setData("homing", opts.homing ?? false);
     ink.setData("lifetime", this.time.now + 4000);
     return ink;
+  }
+
+  /** Popup "+N VR" que sai do ponto de coleta e VOA até o contador de VR na HUD
+   *  (topo-esquerda), reforçando de onde a moeda veio. Screen-space (scrollFactor 0). */
+  protected floatVrToHud(worldX: number, worldY: number, n: number) {
+    const cam = this.cameras.main;
+    const t = this.add
+      .text(worldX - cam.scrollX, worldY - cam.scrollY, `+${n} VR`, {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        fontStyle: "bold",
+        color: "#f2c14e",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1400);
+    this.tweens.add({
+      targets: t,
+      x: 120,
+      y: 22, // região do contador de VR no topo da HUD
+      alpha: { from: 1, to: 0.2 },
+      scale: { from: 1, to: 0.7 },
+      duration: 620,
+      ease: "Cubic.In",
+      onComplete: () => t.destroy(),
+    });
   }
 
   protected dropVR(x: number, y: number, count = 1) {

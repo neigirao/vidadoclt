@@ -152,7 +152,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private jumpsUsed = 0;
   private specialCooldownUntil = 0;
+  private specialCooldownDuration = 0; // duração do último cooldown (p/ ratio da HUD)
   private prevSpecialDown = false;
+
+  /** Carga do especial: 0 = pronto, 1 = acabou de usar (recarregando). Usado pela
+   *  HUD p/ mostrar o preenchimento da carga do Especial. */
+  specialChargeRatio(time: number): number {
+    if (this.specialCooldownDuration <= 0) return 0;
+    const remaining = this.specialCooldownUntil - time;
+    return Phaser.Math.Clamp(remaining / this.specialCooldownDuration, 0, 1);
+  }
 
   private keys: PlayerKeys;
   private pad: Phaser.Input.Gamepad.Gamepad | null = null;
@@ -730,9 +739,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Special attack (K)
     if (specialPressed && time >= this.specialCooldownUntil) {
-      this.specialCooldownUntil =
-        time +
-        Math.round(this.specialCooldown * this.specialCooldownMult * burnout.specialCooldownMult);
+      this.specialCooldownDuration = Math.round(
+        this.specialCooldown * this.specialCooldownMult * burnout.specialCooldownMult,
+      );
+      this.specialCooldownUntil = time + this.specialCooldownDuration;
       // Charge flash: tint white briefly before firing
       this.setTint(0xffffff);
       this.scene.time.delayedCall(120, () => {

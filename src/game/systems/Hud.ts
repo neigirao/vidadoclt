@@ -94,6 +94,7 @@ export class Hud {
   private weaponNameT!: Phaser.GameObjects.Text;
   private secondaryWeaponT!: Phaser.GameObjects.Text;
   private specialNameT!: Phaser.GameObjects.Text;
+  private specialChargeG!: Phaser.GameObjects.Graphics;
   private dashCooldownG!: Phaser.GameObjects.Graphics;
   private parryLabelT!: Phaser.GameObjects.Text;
   private parryStateT!: Phaser.GameObjects.Text;
@@ -610,6 +611,11 @@ export class Hud {
     );
     this.botContainer.add(this.specialNameT);
 
+    // Barra de CARGA do Especial (K): abaixo do nome, enche de 0→cheio enquanto
+    // recarrega. Ensina que o Especial tem cooldown (verbo sub-utilizado).
+    this.specialChargeG = this.scene.add.graphics();
+    this.botContainer.add(this.specialChargeG);
+
     // Arma secundária (troca com Q) — só aparece quando há uma 2ª arma.
     this.secondaryWeaponT = this.scene.add
       .text(S2_X + 6, ITEM_SLOT_Y + ITEM_SLOT_SIZE + 24, "", {
@@ -829,6 +835,8 @@ export class Hud {
     playerX: number;
     interactHint?: string;
     dashCooldown?: number;
+    /** Carga do Especial (K): 0 = pronto, 1 = recém-usado (recarregando). */
+    specialCooldown?: number;
     perks?: string[];
     heatLevel?: number;
     /** "active" = janela aberta, "cooldown" = em recarga, "low_sanity" = sem sanidade, undefined = pronto */
@@ -926,6 +934,35 @@ export class Hud {
       );
       this.dashCooldownG.lineStyle(1, 0x6688cc, 0.9);
       this.dashCooldownG.strokeRect(dsx, ITEM_SLOT_Y, ITEM_SLOT_SIZE, ITEM_SLOT_SIZE);
+    }
+
+    // Carga do Especial (K): overlay no slot do especial (índice 1), igual ao dash
+    // (índice 2). Escurece de baixo p/ cima enquanto recarrega e libera dourado ao
+    // ficar pronto. Ensina o cooldown do verbo mais esquecido.
+    const specialCd = opts.specialCooldown ?? 0;
+    this.specialChargeG.clear();
+    {
+      const totalW = 4 * ITEM_SLOT_SIZE + 3 * ITEM_SLOT_GAP;
+      const startX = S2_X + (SEC2_W - totalW - 40) / 2;
+      const ssx = startX + 1 * (ITEM_SLOT_SIZE + ITEM_SLOT_GAP);
+      if (specialCd > 0) {
+        // Recarregando: véu escuro que encolhe de cima p/ baixo (charge subindo).
+        this.specialChargeG.fillStyle(0x000000, 0.72);
+        this.specialChargeG.fillRect(
+          ssx,
+          ITEM_SLOT_Y,
+          ITEM_SLOT_SIZE,
+          Math.round(specialCd * ITEM_SLOT_SIZE),
+        );
+        this.specialChargeG.lineStyle(1, 0xf2c14e, 0.5);
+        this.specialChargeG.strokeRect(ssx, ITEM_SLOT_Y, ITEM_SLOT_SIZE, ITEM_SLOT_SIZE);
+        this.specialNameT.setColor("#7a6f52");
+      } else {
+        // Pronto: contorno dourado no slot + nome aceso.
+        this.specialChargeG.lineStyle(1.5, 0xf2c14e, 0.9);
+        this.specialChargeG.strokeRect(ssx, ITEM_SLOT_Y, ITEM_SLOT_SIZE, ITEM_SLOT_SIZE);
+        this.specialNameT.setColor("#f2c14e");
+      }
     }
 
     // Parry indicator
