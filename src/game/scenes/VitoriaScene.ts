@@ -88,29 +88,15 @@ export class VitoriaScene extends Phaser.Scene {
       this.tweens.add({ targets: t, alpha: 1, duration: 700, delay: 1600 + i * 300 });
     });
 
-    // Flavor
-    const flavor = this.add
-      .text(
-        GAME_WIDTH / 2,
-        370,
-        '"Amanhã é segunda-feira. O ciclo recomeça.\nMas hoje — hoje você foi livre."',
-        {
-          fontFamily: "monospace",
-          fontSize: "12px",
-          color: "#888888",
-          align: "center",
-        },
-      )
-      .setOrigin(0.5)
-      .setAlpha(0);
-    this.tweens.add({ targets: flavor, alpha: 1, duration: 900, delay: 2800 });
+    // Epílogo: carta de demissão (fecha o arco temático — você escreveu a sua saída).
+    this.drawResignationLetter(GAME_WIDTH / 2, 358, run.characterClass, 2800);
 
     // Loop counter bonus note
     if (loopCount > 1) {
       const bonus = this.add
         .text(
           GAME_WIDTH / 2,
-          430,
+          440,
           `Bônus de Reconhecimento por ${loopCount} loops: +${(loopCount - 1) * 50}`,
           { fontFamily: "monospace", fontSize: "11px", color: "#44cc88" },
         )
@@ -124,7 +110,7 @@ export class VitoriaScene extends Phaser.Scene {
     }
 
     // Buttons
-    const btnY = 480;
+    const btnY = 495;
 
     const btnAgain = this.add
       .text(GAME_WIDTH / 2 - 120, btnY, "[ R ]  Quinta-feira (NG+)", {
@@ -213,6 +199,53 @@ export class VitoriaScene extends Phaser.Scene {
     s.fillRect(px - 6, py - 15, 5, 15); // perna tras
     s.fillRect(px + 2, py - 15, 5, 15); // perna frente
     s.fillRect(px - 12, py - 34, 6, 14); // braço/pasta
+  }
+
+  /** Epílogo: um cartão de papel com a carta de demissão do CLT — fecha o arco
+   *  (a fuga às 18h vira uma escolha declarada, não só sobreviver ao relógio). */
+  private drawResignationLetter(cx: number, cy: number, cls: string | undefined, delay: number) {
+    const CLASSES: Record<string, string> = {
+      estagiario: "Estagiário",
+      analista: "Analista",
+      terceirizado: "Terceirizado",
+    };
+    const nome = CLASSES[cls ?? ""] ?? "CLT";
+    const w = 384;
+    const h = 104;
+    const box = this.add.container(cx, cy).setAlpha(0);
+    const paper = this.add.rectangle(0, 0, w, h, 0xf3ead0, 0.97).setStrokeStyle(1, 0x8a7a4a, 0.8);
+    // linha vermelha da margem (papel de ofício)
+    const margin = this.add.rectangle(-w / 2 + 14, 0, 1, h - 12, 0xc06a5a, 0.5);
+    const header = this.add
+      .text(-w / 2 + 24, -h / 2 + 10, "CARTA DE DEMISSÃO", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        fontStyle: "bold",
+        color: "#8a5a2a",
+      })
+      .setOrigin(0, 0);
+    const body = this.add
+      .text(
+        -w / 2 + 24,
+        -h / 2 + 30,
+        [
+          "À gerência,",
+          "Peço demissão — efetiva às 18h00.",
+          "Não por justa causa: por justa consciência.",
+          "Fica o crachá. Levo a saída.",
+        ].join("\n"),
+        { fontFamily: "monospace", fontSize: "11px", color: "#2a2214", lineSpacing: 3 },
+      )
+      .setOrigin(0, 0);
+    const sign = this.add
+      .text(w / 2 - 18, h / 2 - 12, `— ${nome}, ex-CLT`, {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#5a4a2a",
+      })
+      .setOrigin(1, 1);
+    box.add([paper, margin, header, body, sign]);
+    this.tweens.add({ targets: box, alpha: 1, duration: 900, delay });
   }
 
   private startNewLoop() {
