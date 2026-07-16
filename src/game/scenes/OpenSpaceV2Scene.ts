@@ -2,7 +2,11 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
-import { addPhaseBackground, addParallaxLayers, addDenseOpenSpaceParallax } from "../systems/Background";
+import {
+  addPhaseBackground,
+  addParallaxLayers,
+  addDenseOpenSpaceParallax,
+} from "../systems/Background";
 import { seedAmbientLore } from "../systems/AmbientLore";
 import type { GameEnemy } from "../entities/types";
 import {

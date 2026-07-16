@@ -115,14 +115,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      // Identidade tipográfica do jogo (ver src/game/systems/Fonts.ts).
-      // Preconnect antes do stylesheet acelera o handshake TLS c/ os hosts do Google Fonts.
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap",
-      },
+      // Identidade tipográfica: fontes SELF-HOSTED via @font-face em styles.css
+      // (public/assets/fonts/*.woff2). Sem CDN externo — o ambiente/CSP bloqueia
+      // fonts.googleapis.com, então o CDN caía sempre no fallback monospace.
     ],
   }),
   shellComponent: RootShell,
