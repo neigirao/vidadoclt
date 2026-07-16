@@ -64,3 +64,47 @@ jobs:
 
       - name: Smoke de cenas
         run: bun smoke
+
+  # Regressão VISUAL: captura as cenas de UI estáveis e compara pixel-a-pixel
+  # contra os baselines commitados (tests/visual/baseline). Pega arte que "sumiu"
+  # /desalinhou sem gerar erro de console (o smoke não vê isso).
+  #
+  # NÃO-BLOQUEANTE por ora (continue-on-error): os baselines foram gravados no
+  # chromium do sandbox e a CI usa outro build — a renderização de fonte/AA pode
+  # divergir. Rodamos p/ OBSERVAR estabilidade cross-ambiente; os diffs sobem como
+  # artefato. Quando confirmar que passa consistentemente na CI, remover o
+  # continue-on-error p/ virar portão de verdade.
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Neutralizar registry privado no lockfile
+        run: |
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/sandbox-npm-cache/#https://registry.npmjs.org/#g' bun.lock
+
+      - name: Instalar dependências
+        run: bun install
+
+      - name: Instalar Playwright + Chromium (efêmero)
+        run: |
+          bun add -D playwright@1.55.0
+          bunx playwright install --with-deps chromium
+
+      - name: Regressão visual
+        continue-on-error: true
+        run: bun visual
+
+      - name: Subir diffs visuais (se houver)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: |
+            tests/visual/diff
+            tests/visual/current
+          if-no-files-found: ignore
