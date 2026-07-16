@@ -13,7 +13,7 @@ import {
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { seedAmbientLore } from "../systems/AmbientLore";
-import { applyCinematicPostFx } from "../systems/PostFx";
+import { applyCinematicPostFx, applyBiomePalette } from "../systems/PostFx";
 import { loadSettings, ASSIST_DAMAGE_TAKEN_MULT, ASSIST_MIN_LIVES } from "../systems/Settings";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
@@ -299,6 +299,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // Polimento cinematográfico (grade + bloom) na base da pilha de filtros —
     // ANTES do SanityFx, que adiciona vignette/barrel por sanidade por cima.
     applyCinematicPostFx(this);
+    // Paleta-assinatura do bioma (andar do prédio) — leitura de progresso.
+    applyBiomePalette(this, this.getPhaseNumber());
   }
 
   /** Parry "Reclamar": congela o inimigo mais próximo + burst dourado. */

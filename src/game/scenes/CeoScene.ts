@@ -1,6 +1,7 @@
 import { bgUrl } from "../systems/BgOverrides";
 import Phaser from "phaser";
 import { Telemetry } from "../systems/Telemetry";
+import { applyCinematicPostFx, applyBiomePalette } from "../systems/PostFx";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import {
@@ -58,6 +59,9 @@ export class CeoScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBackgroundColor(COLORS.bg);
+    // Polimento cinematográfico + bioma do clímax (Cobertura, crepúsculo tenso).
+    applyCinematicPostFx(this);
+    applyBiomePalette(this, 6);
 
     addPhaseBackground(this, "bg-cobertura", HUD_TOP_H, FLOOR_Y);
     // A cena do CEO não é fase numerada, então caía fora da compensação procedural

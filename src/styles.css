@@ -2,6 +2,25 @@
 @source "../src";
 @import "tw-animate-css";
 
+/* Identidade tipográfica — fontes SELF-HOSTED (sem CDN externo, que o ambiente
+ * bloqueia). Ver src/game/systems/Fonts.ts. woff2 latino copiado do fontsource
+ * (OFL) para public/assets/fonts/. `font-display: swap` = mono do sistema
+ * enquanto carrega (nunca fica em branco). */
+@font-face {
+  font-family: "Press Start 2P";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/PressStart2P-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "VT323";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/VT323-latin.woff2") format("woff2");
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /*
