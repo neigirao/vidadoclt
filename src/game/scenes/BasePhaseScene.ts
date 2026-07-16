@@ -974,9 +974,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   private _parryHintTarget?: Phaser.GameObjects.Sprite;
   protected updateParryHint(time: number) {
     const state = this.player.getParryState(time);
-    // Só destaca quando o parry está DISPONÍVEL. Em cooldown/desabilitado
-    // (burnout) o destaque mentiria — nesse caso escondo o overlay.
-    if (state !== "ready") {
+    // "ready" no Player é `undefined` (active/cooldown/low_sanity retornados).
+    // Só destaca quando disponível — em cooldown/burnout o destaque mentiria.
+    if (state !== undefined) {
       if (this._parryHintFx) this._parryHintFx.setVisible(false);
       this._parryHintTarget = undefined;
       return;
