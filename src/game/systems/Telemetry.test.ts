@@ -1,15 +1,15 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 
 import { Telemetry } from "./Telemetry";
 
 // Telemetria é módulo puro (guarda window/localStorage) → testável em bun:test.
 // Cobrimos a NOVA agregação de tuning: verbos por run, tempo/dano por fase e
-// taxa de burnout. O buffer é compartilhado no módulo → clear() antes de cada.
+// taxa de burnout. O buffer é compartilhado no módulo → clear() no início de
+// cada teste (sem beforeEach: os @types de bun:test na CI não o expõem no tsc).
 
 describe("Telemetry — agregação de tuning", () => {
-  beforeEach(() => Telemetry.clear());
-
   it("média de verbos por run terminada", () => {
+    Telemetry.clear();
     // Run 1: 4 dash, 1 especial, 2 parry → morre.
     Telemetry.runStart("analista", ["padrao_clt"], "grampeador");
     Telemetry.phaseEnter("OpenSpaceV2Scene");
@@ -37,6 +37,7 @@ describe("Telemetry — agregação de tuning", () => {
   });
 
   it("acumula os verbos SÓ até o fim da run (reseta no runStart seguinte)", () => {
+    Telemetry.clear();
     Telemetry.runStart();
     Telemetry.verb("dash");
     Telemetry.verb("dash");
@@ -50,6 +51,7 @@ describe("Telemetry — agregação de tuning", () => {
   });
 
   it("tempo e dano médios por fase vêm do boss_defeat", () => {
+    Telemetry.clear();
     Telemetry.runStart();
     Telemetry.phaseEnter("OpenSpaceV2Scene");
     Telemetry.damageTaken(30);
@@ -62,6 +64,7 @@ describe("Telemetry — agregação de tuning", () => {
   });
 
   it("dano reseta a cada phase_enter (é POR fase, não acumulado da run)", () => {
+    Telemetry.clear();
     Telemetry.runStart();
     Telemetry.phaseEnter("OpenSpaceV2Scene");
     Telemetry.damageTaken(40);
@@ -76,6 +79,7 @@ describe("Telemetry — agregação de tuning", () => {
   });
 
   it("conta runs que entraram em Burnout", () => {
+    Telemetry.clear();
     Telemetry.runStart();
     Telemetry.burnoutEnter();
     Telemetry.burnoutEnter(); // 2 entradas, mas conta como 1 RUN com burnout
