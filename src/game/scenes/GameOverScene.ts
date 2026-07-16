@@ -112,10 +112,12 @@ export class GameOverScene extends Phaser.Scene {
     stampG.lineStyle(3, isBurnout ? 0x8a2a55 : 0xd14545, 0.85);
     stampG.strokeRect(deskX + 10, deskY - 68, 120, 32);
     const stampInner = isBurnout ? "BURNOUT" : "RESCISAO";
+    // Carimbo — Press Start 2P (identidade). Fonte é ~1.5× mais larga: 14 → 10px
+    // encaixa no mesmo box do stampG desenhado logo acima.
     this.add
       .text(deskX + 70, deskY - 52, stampInner, {
-        fontFamily: "monospace",
-        fontSize: "14px",
+        fontFamily: '"Press Start 2P", "Courier New", monospace',
+        fontSize: "10px",
         color: isBurnout ? "#8a2a55" : "#d14545",
       })
       .setOrigin(0.5)
