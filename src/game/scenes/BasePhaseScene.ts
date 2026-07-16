@@ -814,8 +814,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 5. Sanity FX
     this.fx.update(time, this.player.sanity);
 
-    // 6. Marcadores de ameaça + weapon pickups + near-door check
+    // 6. Marcadores de ameaça + parry hint + weapon pickups + near-door check
     this.threatMarkers?.update();
+    this.updateParryHint(time);
     this.updateWeaponPickups();
     const nearDoor =
       this.bossDefeated &&
