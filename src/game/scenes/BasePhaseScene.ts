@@ -1017,6 +1017,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       .setVisible(true);
   }
 
+  protected playBossEnrageMoment(x: number, y: number) {
     this.cameras.main.flash(240, 200, 20, 20, false);
     this.cameras.main.shake(260, 0.01);
     const shout = this.add
