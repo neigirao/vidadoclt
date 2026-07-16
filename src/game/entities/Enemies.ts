@@ -116,15 +116,21 @@ export function showTelegraph(
   // Ensina a convenção por CONTEXTO (1×): quando surge o 1º aviso VERMELHO
   // (investida/AoE), legenda o significado das cores. Amarelo é o caso comum e
   // dispensa aula. maybeShow é no-op após a 1ª vez (flag em localStorage).
-  if (color === TELEGRAPH.danger) {
+  const isDanger = color === TELEGRAPH.danger;
+  if (isDanger) {
     TutorialPrompts.maybeShow(
       scene,
       "telegraph_color",
-      "🔴 vermelho = investida: PARRY ou reposicione.  🟡 amarelo = tiro: saia da linha.",
+      "!! (vermelho) = investida: PARRY ou reposicione.  ! (amarelo) = tiro: saia da linha.",
     );
   }
+  // Codificação DUPLA (cor + FORMA) — daltônico-segura. A convenção do #52 usava
+  // só cor (vermelho/amarelo), que ~8% dos homens não distingue. O glyph carrega
+  // a mesma info independente de cor: "!!" = investida/AoE (pesado), "!" = projétil.
+  // ASCII de propósito (‼ U+203C podia virar tofu na mono do sistema).
+  const glyph = isDanger ? "!!" : "!";
   const mark = scene.add
-    .text(e.x, e.y - 40, "!", {
+    .text(e.x, e.y - 40, glyph, {
       fontFamily: "monospace",
       fontSize: "18px",
       fontStyle: "bold",
