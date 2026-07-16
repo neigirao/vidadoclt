@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
-import { addPhaseBackground, addParallaxLayers } from "../systems/Background";
+import { addPhaseBackground, addParallaxLayers, addDenseOpenSpaceParallax } from "../systems/Background";
 import { seedAmbientLore } from "../systems/AmbientLore";
 import type { GameEnemy } from "../entities/types";
 import {
@@ -173,6 +173,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     addPhaseBackground(this, "bg-openspace", HUD_TOP_H, FLOOR_Y);
     addParallaxLayers(this, 1, HUD_TOP_H, FLOOR_Y);
+    addDenseOpenSpaceParallax(this, HUD_TOP_H, FLOOR_Y, LEVEL_WIDTH);
     // Storytelling ambiental (post-its de piada corporativa BR, revelam por
     // proximidade). O player é criado adiante; o poll só lê X depois.
     seedAmbientLore(this, 1, FLOOR_Y, LEVEL_WIDTH, run.seed ?? "CLT", () => this.player?.x ?? 0);
