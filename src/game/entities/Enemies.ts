@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { noise2d } from "../systems/CorporateAI";
 import { markKilled } from "../systems/BestiarySystem";
+import { TutorialPrompts } from "../systems/TutorialPrompts";
 // Config de animação (contagem de frames + ms por estado) — FONTE ÚNICA em
 // systems/EnemyAnimConfig.ts, compartilhada com o SpriteLabScene (que cruza e
 // avisa quando os frames disponíveis divergem do que o jogo cicla).
@@ -91,12 +92,37 @@ export function fxGlow(e: Phaser.GameObjects.Sprite, color = 0xffdd00, ms = 280)
 // Telegraph warning bubble — flashes a "!" above an enemy as it winds up an
 // attack, so the player can read the threat and react (combate justo).
 const _telegraphActive = new WeakSet<Phaser.GameObjects.GameObject>();
-export function showTelegraph(e: Phaser.Physics.Arcade.Sprite, color = "#ffcc00"): void {
+// ─── Convenção de telegrafia por COR (leitura padronizada de ameaça) ──────────
+// Antes cada inimigo passava uma cor arbitrária (#ff5533/#66ccff/#cc44ff/#88ff88…)
+// sem significado — o jogador não conseguia "ler" o tipo de ataque pela cor.
+// Convenção fixa (roubada de Dead Cells/Skul):
+//   • VERMELHO = INVESTIDA/AoE — o inimigo vem até você (lunge/charge) ou cobre
+//     área. Reposicione ou faça PARRY; não dá pra só ficar parado desviando.
+//   • AMARELO  = PROJÉTIL — tem linha de tiro. Saia da linha (dash/andar de lado).
+export const TELEGRAPH = {
+  danger: "#ff3b30", // investida / AoE — parry ou reposicione
+  ranged: "#ffcc33", // projétil — saia da linha
+} as const;
+
+export function showTelegraph(
+  e: Phaser.Physics.Arcade.Sprite,
+  color: string = TELEGRAPH.ranged,
+): void {
   if (_telegraphActive.has(e)) return;
   _telegraphActive.add(e);
   // Captura a cena AGORA: se o inimigo morrer durante o telegraph, destroy()
   // zera e.scene e o onComplete estouraria ao acessar e.scene.events.
   const scene = e.scene;
+  // Ensina a convenção por CONTEXTO (1×): quando surge o 1º aviso VERMELHO
+  // (investida/AoE), legenda o significado das cores. Amarelo é o caso comum e
+  // dispensa aula. maybeShow é no-op após a 1ª vez (flag em localStorage).
+  if (color === TELEGRAPH.danger) {
+    TutorialPrompts.maybeShow(
+      scene,
+      "telegraph_color",
+      "🔴 vermelho = investida: PARRY ou reposicione.  🟡 amarelo = tiro: saia da linha.",
+    );
+  }
   const mark = scene.add
     .text(e.x, e.y - 40, "!", {
       fontFamily: "monospace",
@@ -246,7 +272,7 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
         this.dir = dx >= 0 ? 1 : -1;
         this.setFlipX(this.dir === -1);
         fxGlow(this, 0xff5533, 420);
-        showTelegraph(this, "#ff5533");
+        showTelegraph(this, TELEGRAPH.danger);
       }
       if (this._atkState !== "none") {
         if (this._atkState === "telegraph") {
@@ -486,7 +512,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
             this.stateUntil = t + 700;
             this.setDisplaySize(44, 64); // visual "swell" during telegraph
             fxGlow(this, 0xffdd00, 460);
-            showTelegraph(this, "#cc44ff");
+            showTelegraph(this, TELEGRAPH.danger);
             body.setVelocityX(0);
             const label = this.scene.add
               .text(this.x, this.y - 36, "RETROSPECTIVA!", {
@@ -510,7 +536,7 @@ export class ScrumMasterCaotico extends Phaser.Physics.Arcade.Sprite {
             this.aiState = "charge";
             this.stateUntil = t + 500;
             fxGlow(this, 0xffdd00, 460);
-            showTelegraph(this, "#ff5533");
+            showTelegraph(this, TELEGRAPH.danger);
             body.setVelocityX(0);
           }
         }
@@ -779,7 +805,7 @@ export class AnalistaSeniorExausto extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "telegraph";
           this.stateUntil = t + 650;
           fxGlow(this, 0xffdd00, 460);
-          showTelegraph(this, "#ff5533");
+          showTelegraph(this, TELEGRAPH.danger);
           body.setVelocityX(0);
         }
         break;
@@ -924,7 +950,7 @@ export class EnemyRH extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "telegraph";
           this.stateUntil = t + 380;
           fxGlow(this, 0xffdd00, 460);
-          showTelegraph(this, "#ff4488");
+          showTelegraph(this, TELEGRAPH.danger);
           body.setVelocityX(0);
         }
         break;
@@ -1047,7 +1073,7 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
           this.aiState = "telegraph";
           this.stateUntil = t + 400;
           fxGlow(this, 0xffdd00, 460);
-          showTelegraph(this, "#ff4488");
+          showTelegraph(this, TELEGRAPH.danger);
           body.setVelocityX(0);
         }
         break;
@@ -1249,7 +1275,7 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
         this._nextFireAt = t + 1200;
         this._windupUntil = t + 320;
         fxGlow(this, 0x66ccff, 400);
-        showTelegraph(this, "#66ccff");
+        showTelegraph(this, TELEGRAPH.ranged);
       }
       if (this._windupUntil > 0) {
         body.setVelocityX(0);

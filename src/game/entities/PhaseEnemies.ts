@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { resolveSprite, applyTexture } from "../systems/SpriteLibrary";
 import { markKilled } from "../systems/BestiarySystem";
-import { fxGlow, showTelegraph } from "./Enemies";
+import { fxGlow, showTelegraph, TELEGRAPH } from "./Enemies";
 import { runtimeFrameAddition } from "../systems/EnemyAnimConfig";
 
 const HIT_INVULN_MS = 400;
@@ -156,7 +156,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
     if (t >= this._nextFireAt) {
       this._nextFireAt = t + 4000;
       fxGlow(this, 0xff6666, 380);
-      showTelegraph(this, "#ff6666");
+      showTelegraph(this, TELEGRAPH.ranged);
       this.scene.time.delayedCall(320, () => {
         if (this.active) [-1, 0, 1].forEach((dir) => this.onFire?.(this.x, this.y - 10, dir));
       });
@@ -229,7 +229,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
       if (dist < 150) {
         // charge toward player — telegraph
         fxGlow(this, 0xffdd00, 460);
-        showTelegraph(this, "#ff5533");
+        showTelegraph(this, TELEGRAPH.danger);
         const dir = this.target.x >= this.x ? 1 : -1;
         this._dir = dir;
         this.setFlipX(dir === -1);
@@ -575,7 +575,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
     if (t >= this._nextFireAt) {
       this._nextFireAt = t + 3000;
       fxGlow(this, 0x88ff88, 380);
-      showTelegraph(this, "#88ff88");
+      showTelegraph(this, TELEGRAPH.ranged);
       this.scene.time.delayedCall(320, () => {
         if (this.active) this.onFire?.(this.x, this.y);
       });
@@ -753,7 +753,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
     if (t >= this._nextSpawnAt) {
       this._nextSpawnAt = t + 4000;
       fxGlow(this, 0x66ccff, 380);
-      showTelegraph(this, "#66ccff");
+      showTelegraph(this, TELEGRAPH.ranged);
       this.scene.time.delayedCall(320, () => {
         if (this.active) this.onSpawnError?.(this.x, this.y - 30);
       });
@@ -835,7 +835,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
     if (t >= this._nextBombAt) {
       this._nextBombAt = t + 3000;
       fxGlow(this, 0xff8844, 380);
-      showTelegraph(this, "#ff8844");
+      showTelegraph(this, TELEGRAPH.ranged);
       this.scene.time.delayedCall(320, () => {
         if (this.active) this.onBomb?.(this.x, this.y + 10);
       });
