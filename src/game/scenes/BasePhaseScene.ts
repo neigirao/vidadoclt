@@ -468,6 +468,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 8. Subclass populates this.enemyGroups and this.boss
     this.setupEnemiesAndGroups();
 
+    // 8-entry. Beat de entrada do boss (Sprint 1 — Auditoria Design):
+    // Fase 1 tinha o momento cinematográfico do Gerente; Fases 2–5 spawnavam
+    // o boss cru. Agora um stinger genérico com câmera + zoom + label do cargo.
+    if (this.boss?.active) this.playBossEntryBeat(this.boss.x, this.boss.y);
+
     // 8-marks. Marcadores de leitura de ameaça (!/♦/+) por arquétipo, acima dos
     // inimigos que os declaram (threatType). Rushers básicos ficam sem marcador.
     this.threatMarkers = new ThreatMarkers(this);
