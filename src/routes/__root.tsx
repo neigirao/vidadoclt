@@ -77,7 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
+      { title: "A Vida do CLT — Roguelite Corporativo" },
       {
         name: "description",
         content:
@@ -114,6 +114,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      // Identidade tipográfica do jogo (ver src/game/systems/Fonts.ts).
+      // Preconnect antes do stylesheet acelera o handshake TLS c/ os hosts do Google Fonts.
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap",
       },
     ],
   }),
