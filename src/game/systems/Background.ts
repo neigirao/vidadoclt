@@ -586,3 +586,117 @@ export function addPhaseBackground(
     },
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fundo PROCEDURAL da cobertura (CEO) — desenhado em código, sem arte externa.
+//
+// O `bg-cobertura` era o skyline chapado de 32KB — a PIOR arte do jogo, e no
+// CLÍMAX (última impressão da run). Gerar por IA está bloqueado por custo; então
+// pintamos aqui: céu de crepúsculo tenso (vermelho/laranja → maroon), um sol
+// baixo ominoso, e DUAS camadas de skyline em parallax (longe dim, perto com
+// janelas acesas em brasa). Determinístico (mesma seed → mesmo desenho),
+// respeita `reduceSanityFx` (desliga o pulso de luz). Fica ATRÁS do gameplay
+// (depth 0) e por baixo do parallax/decor da cena.
+// ─────────────────────────────────────────────────────────────────────────────
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function addCeoRooftopBackground(scene: Phaser.Scene, topY: number, bottomY: number): void {
+  const W = LEVEL_WIDTH;
+  const H = bottomY - topY;
+  const horizon = topY + H * 0.62;
+  const rnd = mulberry32(0xce0c0de);
+
+  // 1) Céu em bandas (gradiente vertical): topo maroon profundo → laranja em brasa
+  //    no horizonte. Muitas faixas finas = degradê suave sem shader.
+  const sky = scene.add.graphics().setScrollFactor(0.1, 0).setDepth(0);
+  const top = Phaser.Display.Color.ValueToColor(0x1e0a10);
+  const mid = Phaser.Display.Color.ValueToColor(0x5a1c18);
+  const low = Phaser.Display.Color.ValueToColor(0xb5501f);
+  const bands = 48;
+  for (let i = 0; i < bands; i++) {
+    const t = i / (bands - 1);
+    const from = t < 0.7 ? top : mid;
+    const to = t < 0.7 ? mid : low;
+    const lt = t < 0.7 ? t / 0.7 : (t - 0.7) / 0.3;
+    const c = Phaser.Display.Color.Interpolate.ColorWithColor(from, to, 100, Math.round(lt * 100));
+    sky.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), 1);
+    sky.fillRect(0, topY + (H * i) / bands, W, H / bands + 1);
+  }
+
+  // 2) Sol/lua baixo e ominoso perto do horizonte (disco vermelho com halo).
+  const sunX = W * 0.72;
+  const sunY = horizon - 26;
+  sky.fillStyle(0xd8632a, 0.28);
+  sky.fillCircle(sunX, sunY, 96);
+  sky.fillStyle(0xe8843a, 0.5);
+  sky.fillCircle(sunX, sunY, 60);
+  sky.fillStyle(0xf2a24a, 0.8);
+  sky.fillCircle(sunX, sunY, 34);
+
+  // 3) Skyline distante (parallax lento, silhueta baixa, poucas janelas fracas).
+  const far = scene.add.graphics().setScrollFactor(0.3, 0).setDepth(1);
+  far.fillStyle(0x1a0f14, 1);
+  for (let x = 0; x < W; ) {
+    const bw = 40 + Math.floor(rnd() * 60);
+    const bh = 24 + Math.floor(rnd() * 60);
+    far.fillRect(x, horizon - bh, bw, bh + (bottomY - horizon));
+    far.fillStyle(0x2a1a1e, rnd() * 0.4 + 0.3);
+    for (let wy = horizon - bh + 6; wy < horizon; wy += 10) {
+      for (let wx = x + 4; wx < x + bw - 4; wx += 9) {
+        if (rnd() > 0.75) far.fillRect(wx, wy, 3, 4);
+      }
+    }
+    far.fillStyle(0x1a0f14, 1);
+    x += bw + 6;
+  }
+
+  // 4) Skyline próximo (parallax mais rápido, prédios altos, janelas em BRASA).
+  const near = scene.add.graphics().setScrollFactor(0.5, 0).setDepth(2);
+  for (let x = -20; x < W; ) {
+    const bw = 60 + Math.floor(rnd() * 80);
+    const bh = 60 + Math.floor(rnd() * 110);
+    near.fillStyle(0x0c0709, 1);
+    near.fillRect(x, horizon - bh, bw, bh + (bottomY - horizon));
+    for (let wy = horizon - bh + 8; wy < horizon - 4; wy += 12) {
+      for (let wx = x + 6; wx < x + bw - 6; wx += 12) {
+        if (rnd() > 0.62) {
+          near.fillStyle(rnd() > 0.5 ? 0xff8a3a : 0xffb347, rnd() * 0.5 + 0.4);
+          near.fillRect(wx, wy, 4, 6);
+        }
+      }
+    }
+    x += bw + 4;
+  }
+
+  // 5) Névoa vermelha tensa por cima do horizonte (assinatura do andar do CEO).
+  const haze = scene.add.graphics().setScrollFactor(0.1, 0).setDepth(3);
+  haze.fillStyle(0xb03018, 0.12);
+  haze.fillRect(0, horizon - 40, W, 80);
+
+  if (loadSettings().reduceSanityFx) return;
+  // Pulso de brasa muito lento no sol (respiro de luz) — vida sem flicker.
+  const pulse = scene.add.graphics().setScrollFactor(0.1, 0).setDepth(1);
+  const p = { v: 0 };
+  scene.tweens.add({
+    targets: p,
+    v: 1,
+    duration: 4200,
+    yoyo: true,
+    repeat: -1,
+    ease: "Sine.InOut",
+    onUpdate: () => {
+      pulse.clear();
+      pulse.fillStyle(0xff7a2a, 0.06 + p.v * 0.1);
+      pulse.fillCircle(sunX, sunY, 70 + p.v * 30);
+    },
+  });
+}

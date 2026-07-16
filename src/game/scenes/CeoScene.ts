@@ -1,11 +1,10 @@
-import { bgUrl } from "../systems/BgOverrides";
 import Phaser from "phaser";
 import { Telemetry } from "../systems/Telemetry";
 import { applyCinematicPostFx, applyBiomePalette } from "../systems/PostFx";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import {
-  addPhaseBackground,
+  addCeoRooftopBackground,
   addParallaxLayers,
   addPhaseAmbience,
   addPhaseParticles,
@@ -46,10 +45,6 @@ export class CeoScene extends Phaser.Scene {
     super("CeoScene");
   }
 
-  preload() {
-    this.load.image("bg-cobertura", bgUrl("bg-cobertura"));
-  }
-
   create() {
     Telemetry.phaseEnter(this.scene.key);
     const run = getRun(this);
@@ -63,11 +58,10 @@ export class CeoScene extends Phaser.Scene {
     applyCinematicPostFx(this);
     applyBiomePalette(this, 6);
 
-    addPhaseBackground(this, "bg-cobertura", HUD_TOP_H, FLOOR_Y);
-    // A cena do CEO não é fase numerada, então caía fora da compensação procedural
-    // que as Fases 3/4/5 recebem — o clímax ficava com o fundo mais pobre e chapado.
-    // Reusa o tratamento da Fase 5 (janela só-moldura + céu/pôr-do-sol da cobertura)
-    // + poeira/ambiência, fechando o gap sem depender de arte nova.
+    // Fundo PROCEDURAL da cobertura (pintado em código) no lugar do skyline chapado
+    // `bg-cobertura` — o clímax tinha a pior arte do jogo. Céu de crepúsculo tenso
+    // + sol ominoso + 2 camadas de skyline com janelas em brasa. Sem custo/arte nova.
+    addCeoRooftopBackground(this, HUD_TOP_H, FLOOR_Y);
     addParallaxLayers(this, 5, HUD_TOP_H, FLOOR_Y, LEVEL_WIDTH);
     addPhaseAmbience(this, HUD_TOP_H, FLOOR_Y, LEVEL_WIDTH);
     addPhaseParticles(this, 5, HUD_TOP_H, FLOOR_Y);

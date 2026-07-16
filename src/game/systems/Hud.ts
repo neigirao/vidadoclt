@@ -103,6 +103,11 @@ export class Hud {
   private perkSlotGraphics!: Phaser.GameObjects.Graphics;
   private perkTexts: Phaser.GameObjects.Text[] = [];
   private activePerks: string[] = [];
+  private perkZones: Phaser.GameObjects.Zone[] = [];
+  private perkTooltip?: Phaser.GameObjects.Container;
+  private perkTooltipBg?: Phaser.GameObjects.Graphics;
+  private perkTooltipTitle?: Phaser.GameObjects.Text;
+  private perkTooltipDesc?: Phaser.GameObjects.Text;
 
   // Section 4 minimap
   private minimapG!: Phaser.GameObjects.Graphics;
@@ -665,13 +670,60 @@ export class Hud {
     this.botContainer.add(this.perkSlotGraphics);
     this.perkTexts = [];
 
+    // Tooltip do perk (hover) — a HUD mostrava ícone+nome curto mas não CONTAVA
+    // o que o perk faz. Passar o mouse no slot revela nome + descrição, tornando
+    // o build legível ("a HUD não conta a história do build" era problema do GD).
+    this.perkTooltipBg = this.scene.add.graphics();
+    this.perkTooltipTitle = this.scene.add
+      .text(8, 6, "", { fontFamily: F, fontSize: "10px", color: "#ffffff" })
+      .setOrigin(0, 0);
+    this.perkTooltipDesc = this.scene.add
+      .text(8, 20, "", {
+        fontFamily: F,
+        fontSize: "9px",
+        color: "#c8ccd6",
+        wordWrap: { width: 190 },
+      })
+      .setOrigin(0, 0);
+    this.perkTooltip = this.scene.add
+      .container(0, 0, [this.perkTooltipBg, this.perkTooltipTitle, this.perkTooltipDesc])
+      .setScrollFactor(0)
+      .setDepth(1200)
+      .setVisible(false);
+
     this.drawPerkSlots();
+  }
+
+  private showPerkTooltip(perk: string, slotX: number, slotY: number) {
+    const def = PERKS[perk as PerkId];
+    if (!def || !this.perkTooltip) return;
+    this.perkTooltipTitle!.setText(`${def.icon}  ${def.name}`);
+    this.perkTooltipDesc!.setText(def.description);
+    const boxW = 206;
+    const boxH = 26 + this.perkTooltipDesc!.height + 6;
+    // Ancora acima do slot; clampa dentro da tela.
+    let tx = slotX + PERK_SLOT_SIZE / 2 - boxW / 2;
+    tx = Phaser.Math.Clamp(tx, 4, GAME_WIDTH - boxW - 4);
+    const ty = slotY - boxH - 6;
+    this.perkTooltipBg!.clear();
+    this.perkTooltipBg!.fillStyle(0x0d0f14, 0.96);
+    this.perkTooltipBg!.fillRoundedRect(0, 0, boxW, boxH, 4);
+    this.perkTooltipBg!.lineStyle(1, 0x66aaff, 0.9);
+    this.perkTooltipBg!.strokeRoundedRect(0, 0, boxW, boxH, 4);
+    this.perkTooltip.setPosition(tx, ty).setVisible(true);
+  }
+
+  private hidePerkTooltip() {
+    this.perkTooltip?.setVisible(false);
   }
 
   private drawPerkSlots() {
     this.perkSlotGraphics.clear();
     this.perkTexts.forEach((t) => t.destroy());
     this.perkTexts = [];
+    this.perkZones.forEach((z) => z.destroy());
+    this.perkZones = [];
+    this.hidePerkTooltip();
 
     const totalW = PERK_COUNT * PERK_SLOT_SIZE + (PERK_COUNT - 1) * PERK_SLOT_GAP;
     const startX = S3_X + (SEC3_W - totalW) / 2;
@@ -716,6 +768,20 @@ export class Hud {
           this.botContainer.add(nameT);
           this.perkTexts.push(nameT);
         }
+        // Zona interativa (coords de tela absolutas — botContainer está em
+        // (0, HUD_BOT_Y)) que revela o tooltip do perk ao passar o mouse.
+        const absX = px;
+        const absY = HUD_BOT_Y + py;
+        const zone = this.scene.add
+          .zone(absX, absY, PERK_SLOT_SIZE, PERK_SLOT_SIZE)
+          .setOrigin(0, 0)
+          .setScrollFactor(0)
+          .setDepth(1100)
+          .setInteractive({ useHandCursor: true });
+        const perkId = perk;
+        zone.on("pointerover", () => this.showPerkTooltip(perkId, absX, absY));
+        zone.on("pointerout", () => this.hidePerkTooltip());
+        this.perkZones.push(zone);
       } else {
         // Empty slot — dotted border
         this.perkSlotGraphics.fillStyle(0x111318, 1);

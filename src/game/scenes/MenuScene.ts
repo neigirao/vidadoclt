@@ -427,7 +427,8 @@ export class MenuScene extends Phaser.Scene {
         if (run.loopCount === 0 && item.label === "JOGAR") {
           run.characterClass = "analista";
           run.culturas = ["padrao_clt"];
-          this.scene.start("OpenSpaceV2Scene");
+          // 1ª sessão: enquadra a premissa (loop temporal / CLT) antes da Fase 1.
+          this.scene.start("IntroScene", { nextScene: "OpenSpaceV2Scene" });
         } else {
           this.scene.start("ClassSelectScene");
         }
