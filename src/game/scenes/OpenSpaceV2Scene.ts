@@ -181,7 +181,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // Storytelling ambiental (post-its de piada corporativa BR, revelam por
     // proximidade). O player é criado adiante; o poll só lê X depois.
     seedAmbientLore(this, 1, FLOOR_Y, LEVEL_WIDTH, run.seed ?? "CLT", () => this.player?.x ?? 0);
-    if (run.cameFrom !== "copa") Telemetry.runStart(run.characterClass, run.culturas);
+    if (run.cameFrom !== "copa") Telemetry.runStart(run.characterClass, run.culturas, run.weaponId);
     Telemetry.phaseEnter(this.scene.key);
     this.spawnDustParticles();
     this.buildClockOverlays();

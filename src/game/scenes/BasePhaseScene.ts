@@ -1154,6 +1154,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   }
 
   protected handleSpecial(type: string, fx: number, fy: number, facing: 1 | -1, def: WeaponDef) {
+    Telemetry.verb("special"); // só dispara quando o especial realmente ativa (gated no Player)
     switch (type) {
       case "burst_ranged":
         for (let i = 0; i < 2; i++) {

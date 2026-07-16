@@ -5,6 +5,7 @@ import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
 import { sanityBand } from "../systems/PlayerState";
 import { ParticleFactory } from "../systems/ParticleFactory";
+import { Telemetry } from "../systems/Telemetry";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -364,6 +365,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.energy = Math.min(this.maxEnergy, this.energy + this.parryEnergyRestore);
       if (this.parryVrDrop > 0) this.vr += this.parryVrDrop;
       Sfx.parrySuccess();
+      Telemetry.verb("parry");
       this.setTint(0xffdd00);
       this.scene.time.delayedCall(180, () => this.clearTint());
       this.scene.cameras?.main?.shake(60, 0.01);
@@ -376,6 +378,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       amount * this.damageReductionMult * burnoutMods.damageTakenMult,
     );
     this.energy = Math.max(0, this.energy - reducedAmount);
+    Telemetry.damageTaken(reducedAmount);
     if (sanityHit) this.sanity = Math.max(this.sanityFloor, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
     Sfx.playerHit();
@@ -741,6 +744,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.dashUntil = time + DASH_MS;
       this.dashCooldownUntil = time + effectiveDashCooldown;
       this.dashId++; // nova janela de dash → nova dedup de hits ofensivos
+      Telemetry.verb("dash");
       Sfx.dash();
       body.setVelocityY(0);
       this.setAlpha(0.6);

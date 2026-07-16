@@ -5,6 +5,7 @@ import { TutorialPrompts } from "./TutorialPrompts";
 import { generateNotifSubject, noise2d } from "./CorporateAI";
 import { Sfx } from "./AudioSystem";
 import { loadSettings } from "./Settings";
+import { Telemetry } from "./Telemetry";
 
 // Static fallback pool — shown alongside procedurally-generated subjects
 const STATIC_NOTIFS = [
@@ -120,6 +121,7 @@ export class SanityFx {
       // VAI NA RAÇA: ao ENTRAR no Burnout, ensina o trade-off (é modo, não bug).
       // Parry apertado + frágil, MAS bate mais forte, ganha +VR e mata cura.
       if (band === "burnout") {
+        Telemetry.burnoutEnter(); // tuning: quantas runs realmente engajam o glass-cannon
         TutorialPrompts.maybeShow(
           this.scene,
           "burnout",
