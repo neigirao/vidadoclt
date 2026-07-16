@@ -71,6 +71,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   private gerente?: GerenteMicrogestor;
   // Evento APAGÃO + segredo do extintor
   private extintorLooted = false;
+  private apagaoTriggered = false; // player cortou o Quadro de Energia (1x/run)
   private shadowG!: Phaser.GameObjects.Graphics;
   private reuniaoUsed = false;
   private bossEntryTriggered = false;
@@ -748,6 +749,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // Item 1 — medidor de Produtividade + Item 2 — evento APAGÃO (sistemas)
     this.prod = new ProductivityMeter(this);
     this.apagao = new Apagao(this);
+    // APAGÃO agora é uma ESCOLHA com gatilho e recompensa (não mais sorteio de
+    // sala): um Quadro de Energia que o player corta (E) pra mergulhar a fase no
+    // escuro. História: no loop, sabotar a rede é como o CLT some do expediente.
+    this.spawnQuadroEnergia(run);
 
     // Item 2 — modificador da sala (depende do seed + loop)
     this.rollRoomEvent(run);
@@ -2004,6 +2009,99 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     });
   }
 
+  // ── APAGÃO como ESCOLHA: Quadro de Energia (gatilho) + recompensa ───────────
+  // História: o prédio é velho e o quadro de energia range. No loop, o CLT
+  // descobre que CORTAR a rede é como sumir do expediente — no escuro, quem está
+  // longe da sua lanterna "dorme" (não te vê). Custo: você fica cego além da luz.
+  // Recompensa: um cache de VR escondido + VR/kill ×1.6 enquanto durar. Vira
+  // DECISÃO (luz vs. stealth), não um handicap sorteado.
+  private spawnQuadroEnergia(run: import("../systems/PlayerState").RunState): void {
+    const qx = 620,
+      qy = FLOOR_Y - 70;
+    const g = this.add.graphics().setDepth(9);
+    g.fillStyle(0x3a4048, 1);
+    g.fillRect(qx - 14, qy - 20, 28, 40); // caixa metálica
+    g.lineStyle(2, 0x20242a, 1);
+    g.strokeRect(qx - 14, qy - 20, 28, 40);
+    g.fillStyle(0x2a2e34, 1);
+    g.fillRect(qx - 6, qy - 12, 12, 24); // alavanca
+    g.fillStyle(0x44dd66, 1);
+    g.fillRect(qx - 4, qy - 10, 8, 8); // LED verde (ligado)
+    const icon = this.add
+      .text(qx, qy - 30, "⚡", { fontSize: "12px" })
+      .setOrigin(0.5)
+      .setDepth(10);
+    const label = this.add
+      .text(qx, qy - 46, "QUADRO DE ENERGIA\ncortar? [E]", {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#cfd6de",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(10);
+    this.tweens.add({ targets: label, alpha: 0.45, duration: 900, yoyo: true, repeat: -1 });
+
+    const zone = this.add.zone(qx, qy, 60, 90);
+    this.physics.add.existing(zone, true);
+    this.physics.add.overlap(this.player, zone, () => {
+      if (this.apagaoTriggered) return;
+      if (
+        Phaser.Input.Keyboard.JustDown(this.interactKey) ||
+        this.player.gamepadInteractJustPressed
+      ) {
+        g.fillStyle(0xdd4444, 1);
+        g.fillRect(qx - 4, qy - 10, 8, 8); // LED vermelho (desligado)
+        this.tweens.killTweensOf(label);
+        label.destroy();
+        icon.destroy();
+        this.triggerApagao(qx, qy);
+      }
+    });
+  }
+
+  private triggerApagao(qx: number, qy: number): void {
+    this.apagaoTriggered = true;
+    this.apagao.enable();
+    this.eventVrMult = Math.max(this.eventVrMult ?? 1, 1.6); // +60% VR no escuro
+    this.cameras.main.flash(140, 0, 0, 0);
+    this.cameras.main.shake(160, 0.008);
+    // Recompensa imediata: um cache de VR que "só aparece no escuro".
+    this.dropVR(qx, qy - 12, 12);
+    const beat = this.add
+      .text(
+        GAME_WIDTH / 2,
+        HUD_TOP_H + 66,
+        "⚡ VOCÊ CORTA A ENERGIA\nNo escuro, o expediente não te vê. +VR.",
+        {
+          fontFamily: "monospace",
+          fontSize: "12px",
+          color: "#cfe0ff",
+          align: "center",
+          stroke: "#000000",
+          strokeThickness: 4,
+        },
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(980);
+    this.tweens.add({
+      targets: beat,
+      alpha: 0,
+      y: beat.y - 18,
+      delay: 1600,
+      duration: 900,
+      onComplete: () => beat.destroy(),
+    });
+    TutorialPrompts.maybeShow(
+      this,
+      "apagao",
+      "No escuro: inimigos longe DORMEM. Avance com a luz e pegue a horda um a um.",
+    );
+  }
+
   // Item 2 — sorteia um modificador da sala a partir do seed + loop e aplica seus efeitos.
   private rollRoomEvent(run: ReturnType<typeof getRun>): void {
     const EVENTS = [
@@ -2049,18 +2147,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
           this.eventVrMult = 1.4;
         },
       },
+      // NOTA: o APAGÃO saiu do sorteio de sala — virou ESCOLHA do player via o
+      // Quadro de Energia (spawnQuadroEnergia/triggerApagao). Tem gatilho e
+      // recompensa, não é mais um modificador aleatório.
       // Eventos MECÂNICOS (mudam regra, não só número):
-      {
-        id: "apagao",
-        name: "APAGÃO",
-        desc: "No escuro, inimigos longe dormem. +60% VR",
-        tip: "Você dita o ritmo: avance com a luz e pegue a horda um a um.",
-        color: "#aa88ff",
-        apply: () => {
-          this.eventVrMult = 1.6;
-          this.apagao.enable();
-        },
-      },
       {
         id: "fiscal",
         name: "FISCALIZAÇÃO",
