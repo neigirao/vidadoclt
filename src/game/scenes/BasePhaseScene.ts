@@ -892,7 +892,131 @@ export abstract class BasePhaseScene extends Phaser.Scene {
    * bosses que auto-escalam (phase2 interno) não precisam. */
   protected onBossEnrage() {}
 
-  protected playBossEnrageMoment(x: number, y: number) {
+  /**
+   * Beat de entrada do boss (Sprint 1 — Auditoria Design).
+   *
+   * Antes: nas Fases 2–5 o boss simplesmente aparecia no setup, sem "arrival
+   * moment". Só a Fase 1 tinha o Gerente entrando cinematograficamente.
+   * Agora: quando `setupEnemiesAndGroups()` popula `this.boss`, disparamos um
+   * stinger legível (câmera se aproxima em zoom leve + shake curto + label do
+   * cargo pulsando + som). Reusa `Sfx.bossAppear()` e o `bossPresence` que a
+   * cena já tem — só ADICIONA o gesto de câmera/label. Não muda hitbox nem HP.
+   *
+   * Genérico: usa o nome que a subclasse expõe via `getBossTitle()` (fallback
+   * "CHEFE" pra não quebrar cenas antigas que não implementem).
+   */
+  protected playBossEntryBeat(x: number, y: number) {
+    const cam = this.cameras.main;
+    Sfx.bossAppear();
+    cam.shake(180, 0.006);
+    // Zoom leve pra chamar atenção sem tirar o player do frame (mundo é
+    // side-scroller preso — girar/zoom pesado joga o alvo pra fora).
+    const originalZoom = cam.zoom;
+    this.tweens.add({
+      targets: cam,
+      zoom: originalZoom * 1.08,
+      duration: 260,
+      ease: "Quad.easeOut",
+      yoyo: true,
+      hold: 220,
+      onComplete: () => cam.setZoom(originalZoom),
+    });
+    // Label do cargo — Press Start 2P pra bater com a identidade do jogo.
+    const title = this.getBossTitle();
+    const label = this.add
+      .text(x, y - 70, title, {
+        fontFamily: '"Press Start 2P", "Courier New", monospace',
+        fontSize: "10px",
+        color: "#ff9944",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setDepth(999)
+      .setScale(0.4)
+      .setAlpha(0);
+    this.tweens.add({
+      targets: label,
+      alpha: 1,
+      scale: 1,
+      duration: 220,
+      ease: "Back.easeOut",
+    });
+    this.tweens.add({
+      targets: label,
+      y: label.y - 24,
+      alpha: 0,
+      delay: 900,
+      duration: 500,
+      ease: "Quad.easeIn",
+      onComplete: () => label.destroy(),
+    });
+  }
+
+  /**
+   * Título do boss para o `playBossEntryBeat`. Cenas concretas podem sobrescrever
+   * pra dizer o cargo real (ex.: "COORDENADOR", "DIRETOR FINANCEIRO"). Default
+   * genérico pra não quebrar cenas antigas.
+   */
+  protected getBossTitle(): string {
+    return "CHEFE À VISTA";
+  }
+
+  /**
+   * Contorno pulsante em UM inimigo por vez — o mais próximo dentro do alcance
+   * do parry (Sprint 1 — Auditoria Game Design). O sistema de parry existe mas
+   * é invisível fora da zona 1 (nenhum inimigo tem marker "parryável"). Isso
+   * legenda a oportunidade no MOMENTO: só quando o player pode parriar E há
+   * inimigo perto o bastante. Não gasta ciclos se parry estiver em cooldown ou
+   * desabilitado (burnout).
+   */
+  private _parryHintFx?: Phaser.GameObjects.Ellipse;
+  private _parryHintTarget?: Phaser.GameObjects.Sprite;
+  protected updateParryHint(time: number) {
+    const state = this.player.getParryState(time);
+    // Só destaca quando o parry está DISPONÍVEL. Em cooldown/desabilitado
+    // (burnout) o destaque mentiria — nesse caso escondo o overlay.
+    if (state !== "ready") {
+      if (this._parryHintFx) this._parryHintFx.setVisible(false);
+      this._parryHintTarget = undefined;
+      return;
+    }
+    // Acha o inimigo mais próximo dentro do alcance de reação humana (~120px).
+    let target: Phaser.GameObjects.Sprite | undefined;
+    let bestDist = 120;
+    for (const gDef of this.enemyGroups) {
+      gDef.group.getChildren().forEach((c) => {
+        const e = c as Phaser.Physics.Arcade.Sprite;
+        if (!e.active) return;
+        const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
+        if (d < bestDist) {
+          bestDist = d;
+          target = e;
+        }
+      });
+    }
+    if (!target) {
+      if (this._parryHintFx) this._parryHintFx.setVisible(false);
+      this._parryHintTarget = undefined;
+      return;
+    }
+    if (!this._parryHintFx) {
+      this._parryHintFx = this.add
+        .ellipse(0, 0, 40, 16, 0x00ffdd, 0)
+        .setStrokeStyle(2, 0x00ffdd, 0.9)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(49);
+    }
+    const fx = this._parryHintFx;
+    this._parryHintTarget = target;
+    // Pulso suave por tempo — evita `tweens.add` a cada frame.
+    const pulse = 1 + Math.sin(time / 180) * 0.15;
+    fx.setPosition(target.x, target.y + target.displayHeight / 2 - 2)
+      .setDisplaySize(target.displayWidth * 1.1 * pulse, 14 * pulse)
+      .setAlpha(0.45 + Math.sin(time / 240) * 0.25)
+      .setVisible(true);
+  }
+
     this.cameras.main.flash(240, 200, 20, 20, false);
     this.cameras.main.shake(260, 0.01);
     const shout = this.add
