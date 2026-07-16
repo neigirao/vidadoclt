@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
+import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import { getRun } from "../systems/PlayerState";
@@ -19,20 +19,35 @@ interface RoomMeta {
   title: string;
   bg: number;
   hint: string;
+  floor: number; // cor do chão TEMÁTICA por sala (antes todas usavam copaFloor)
 }
 
 const ROOMS: Record<BonusRoomType, RoomMeta> = {
-  banheiro: { title: "BANHEIRO — RESPIRO", bg: 0x18242a, hint: "Um instante de paz. +Sanidade." },
-  ti: { title: "TI — ABRIR CHAMADO", bg: 0x1a1622, hint: "Pegue um equipamento novo." },
+  // Piso azulejado frio (banheiro), técnico cinza-azul (TI), carpete morno (RH),
+  // carpete verde-escuro de banco (Financeiro) — matiz por tema, mesma escala.
+  banheiro: {
+    title: "BANHEIRO — RESPIRO",
+    bg: 0x18242a,
+    hint: "Um instante de paz. +Sanidade.",
+    floor: 0x243036,
+  },
+  ti: {
+    title: "TI — ABRIR CHAMADO",
+    bg: 0x1a1622,
+    hint: "Pegue um equipamento novo.",
+    floor: 0x22262f,
+  },
   rh: {
     title: "RH — ROLETA DA CULTURA",
     bg: 0x221a1a,
     hint: "Gire a roleta. Pode dar bom... ou não.",
+    floor: 0x2a2018,
   },
   financeiro: {
     title: "FINANCEIRO — COFRE",
     bg: 0x14200f,
     hint: "Pegue o VR. Cuidado com as armadilhas.",
+    floor: 0x1a2410,
   },
 };
 
@@ -136,15 +151,118 @@ export class SalaBonusScene extends Phaser.Scene {
       }
     }
 
-    // Chão
+    // ── TI — ABRIR CHAMADO: racks de servidor (LEDs), bandeja de cabos, monitor ─
+    if (this.type === "ti") {
+      for (let r = 0; r < 3; r++) {
+        const rx = LEVEL_WIDTH - 300 + r * 96;
+        bg.fillStyle(0x14121c, 1);
+        bg.fillRect(rx, FLOOR_Y - 150, 76, 150); // gabinete
+        bg.fillStyle(0x0c0b12, 1);
+        bg.fillRect(rx + 6, FLOOR_Y - 144, 64, 138); // painel interno
+        const leds = [0x66ff88, 0xffbb44, 0xff5555];
+        for (let row = 0; row < 12; row++) {
+          for (let c = 0; c < 4; c++) {
+            bg.fillStyle(leds[(r + row + c) % 3], 0.9);
+            bg.fillRect(rx + 12 + c * 14, FLOOR_Y - 138 + row * 11, 5, 5);
+          }
+        }
+      }
+      bg.fillStyle(0x1a1826, 1);
+      bg.fillRect(0, wallTop + 30, LEVEL_WIDTH, 8); // bandeja de cabos
+      bg.lineStyle(2, 0x3a5a8a, 0.5);
+      for (let x = 20; x < LEVEL_WIDTH; x += 60)
+        bg.lineBetween(x, wallTop + 38, x + 30, wallTop + 58);
+      bg.fillStyle(0x2a2436, 1);
+      bg.fillRect(90, FLOOR_Y - 40, 120, 40); // mesa do chamado
+      bg.fillStyle(0x0b1420, 1);
+      bg.fillRect(120, FLOOR_Y - 92, 64, 46); // tela
+      bg.fillStyle(0x66ccff, 0.8);
+      for (let i = 0; i < 3; i++) bg.fillRect(126, FLOOR_Y - 84 + i * 10, 52 - i * 10, 4);
+      bg.fillStyle(0xff4444, 1);
+      bg.fillCircle(176, FLOOR_Y - 86, 4); // alerta
+      bg.fillStyle(0x1a1a1a, 1);
+      bg.fillRect(146, FLOOR_Y - 46, 12, 6); // pescoço
+    }
+
+    // ── RH — ROLETA DA CULTURA: roda de segmentos + mesa/plaquinha + cartazes ───
+    if (this.type === "rh") {
+      const wx = LEVEL_WIDTH / 2 + 120;
+      const wy = FLOOR_Y - 74;
+      const wr = 46;
+      bg.fillStyle(0x3a2a1a, 1);
+      bg.fillRect(wx - 6, wy, 12, 74); // pedestal
+      bg.fillStyle(0x0e0a08, 1);
+      bg.fillCircle(wx, wy, wr + 4); // aro
+      bg.fillStyle(0x2a2018, 1);
+      bg.fillCircle(wx, wy, wr); // disco
+      bg.lineStyle(2, 0x0e0a08, 0.8);
+      const segCol = [0x66aa66, 0xccaa44, 0xaa5555, 0x5577aa, 0xaa7755, 0x888888];
+      for (let i = 0; i < 6; i++) {
+        const a = Phaser.Math.DegToRad(i * 60);
+        bg.lineBetween(wx, wy, wx + Math.cos(a) * wr, wy + Math.sin(a) * wr);
+        const am = Phaser.Math.DegToRad(i * 60 + 30);
+        bg.fillStyle(segCol[i], 0.9);
+        bg.fillCircle(wx + Math.cos(am) * wr * 0.6, wy + Math.sin(am) * wr * 0.6, 7);
+      }
+      bg.fillStyle(0x1a1410, 1);
+      bg.fillCircle(wx, wy, 8); // cubo
+      bg.fillStyle(0xf2c14e, 1);
+      bg.fillTriangle(wx, wy - wr - 8, wx - 6, wy - wr + 2, wx + 6, wy - wr + 2); // ponteiro
+      bg.fillStyle(0x3a2a1a, 1);
+      bg.fillRect(100, FLOOR_Y - 34, 110, 34); // mesa
+      bg.fillStyle(0xd8c8a0, 1);
+      bg.fillRect(130, FLOOR_Y - 46, 50, 14); // plaquinha
+      for (let i = 0; i < 3; i++) {
+        const cx = 110 + i * 150;
+        bg.fillStyle(0x2e2620, 1);
+        bg.fillRect(cx, wallTop + 40, 70, 50); // cartaz
+        bg.fillStyle(0x88bb66, 0.85);
+        bg.fillTriangle(cx + 35, wallTop + 50, cx + 22, wallTop + 72, cx + 48, wallTop + 72); // seta ↑
+      }
+    }
+
+    // ── FINANCEIRO — COFRE: cofre com dial, gaveteiro de arquivos, maços de VR ──
+    if (this.type === "financeiro") {
+      const cx = LEVEL_WIDTH - 220;
+      const cy = FLOOR_Y - 130;
+      bg.fillStyle(0x1a1a14, 1);
+      bg.fillRect(cx, cy, 150, 130); // corpo
+      bg.lineStyle(3, 0x3a3a2a, 1);
+      bg.strokeRect(cx, cy, 150, 130);
+      bg.fillStyle(0x22221a, 1);
+      bg.fillCircle(cx + 75, cy + 65, 44); // porta
+      bg.lineStyle(2, 0xc8a94a, 0.9);
+      bg.strokeCircle(cx + 75, cy + 65, 44);
+      bg.fillStyle(0xc8a94a, 1);
+      bg.fillCircle(cx + 75, cy + 65, 10); // dial
+      bg.lineStyle(2, 0x1a1a14, 1);
+      for (let i = 0; i < 4; i++) {
+        const a = Phaser.Math.DegToRad(i * 45);
+        bg.lineBetween(cx + 75, cy + 65, cx + 75 + Math.cos(a) * 10, cy + 65 + Math.sin(a) * 10);
+      }
+      bg.fillStyle(0xc8a94a, 1);
+      bg.fillRect(cx + 122, cy + 58, 16, 14); // maçaneta
+      bg.fillStyle(0x2a2a1e, 1);
+      bg.fillRect(100, FLOOR_Y - 90, 60, 90); // gaveteiro
+      for (let i = 0; i < 3; i++) {
+        bg.fillStyle(0x1c1c14, 1);
+        bg.fillRect(106, FLOOR_Y - 84 + i * 28, 48, 22);
+        bg.fillStyle(0x8a8a6a, 1);
+        bg.fillRect(124, FLOOR_Y - 76 + i * 28, 12, 4); // puxador
+      }
+      bg.fillStyle(0x3a2a1a, 1);
+      bg.fillRect(210, FLOOR_Y - 30, 90, 30); // mesa
+      for (let i = 0; i < 3; i++) {
+        bg.fillStyle(0x4a7a3a, 1);
+        bg.fillRect(220 + i * 22, FLOOR_Y - 44, 18, 12); // maço
+        bg.fillStyle(0xc8e0a0, 0.8);
+        bg.fillRect(224 + i * 22, FLOOR_Y - 40, 10, 4); // faixa
+      }
+    }
+
+    // Chão — cor TEMÁTICA por sala (meta.floor)
     this.platforms = this.physics.add.staticGroup();
-    const floor = this.add.rectangle(
-      LEVEL_WIDTH / 2,
-      FLOOR_Y + 16,
-      LEVEL_WIDTH,
-      32,
-      COLORS.copaFloor,
-    );
+    const floor = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 16, LEVEL_WIDTH, 32, meta.floor);
     this.physics.add.existing(floor, true);
     this.platforms.add(floor);
 

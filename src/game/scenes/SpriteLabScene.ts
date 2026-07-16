@@ -452,6 +452,13 @@ export class SpriteLabScene extends Phaser.Scene {
   private showConfirm(show: boolean) {
     this.confirmBtn.setVisible(show);
     this.confirmLabel.setVisible(show);
+    // O ENVIAR fica na MESMA faixa Y do "COMPLETAR FAMÍLIA" (buildFixButtons é
+    // criado depois → desenharia por cima e escondia o ENVIAR). Quando há upload
+    // pendente, trazemos o ENVIAR (e seu label) pro topo pra ficar clicável.
+    if (show) {
+      this.confirmBtn.setToTop();
+      this.confirmLabel.setToTop();
+    }
   }
 
   private sendPending() {
