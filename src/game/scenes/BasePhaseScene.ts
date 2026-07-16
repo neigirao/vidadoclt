@@ -1350,6 +1350,45 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       body.setBounce(0.4);
       body.setDrag(120, 0);
     }
+    // Popup dourado flutuante (Sprint 1 — Auditoria UX): kills lucrativos
+    // (segredo/produtividade × evento) precisam "estalar" na hora. Um número
+    // sobe + fade, com escala baseada no total (pequeno pra +1, grande pra +25).
+    this.spawnVrPopup(x, y, count);
+  }
+
+  private spawnVrPopup(x: number, y: number, count: number) {
+    const big = count >= 5;
+    const label = `+${count} VR`;
+    const size = big ? 15 : 11;
+    const t = this.add
+      .text(x, y - 24, label, {
+        fontFamily: "monospace",
+        fontSize: `${size}px`,
+        fontStyle: "bold",
+        color: big ? "#ffe066" : "#f2c14e",
+        stroke: "#3a2a00",
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(650)
+      .setScale(0.6)
+      .setAlpha(0);
+    this.tweens.add({
+      targets: t,
+      alpha: 1,
+      scale: 1,
+      duration: 120,
+      ease: "Back.easeOut",
+    });
+    this.tweens.add({
+      targets: t,
+      y: t.y - (big ? 32 : 22),
+      alpha: 0,
+      duration: 700,
+      delay: 180,
+      ease: "Quad.easeIn",
+      onComplete: () => t.destroy(),
+    });
   }
 
   /**
