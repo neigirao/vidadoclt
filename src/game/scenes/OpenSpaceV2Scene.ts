@@ -733,6 +733,17 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         "Escape do escritório antes das 18h. Cada dia recomeça — mais forte.",
       ),
     );
+    // Dica 2 (só 1ª sessão): os controles básicos. Antes só apareciam no Pause
+    // ou em prompts contextuais mid-combate — o novato que não disparava um
+    // prompt ficava sem referência. A fila do TutorialPrompts serializa após o
+    // "goal".
+    this.time.delayedCall(2800, () =>
+      TutorialPrompts.maybeShow(
+        this,
+        "controls",
+        "Mover ←→  ·  Pular ESPAÇO  ·  Dash SHIFT  ·  Atacar J  ·  Especial K  ·  Pausa ESC",
+      ),
+    );
 
     // Item 1 — medidor de Produtividade + Item 2 — evento APAGÃO (sistemas)
     this.prod = new ProductivityMeter(this);
