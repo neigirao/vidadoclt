@@ -150,6 +150,137 @@ export function addParallaxLayers(
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Parallax DENSO da Fase 1 (Open Space) — 6 planos com scrollFactors distintos
+// para dar profundidade REAL de escritório: parede distante → baias → estações
+// → divisórias próximas → plantas → coluna de frente nas bordas.
+//
+// Alphas baixos e canto central do gameplay (120..GAME_WIDTH-120) intocado no
+// plano de frente — nada cruza a linha de tiro. Respeita reduceSanityFx.
+// Palette casa com bg-openspace (tons frios azul-acinzentado). Chame DEPOIS
+// de addPhaseBackground/addParallaxLayers.
+// ─────────────────────────────────────────────────────────────────────────────
+export function addDenseOpenSpaceParallax(
+  scene: Phaser.Scene,
+  topY: number,
+  floorY: number,
+  levelWidth = LEVEL_WIDTH,
+): void {
+  const reduce = loadSettings().reduceSanityFx;
+  const rng = new Phaser.Math.RandomDataGenerator(["dense-openspace"]);
+  const band = floorY - topY;
+
+  // ── Plano 1 (sf 0.08) — parede distante com listras horizontais sutis ─────
+  const wall = scene.add.graphics().setScrollFactor(0.08, 0).setDepth(0.5);
+  wall.fillStyle(0x1b2432, 0.35);
+  for (let y = topY + 40; y < floorY - 80; y += 34) {
+    wall.fillRect(0, y, levelWidth, 1); // linhas de piso do fundo
+  }
+  // Manchas de luz difusa vindas das janelas laterais
+  for (let i = 0; i < 4; i++) {
+    const gx = (levelWidth / 4) * i + rng.between(60, 180);
+    scene.add
+      .ellipse(gx, topY + band * 0.35, 260, 90, 0x9fd0ff, 0.05)
+      .setScrollFactor(0.08, 0)
+      .setDepth(0.5)
+      .setBlendMode(Phaser.BlendModes.ADD);
+  }
+
+  // ── Plano 2 (sf 0.18) — baias MUITO distantes (silhueta borrada) ──────────
+  const far = scene.add.graphics().setScrollFactor(0.18, 0).setDepth(0.6);
+  for (let x = -20; x < levelWidth + 40; x += rng.between(72, 96)) {
+    const h = rng.between(28, 40);
+    far.fillStyle(0x141a25, 0.55);
+    far.fillRect(x, floorY - 90 - h, 60, h);
+    // luzinha de monitor
+    far.fillStyle(0x6c8ec4, 0.28);
+    far.fillRect(x + 22, floorY - 90 - h + 8, 12, 8);
+  }
+
+  // ── Plano 3 (sf 0.32) — fileira de estações intermediárias ────────────────
+  const mid1 = scene.add.graphics().setScrollFactor(0.32, 0).setDepth(0.8);
+  for (let x = 30; x < levelWidth; x += 130) {
+    mid1.fillStyle(0x121924, 0.7);
+    mid1.fillRect(x, floorY - 72, 92, 72); // divisória média
+    mid1.fillStyle(0x1a2432, 0.7);
+    mid1.fillRect(x + 6, floorY - 66, 80, 8); // topo
+    mid1.fillStyle(0x0d131c, 0.75);
+    mid1.fillRect(x + 34, floorY - 58, 26, 18); // monitor
+    mid1.fillStyle(0x88a0c8, 0.22);
+    mid1.fillRect(x + 36, floorY - 56, 22, 14); // brilho do monitor
+  }
+
+  // ── Plano 4 (sf 0.65) — plantas de escritório perto do chão ───────────────
+  // Silhueta baixa, entre a linha do gameplay e as divisórias — não cobre nada
+  // acima da altura do player.
+  const plants = scene.add.graphics().setScrollFactor(0.65, 0).setDepth(1.2);
+  for (let x = 90; x < levelWidth; x += rng.between(210, 320)) {
+    // vaso
+    plants.fillStyle(0x2a1e14, 0.55);
+    plants.fillRect(x - 8, floorY - 18, 16, 18);
+    // folhagem
+    plants.fillStyle(0x1a3826, 0.55);
+    plants.fillCircle(x, floorY - 26, 10);
+    plants.fillCircle(x - 6, floorY - 32, 8);
+    plants.fillCircle(x + 6, floorY - 30, 7);
+  }
+
+  // ── Plano 5 (sf 1.35) — coluna de frente nas BORDAS (nunca no centro) ─────
+  // Sensação de "passando por corredor" — se move mais rápido que o gameplay.
+  // Só nas 90px de cada margem para não ocluir combate.
+  if (!reduce) {
+    const fg = scene.add.graphics().setScrollFactor(1.35, 0).setDepth(950);
+    // faixa esquerda
+    fg.fillStyle(0x0a0e14, 0.35);
+    fg.fillRect(0, topY + 20, 30, floorY - topY - 30);
+    // faixa direita
+    fg.fillRect(GAME_WIDTH - 30, topY + 20, 30, floorY - topY - 30);
+    // brilho sutil no canto (reforça vinheta natural)
+    scene.add
+      .rectangle(0, (topY + floorY) / 2, 60, floorY - topY, 0x000000, 0.18)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(1.35, 0)
+      .setDepth(949);
+    scene.add
+      .rectangle(GAME_WIDTH, (topY + floorY) / 2, 60, floorY - topY, 0x000000, 0.18)
+      .setOrigin(1, 0.5)
+      .setScrollFactor(1.35, 0)
+      .setDepth(949);
+  }
+
+  // ── Plano 6 (sf 1.6) — motes de poeira NA FRENTE (foreground dust) ────────
+  // Camera-space rápido: passa "voando" pelo player, reforçando velocidade.
+  if (!reduce) {
+    for (let i = 0; i < 10; i++) {
+      const x = Phaser.Math.Between(0, GAME_WIDTH);
+      const y = Phaser.Math.Between(topY + 40, floorY - 40);
+      const mote = scene.add
+        .circle(x, y, Phaser.Math.FloatBetween(0.8, 1.6), 0xffffff, 0.14)
+        .setScrollFactor(0)
+        .setDepth(948)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      scene.tweens.add({
+        targets: mote,
+        x: x - Phaser.Math.Between(80, 160), // "vento" pra esquerda
+        duration: Phaser.Math.Between(2400, 4200),
+        repeat: -1,
+        onRepeat: () => {
+          mote.x = GAME_WIDTH + Phaser.Math.Between(0, 60);
+          mote.y = Phaser.Math.Between(topY + 40, floorY - 40);
+        },
+      });
+      scene.tweens.add({
+        targets: mote,
+        alpha: 0,
+        duration: Phaser.Math.Between(1400, 2400),
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
+  }
+}
+
 /**
  * Vida ambiente da cena (o cenário "respira"). Puramente visual, depth baixo,
  * não interfere no gameplay. Duas camadas:
