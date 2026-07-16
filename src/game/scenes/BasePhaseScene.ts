@@ -1356,7 +1356,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.spawnVrPopup(x, y, count);
   }
 
-  private spawnVrPopup(x: number, y: number, count: number) {
+  protected spawnVrPopup(x: number, y: number, count: number) {
     const big = count >= 5;
     const label = `+${count} VR`;
     const size = big ? 15 : 11;
