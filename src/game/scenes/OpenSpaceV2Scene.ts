@@ -2175,6 +2175,8 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         }
       });
     }
+    // Popup dourado flutuante (Sprint 1 — mesmo helper da Base).
+    this.spawnVrPopup(x, y, count);
   }
 
   // BasePhaseScene.update() cuida de player.update, tickPassive (via
