@@ -43,12 +43,11 @@ export class VitoriaScene extends Phaser.Scene {
     // (a fuga às 18h). Fica ATRÁS do texto (depth baixo), como vinheta.
     this.drawExitDoor(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20);
 
-    // Title
+    // Title — identidade (Press Start 2P). 32 → 22px pra caber (fonte é ~1.5× mais larga que monospace).
     const title = this.add
       .text(GAME_WIDTH / 2, 80, "VOCÊ ESCAPOU!", {
-        fontFamily: "monospace",
-        fontSize: "32px",
-        fontStyle: "bold",
+        fontFamily: '"Press Start 2P", "Courier New", monospace',
+        fontSize: "22px",
         color: "#f2c14e",
         stroke: "#000000",
         strokeThickness: 5,

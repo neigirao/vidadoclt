@@ -134,20 +134,20 @@ export class MenuScene extends Phaser.Scene {
     g.lineStyle(1, ACCENT, 0.2);
     g.strokeRect(12, 55, 296, 72);
 
-    // Game title
-    this.add.text(20, 65, "VIDA DO CLT", {
-      fontFamily: "monospace",
-      fontSize: "36px",
-      fontStyle: "bold",
+    // Game title — Press Start 2P (identidade). Corpo do "Press Start 2P" é
+    // muito largo → reduzo de 36 → 20px, fica no mesmo footprint visual.
+    this.add.text(20, 68, "VIDA DO CLT", {
+      fontFamily: '"Press Start 2P", "Courier New", monospace',
+      fontSize: "20px",
       color: TEXT_ACCENT,
       stroke: "#000000",
       strokeThickness: 4,
     });
 
-    // Tagline
+    // Tagline — VT323 (retro terminal, mais legível em corpo pequeno).
     this.add.text(20, 108, "— SOBREVIVA. PRODUZA. ESCAPE. —", {
-      fontFamily: "monospace",
-      fontSize: "9px",
+      fontFamily: '"VT323", "Courier New", monospace',
+      fontSize: "14px",
       color: TEXT_DIM,
       letterSpacing: 1,
     });
