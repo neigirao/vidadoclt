@@ -411,10 +411,17 @@ export class CopaScene extends Phaser.Scene {
     // ── Salas opcionais (#3): a porta lateral oferece UMA sala-bônus aleatória
     // ainda não limpa nesta run (roguelite). Reunião → horda; as demais →
     // SalaBonusScene. Determinístico pela seed + nº de salas já limpas.
+    //
+    // DESLIGADO para o ALPHA (decisão de simplificação — Opção B): o fluxo fica
+    // linear Fase→Copa→Fase, sem os desvios opcionais (que confundiam: "não tem
+    // pra onde ir"). As cenas e a lógica ficam no repo (reversível: virar `true`);
+    // continuam alcançáveis por TESTAR FASE / LAB. Religam quando ganharem
+    // fundos próprios (hoje são cor sólida).
+    const OPTIONAL_ROOMS_ENABLED = false;
     const ALL_ROOMS = ["reuniao", "banheiro", "ti", "rh", "financeiro"] as const;
     const cleared = new Set(run.optionalRoomsCleared ?? []);
     const available = ALL_ROOMS.filter((r) => !cleared.has(r));
-    if (available.length > 0) {
+    if (OPTIONAL_ROOMS_ENABLED && available.length > 0) {
       const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 6) || "0", 10) : 0;
       const pick = available[(seedNum + cleared.size) % available.length];
       const LABELS: Record<string, string> = {
