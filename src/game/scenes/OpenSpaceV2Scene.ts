@@ -173,6 +173,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     addPhaseBackground(this, "bg-openspace", HUD_TOP_H, FLOOR_Y);
     addParallaxLayers(this, 1, HUD_TOP_H, FLOOR_Y);
+    addDenseOpenSpaceParallax(this, HUD_TOP_H, FLOOR_Y, LEVEL_WIDTH);
     // Storytelling ambiental (post-its de piada corporativa BR, revelam por
     // proximidade). O player é criado adiante; o poll só lê X depois.
     seedAmbientLore(this, 1, FLOOR_Y, LEVEL_WIDTH, run.seed ?? "CLT", () => this.player?.x ?? 0);
