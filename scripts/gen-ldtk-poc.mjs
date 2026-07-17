@@ -52,6 +52,15 @@ const ldtk = {
             { __identifier: "Enemy", px: [430, 384] },
             { __identifier: "Enemy", px: [900, 384] },
             { __identifier: "Exit", px: [1180, 388] },
+            // PROPS (objetos de cenário) — mesa/computador/lâmpada posicionados no
+            // LDtk e renderizados pelo código a partir dos sprites de objeto do
+            // jogo (tex-baia/tex-monitor) + lâmpada procedural.
+            { __identifier: "Desk", px: [250, 416] },
+            { __identifier: "Computer", px: [250, 384] },
+            { __identifier: "Desk", px: [1050, 416] },
+            { __identifier: "Lamp", px: [360, 60] },
+            { __identifier: "Lamp", px: [760, 60] },
+            { __identifier: "Lamp", px: [1120, 60] },
           ],
         },
       ],
