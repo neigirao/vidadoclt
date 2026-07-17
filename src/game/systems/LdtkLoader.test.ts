@@ -42,9 +42,11 @@ describe("LdtkLoader.parseLdtk", () => {
 
   it("converte runs horizontais do IntGrid em plataformas [x, surfY, tiles]", () => {
     const lvl = parseLdtk(sample);
+    const has = (x: number, y: number, t: number) =>
+      lvl.platforms.some((p) => p[0] === x && p[1] === y && p[2] === t);
     // linha 1 (surfY=32): cols 1-3 → x=32, tiles=3 ; linha 2 (surfY=64): 0-4 → x=0, tiles=5
-    expect(lvl.platforms).toContainEqual([32, 32, 3]);
-    expect(lvl.platforms).toContainEqual([0, 64, 5]);
+    expect(has(32, 32, 3)).toBe(true);
+    expect(has(0, 64, 5)).toBe(true);
     expect(lvl.platforms.length).toBe(2);
   });
 
@@ -55,11 +57,18 @@ describe("LdtkLoader.parseLdtk", () => {
 
   it("lê as entidades com posição em px", () => {
     const lvl = parseLdtk(sample);
-    expect(lvl.entities).toContainEqual({ id: "PlayerStart", x: 16, y: 60 });
-    expect(lvl.entities).toContainEqual({ id: "Enemy", x: 100, y: 60 });
+    const find = (id: string) => lvl.entities.find((e) => e.id === id);
+    expect(find("PlayerStart")).toEqual({ id: "PlayerStart", x: 16, y: 60 });
+    expect(find("Enemy")).toEqual({ id: "Enemy", x: 100, y: 60 });
   });
 
   it("lança se não há nível", () => {
-    expect(() => parseLdtk({ levels: [] })).toThrow();
+    let threw = false;
+    try {
+      parseLdtk({ levels: [] });
+    } catch {
+      threw = true;
+    }
+    expect(threw).toBe(true);
   });
 });

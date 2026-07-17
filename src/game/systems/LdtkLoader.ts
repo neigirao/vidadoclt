@@ -34,7 +34,7 @@ type RawLayer = {
   __cHei?: number;
   __gridSize?: number;
   intGridCsv?: number[];
-  entityInstances?: Array<{ __identifier?: string; px?: [number, number] }>;
+  entityInstances?: Array<{ __identifier?: string; px?: number[] }>;
 };
 type RawLdtk = { levels?: Array<{ layerInstances?: RawLayer[] }> };
 
@@ -78,7 +78,7 @@ export function parseLdtk(json: RawLdtk, solidValue = 1): LdtkLevel {
   }
 
   const entities: LdtkEntity[] = (entLayer?.entityInstances ?? [])
-    .filter((e) => e.__identifier && e.px)
+    .filter((e) => e.__identifier && e.px && e.px.length >= 2)
     .map((e) => ({ id: e.__identifier!, x: e.px![0], y: e.px![1] }));
 
   return {
