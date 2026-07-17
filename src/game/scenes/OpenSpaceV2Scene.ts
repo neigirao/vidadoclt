@@ -725,6 +725,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     };
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
     this.hud.setObjective("Sobreviva ao expediente e acesse a Copa");
+    this.spawnStations(); // máquina de venda + totem de perk (tecla E)
     this.hud.setSynergies(this.synergyLabels); // badge das sinergias perk×perk
     // Dica 1 (só 1ª sessão): o objetivo/loop do jogo.
     this.time.delayedCall(2600, () =>
