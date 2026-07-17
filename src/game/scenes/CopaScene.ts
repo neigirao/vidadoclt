@@ -372,17 +372,13 @@ export class CopaScene extends Phaser.Scene {
       const dest = r.nextScene ?? "OpenSpaceV2Scene";
       r.cameFrom = "copa"; // preserve energy/sanity on the next phase
       r.nextScene = undefined;
-      // Ramificação de rotas (#1): a 1ª vez que se sai da Copa rumo à Fase 2,
-      // passa pela escolha de departamento (2A Comercial / 2B Atendimento).
-      if (dest === "Phase2Scene" && !r.route) {
-        this.scene.start("RouteSelectScene", { nextScene: dest, stage: "dept" });
-        return;
-      }
-      // 2ª bifurcação: ao sair rumo à Fase 3, escolhe a área (3A Produto / 3B Tec).
-      if (dest === "Phase3Scene" && !r.route2) {
-        this.scene.start("RouteSelectScene", { nextScene: dest, stage: "area" });
-        return;
-      }
+      // FLUXO LINEAR (decisão do dono): sem escolha de rota. O jogo segue fixo
+      // 1→2→3→4→5→CEO. As Fases 2/3 ainda variam conteúdo por `route`/`route2`
+      // (fundo/título/objetivo/layout/inimigos), então fixamos uma variante
+      // canônica em vez de perguntar — mantém o conteúdo, tira a bifurcação.
+      // (A antiga RouteSelectScene continua registrada mas não é mais acessada.)
+      if (dest === "Phase2Scene") r.route ??= "comercial";
+      if (dest === "Phase3Scene") r.route2 ??= "produto";
       this.scene.start(dest);
     };
 
