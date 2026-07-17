@@ -94,6 +94,10 @@ export type AnimState = "walk" | "idle" | "attack";
 // registra aqui, ao carregar/subir, quantos frames o override implica para um
 // prefixo+estado (índice do frame extra + 1). Os acessores abaixo devolvem
 // max(base, registrado), então `setEnemyTex` e o LAB passam a ciclar os extras.
+// Além dos overrides de RUNTIME, `AtlasFrameScan` também registra aqui no boot a
+// contagem de frames CONTÍGUOS não-vazios que existem NO ATLAS (arte subida pelo
+// LAB direto no atlas via pack-atlas) → o jogo cicla o que está empacotado sem
+// editar as consts acima na mão.
 const _additions: Record<AnimState, Record<string, number>> = {
   walk: {},
   idle: {},
