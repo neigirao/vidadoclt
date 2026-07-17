@@ -1,0 +1,236 @@
+# Cobertura de frames — Corporate Escape (A Vida do CLT)
+
+> Gerado por `node scripts/frame-coverage.mjs`. Não editar à mão — rodar o script.
+
+O padrão de referência é o **ciclo de 16 frames** por ação (o `enemy-senior/walk`).
+A contagem abaixo é **contígua a partir do 0** — a mesma regra que `systems/AtlasFrameScan.ts`
+usa no boot — então frame-lixo solto (índice não-contíguo) **não** é contado.
+
+- **Sujeitos:** 46
+- **Pares sujeito×ação:** 210
+- **Já em 16:** 3 (`player/run`, `player/walk`, `enemy-senior/walk`)
+- **Frames faltando p/ TUDO a 16:** 2.608
+
+## Como ler / priorizar
+
+A maioria dos gaps é **cosmética hoje**: `hurt` e `death` rodam em 1 frame de propósito,
+e várias famílias das Fases 2–5 renderizam base estática. O ganho real está no **walk**
+(que o jogo cicla via `setEnemyTex` na Fase 1 e `animPhase` nas Fases 2–5) e nas ações do
+**jogador**. Chegar a 16 em tudo é um objetivo de arte enorme e não desejável para
+itens/objetos (loops curtos de 3–4).
+
+Pipeline para preencher: **LAB SPRITES → slot de frame** (upload) ou o sintetizador
+determinístico `scripts/gen-inbetweens.mjs` (dobra um ciclo por interpolação, sem IA).
+
+| Categoria | Sujeito | Ação | Tem | Alvo | Faltam |
+| --- | --- | --- | ---: | ---: | ---: |
+| Jogador | `player` | attack | 3 | 16 | 13 |
+| Jogador | `player` | dash | 1 | 16 | 15 |
+| Jogador | `player` | fall | 3 | 16 | 13 |
+| Jogador | `player` | hurt | 1 | 16 | 15 |
+| Jogador | `player` | idle | 6 | 16 | 10 |
+| Jogador | `player` | jump | 6 | 16 | 10 |
+| Jogador | `player` | run | 16 | 16 | ✓ |
+| Jogador | `player` | walk | 16 | 16 | ✓ |
+| Bosses/Mid-boss | `boss-ceo` | attack | 4 | 16 | 12 |
+| Bosses/Mid-boss | `boss-ceo` | death | 2 | 16 | 14 |
+| Bosses/Mid-boss | `boss-ceo` | hurt | 1 | 16 | 15 |
+| Bosses/Mid-boss | `boss-ceo` | idle | 2 | 16 | 14 |
+| Bosses/Mid-boss | `boss-ceo` | run | 6 | 16 | 10 |
+| Bosses/Mid-boss | `boss-ceo` | special | 4 | 16 | 12 |
+| Bosses/Mid-boss | `boss-ceo` | walk | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-brenda` | attack | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-brenda` | death | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-brenda` | hurt | 1 | 16 | 15 |
+| Bosses/Mid-boss | `enemy-brenda` | idle | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-brenda` | walk | 4 | 16 | 12 |
+| Bosses/Mid-boss | `enemy-coord-boss` | attack | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-coord-boss` | death | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-coord-boss` | hurt | 1 | 16 | 15 |
+| Bosses/Mid-boss | `enemy-coord-boss` | idle | 4 | 16 | 12 |
+| Bosses/Mid-boss | `enemy-coord-boss` | walk | 8 | 16 | 8 |
+| Bosses/Mid-boss | `enemy-diretor` | attack | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-diretor` | death | 4 | 16 | 12 |
+| Bosses/Mid-boss | `enemy-diretor` | hurt | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-diretor` | idle | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-diretor` | walk | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-evangelista-boss` | attack | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-evangelista-boss` | death | 4 | 16 | 12 |
+| Bosses/Mid-boss | `enemy-evangelista-boss` | hurt | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-evangelista-boss` | idle | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-evangelista-boss` | walk | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-evangelista-mega` | attack | 4 | 16 | 12 |
+| Bosses/Mid-boss | `enemy-evangelista-mega` | death | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-evangelista-mega` | hurt | 1 | 16 | 15 |
+| Bosses/Mid-boss | `enemy-evangelista-mega` | idle | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-evangelista-mega` | walk | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-gerente` | attack | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-gerente` | death | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-gerente` | hurt | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-gerente` | idle | 2 | 16 | 14 |
+| Bosses/Mid-boss | `enemy-gerente` | run | 4 | 16 | 12 |
+| Bosses/Mid-boss | `enemy-gerente` | walk | 4 | 16 | 12 |
+| Bosses/Mid-boss | `enemy-scrum-boss` | attack | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-scrum-boss` | death | 3 | 16 | 13 |
+| Bosses/Mid-boss | `enemy-scrum-boss` | hurt | 1 | 16 | 15 |
+| Bosses/Mid-boss | `enemy-scrum-boss` | idle | 4 | 16 | 12 |
+| Bosses/Mid-boss | `enemy-scrum-boss` | walk | 12 | 16 | 4 |
+| Inimigos | `enemy-analista` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-analista` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-analista` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-analista` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-analista` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-analista-novo` | attack | 2 | 16 | 14 |
+| Inimigos | `enemy-analista-novo` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-analista-novo` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-analista-novo` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-analista-novo` | walk | 5 | 16 | 11 |
+| Inimigos | `enemy-arquivo` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-arquivo` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-arquivo` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-arquivo` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-arquivo` | walk | 4 | 16 | 12 |
+| Inimigos | `enemy-bateria` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-bateria` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-bateria` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-bateria` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-bateria` | walk | 4 | 16 | 12 |
+| Inimigos | `enemy-cabo` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-cabo` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-cabo` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-cabo` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-cabo` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-carimbador` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-carimbador` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-carimbador` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-carimbador` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-carimbador` | walk | 4 | 16 | 12 |
+| Inimigos | `enemy-coletor` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-coletor` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-coletor` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-coletor` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-coletor` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-coordenador` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-coordenador` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-coordenador` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-coordenador` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-coordenador` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-drone` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-drone` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-drone` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-drone` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-drone` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-estagiario` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-estagiario` | death | 4 | 16 | 12 |
+| Inimigos | `enemy-estagiario` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-estagiario` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-estagiario` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-estagiario-b` | attack | 2 | 16 | 14 |
+| Inimigos | `enemy-estagiario-b` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-estagiario-b` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-estagiario-b` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-estagiario-b` | walk | 5 | 16 | 11 |
+| Inimigos | `enemy-evangelista` | attack | 4 | 16 | 12 |
+| Inimigos | `enemy-evangelista` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-evangelista` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-evangelista` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-evangelista` | walk | 4 | 16 | 12 |
+| Inimigos | `enemy-facilitador` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-facilitador` | death | 4 | 16 | 12 |
+| Inimigos | `enemy-facilitador` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-facilitador` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-facilitador` | walk | 4 | 16 | 12 |
+| Inimigos | `enemy-gerente-attack` | deadline | 4 | 16 | 12 |
+| Inimigos | `enemy-gerente-attack` | escopo | 4 | 16 | 12 |
+| Inimigos | `enemy-gerente-attack` | sprint | 4 | 16 | 12 |
+| Inimigos | `enemy-gerente-run` | charge | 3 | 16 | 13 |
+| Inimigos | `enemy-guardiao-cafe` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-guardiao-cafe` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-guardiao-cafe` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-guardiao-cafe` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-guardiao-cafe` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-impressora` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-impressora` | death | 4 | 16 | 12 |
+| Inimigos | `enemy-impressora` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-impressora` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-impressora` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-impressora-b` | attack | 2 | 16 | 14 |
+| Inimigos | `enemy-impressora-b` | death | 4 | 16 | 12 |
+| Inimigos | `enemy-impressora-b` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-impressora-b` | idle | 1 | 16 | 15 |
+| Inimigos | `enemy-impressora-b` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-impressora-c` | attack | 2 | 16 | 14 |
+| Inimigos | `enemy-impressora-c` | death | 4 | 16 | 12 |
+| Inimigos | `enemy-impressora-c` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-impressora-c` | idle | 1 | 16 | 15 |
+| Inimigos | `enemy-impressora-c` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-impressora-d` | attack | 2 | 16 | 14 |
+| Inimigos | `enemy-impressora-d` | death | 4 | 16 | 12 |
+| Inimigos | `enemy-impressora-d` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-impressora-d` | idle | 1 | 16 | 15 |
+| Inimigos | `enemy-impressora-d` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-noticeboard` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-noticeboard` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-noticeboard` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-noticeboard` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-noticeboard` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-planilha` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-planilha` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-planilha` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-planilha` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-planilha` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-reuniao` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-reuniao` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-reuniao` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-reuniao` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-reuniao` | walk | 4 | 16 | 12 |
+| Inimigos | `enemy-rh` | attack | 2 | 16 | 14 |
+| Inimigos | `enemy-rh` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-rh` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-rh` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-rh` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-scrum` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-scrum` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-scrum` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-scrum` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-scrum` | walk | 12 | 16 | 4 |
+| Inimigos | `enemy-seguranca` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-seguranca` | death | 4 | 16 | 12 |
+| Inimigos | `enemy-seguranca` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-seguranca` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-seguranca` | walk | 12 | 16 | 4 |
+| Inimigos | `enemy-senior` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-senior` | death | 4 | 16 | 12 |
+| Inimigos | `enemy-senior` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-senior` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-senior` | walk | 32 | 16 | ✓ |
+| Inimigos | `enemy-telemarketer` | attack | 3 | 16 | 13 |
+| Inimigos | `enemy-telemarketer` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-telemarketer` | hurt | 2 | 16 | 14 |
+| Inimigos | `enemy-telemarketer` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-telemarketer` | walk | 8 | 16 | 8 |
+| Inimigos | `enemy-ti-suporte` | attack | 4 | 16 | 12 |
+| Inimigos | `enemy-ti-suporte` | death | 3 | 16 | 13 |
+| Inimigos | `enemy-ti-suporte` | hurt | 1 | 16 | 15 |
+| Inimigos | `enemy-ti-suporte` | idle | 4 | 16 | 12 |
+| Inimigos | `enemy-ti-suporte` | walk | 6 | 16 | 10 |
+| NPC | `npc-faxineiro` | attack | 3 | 16 | 13 |
+| NPC | `npc-faxineiro` | death | 3 | 16 | 13 |
+| NPC | `npc-faxineiro` | hurt | 2 | 16 | 14 |
+| NPC | `npc-faxineiro` | idle | 3 | 16 | 13 |
+| NPC | `npc-faxineiro` | special | 3 | 16 | 13 |
+| NPC | `npc-faxineiro` | walk | 4 | 16 | 12 |
+| Objetos/Itens | `item-cafe` | cold | 3 | 16 | 13 |
+| Objetos/Itens | `item-cafe` | empty | 3 | 16 | 13 |
+| Objetos/Itens | `item-coffee-cup` | active | 3 | 16 | 13 |
+| Objetos/Itens | `item-coffee-cup` | broken | 3 | 16 | 13 |
+| Objetos/Itens | `item-coffee-cup` | empty | 3 | 16 | 13 |
+| Objetos/Itens | `item-coffee-cup` | idle | 3 | 16 | 13 |
+| Objetos/Itens | `item-convite` | accepted | 3 | 16 | 13 |
+| Objetos/Itens | `item-convite` | expired | 3 | 16 | 13 |
+| Objetos/Itens | `item-convite` | idle | 3 | 16 | 13 |
+| Objetos/Itens | `item-convite` | rejected | 3 | 16 | 13 |
+| Objetos/Itens | `item-email` | idle | 3 | 16 | 13 |
+| Objetos/Itens | `item-postit` | active | 3 | 16 | 13 |
+| Objetos/Itens | `item-vr-coin` | active | 3 | 16 | 13 |
+| Objetos/Itens | `obj-quadro-motivacional` | active | 0 | 16 | 16 |

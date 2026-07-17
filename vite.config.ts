@@ -1,5 +1,5 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync, unlinkSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 import type { Plugin } from "vite";
@@ -98,6 +98,7 @@ function spriteUploadDevPlugin(): Plugin {
 // Só em `vite dev` (apply:"serve").
 // ─────────────────────────────────────────────────────────────────────────────
 const FRAME_RE = /^[a-z0-9][a-z0-9_-]*$/i;
+const SPRITES_DIR = "public/assets/sprites";
 
 function readBody(req: import("node:http").IncomingMessage): Promise<string> {
   return new Promise((ok) => {
@@ -213,6 +214,31 @@ function frameFixDevPlugin(): Plugin {
             // Determinístico: re-empacota o atlas (serializado) com o frame consertado.
             const packed = await repackAtlas();
             return json(res, packed ? 200 : 500, { ...(result as object), repacked: packed });
+          } catch (e) {
+            json(res, 400, { ok: false, error: String(e) });
+          }
+        });
+      });
+
+      // DELETAR frame (botão do LAB). Remove public/assets/sprites/<frame>.png e
+      // re-empacota o atlas. Guard de nome + confina em sprites/ (sem traversal).
+      server.middlewares.use("/__sprite-delete", (req, res, next) => {
+        if (req.method !== "POST") return next();
+        void readBody(req).then(async (body) => {
+          try {
+            const { frame } = JSON.parse(body) as { frame?: string };
+            if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
+            const dir = resolve(process.cwd(), SPRITES_DIR);
+            const file = resolve(dir, `${frame}.png`);
+            if (!file.startsWith(dir + "/")) throw new Error("caminho inválido");
+            if (!existsSync(file)) throw new Error("frame não existe");
+            unlinkSync(file);
+            const packed = await repackAtlas();
+            json(res, packed ? 200 : 500, {
+              ok: packed,
+              deleted: `${frame}.png`,
+              repacked: packed,
+            });
           } catch (e) {
             json(res, 400, { ok: false, error: String(e) });
           }
