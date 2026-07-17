@@ -745,7 +745,10 @@ export class CopaScene extends Phaser.Scene {
       if (f.swingActive && f.swingHitbox) {
         const pb = this.player.getBounds();
         if (Phaser.Geom.Intersects.RectangleToRectangle(f.swingHitbox, pb)) {
-          this.player.takeDamage(f.swingDamage, f.sanityDamage);
+          // nonLethal: a Copa é hub seguro. O Faxineiro pune (não bata no
+          // zelador!) mas NÃO mata — piso de 1. Morrer no lugar seguro por
+          // esbarrar no healer é o anti-padrão que a telemetria pegou.
+          this.player.takeDamage(f.swingDamage, f.sanityDamage, undefined, true);
           f.swingActive = false;
           f.swingHitbox = null;
         }

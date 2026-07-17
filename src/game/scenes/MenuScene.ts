@@ -998,30 +998,25 @@ export class MenuScene extends Phaser.Scene {
     );
     iy += rowH + 8;
 
-    // Exportar telemetria — para playtesters mandarem os dados sem console.
+    // Telemetria — agora é AUTOMÁTICA (sobe pro Supabase sozinha). O botão de
+    // exportar saiu; o resumo vive num painel próprio (rota /telemetria com
+    // gráficos). Aqui só a nota + contagem local.
     rowBg(iy, 0);
     ov.add(
-      this.add.text(28, iy + 10, "Exportar dados de teste", {
+      this.add.text(28, iy + 10, "Telemetria: automática", {
         fontFamily: "monospace",
         fontSize: "11px",
         color: TEXT_LIGHT,
       }),
     );
-    const expState = this.add.text(OW - 150, iy + 10, "", {
-      fontFamily: "monospace",
-      fontSize: "11px",
-      color: TEXT_ACCENT,
-    });
     const n = Telemetry.count();
-    expState.setText(n > 0 ? `[ BAIXAR (${n}) ]` : "[ sem dados ]");
-    expState.setColor(n > 0 ? "#55dd77" : TEXT_DIM);
-    if (n > 0) {
-      expState.setInteractive({ useHandCursor: true }).on("pointerdown", () => {
-        const ok = Telemetry.download();
-        expState.setText(ok ? "[ baixado ✓ ]" : "[ falhou ]");
-      });
-    }
-    ov.add(expState);
+    ov.add(
+      this.add.text(OW - 190, iy + 10, `painel em /telemetria · ${n} eventos`, {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: TEXT_DIM,
+      }),
+    );
     iy += rowH + 8;
 
     // Info estática (não ajustável) — mantida como referência.
