@@ -163,6 +163,57 @@ const SUBJECTS: Subject[] = [
   mkItem("TI Suporte", "Fase 4", { base: ["tex-ti-suporte"] }),
   mkItem("Drone", "Fase 4", { base: ["tex-drone"] }),
   mkItem("Segurança", "Fase 4", { base: ["tex-seguranca"] }),
+  // ── Fase 5 ── (faltavam no LAB → arte nunca validada; por isso os sprites
+  // fracos da Fase 5). Estados conforme os frames existentes no atlas.
+  mkChar("Impressora Necro", "Fase 5", "impressora-d", {
+    idle: [0, 1],
+    walk: [0, 6],
+    attack: [0, 2],
+    hurt: [0, 1],
+    death: [0, 4],
+  }),
+  mkChar("Evangelista Mega", "Fase 5", "evangelista-mega", {
+    idle: [0, 2],
+    walk: [0, 2],
+    attack: [0, 4],
+    hurt: [0, 1],
+    death: [0, 3],
+  }),
+  mkChar("Carimbador", "Fase 5", "carimbador", {
+    idle: [0, 4],
+    walk: [0, 4],
+    attack: [0, 3],
+    hurt: [0, 2],
+    death: [0, 3],
+  }),
+  mkChar("Arquivo Ambulante", "Fase 5", "arquivo", {
+    idle: [0, 4],
+    walk: [0, 4],
+    attack: [0, 3],
+    hurt: [0, 2],
+    death: [0, 3],
+  }),
+  mkChar("Bateria Social", "Fase 5", "bateria", {
+    idle: [0, 4],
+    walk: [0, 4],
+    attack: [0, 3],
+    hurt: [0, 2],
+    death: [0, 3],
+  }),
+  // Bosses que REUSAM arte (recolor em runtime): Brenda ← rh (magenta), Diretor
+  // ← evangelista-boss (aço). No LAB aparecem na cor BASE (o recolor é do jogo),
+  // mas os frames-fonte são estes — completa a lista de chefões.
+  mkChar("Brenda (boss·rh)", "Boss", "rh", {
+    idle: [0, 4],
+    walk: [0, 4],
+    attack: [0, 2],
+    hurt: [0, 1],
+  }),
+  mkChar("Diretor (boss·evang)", "Boss", "evangelista-boss", {
+    idle: [0, 1],
+    walk: [0, 3],
+    hurt: [0, 1],
+  }),
   // Objetos
   mkItem("Baía", "Objeto", { idle: ["tex-baia"] }),
   mkItem("Bebedouro", "Objeto", { idle: ["tex-bebedouro"] }),
