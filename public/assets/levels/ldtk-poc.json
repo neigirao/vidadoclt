@@ -609,6 +609,48 @@
                 1180,
                 388
               ]
+            },
+            {
+              "__identifier": "Desk",
+              "px": [
+                250,
+                416
+              ]
+            },
+            {
+              "__identifier": "Computer",
+              "px": [
+                250,
+                384
+              ]
+            },
+            {
+              "__identifier": "Desk",
+              "px": [
+                1050,
+                416
+              ]
+            },
+            {
+              "__identifier": "Lamp",
+              "px": [
+                360,
+                60
+              ]
+            },
+            {
+              "__identifier": "Lamp",
+              "px": [
+                760,
+                60
+              ]
+            },
+            {
+              "__identifier": "Lamp",
+              "px": [
+                1120,
+                60
+              ]
             }
           ]
         }

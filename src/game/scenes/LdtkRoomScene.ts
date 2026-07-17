@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT } from "../constants";
 import { Fonts } from "../systems/Fonts";
 import { parseLdtk, type LdtkLevel } from "../systems/LdtkLoader";
+import { resolveSprite } from "../systems/SpriteLibrary";
 import { Player } from "../entities/Player";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,9 +81,19 @@ export class LdtkRoomScene extends Phaser.Scene {
       this.platforms.add(body);
     }
 
+    // PROPS de cenário posicionados no LDtk (camada Entities) — mesa/computador
+    // dos sprites de objeto do jogo; lâmpada procedural. Mostra que objetos
+    // (mesa/lâmpada/computador) também vêm do editor, não só chão/plataforma.
+    for (const e of this.level.entities) {
+      if (e.id === "Desk") this.addObjectSprite(e.x, e.y, "tex-baia", 1);
+      else if (e.id === "Computer") this.addObjectSprite(e.x, e.y, "tex-monitor", 2);
+      else if (e.id === "Lamp") this.addLamp(e.x, e.y);
+    }
+
     // Entities: PlayerStart, Enemy (marcadores), Exit.
     const start = this.level.entities.find((e) => e.id === "PlayerStart") ?? { x: 80, y: 380 };
     this.player = new Player(this, start.x, start.y);
+    this.player.setDepth(10); // acima dos props
     this.physics.add.collider(this.player, this.platforms);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
@@ -138,6 +149,28 @@ export class LdtkRoomScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setScrollFactor(0)
       .setDepth(1000);
+  }
+
+  /** Renderiza um sprite de objeto do jogo (tex-*) ancorado pela base (nos pés). */
+  private addObjectSprite(x: number, y: number, texKey: string, depth: number) {
+    const [tex, frame] = resolveSprite(texKey);
+    this.add.image(x, y, tex, frame).setOrigin(0.5, 1).setDepth(depth);
+  }
+
+  /** Lâmpada de teto procedural (luminária + cone de luz quente). */
+  private addLamp(x: number, y: number) {
+    const g = this.add.graphics().setDepth(3);
+    g.fillStyle(0x2a2e34, 1);
+    g.fillRect(x - 3, y - 8, 6, 12); // haste
+    g.fillStyle(0x3a4048, 1);
+    g.fillRect(x - 14, y + 2, 28, 6); // calha
+    g.fillStyle(0xffe08a, 1);
+    g.fillRect(x - 12, y + 6, 24, 3); // tubo aceso
+    // cone de luz quente descendo
+    const glow = this.add.graphics().setDepth(2).setBlendMode(Phaser.BlendModes.ADD);
+    glow.fillStyle(0xffcf6a, 0.1);
+    glow.fillTriangle(x - 10, y + 8, x + 10, y + 8, x + 70, y + 260);
+    glow.fillTriangle(x - 10, y + 8, x + 10, y + 8, x - 70, y + 260);
   }
 
   update(time: number, delta: number) {
