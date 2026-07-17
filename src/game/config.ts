@@ -5,6 +5,7 @@ import { MenuScene } from "./scenes/MenuScene";
 import { ClassSelectScene } from "./scenes/ClassSelectScene";
 import { SpriteLabScene } from "./scenes/SpriteLabScene";
 import { IntroScene } from "./scenes/IntroScene";
+import { LdtkRoomScene } from "./scenes/LdtkRoomScene";
 import { OpenSpaceV2Scene } from "./scenes/OpenSpaceV2Scene";
 import { CopaScene } from "./scenes/CopaScene";
 import { SalaReuniaoScene } from "./scenes/SalaReuniaoScene";
@@ -79,6 +80,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       MenuScene,
       ClassSelectScene,
       IntroScene,
+      LdtkRoomScene,
       OpenSpaceV2Scene,
       CopaScene,
       SalaReuniaoScene,

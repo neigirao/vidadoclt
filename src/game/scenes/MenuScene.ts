@@ -24,6 +24,7 @@ const TEST_PHASES: { label: string; scene: string; data: object }[] = [
   { label: "Fase 4 — Tecnologia", scene: "Phase4Scene", data: { fromRoute: true } },
   { label: "Fase 5 — Diretoria", scene: "Phase5Scene", data: { fromRoute: true } },
   { label: "CEO — Cobertura", scene: "CeoScene", data: {} },
+  { label: "POC LDtk — Arquivo Morto", scene: "LdtkRoomScene", data: {} },
 ];
 
 const ACCENT = 0xf2a800;
@@ -836,6 +837,11 @@ export class MenuScene extends Phaser.Scene {
     run.weaponId = run.weaponId ?? CLASSES[cls].startWeapon;
     run.culturas = run.culturas ?? [];
     run.perks = run.perks ?? [];
+    // Abre uma RUN de telemetria também no playtest via TESTAR FASE (pulo direto
+    // pra fase). Sem isso, o phaseEnter da fase era registrado mas nenhum
+    // run_start abria a run → esses playtests não contavam. `testPhase` marca a
+    // origem pra separar de runs reais na análise.
+    Telemetry.runStart(cls, run.culturas, run.weaponId, sceneKey);
     this.hideOverlay();
     this.cameras.main.fadeOut(200, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => this.scene.start(sceneKey, data));

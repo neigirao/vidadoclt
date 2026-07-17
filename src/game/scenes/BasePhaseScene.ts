@@ -1714,14 +1714,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
   protected buildFloor() {
     this.add.tileSprite(LEVEL_WIDTH / 2, FLOOR_Y + 8, LEVEL_WIDTH, 16, "tex-floor");
-    const floorPhys = this.add.rectangle(
-      LEVEL_WIDTH / 2,
-      FLOOR_Y + 8,
-      LEVEL_WIDTH,
-      16,
-      0x000000,
-      0,
-    );
+    // O CORPO físico é 120px de altura (começando em FLOOR_Y), não 16px como a
+    // faixa visual. Antes o corpo tinha só 16px: o player cai a até 1400px/s
+    // (~23px/frame a 60fps) > 16px → ATRAVESSAVA o chão e ficava "embaixo" (bug
+    // relatado na Fase 3, cujos layouts altos geram quedas rápidas). A Fase 1 já
+    // tinha esse corpo grosso; as Fases 2–5 haviam ficado com o fino. Igualado.
+    const floorPhys = this.add.rectangle(LEVEL_WIDTH / 2, FLOOR_Y + 60, LEVEL_WIDTH, 120, 0, 0);
     this.physics.add.existing(floorPhys, true);
     this.platforms.add(floorPhys);
   }

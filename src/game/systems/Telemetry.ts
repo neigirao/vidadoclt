@@ -126,11 +126,13 @@ export const Telemetry = {
     _sid = randId();
   },
 
-  /** Início de uma run (Fase 1). */
-  runStart(cls?: string, culturas?: string[], weapon?: string) {
+  /** Início de uma run. `testPhase` marca playtests via TESTAR FASE (pulo direto
+   *  pra uma fase) — assim esses playtests também contam como run e podem ser
+   *  filtrados na análise (ex.: só runs reais, ou só de uma fase específica). */
+  runStart(cls?: string, culturas?: string[], weapon?: string, testPhase?: string) {
     _runActive = true;
     resetRunStats();
-    push("run_start", { cls, culturas, weapon });
+    push("run_start", { cls, culturas, weapon, ...(testPhase ? { testPhase } : {}) });
   },
 
   /** Entrada numa fase/cena de gameplay — vira a "cena atual" dos eventos. */
