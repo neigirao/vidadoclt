@@ -1475,8 +1475,13 @@ export class SpriteLabScene extends Phaser.Scene {
       this.uploadToast.setText("⚠ este frame não tem PNG-fonte").setColor("#ffaa66");
       return;
     }
-    const expW = cur.w,
-      expH = cur.h;
+    this.openPngPicker(name, cur.w, cur.h, isBg);
+  }
+
+  /** Abre o seletor de PNG mirando um frame específico (name) — passo 1 do upload
+   *  (prepara `pending` + mostra ENVIAR). Reusado pelo ESCOLHER PNG (frame atual)
+   *  e pelo clique num SLOT VAZIO da tira (subir um frame que ainda não existe). */
+  private openPngPicker(name: string, expW: number, expH: number, isBg: boolean) {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/png";
@@ -1489,16 +1494,47 @@ export class SpriteLabScene extends Phaser.Scene {
       }
       const reader = new FileReader();
       reader.onload = () => {
-        // Passo 1: prepara (não envia). Mostra prévia no toast + botão ENVIAR.
         this.pending = { name, expW, expH, dataUrl: String(reader.result), isBg };
         this.uploadToast
-          .setText(`escolhido: ${file.name}\n→ clique ENVIAR p/ ${name}.png`)
+          .setText(`escolhido: ${file.name}\n→ clique ENVIAR p/ ${name}.png (${expW}×${expH})`)
           .setColor("#cfe0ff");
         this.showConfirm(true);
       };
       reader.readAsDataURL(file);
     };
     input.click();
+  }
+
+  /** Dimensão-alvo p/ um frame NOVO: mediana da família (frames existentes do
+   *  sujeito). Mantém o novo frame no tamanho dos vizinhos. */
+  private familyDims(): { w: number; h: number } {
+    const ok = this.frames.filter((f) => f.ok && f.w > 0);
+    if (!ok.length) return { w: 32, h: 32 };
+    const med = (xs: number[]) => xs.sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+    return { w: med(ok.map((f) => f.w)), h: med(ok.map((f) => f.h)) };
+  }
+
+  /** Clique num SLOT VAZIO da tira → sobe aquele frame específico (só EDITAR). O
+   *  frame-alvo é `enemy-<prefixo>-<estado><i>` (o nome-fonte do PNG); a dimensão
+   *  esperada é a mediana da família. Precisa de sujeito COM prefixo de animação. */
+  private uploadFrameSlot(i: number) {
+    if (!this.editMode) {
+      this.uploadToast.setText(`slot ${i} vazio — entre em EDITAR p/ subir`).setColor("#ffaa66");
+      return;
+    }
+    // Nome-fonte do frame = padrão dos vizinhos com o número trocado por i (ex.:
+    // "player-attack0" → "player-attack" + i; "enemy-senior-walk3" → ...walk + i).
+    // Derivar do vizinho é robusto p/ qualquer prefixo (player/enemy/boss).
+    const sib = this.frames.find((f) => f.ok && f.frame);
+    if (!sib?.frame) {
+      this.uploadToast
+        .setText("⚠ sem frame vizinho p/ inferir o nome — suba pelo frame 0 primeiro")
+        .setColor("#ffaa66");
+      return;
+    }
+    const name = `${sib.frame.replace(/\d+$/, "")}${i}`;
+    const { w, h } = this.familyDims();
+    this.openPngPicker(name, w, h, false);
   }
 
   // Sprite: REGRA de dimensão (mesmo tamanho do frame, senão quebra a família de
@@ -1787,44 +1823,85 @@ export class SpriteLabScene extends Phaser.Scene {
     this.onion.setScale(rscale).setPosition(this.CX, this.FEET_Y).setVisible(true);
   }
 
+  // Mínimo de slots exibidos por ação: sempre mostra ao menos MIN_STRIP_SLOTS
+  // quadrados. Os que passam do que existe viram SLOTS VAZIOS (subíveis). Assim
+  // dá pra ver a lacuna e clicar pra subir cada frame faltante.
+  private static readonly MIN_STRIP_SLOTS = 16;
+  // 16 por linha: com o mínimo de 16, o caso comum (≤16 frames) fica em UMA linha
+  // que cabe à esquerda da toolbar; só sprites com >16 frames quebram (raro).
+  private static readonly STRIP_PER_ROW = 16;
+
   private buildStrip() {
     this.stripG.removeAll(true);
-    const y = 525,
-      cell = 44,
-      total = this.frames.length;
-    const startX = this.CX - (total * cell) / 2 + cell / 2;
+    const cell = 30,
+      gap = 2,
+      step = cell + gap;
+    const existing = this.frames.length;
+    const slots = Math.max(existing, SpriteLabScene.MIN_STRIP_SLOTS);
+    const perRow = SpriteLabScene.STRIP_PER_ROW;
+    const rowW = Math.min(slots, perRow) * step;
+    const startX = this.CX - rowW / 2 + step / 2;
+    const baseY = 520;
     // Frames além do que o jogo cicla ficam laranja + esmaecidos ("no atlas mas
-    // o jogo não usa") — surge quando o LAB tem mais frames que a config real.
+    // o jogo não usa"). Slots além dos existentes = VAZIOS (cinza tracejado, "+").
     const gameFrames = this.gameAnim()?.frames ?? Infinity;
-    this.frames.forEach((f, i) => {
-      const x = startX + i * cell;
-      const unused = i >= gameFrames;
+    for (let i = 0; i < slots; i++) {
+      const col = i % perRow,
+        row = Math.floor(i / perRow);
+      const x = startX + col * step;
+      const y = baseY + row * step;
+      const f = i < existing ? this.frames[i] : undefined;
+      const filled = !!f && f.ok;
+      const unused = filled && i >= gameFrames;
+      // cor da borda: verde=existe, laranja=extra do atlas não-usado, cinza=vazio.
+      const stroke = filled ? (unused ? 0xffaa33 : 0x44ff88) : 0x555b66;
       const border = this.add
-        .rectangle(x, y, cell - 4, cell - 4, 0x1a1d23)
-        .setStrokeStyle(2, !f.ok ? 0xff3333 : unused ? 0xffaa33 : 0x44ff88);
+        .rectangle(x, y, cell, cell, 0x1a1d23)
+        .setStrokeStyle(2, stroke)
+        .setInteractive({ useHandCursor: true });
       border.setData("idx", i);
+      border.on("pointerdown", () => this.onStripSlotClick(i));
       this.stripG.add(border);
-      if (f.ok) {
-        const img = f.frame ? this.add.image(x, y, f.tex, f.frame) : this.add.image(x, y, f.tex);
-        img.setScale(Math.min((cell - 8) / f.w, (cell - 8) / f.h)).setAlpha(unused ? 0.4 : 1);
+      if (filled) {
+        const img = f!.frame
+          ? this.add.image(x, y, f!.tex, f!.frame)
+          : this.add.image(x, y, f!.tex);
+        img.setScale(Math.min((cell - 6) / f!.w, (cell - 6) / f!.h)).setAlpha(unused ? 0.4 : 1);
         this.stripG.add(img);
       } else {
+        // Slot VAZIO (subível): "+" cinza. Frame no range mas ausente = "✗" leve.
+        const glyph = f && !f.ok ? "✗" : "＋";
         this.stripG.add(
           this.add
-            .text(x, y, "✗", { fontFamily: "monospace", fontSize: "16px", color: "#ff5555" })
+            .text(x, y, glyph, { fontFamily: "monospace", fontSize: "16px", color: "#6a7280" })
             .setOrigin(0.5),
         );
       }
       this.stripG.add(
         this.add
-          .text(x, y + 20, String(i), {
+          .text(x, y + cell / 2 + 4, String(i), {
             fontFamily: "monospace",
             fontSize: "8px",
             color: "#8a93a0",
           })
           .setOrigin(0.5),
       );
-    });
+    }
+  }
+
+  /** Clique num quadrado da tira: frame que EXISTE → seleciona; SLOT VAZIO →
+   *  sobe aquele frame (em EDITAR). */
+  private onStripSlotClick(i: number) {
+    const f = this.frames[i];
+    if (f && f.ok) {
+      this.playing = false;
+      this.frameIdx = i;
+      this.applyFrame();
+      this.highlightStrip();
+      this.logDiagnostics();
+    } else {
+      this.uploadFrameSlot(i);
+    }
   }
 
   private highlightStrip() {
