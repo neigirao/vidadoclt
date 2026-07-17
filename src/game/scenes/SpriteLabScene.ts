@@ -431,6 +431,7 @@ export class SpriteLabScene extends Phaser.Scene {
     this.buildUploadButton();
     this.buildFixButtons();
     this.buildBgRepoButton();
+    this.buildModeToggle(); // VALIDAR/EDITAR — esconde as ferramentas por padrão
     // Ao sair do LAB, garante limpeza do modal de prévia e da textura base64
     // (senão `__gemini_preview` + o listener de ADD vazam no TextureManager global).
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -443,6 +444,13 @@ export class SpriteLabScene extends Phaser.Scene {
   private uploadToast!: Phaser.GameObjects.Text;
   private confirmBtn!: Phaser.GameObjects.Rectangle;
   private confirmLabel!: Phaser.GameObjects.Text;
+  // Modo VALIDAR (default, só olhar) × EDITAR (revela as ferramentas de mutação).
+  // Separa "olhar" de "editar" → um mis-click não corrompe frame (RESCALE/IA
+  // reempacotam o atlas na hora). Todos os controles de edição vão em editControls.
+  private editControls: Phaser.GameObjects.GameObject[] = [];
+  private editMode = false;
+  private modeValidarBg?: Phaser.GameObjects.Rectangle;
+  private modeEditarBg?: Phaser.GameObjects.Rectangle;
   // Upload preparado (escolhido, aguardando ENVIAR). null = nada pendente.
   private pending: {
     name: string;
@@ -452,14 +460,39 @@ export class SpriteLabScene extends Phaser.Scene {
     isBg: boolean;
   } | null = null;
 
+  // ── Toolbar da direita: SLOTS FIXOS (sem Y cravado por botão) ────────────────
+  // Antes cada botão tinha um Y hardcoded e eles se sobrepunham (ENVIAR ficava
+  // escondido atrás do COMPLETAR FAMÍLIA). Agora tudo sai de slots sequenciais +
+  // rótulos de seção → impossível colidir por construção, e os fluxos ficam
+  // agrupados (SUBSTITUIR / CONSERTOS / IA / REPO).
+  private static readonly TX = 745; // centro x da coluna de ferramentas
+  private toolSlotY = 0; // cursor de layout (avança por seção)
+
+  private sectionLabel(text: string, gap = 16) {
+    this.toolSlotY += gap;
+    const t = this.add
+      .text(SpriteLabScene.TX, this.toolSlotY, text, {
+        fontFamily: "monospace",
+        fontSize: "8px",
+        color: "#5a6472",
+      })
+      .setOrigin(0.5);
+    this.editControls.push(t);
+    this.toolSlotY += 12;
+  }
+
   private buildUploadButton() {
-    const x = 745,
-      y = 372;
+    const x = SpriteLabScene.TX;
+    this.toolSlotY = 356; // topo da toolbar (abaixo do painel de diagnóstico)
+    this.sectionLabel("──  SUBSTITUIR ARTE  ──", 0);
+
+    this.toolSlotY += 20;
+    const y = this.toolSlotY;
     const bg = this.add
       .rectangle(x, y, 250, 30, 0x2a3d2a)
       .setStrokeStyle(2, 0x66bb66)
       .setInteractive({ useHandCursor: true });
-    this.add
+    const label = this.add
       .text(x, y, "⬆  ESCOLHER PNG PARA ESTE FRAME", {
         fontFamily: "monospace",
         fontSize: "11px",
@@ -467,7 +500,7 @@ export class SpriteLabScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.uploadToast = this.add
-      .text(x, y + 22, "", {
+      .text(x, y + 20, "", {
         fontFamily: "monospace",
         fontSize: "10px",
         color: "#8a93a0",
@@ -478,16 +511,19 @@ export class SpriteLabScene extends Phaser.Scene {
     bg.on("pointerover", () => bg.setFillStyle(0x38513a));
     bg.on("pointerout", () => bg.setFillStyle(0x2a3d2a));
     bg.on("pointerdown", () => this.pickAndUpload());
+    this.editControls.push(bg, label, this.uploadToast);
 
-    // Botão ENVIAR — só aparece depois de escolher um PNG (2 passos: escolher →
-    // conferir a prévia no toast → ENVIAR). Some após enviar/cancelar.
+    // ENVIAR — slot PRÓPRIO (não mais na faixa do COMPLETAR). Some até haver
+    // upload pendente (showConfirm). Folga extra p/ o toast não encostar.
+    this.toolSlotY += 50;
+    const cy = this.toolSlotY;
     this.confirmBtn = this.add
-      .rectangle(x, y + 62, 250, 28, 0x2a3040)
+      .rectangle(x, cy, 250, 28, 0x2a3040)
       .setStrokeStyle(2, 0x66aaff)
       .setInteractive({ useHandCursor: true })
       .setVisible(false);
     this.confirmLabel = this.add
-      .text(x, y + 62, "✓  ENVIAR", {
+      .text(x, cy, "✓  ENVIAR", {
         fontFamily: "monospace",
         fontSize: "12px",
         fontStyle: "bold",
@@ -501,15 +537,11 @@ export class SpriteLabScene extends Phaser.Scene {
   }
 
   private showConfirm(show: boolean) {
-    this.confirmBtn.setVisible(show);
-    this.confirmLabel.setVisible(show);
-    // O ENVIAR fica na MESMA faixa Y do "COMPLETAR FAMÍLIA" (buildFixButtons é
-    // criado depois → desenharia por cima e escondia o ENVIAR). Quando há upload
-    // pendente, trazemos o ENVIAR (e seu label) pro topo pra ficar clicável.
-    if (show) {
-      this.confirmBtn.setToTop();
-      this.confirmLabel.setToTop();
-    }
+    // ENVIAR só aparece se há pendência E estamos em EDITAR (o botão tem slot
+    // próprio agora, então não precisa mais de setToTop pra escapar de colisão).
+    const visible = show && this.editMode;
+    this.confirmBtn.setVisible(visible);
+    this.confirmLabel.setVisible(visible);
   }
 
   private sendPending() {
@@ -525,36 +557,36 @@ export class SpriteLabScene extends Phaser.Scene {
   // só sinaliza candidatos — auto-fix cego corromperia frame de FX/pose). Só
   // grava em `vite dev` (endpoint /__frame-fix re-empacota o atlas).
   private buildFixButtons() {
-    const x = 745;
+    const x = SpriteLabScene.TX;
     type FixMode = "rescale" | "copy-nearest" | "gemini";
     const mk = (dx: number, y: number, w: number, label: string, mode: FixMode, col: number) => {
       const bg = this.add
         .rectangle(x + dx, y, w, 24, 0x3a2e18)
         .setStrokeStyle(2, col)
         .setInteractive({ useHandCursor: true });
-      this.add
+      const t = this.add
         .text(x + dx, y, label, { fontFamily: "monospace", fontSize: "10px", color: "#f0e0c0" })
         .setOrigin(0.5);
       bg.on("pointerover", () => bg.setFillStyle(0x4a3a20));
       bg.on("pointerout", () => bg.setFillStyle(0x3a2e18));
       bg.on("pointerdown", () => this.postFrameFix(mode));
+      this.editControls.push(bg, t);
     };
-    // Determinísticos (preservam o design): rescale (pulo de tamanho → mediana) e
-    // copiar vizinho (vazio/quebrado).
-    mk(-63, 462, 120, "🔧 RESCALE MEDIANA", "rescale", 0xd8a441);
-    mk(65, 462, 120, "🔧 COPIAR VIZINHO", "copy-nearest", 0xc47a3a);
-    // IA (Gemini): redesenha o frame seguindo os vizinhos. Precisa GEMINI_API_KEY
-    // + billing. Pode destoar do estilo — confira antes de manter.
-    mk(0, 490, 248, "🤖 REFAZER COM IA (GEMINI)", "gemini", 0x9966ff);
-    // MULTI-FRAME: gera por IA o próximo frame FALTANTE deste estado, até o padrão.
-    // Reusa o mesmo preview/guardrails do REFAZER; ao aprovar entra como frame novo
-    // e o jogo passa a ciclá-lo. Label mostra a lacuna (atualizada em logDiagnostics).
+    // ── CONSERTOS DETERMINÍSTICOS (reusam pixels, preservam o design) ──
+    this.sectionLabel("──  CONSERTOS (preservam o design)  ──");
+    this.toolSlotY += 18;
+    mk(-63, this.toolSlotY, 120, "🔧 RESCALE MEDIANA", "rescale", 0xd8a441);
+    mk(65, this.toolSlotY, 120, "🔧 COPIAR VIZINHO", "copy-nearest", 0xc47a3a);
+    // COMPLETAR FAMÍLIA — gera o próximo frame FALTANTE do estado (agrupado com os
+    // conservos por ser "preencher lacuna"). Label mostra a lacuna (logDiagnostics).
+    this.toolSlotY += 26;
+    const cy = this.toolSlotY;
     const cbg = this.add
-      .rectangle(x, 436, 248, 24, 0x2a1840)
+      .rectangle(x, cy, 248, 24, 0x2a1840)
       .setStrokeStyle(2, 0x66cc99)
       .setInteractive({ useHandCursor: true });
     this.completeBtnLabel = this.add
-      .text(x, 436, "🎞 COMPLETAR FAMÍLIA  [C]", {
+      .text(x, cy, "🎞 COMPLETAR FAMÍLIA  [C]", {
         fontFamily: "monospace",
         fontSize: "10px",
         color: "#cfeede",
@@ -563,6 +595,12 @@ export class SpriteLabScene extends Phaser.Scene {
     cbg.on("pointerover", () => cbg.setFillStyle(0x3a2450));
     cbg.on("pointerout", () => cbg.setFillStyle(0x2a1840));
     cbg.on("pointerdown", () => void this.completeFamily());
+    this.editControls.push(cbg, this.completeBtnLabel);
+
+    // ── IA / GERAÇÃO (destrutivo, online) ──
+    this.sectionLabel("──  IA (redesenha — pode destoar)  ──");
+    this.toolSlotY += 18;
+    mk(0, this.toolSlotY, 248, "🤖 REFAZER COM IA (GEMINI)", "gemini", 0x9966ff);
   }
 
   // FUNDOS (dev): "promove" o override de fundo (que vive no Supabase Storage /
@@ -570,13 +608,16 @@ export class SpriteLabScene extends Phaser.Scene {
   // endpoint do `vite dev`. Assim o fundo subido pelo LAB deixa de ser só um
   // override em runtime e passa a ser versionado (entra no bundle/commit).
   private buildBgRepoButton() {
-    const x = 745,
-      y = 518;
+    const x = SpriteLabScene.TX;
+    // ── REPO / PERSISTÊNCIA ──
+    this.sectionLabel("──  REPO (só FUNDOS)  ──");
+    this.toolSlotY += 18;
+    const y = this.toolSlotY;
     const bg = this.add
       .rectangle(x, y, 250, 24, 0x24344a)
       .setStrokeStyle(2, 0x5c9ad8)
       .setInteractive({ useHandCursor: true });
-    this.add
+    const label = this.add
       .text(x, y, "💾 FIXAR FUNDO NO REPO (dev)", {
         fontFamily: "monospace",
         fontSize: "10px",
@@ -586,6 +627,38 @@ export class SpriteLabScene extends Phaser.Scene {
     bg.on("pointerover", () => bg.setFillStyle(0x30455f));
     bg.on("pointerout", () => bg.setFillStyle(0x24344a));
     bg.on("pointerdown", () => void this.promoteBgToRepo());
+    this.editControls.push(bg, label);
+  }
+
+  // Toggle VALIDAR (só olhar) × EDITAR (revela as ferramentas de mutação).
+  private buildModeToggle() {
+    const mk = (cx: number, label: string, on: boolean) => {
+      const bg = this.add
+        .rectangle(cx, 338, 110, 20, 0x1c222c)
+        .setStrokeStyle(2, 0x3a4656)
+        .setInteractive({ useHandCursor: true });
+      this.add
+        .text(cx, 338, label, { fontFamily: "monospace", fontSize: "9px", color: "#cfd6de" })
+        .setOrigin(0.5);
+      bg.on("pointerdown", () => this.setEditMode(!on ? true : false));
+      return bg;
+    };
+    this.modeValidarBg = mk(SpriteLabScene.TX - 62, "[1] VALIDAR", true);
+    this.modeEditarBg = mk(SpriteLabScene.TX + 62, "[2] EDITAR", false);
+    this.input.keyboard?.on("keydown-ONE", () => this.setEditMode(false));
+    this.input.keyboard?.on("keydown-TWO", () => this.setEditMode(true));
+    this.setEditMode(false); // default: só olhar (não corrompe frame por mis-click)
+  }
+
+  private setEditMode(on: boolean) {
+    this.editMode = on;
+    for (const o of this.editControls)
+      (o as unknown as Phaser.GameObjects.Components.Visible).setVisible(on);
+    if (!on)
+      this.showConfirm(false); // esconde ENVIAR ao sair da edição
+    else if (this.pending) this.showConfirm(true);
+    this.modeValidarBg?.setStrokeStyle(2, on ? 0x3a4656 : 0x66bb66);
+    this.modeEditarBg?.setStrokeStyle(2, on ? 0xd8a441 : 0x3a4656);
   }
 
   private async promoteBgToRepo() {
