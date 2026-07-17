@@ -48,6 +48,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { label: "RANKING", icon: "🏆" },
   { label: "BESTIARIO", icon: "👾" },
   { label: "LAB SPRITES", icon: "🔬", firstRun: true }, // ferramenta de teste — visível já na 1ª run (remover depois)
+  { label: "TELEMETRIA", icon: "📊", firstRun: true }, // painel /telemetria — visível a todos na fase de teste (remover depois)
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
   { label: "CONFIGURAÇÕES", icon: "⚙", firstRun: true },
@@ -459,6 +460,10 @@ export class MenuScene extends Phaser.Scene {
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("SpriteLabScene");
       });
+    } else if (item.label === "TELEMETRIA") {
+      // Painel de telemetria é uma rota React (/telemetria), fora do Phaser —
+      // navega o navegador. "Voltar ao jogo" na página retorna pra "/".
+      if (typeof window !== "undefined") window.location.assign("/telemetria");
     } else if (item.label === "TESTAR FASE") {
       this.showOverlay("testfase");
     } else if (item.label === "ARSENAL") {
