@@ -350,8 +350,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return undefined;
   }
 
-  /** Returns true if the hit was parried. */
-  takeDamage(amount: number, sanityHit = 0, fromX?: number): boolean {
+  /** Returns true if the hit was parried.
+   *  `nonLethal`: piso de 1 em Energia/Sanidade — o hit machuca mas NÃO mata.
+   *  Usado no hub seguro (Copa): o Faxineiro pune quem bate nele, mas perder a
+   *  run inteira no lugar seguro é anti-padrão (a telemetria pegou 131/152
+   *  sessões morrendo por energia na Copa). */
+  takeDamage(amount: number, sanityHit = 0, fromX?: number, nonLethal = false): boolean {
     const now = this.scene.time.now;
     if (this.isInvulnerable(now)) return false;
 
@@ -377,9 +381,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const reducedAmount = Math.round(
       amount * this.damageReductionMult * burnoutMods.damageTakenMult,
     );
-    this.energy = Math.max(0, this.energy - reducedAmount);
+    this.energy = Math.max(nonLethal ? 1 : 0, this.energy - reducedAmount);
     Telemetry.damageTaken(reducedAmount);
-    if (sanityHit) this.sanity = Math.max(this.sanityFloor, this.sanity - sanityHit);
+    if (sanityHit)
+      this.sanity = Math.max(nonLethal ? 1 : this.sanityFloor, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
     Sfx.playerHit();
     CombatFx.flashSprite(this, 55);
