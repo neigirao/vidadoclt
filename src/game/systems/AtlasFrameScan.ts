@@ -27,7 +27,7 @@ const SLOT_RE = /^enemy-(.+)-(walk|idle|attack)(\d+)$/;
 const OPAQUE_ALPHA = 30; // mesmo corte do pack-atlas
 const MIN_OPAQUE = 25; // <25 px opacos = frame vazio/quase-vazio (pack-atlas)
 
-type Family = { prefix: string; state: AnimState; indices: Set<number> };
+type Family = { prefix: string; state: AnimState; frames: Map<number, Phaser.Textures.Frame> };
 
 /** Extrai o ImageData do atlas inteiro 1× (as famílias compartilham o source). */
 function readAtlasPixels(
@@ -87,8 +87,8 @@ export function scanAtlasFrameCounts(scene: Phaser.Scene, key = "sprites"): void
     const [, prefix, state] = m;
     const fkey = `${prefix}|${state}`;
     let fam = families.get(fkey);
-    if (!fam) families.set(fkey, (fam = { prefix, state: state as AnimState, indices: new Set() }));
-    fam.indices.add(Number(m[3]));
+    if (!fam) families.set(fkey, (fam = { prefix, state: state as AnimState, frames: new Map() }));
+    fam.frames.set(Number(m[3]), tex.get(name));
   }
   if (families.size === 0) return;
 
@@ -98,9 +98,8 @@ export function scanAtlasFrameCounts(scene: Phaser.Scene, key = "sprites"): void
   for (const fam of families.values()) {
     // Conta frames CONTÍGUOS a partir do 0 enquanto existirem E não forem vazios.
     let count = 0;
-    while (fam.indices.has(count)) {
-      const frame = tex.get(`enemy-${fam.prefix}-${fam.state}${count}`);
-      if (!frame || opaqueCount(pixels, frame) < MIN_OPAQUE) break;
+    for (let frame = fam.frames.get(0); frame; frame = fam.frames.get(count)) {
+      if (opaqueCount(pixels, frame) < MIN_OPAQUE) break;
       count++;
     }
     if (count > 0) registerFrameAddition(fam.state, fam.prefix, count);
