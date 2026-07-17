@@ -1,5 +1,5 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { writeFileSync, readFileSync, existsSync, copyFileSync, rmSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 import type { Plugin } from "vite";
@@ -92,20 +92,12 @@ function spriteUploadDevPlugin(): Plugin {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Plugin DEV: conserto de UM frame (botões do LAB). Três endpoints:
-//   • POST /__frame-fix  — rescale/copy-nearest (determinístico, frame-fix.mjs) →
+// Plugin DEV: conserto de UM frame (botão do LAB). Endpoint:
+//   • POST /__frame-fix — rescale/copy-nearest (determinístico, frame-fix.mjs) →
 //     grava o frame e re-empacota o atlas na hora (seguro, preserva o design).
-//     mode=gemini → gera uma PRÉVIA (frame-gemini.mjs --preview) em
-//     .frame-preview/<frame>.png SEM tocar no frame real nem re-empacotar; devolve
-//     o PNG (dataUrl) p/ o LAB mostrar o "depois".
-//   • POST /__frame-approve — aprova a prévia da IA: copia .frame-preview/<frame>
-//     por cima do frame real, re-empacota o atlas e faz `git commit` do PNG+atlas.
-//   • POST /__frame-discard — descarta a prévia (remove o arquivo).
 // Só em `vite dev` (apply:"serve").
 // ─────────────────────────────────────────────────────────────────────────────
 const FRAME_RE = /^[a-z0-9][a-z0-9_-]*$/i;
-const SPRITES_DIR = "public/assets/sprites";
-const PREVIEW_DIR = "public/assets/.frame-preview";
 
 function readBody(req: import("node:http").IncomingMessage): Promise<string> {
   return new Promise((ok) => {
@@ -221,76 +213,6 @@ function frameFixDevPlugin(): Plugin {
             // Determinístico: re-empacota o atlas (serializado) com o frame consertado.
             const packed = await repackAtlas();
             return json(res, packed ? 200 : 500, { ...(result as object), repacked: packed });
-          } catch (e) {
-            json(res, 400, { ok: false, error: String(e) });
-          }
-        });
-      });
-
-      server.middlewares.use("/__frame-approve", (req, res, next) => {
-        if (req.method !== "POST") return next();
-        void readBody(req).then(async (body) => {
-          try {
-            const { frame } = JSON.parse(body) as { frame?: string };
-            if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
-            const preview = resolve(process.cwd(), PREVIEW_DIR, `${frame}.png`);
-            const dest = resolve(process.cwd(), SPRITES_DIR, `${frame}.png`);
-            if (!preview.startsWith(resolve(process.cwd(), PREVIEW_DIR) + "/"))
-              throw new Error("caminho inválido");
-            if (!existsSync(preview))
-              throw new Error("sem prévia p/ aprovar (gere com a IA antes)");
-            // approve CONSERTA um frame existente — não cria frame novo no atlas.
-            if (!existsSync(dest))
-              throw new Error("frame não existe em sprites/ (approve não cria)");
-            // ATÔMICO: guarda o original, troca, re-empacota; se o pack falhar,
-            // restaura o original e mantém a prévia (nada é perdido).
-            const backup = readFileSync(dest);
-            copyFileSync(preview, dest);
-            const packed = await repackAtlas();
-            if (!packed) {
-              writeFileSync(dest, backup); // rollback do frame
-              await repackAtlas(); // restaura o atlas ao estado bom
-              return json(res, 500, {
-                ok: false,
-                error: "pack-atlas falhou — frame original restaurado, prévia mantida",
-              });
-            }
-            rmSync(preview, { force: true }); // só some com a prévia após sucesso
-            // commit ESCOPADO (só estes 3 paths — não arrasta staged não-relacionado).
-            const files = [
-              `${SPRITES_DIR}/${frame}.png`,
-              "public/assets/atlas.png",
-              "public/assets/atlas.json",
-            ];
-            const msg = `LAB: refaz frame ${frame} via IA (Gemini)`;
-            const { code: gitCode, out: glog } = await spawnCollect(
-              "git",
-              ["commit", "-m", msg, "--", ...files],
-              30000,
-            );
-            return json(res, 200, {
-              ok: true,
-              frame,
-              committed: gitCode === 0,
-              gitLog: glog.slice(-300),
-            });
-          } catch (e) {
-            json(res, 400, { ok: false, error: String(e) });
-          }
-        });
-      });
-
-      server.middlewares.use("/__frame-discard", (req, res, next) => {
-        if (req.method !== "POST") return next();
-        void readBody(req).then((body) => {
-          try {
-            const { frame } = JSON.parse(body) as { frame?: string };
-            if (!frame || !FRAME_RE.test(frame)) throw new Error("nome de frame inválido");
-            const preview = resolve(process.cwd(), PREVIEW_DIR, `${frame}.png`);
-            if (!preview.startsWith(resolve(process.cwd(), PREVIEW_DIR) + "/"))
-              throw new Error("caminho inválido");
-            rmSync(preview, { force: true });
-            json(res, 200, { ok: true, frame, discarded: true });
           } catch (e) {
             json(res, 400, { ok: false, error: String(e) });
           }
