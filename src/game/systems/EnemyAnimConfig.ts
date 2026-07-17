@@ -12,18 +12,20 @@
 
 // Só conta frames de walk com canvas consistente (48×64). Os 64×64 extraídos a
 // mais tinham o personagem em escala errada e faziam o sprite "encolher".
+// DOBRADOS com in-betweens sintéticos (gen-inbetweens.mjs): cada família teve o
+// walk interpolado 2× (ex.: senior 16→32). Contagens hardcoded aqui (não via
+// AtlasFrameScan) p/ o cycling não depender da varredura de pixels em runtime.
 export const WALK_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 4,
-  analista: 4,
-  facilitador: 2,
-  scrum: 6,
-  coordenador: 4,
-  senior: 16, // ciclo de caminhada premium (folha 8×2 fatiada) — elite
-  rh: 4,
-  // Bosses recolor (asBoss): sem estas entradas caíam no default 2 e animavam só
-  // 2 de 6 (scrum-boss) / 2 de 4 (coord-boss). Arte 48×64 válida desperdiçada.
-  "scrum-boss": 6,
-  "coord-boss": 4,
+  estagiario: 8,
+  analista: 8,
+  facilitador: 4,
+  scrum: 12,
+  coordenador: 8,
+  senior: 32, // ciclo de caminhada premium — dobrado (era 16)
+  rh: 8,
+  // Bosses recolor (asBoss): sem estas entradas caíam no default 2.
+  "scrum-boss": 12,
+  "coord-boss": 8,
 };
 
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
@@ -50,14 +52,17 @@ export const ATTACK_FRAME_COUNTS: Record<string, number> = {
 };
 
 // Duração de frame (ms) por estado — afinada à "energia" de cada inimigo.
+// ms POR FRAME halvado (era o dobro): os ciclos de walk foram DOBRADOS com
+// in-betweens sintéticos (gen-inbetweens.mjs). Metade do ms por frame mantém a
+// MESMA duração de ciclo de antes — só mais suave. (ex.: senior 32×35 ≈ 16×70.)
 export const WALK_MS: Record<string, number> = {
-  estagiario: 160,
-  analista: 200,
-  facilitador: 180,
-  scrum: 140,
-  coordenador: 220,
-  senior: 70, // 16 frames × 70ms ≈ 1.1s/ciclo — caminhada suave (era 4×280)
-  rh: 200,
+  estagiario: 80,
+  analista: 100,
+  facilitador: 90,
+  scrum: 70,
+  coordenador: 110,
+  senior: 35, // 32 frames × 35ms ≈ 1.1s/ciclo — caminhada suave
+  rh: 100,
 };
 
 export const IDLE_MS: Record<string, number> = {
@@ -81,7 +86,7 @@ export const ATTACK_MS: Record<string, number> = {
 export const DEFAULT_WALK_FRAMES = 2;
 export const DEFAULT_IDLE_FRAMES = 4;
 export const DEFAULT_ATTACK_FRAMES = 1;
-export const DEFAULT_WALK_MS = 180;
+export const DEFAULT_WALK_MS = 90; // halvado (walk dobrado com in-betweens)
 export const DEFAULT_IDLE_MS = 300;
 export const DEFAULT_ATTACK_MS = 110;
 

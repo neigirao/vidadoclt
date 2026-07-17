@@ -21,7 +21,7 @@
 //   primeiro (loop fechado). --no-cyclic p/ ações não-cíclicas (attack).
 // ─────────────────────────────────────────────────────────────────────────────
 import sharp from "sharp";
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const SPRITES = "public/assets/sprites";
@@ -31,6 +31,7 @@ const PREVIEW_DIR =
 const args = process.argv.slice(2);
 const family = args.find((a) => !a.startsWith("--"));
 const preview = args.includes("--preview");
+const noPack = args.includes("--no-pack"); // batch: reindexa mas NÃO reempacota (pack 1× no fim)
 const cyclic = args.includes("--no-cyclic")
   ? false
   : args.includes("--cyclic") || /-(walk|idle|run)$/.test(family ?? "");
@@ -41,17 +42,33 @@ if (!family) {
 }
 
 async function loadRaw(file) {
-  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(file)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   return { data, w: info.width, h: info.height };
 }
 
-// Lê os frames 0..N-1 da família (para no 1º ausente).
+// Nº de px opacos (alpha>30). Mesma regra do pack-atlas p/ "quase-vazio" (<25).
+function opaqueCount(fr) {
+  let op = 0;
+  for (let i = 3; i < fr.data.length; i += 4) if (fr.data[i] > 30 && ++op >= 25) return op;
+  return op;
+}
+
+// Lê os frames CONTÍGUOS e VÁLIDOS da família a partir do 0. Para no 1º que:
+// falta, é quase-vazio (lixo de extração legado) OU tem dimensão diferente do
+// frame 0 (outliers 64×64 não-usados). Assim o tween nunca interpola lixo nem
+// mistura tamanhos (o que corromperia o buffer por indexar B com as dims de A).
 async function loadFamily() {
   const frames = [];
   for (let i = 0; ; i++) {
     const f = `${SPRITES}/${family}${i}.png`;
     if (!existsSync(f)) break;
-    frames.push(await loadRaw(f));
+    const fr = await loadRaw(f);
+    if (i > 0 && (fr.w !== frames[0].w || fr.h !== frames[0].h)) break; // dimensão mudou
+    if (opaqueCount(fr) < 25) break; // quase-vazio
+    frames.push(fr);
   }
   return frames;
 }
@@ -113,8 +130,7 @@ function tween(A, B) {
   return { data: out, w: A.w, h: A.h };
 }
 
-const rawToPng = (fr) =>
-  sharp(fr.data, { raw: { width: fr.w, height: fr.h, channels: 4 } }).png();
+const rawToPng = (fr) => sharp(fr.data, { raw: { width: fr.w, height: fr.h, channels: 4 } }).png();
 
 // Contact-sheet horizontal dos frames (p/ preview).
 async function contactSheet(frames, out, scale = 3) {
@@ -169,6 +185,12 @@ async function contactSheet(frames, out, scale = 3) {
   // Aplica: reescreve os PNGs 0..seq.length-1 da família.
   for (let i = 0; i < seq.length; i++) {
     await rawToPng(seq[i]).toFile(`${SPRITES}/${family}${i}.png`);
+  }
+  if (noPack) {
+    console.log(
+      JSON.stringify({ ok: true, family, before: orig.length, after: seq.length, cyclic }),
+    );
+    return;
   }
   const pack = spawnSync("node", ["scripts/pack-atlas.mjs"], { encoding: "utf8" });
   console.log(

@@ -31,19 +31,18 @@ describe("EnemyAnimConfig frameCount", () => {
 
   it("um override ALÉM da base aumenta a contagem", () => {
     resetFrameAdditions();
-    // facilitador walk base 2 → adiciona walk2 (índice 2 → conta 3)
-    registerFrameAddition("walk", "facilitador", 3);
-    expect(walkFrames("facilitador")).toBe(3);
-    // completar até 4 (walk3 → conta 4)
-    registerFrameAddition("walk", "facilitador", 4);
-    expect(walkFrames("facilitador")).toBe(4);
+    // facilitador walk base 4 (dobrado) → um override ALÉM da base sobe a conta.
+    registerFrameAddition("walk", "facilitador", 5);
+    expect(walkFrames("facilitador")).toBe(5);
+    registerFrameAddition("walk", "facilitador", 6);
+    expect(walkFrames("facilitador")).toBe(6);
   });
 
   it("nunca REDUZ abaixo da base (substituir frame existente não encolhe)", () => {
     resetFrameAdditions();
-    // estagiario walk base 4; um override no índice 1 (conta 2) não reduz.
+    // estagiario walk base 8 (dobrado); um override baixo (conta 2) não reduz.
     registerFrameAddition("walk", "estagiario", 2);
-    expect(walkFrames("estagiario")).toBe(4);
+    expect(walkFrames("estagiario")).toBe(WALK_FRAME_COUNTS.estagiario);
   });
 
   it("mantém o MAIOR aumento visto (idempotente, não retrocede)", () => {
@@ -62,9 +61,9 @@ describe("EnemyAnimConfig frameCount", () => {
   });
 
   it("reset limpa os aumentos", () => {
-    registerFrameAddition("walk", "facilitador", 4);
+    registerFrameAddition("walk", "facilitador", 8);
     resetFrameAdditions();
-    expect(walkFrames("facilitador")).toBe(2);
+    expect(walkFrames("facilitador")).toBe(WALK_FRAME_COUNTS.facilitador);
   });
 
   // runtimeFrameAddition = só o aumento cru (0 se nenhum). É o que o animPhase das
