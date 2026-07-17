@@ -24,7 +24,10 @@ async function main() {
   );
 
   // Simple row packing: sort by height descending, fit into rows
-  const ATLAS_W = 512;
+  // 1024 (era 512): a coluna estreita deixava o atlas MUITO alto (7251px já
+  // beirava o teto de textura de GPUs mais fracas). Mais largo → mais baixo →
+  // headroom p/ mais frames (in-betweens). Transparente ao jogo (carrega por nome).
+  const ATLAS_W = 1024;
   let x = PAD,
     y = PAD,
     rowH = 0;

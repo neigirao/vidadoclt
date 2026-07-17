@@ -872,9 +872,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         key = `tex-player-fall${Math.floor(now / 100) % 3}`; // caindo (3 frames)
       }
     } else if (speed > 300) {
-      key = `tex-player-run${Math.floor(now / 90) % 8}`; // ciclo de corrida (8)
+      key = `tex-player-run${Math.floor(now / 45) % 16}`; // corrida DOBRADA (16 frames, ms/2)
     } else if (speed > 60) {
-      key = `tex-player-walk${Math.floor(now / 100) % 8}`; // ciclo de caminhada (8)
+      key = `tex-player-walk${Math.floor(now / 50) % 16}`; // caminhada DOBRADA (16 frames, ms/2)
     } else {
       // idle SÓ usa idle1/idle2 (poses paradas de respiração). idle3/idle4 são
       // poses de passada (extração ruim, quase iguais ao walk) e faziam o parado

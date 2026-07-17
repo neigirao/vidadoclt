@@ -130,6 +130,11 @@ export class ShopUI {
   open = false;
   onAdvance?: () => void;
   onWeaponChange?: (id: WeaponId) => void;
+  // Rótulos customizáveis: a Copa usa os defaults; a máquina de venda no meio da
+  // fase reusa o mesmo ShopUI com título/opção-final próprios (não "avança área").
+  title = "PONTO ELETRÔNICO";
+  advanceLabel = "Bater o ponto e avançar";
+  advanceDesc = "Próxima área.";
   private player?: Player;
 
   constructor(private scene: Phaser.Scene) {}
@@ -227,8 +232,8 @@ export class ShopUI {
     // Advance
     this.items.push({
       key: "bater_ponto",
-      label: "Bater o ponto e avançar",
-      description: "Próxima área.",
+      label: this.advanceLabel,
+      description: this.advanceDesc,
       cost: 0,
       apply: () => "next",
     });
@@ -244,7 +249,7 @@ export class ShopUI {
       .rectangle(0, 0, 530, panelH, 0x0a0c10, 0.95)
       .setStrokeStyle(2, 0xf2c14e);
     const title = this.scene.add
-      .text(0, -panelH / 2 + 16, "PONTO ELETRÔNICO", {
+      .text(0, -panelH / 2 + 16, this.title, {
         fontFamily: "monospace",
         fontSize: "18px",
         color: "#f2c14e",

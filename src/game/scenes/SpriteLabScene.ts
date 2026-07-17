@@ -597,6 +597,25 @@ export class SpriteLabScene extends Phaser.Scene {
     cbg.on("pointerdown", () => void this.completeFamily());
     this.editControls.push(cbg, this.completeBtnLabel);
 
+    // ── DELETAR frame (destrutivo, dev) — remove o PNG-fonte e re-empacota ──
+    this.toolSlotY += 26;
+    const dy = this.toolSlotY;
+    const dbg = this.add
+      .rectangle(x, dy, 248, 24, 0x40181c)
+      .setStrokeStyle(2, 0xd9534f)
+      .setInteractive({ useHandCursor: true });
+    const dt = this.add
+      .text(x, dy, "🗑 DELETAR ESTE FRAME", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: "#f0c8c4",
+      })
+      .setOrigin(0.5);
+    dbg.on("pointerover", () => dbg.setFillStyle(0x582024));
+    dbg.on("pointerout", () => dbg.setFillStyle(0x40181c));
+    dbg.on("pointerdown", () => void this.deleteCurrentFrame());
+    this.editControls.push(dbg, dt);
+
     // ── IA / GERAÇÃO (destrutivo, online) ──
     this.sectionLabel("──  IA (redesenha — pode destoar)  ──");
     this.toolSlotY += 18;
@@ -757,6 +776,46 @@ export class SpriteLabScene extends Phaser.Scene {
       if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
       const detail = mode === "rescale" ? `${j.beforeH}px → ${j.afterH}px` : `← ${j.copiedFrom}`;
       this.uploadToast.setText(`✓ ${cur.frame} refeito (${detail})`).setColor("#88ff88");
+      this.reloadAtlas(() => this.loadState());
+    } catch (e) {
+      this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");
+    }
+  }
+
+  // DELETAR o frame atual: remove o PNG-fonte (public/assets/sprites/<frame>.png)
+  // e re-empacota o atlas (endpoint DEV /__sprite-delete). Requer 2 cliques (arma
+  // → confirma) p/ não apagar sem querer. Só em `vite dev`.
+  private deleteArmedFor?: string;
+  private async deleteCurrentFrame() {
+    const cur = this.frames[this.frameIdx];
+    if (!cur?.ok || !cur.frame) {
+      this.uploadToast.setText("⚠ só dá p/ deletar frame de sprite do atlas").setColor("#ffaa66");
+      return;
+    }
+    // 1º clique arma; 2º clique no MESMO frame confirma.
+    if (this.deleteArmedFor !== cur.frame) {
+      this.deleteArmedFor = cur.frame;
+      this.uploadToast.setText(`⚠ clique de novo p/ DELETAR ${cur.frame}`).setColor("#ffb060");
+      return;
+    }
+    this.deleteArmedFor = undefined;
+    this.uploadToast.setText(`deletando ${cur.frame}…`).setColor("#cfd6e0");
+    try {
+      const r = await fetch("/__sprite-delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ frame: cur.frame }),
+      });
+      const ct = r.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        this.uploadToast.setText("⚠ deletar só grava em `vite dev`.").setColor("#ffaa66");
+        return;
+      }
+      const j = (await r.json()) as { ok: boolean; error?: string };
+      if (!j.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      this.uploadToast
+        .setText(`🗑 ${cur.frame} deletado + atlas re-empacotado`)
+        .setColor("#88ff88");
       this.reloadAtlas(() => this.loadState());
     } catch (e) {
       this.uploadToast.setText(`✗ falhou: ${e}`).setColor("#ff6666");

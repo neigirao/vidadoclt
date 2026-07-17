@@ -35,6 +35,8 @@ import { Telemetry } from "../systems/Telemetry";
 import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
+import { ShopUI } from "../systems/Shop";
+import { applyPerk, PERKS, PerkId } from "../systems/PerkSystem";
 import { GameEnemy, BossEntity } from "../entities/types";
 import { BossPresence } from "../systems/BossPresence";
 import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
@@ -70,6 +72,16 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   /** Armas largadas no chão — pegar com E (troca/adiciona ao slot secundário). */
   protected weaponPickups: { weaponId: WeaponId; obj: Phaser.GameObjects.Container }[] = [];
   private nearestPickup?: { weaponId: WeaponId; obj: Phaser.GameObjects.Container };
+  /** Estações no mapa (tecla E): máquina de venda (ShopUI) + totem de perk. */
+  protected stations: {
+    kind: "shop" | "perk";
+    obj: Phaser.GameObjects.Container;
+    used?: boolean;
+  }[] = [];
+  private nearestStation?: BasePhaseScene["stations"][number];
+  protected phaseShop?: ShopUI;
+  private shopPausedPhysics = false;
+  private static readonly PERK_TOTEM_COST = 50;
   /** Cafezinhos — pickup que restaura Sanidade (contra-jogo do Burnout). */
   protected sanityDrops!: Phaser.Physics.Arcade.Group;
   protected boss?: BossEntity;
@@ -709,6 +721,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       }
     });
 
+    // 18b. Estações no mapa (loja/perks) — recursos DENTRO da fase.
+    this.spawnStations();
+
     // 19. HUD phase title + objective
     this.hud.setPhaseTitle(this.getPhaseTitle());
     this.hud.setObjective(this.getInitialObjective());
@@ -739,6 +754,13 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
+    // Loja no mapa aberta → congela a fase (física pausada); retoma ao fechar.
+    if (this.shopPausedPhysics && !this.phaseShop?.open) {
+      this.physics.world.resume();
+      this.shopPausedPhysics = false;
+    }
+    if (this.phaseShop?.open) return;
+
     // 1. Player update
     this.player.update(time, delta);
     if (this.sanityDrainEnabled()) this.player.tickPassive(time);
@@ -820,6 +842,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.threatMarkers?.update();
     this.updateParryHint(time);
     this.updateWeaponPickups();
+    this.updateStations();
     const nearDoor =
       this.bossDefeated &&
       Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorEl.x, this.doorEl.y) < 40;
@@ -840,7 +863,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         ? `[ E ]  ${this.getDoorConfig().nearLabel}`
         : this.nearestPickup
           ? `[ E ]  Pegar ${WEAPONS[this.nearestPickup.weaponId].name}`
-          : undefined,
+          : this.stationHint(),
       dashCooldown: this.player.getDashCooldownRatio(time),
       specialCooldown: this.player.specialChargeRatio(time),
       perks: run.perks,
@@ -1774,6 +1797,100 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   private updateSecondaryHud() {
     const sec = this.player.secondaryWeaponId as WeaponId | null;
     this.hud?.setSecondaryWeapon(sec ? `[Q] ${WEAPON_ICONS[sec]} ${WEAPONS[sec].name}` : null);
+  }
+
+  /** Estações no mapa (tecla E): máquina de venda + totem de perk. Chamar no
+   *  create de cada fase (depois do chão/player). Traz loja/perks/armas PARA
+   *  DENTRO da fase — antes só na Copa/pós-boss. */
+  protected spawnStations() {
+    const mk = (frac: number, icon: string, color: number, kind: "shop" | "perk") => {
+      const px = Phaser.Math.Clamp(LEVEL_WIDTH * frac, 60, LEVEL_WIDTH - 60);
+      const py = FLOOR_Y - 26;
+      const base = this.add.rectangle(0, 14, 30, 44, 0x20242c).setStrokeStyle(2, color);
+      const glow = this.add.circle(0, -6, 16, color, 0.28).setBlendMode(Phaser.BlendModes.ADD);
+      const ic = this.add
+        .text(0, -6, icon, { fontFamily: "monospace", fontSize: "22px" })
+        .setOrigin(0.5);
+      const obj = this.add.container(px, py, [base, glow, ic]).setDepth(55);
+      this.tweens.add({
+        targets: glow,
+        alpha: 0.12,
+        scale: 1.3,
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+      });
+      this.stations.push({ kind, obj });
+    };
+    mk(0.3, "🏪", 0x66ccff, "shop");
+    mk(0.62, "✨", 0xffcc44, "perk");
+  }
+
+  /** Detecta a estação mais próxima e ativa com E. Chamada em update(). */
+  protected updateStations() {
+    if (this.phaseShop?.open) return;
+    let nearest: BasePhaseScene["stations"][number] | undefined;
+    let best = 70;
+    for (const s of this.stations) {
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, s.obj.x, s.obj.y);
+      if (d < best) {
+        best = d;
+        nearest = s;
+      }
+    }
+    this.nearestStation = nearest;
+    if (nearest && Phaser.Input.Keyboard.JustDown(this.interactKey)) this.activateStation(nearest);
+  }
+
+  /** Texto do hint da estação mais próxima (undefined se nenhuma). */
+  protected stationHint(): string | undefined {
+    const s = this.nearestStation;
+    if (!s) return undefined;
+    if (s.kind === "shop") return "[ E ]  Máquina de venda";
+    return s.used
+      ? "[ E ]  Totem usado"
+      : `[ E ]  Totem de perk (${BasePhaseScene.PERK_TOTEM_COST} VR)`;
+  }
+
+  private activateStation(s: BasePhaseScene["stations"][number]) {
+    if (s.kind === "shop") {
+      if (!this.phaseShop) {
+        this.phaseShop = new ShopUI(this);
+        this.phaseShop.setPlayer(this.player);
+        this.phaseShop.title = "MÁQUINA DE VENDA";
+        this.phaseShop.advanceLabel = "Voltar ao expediente";
+        this.phaseShop.advanceDesc = "Fecha e continua a fase.";
+        this.phaseShop.onAdvance = () => this.phaseShop?.close();
+        this.phaseShop.onWeaponChange = (id) => {
+          getRun(this).weaponId = id;
+          this.applyWeaponStats(id as WeaponId); // aplica na hora (não é troca de cena)
+        };
+      }
+      this.physics.world.pause();
+      this.shopPausedPhysics = true;
+      this.phaseShop.show();
+      return;
+    }
+    // Totem de perk: gasta VR, concede um perk ainda não possuído (1× por totem).
+    if (s.used) return;
+    const run = getRun(this);
+    const owned = run.perks ?? [];
+    const pool = (Object.keys(PERKS) as PerkId[]).filter((id) => !owned.includes(id));
+    if (!pool.length) {
+      this.showPickupToast("Você já tem todos os perks!");
+      return;
+    }
+    if (this.player.vr < BasePhaseScene.PERK_TOTEM_COST) {
+      this.showPickupToast(`VR insuficiente (precisa ${BasePhaseScene.PERK_TOTEM_COST})`);
+      return;
+    }
+    this.player.vr -= BasePhaseScene.PERK_TOTEM_COST;
+    const id = pool[Math.floor(Math.random() * pool.length)];
+    applyPerk(id, this.player, run);
+    s.used = true;
+    s.obj.setAlpha(0.4);
+    Sfx.buy();
+    this.showPickupToast(`Perk: ${PERKS[id].icon} ${PERKS[id].name}`);
   }
 
   /** Larga uma arma no chão como pickup flutuante (peg com E). */
