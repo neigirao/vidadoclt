@@ -100,16 +100,16 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
       const moving = body && Math.abs(body.velocity.x) > 10;
       if (!moving && !this._charging) {
         prefix = "boss-ceo-idle";
-        count = 2;
-        interval = 500;
+        count = 4; // idle 2→4 (frames coerentes; respiração calma)
+        interval = 380;
       } else if (this._charging) {
         prefix = "boss-ceo-run";
         count = 6;
         interval = 60;
       } else {
         prefix = "boss-ceo-walk";
-        count = 2;
-        interval = 180;
+        count = 16; // walk 2→16 (in-betweens) — interval/2 mantém a cadência
+        interval = 24;
       }
     }
 

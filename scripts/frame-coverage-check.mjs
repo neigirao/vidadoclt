@@ -109,7 +109,12 @@ const wantJson = process.argv.includes("--json");
 if (wantJson) {
   process.stdout.write(
     JSON.stringify(
-      { ok: violations.length === 0, checked: passes.length, violations, declaredExceptionsMissing },
+      {
+        ok: violations.length === 0,
+        checked: passes.length,
+        violations,
+        declaredExceptionsMissing,
+      },
       null,
       2,
     ) + "\n",

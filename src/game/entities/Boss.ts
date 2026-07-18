@@ -423,11 +423,11 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
           key = `tex-gerente-attack0`;
       }
     } else if (this.bossState === "enter" || this.bossState === "recover") {
-      const f = Math.floor(now / 140) % 4;
+      const f = Math.floor(now / 35) % 16; // walk 4→16 (in-betweens), ms/4 mantém a cadência
       key = `tex-gerente-walk${f}`;
     } else {
-      const f = Math.floor(now / 600) % 2;
-      key = f === 0 ? `tex-gerente-idle0` : `tex-gerente-idle1`;
+      const f = Math.floor(now / 300) % 4; // idle 2→4 (frames coerentes)
+      key = `tex-gerente-idle${f}`;
     }
     applyTexture(this, key);
   }
