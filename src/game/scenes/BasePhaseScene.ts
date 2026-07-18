@@ -758,6 +758,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     if (this.shopPausedPhysics && !this.phaseShop?.open) {
       this.physics.world.resume();
       this.shopPausedPhysics = false;
+      // A ShopUI debitou run.vr nas compras → devolve p/ player.vr (fonte da fase).
+      this.player.vr = getRun(this).vr;
     }
     if (this.phaseShop?.open) {
       // CRÍTICO: o ShopUI processa as teclas (comprar / ESC fechar) no SEU update.
@@ -1872,6 +1874,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
           this.applyWeaponStats(id as WeaponId); // aplica na hora (não é troca de cena)
         };
       }
+      // O VR ganho NA fase vive em player.vr; a ShopUI opera sobre run.vr (só
+      // sincronizado no persist(), que na fase só roda na porta/morte). Sincroniza
+      // aqui p/ a loja "ver" o VR atual — e o sync de volta é no fechamento (update).
+      getRun(this).vr = this.player.vr;
       this.physics.world.pause();
       this.shopPausedPhysics = true;
       this.phaseShop.show();
