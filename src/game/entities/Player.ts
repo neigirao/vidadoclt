@@ -670,6 +670,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const canCoyote = time - this.lastGroundedAt <= COYOTE_MS;
     const bufferActive = time - this.lastJumpPressedAt <= JUMP_BUFFER_MS;
     if (bufferActive && canCoyote) {
+      this.dashUntil = 0; // JUMP-CANCEL: pular interrompe o dash (senão o freeze de
+      // Y do dash zeraria o pulo no frame seguinte) → tech de dash→pulo expressiva.
       body.setVelocityY(JUMP_VEL);
       this.lastJumpPressedAt = -9999;
       this.lastGroundedAt = -9999;
@@ -682,6 +684,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Air jump (double jump perk)
     if (jumpPressed && !canCoyote && !onGround && this.doubleJump && this.jumpsUsed < 1) {
+      this.dashUntil = 0; // jump-cancel do dash aéreo (double jump interrompe o dash)
       body.setVelocityY(JUMP_VEL);
       this.jumpsUsed++;
       this.lastJumpPressedAt = -9999;
