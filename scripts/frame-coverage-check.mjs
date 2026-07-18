@@ -98,6 +98,51 @@ for (const [subj, am] of map) {
   }
 }
 
+// ── Cruzamento de COERÊNCIA com o que o jogo REALMENTE cicla ──────────────────
+// O gate de piso conta frames, mas é cego para o caso PERIGOSO: o código cicla
+// MAIS frames do que o atlas tem (setEnemyTex faz `% count` → pede um índice
+// inexistente → frame faltando / erro em runtime). Aqui parseamos as contagens
+// hardcoded de EnemyAnimConfig.ts e exigimos atlas contíguo >= o que o jogo cicla.
+const coherenceViolations = [];
+try {
+  const cfg = readFileSync(
+    new URL("../src/game/systems/EnemyAnimConfig.ts", import.meta.url),
+    "utf8",
+  );
+  const parseCounts = (constName) => {
+    const block = new RegExp(
+      `${constName}\\s*:\\s*Record<[^>]*>\\s*=\\s*\\{([\\s\\S]*?)\\n\\};`,
+    ).exec(cfg);
+    const out = {};
+    if (!block) return out;
+    for (const m of block[1].matchAll(/["']?([a-z0-9-]+)["']?\s*:\s*(\d+)/gi))
+      out[m[1]] = Number(m[2]);
+    return out;
+  };
+  const cycled = {
+    walk: parseCounts("WALK_FRAME_COUNTS"),
+    idle: parseCounts("IDLE_FRAME_COUNTS"),
+    attack: parseCounts("ATTACK_FRAME_COUNTS"),
+  };
+  for (const [state, counts] of Object.entries(cycled)) {
+    for (const [prefix, n] of Object.entries(counts)) {
+      const subj = `enemy-${prefix}`;
+      const have = contiguous(map.get(subj)?.get(state) ?? new Set());
+      if (have < n)
+        coherenceViolations.push({
+          subject: subj,
+          action: state,
+          have,
+          cycles: n,
+          category: cat(subj),
+        });
+    }
+  }
+} catch {
+  /* EnemyAnimConfig ausente/ilegível — pula o cruzamento (não falha o gate) */
+}
+for (const cv of coherenceViolations) violations.push({ ...cv, min: cv.cycles, coherence: true });
+
 // Sanity extra: pisos declarados para famílias que NÃO existem no atlas =
 // provável typo no FLOORS/EXCEPTIONS. Sinaliza mas não falha o CI.
 const declaredExceptionsMissing = Object.keys(EXCEPTIONS).filter((k) => {
@@ -127,8 +172,11 @@ if (wantJson) {
     console.error(`❌ frame-coverage-check: ${violations.length} violação(ões) de ${total} pares:`);
     console.error("");
     for (const v of violations) {
+      const tag = v.coherence
+        ? " [COERÊNCIA: o jogo cicla mais do que existe → frame faltando]"
+        : "";
       console.error(
-        `  · ${v.category.padEnd(6)} ${v.subject}/${v.action}: tem ${v.have}, mínimo ${v.min} (falta ${v.min - v.have})`,
+        `  · ${v.category.padEnd(6)} ${v.subject}/${v.action}: tem ${v.have}, mínimo ${v.min} (falta ${v.min - v.have})${tag}`,
       );
     }
     console.error("");

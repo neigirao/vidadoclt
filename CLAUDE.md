@@ -188,6 +188,29 @@ Chaves lógicas `tex-<nome>` são resolvidas para `[textura, frame?]`:
 - Após editar qualquer PNG em `sprites/`, **re-empacote**: `node scripts/pack-atlas.mjs` (regenera `atlas.png` + `atlas.json`). Editar só o PNG individual **não** reflete no jogo, que carrega o atlas.
 - O `pack-atlas.mjs` roda uma **validação** ao final: avisa sobre frames vazios/quase-vazios e famílias de animação com tamanho inconsistente.
 
+### Pipeline de cobertura de frames (check / fill / dry)
+
+Fluxo de qualidade para as contagens de frames por família. **3 formas de usar:**
+
+1. **`bun run check:frames`** — GATE (roda no **CI**). Conta os frames contíguos de cada
+   família no atlas e **reprova** se ficar abaixo de um piso por categoria (`FLOORS` em
+   `scripts/frame-coverage-check.mjs`: player walk/run 16; inimigo/boss walk 8, idle 4,
+   attack 4, hurt 2, death 3; itens isentos). **Também é coherence-aware**: parseia
+   `EnemyAnimConfig.ts` e falha se o jogo ciclar MAIS frames do que o atlas tem (o caso
+   perigoso: `%count` pede um índice inexistente → frame faltando em runtime). Relaxar
+   um piso exige uma `EXCEPTION` **documentada** — nunca baixar o piso global.
+2. **`bun run fill:frames`** — AUTO-FILL em lote. Pega as violações do gate e resolve as
+   **interpoláveis** (walk/idle/run/attack) chamando `gen-inbetweens.mjs` (dobra o ciclo
+   até o piso, determinístico, sem IA), reempacota 1× no fim. Use ao adicionar conteúdo
+   novo com poucos frames em vez de rodar `gen-inbetweens` família a família.
+3. **`bun run fill:frames --dry`** — só imprime o plano e **separa o interpolável do que
+   precisa de ARTE** (hurt/death/loops curtos). É a "lista de compras de arte" — ver
+   `docs/ART_GAPS.md` (o que só arte resolve) e `docs/FRAME_COVERAGE.md` / `SPRITE_AUDIT.md`.
+
+**Limite conhecido:** o gate garante *quantidade* e coerência de *contagem*, mas é cego para
+arte *mismatched* (frame de personagem diferente com a dimensão certa) — isso só o
+`runFullAudit()` do LAB (canvas, no navegador) detecta.
+
 ### Gerador procedural de sprites (`scripts/gen-sprites.mjs`)
 
 **Aprendizado-raiz:** vários assets vieram de extrações de IA mal recortadas (blocos chapados, respingos, frames trocados/vazios). A alternativa robusta é **desenhar sprites simples direto em código**, via um "canvas painter" de pixel-art (helpers `px`/`rect`/`hline`, composição alpha-over). É versionado (diff revisável no PR), reproduzível (packing determinístico → mesmo byte) e sem dependência externa.
