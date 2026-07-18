@@ -9,7 +9,7 @@ usa no boot — então frame-lixo solto (índice não-contíguo) **não** é con
 - **Sujeitos:** 46
 - **Pares sujeito×ação:** 210
 - **Já em 16:** 30 (`player/run`, `player/walk`, `boss-ceo/walk`, `enemy-brenda/walk`, `enemy-coord-boss/walk`, `enemy-diretor/walk`, `enemy-evangelista-boss/walk`, `enemy-evangelista-mega/walk`, `enemy-gerente/walk`, `enemy-scrum-boss/walk`, `enemy-analista/walk`, `enemy-arquivo/walk`, `enemy-bateria/walk`, `enemy-cabo/walk`, `enemy-carimbador/walk`, `enemy-coletor/walk`, `enemy-coordenador/walk`, `enemy-drone/walk`, `enemy-estagiario/walk`, `enemy-facilitador/walk`, `enemy-guardiao-cafe/walk`, `enemy-noticeboard/walk`, `enemy-planilha/walk`, `enemy-reuniao/walk`, `enemy-rh/walk`, `enemy-scrum/walk`, `enemy-seguranca/walk`, `enemy-senior/walk`, `enemy-telemarketer/walk`, `npc-faxineiro/walk`)
-- **Frames faltando p/ TUDO a 16:** 2.256
+- **Frames faltando p/ TUDO a 16:** 2.216
 
 ## Como ler / priorizar
 
@@ -84,7 +84,7 @@ determinístico `scripts/gen-inbetweens.mjs` (dobra um ciclo por interpolação,
 | Inimigos | `enemy-analista-novo` | death | 3 | 16 | 13 |
 | Inimigos | `enemy-analista-novo` | hurt | 2 | 16 | 14 |
 | Inimigos | `enemy-analista-novo` | idle | 4 | 16 | 12 |
-| Inimigos | `enemy-analista-novo` | walk | 5 | 16 | 11 |
+| Inimigos | `enemy-analista-novo` | walk | 10 | 16 | 6 |
 | Inimigos | `enemy-arquivo` | attack | 4 | 16 | 12 |
 | Inimigos | `enemy-arquivo` | death | 3 | 16 | 13 |
 | Inimigos | `enemy-arquivo` | hurt | 2 | 16 | 14 |
@@ -129,7 +129,7 @@ determinístico `scripts/gen-inbetweens.mjs` (dobra um ciclo por interpolação,
 | Inimigos | `enemy-estagiario-b` | death | 3 | 16 | 13 |
 | Inimigos | `enemy-estagiario-b` | hurt | 2 | 16 | 14 |
 | Inimigos | `enemy-estagiario-b` | idle | 4 | 16 | 12 |
-| Inimigos | `enemy-estagiario-b` | walk | 5 | 16 | 11 |
+| Inimigos | `enemy-estagiario-b` | walk | 10 | 16 | 6 |
 | Inimigos | `enemy-evangelista` | attack | 4 | 16 | 12 |
 | Inimigos | `enemy-evangelista` | death | 3 | 16 | 13 |
 | Inimigos | `enemy-evangelista` | hurt | 2 | 16 | 14 |
@@ -153,22 +153,22 @@ determinístico `scripts/gen-inbetweens.mjs` (dobra um ciclo por interpolação,
 | Inimigos | `enemy-impressora` | death | 4 | 16 | 12 |
 | Inimigos | `enemy-impressora` | hurt | 2 | 16 | 14 |
 | Inimigos | `enemy-impressora` | idle | 4 | 16 | 12 |
-| Inimigos | `enemy-impressora` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-impressora` | walk | 12 | 16 | 4 |
 | Inimigos | `enemy-impressora-b` | attack | 4 | 16 | 12 |
 | Inimigos | `enemy-impressora-b` | death | 4 | 16 | 12 |
 | Inimigos | `enemy-impressora-b` | hurt | 2 | 16 | 14 |
 | Inimigos | `enemy-impressora-b` | idle | 4 | 16 | 12 |
-| Inimigos | `enemy-impressora-b` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-impressora-b` | walk | 12 | 16 | 4 |
 | Inimigos | `enemy-impressora-c` | attack | 4 | 16 | 12 |
 | Inimigos | `enemy-impressora-c` | death | 4 | 16 | 12 |
 | Inimigos | `enemy-impressora-c` | hurt | 2 | 16 | 14 |
 | Inimigos | `enemy-impressora-c` | idle | 4 | 16 | 12 |
-| Inimigos | `enemy-impressora-c` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-impressora-c` | walk | 12 | 16 | 4 |
 | Inimigos | `enemy-impressora-d` | attack | 4 | 16 | 12 |
 | Inimigos | `enemy-impressora-d` | death | 4 | 16 | 12 |
 | Inimigos | `enemy-impressora-d` | hurt | 2 | 16 | 14 |
 | Inimigos | `enemy-impressora-d` | idle | 4 | 16 | 12 |
-| Inimigos | `enemy-impressora-d` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-impressora-d` | walk | 12 | 16 | 4 |
 | Inimigos | `enemy-noticeboard` | attack | 4 | 16 | 12 |
 | Inimigos | `enemy-noticeboard` | death | 3 | 16 | 13 |
 | Inimigos | `enemy-noticeboard` | hurt | 2 | 16 | 14 |
@@ -213,7 +213,7 @@ determinístico `scripts/gen-inbetweens.mjs` (dobra um ciclo por interpolação,
 | Inimigos | `enemy-ti-suporte` | death | 3 | 16 | 13 |
 | Inimigos | `enemy-ti-suporte` | hurt | 2 | 16 | 14 |
 | Inimigos | `enemy-ti-suporte` | idle | 4 | 16 | 12 |
-| Inimigos | `enemy-ti-suporte` | walk | 6 | 16 | 10 |
+| Inimigos | `enemy-ti-suporte` | walk | 12 | 16 | 4 |
 | NPC | `npc-faxineiro` | attack | 4 | 16 | 12 |
 | NPC | `npc-faxineiro` | death | 3 | 16 | 13 |
 | NPC | `npc-faxineiro` | hurt | 2 | 16 | 14 |

@@ -37,6 +37,12 @@ jobs:
       - name: Testes (bun:test)
         run: bun test src/game
 
+      # Gate de cobertura de frames: falha se qualquer família ficar abaixo do
+      # piso por (categoria × ação). Pega regressões de arte (ex.: alguém dropa
+      # um walk cycle de 16 → 2). Fixes: `node scripts/gen-inbetweens.mjs …`.
+      - name: Cobertura de frames (por família/estado)
+        run: bun run check:frames
+
   # Smoke de cenas: boota CADA cena num navegador headless e falha se houver
   # erro de console/exceção. Pega regressões de render/scene que o bun:test
   # (sem Phaser) não vê. Playwright é instalado de forma EFÊMERA (não vai pro
