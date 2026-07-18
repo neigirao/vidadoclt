@@ -31,6 +31,10 @@ export type UpgradeDef = {
   // Escolhas de carreira mutuamente exclusivas: investir aqui tranca os ids
   // listados (e vice-versa), forçando uma identidade de build no meta-progresso.
   excludes?: UpgradeId[];
+  // Projeção do efeito CUMULATIVO por nível (só upgrades escalares). A loja mostra
+  // "agora +X → +Y <unit>" p/ o jogador SENTIR o impacto na próxima run (antes só
+  // via o custo, não o ganho). One-shots (parry/combo/vida) não têm — o desc basta.
+  proj?: { step: number; unit: string };
 };
 
 export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
@@ -41,6 +45,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [20, 50, 100],
     icon: "☕",
     color: "#c4813a",
+    proj: { step: 10, unit: "Energia máx" },
   },
   sindicalismo: {
     name: "Sindicalismo",
@@ -49,6 +54,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [30, 70, 140],
     icon: "✊",
     color: "#4aafff",
+    proj: { step: 10, unit: "Sanidade máx" },
   },
   hora_extra: {
     name: "Hora Extra Remunerada",
@@ -57,6 +63,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [50, 120],
     icon: "💰",
     color: "#f2c14e",
+    proj: { step: 25, unit: "% VR/drop" },
   },
   plr: {
     name: "PLR Garantido",
@@ -65,6 +72,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [60],
     icon: "📄",
     color: "#88ff88",
+    proj: { step: 5, unit: "VR inicial" },
   },
   resiliencia: {
     name: "Resiliência CLT",
@@ -82,6 +90,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [100],
     icon: "🤝",
     color: "#00ffdd",
+    proj: { step: 80, unit: "ms Parry" },
   },
   autonomia_base: {
     name: "Autonomia Interna",
@@ -107,6 +116,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [60, 130],
     icon: "⏱",
     color: "#ff88cc",
+    proj: { step: 15, unit: "% menos CD especial" },
   },
   insalubridade: {
     name: "Insalubridade",
@@ -115,6 +125,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [40, 90],
     icon: "⚗",
     color: "#aaffaa",
+    proj: { step: 150, unit: "ms menos CD dash" },
   },
   vale_alimentacao: {
     name: "Vale Alimentação",
@@ -123,6 +134,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     costs: [25, 55, 110],
     icon: "🍱",
     color: "#ffaa44",
+    proj: { step: 3, unit: "VR inicial" },
   },
   inss: {
     name: "INSS Garantido",
@@ -149,6 +161,7 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     icon: "🛡",
     color: "#88aaff",
     excludes: ["participacao_lucros"], // Segurança OU ganância
+    proj: { step: 10, unit: "% menos dano recebido" },
   },
   processei_empresa: {
     name: "Processei a Empresa",

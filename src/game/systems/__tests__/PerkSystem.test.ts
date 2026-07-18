@@ -6,6 +6,7 @@ import {
   WEAPON_SYNERGIES,
   applyPerk,
   checkAndApplyWeaponSynergies,
+  synergyPreview,
 } from "../PerkSystem";
 import { WEAPONS } from "../WeaponSystem";
 import type { Player } from "../../entities/Player";
@@ -154,5 +155,28 @@ describe("PerkSystem — sinergias arma×perk", () => {
     r.perks = ["plr"];
     checkAndApplyWeaponSynergies(p, r);
     expect(p.vrDropMult).toBeCloseTo(1.3);
+  });
+});
+
+describe("PerkSystem — synergyPreview (telegrafia de sinergia)", () => {
+  it("perk×perk: candidato fecha sinergia quando o outro perk já é do build", () => {
+    // valkyria = piso_de_vidro + hora_extra
+    const r = synergyPreview("hora_extra", ["piso_de_vidro"], "grampeador");
+    expect(r?.name).toBe("Valkyria CLT");
+    expect(r?.with).toBe(PERKS.piso_de_vidro.name);
+  });
+  it("não sinaliza se o outro perk do par não está no build", () => {
+    expect(synergyPreview("hora_extra", [], "grampeador")).toBeNull();
+  });
+  it("arma×perk: candidato + arma equipada fecham sinergia", () => {
+    // cafeina_pura = caneca + cafe_forte
+    const r = synergyPreview("cafe_forte", [], "caneca");
+    expect(r?.name).toBe("Cafeína Pura");
+  });
+  it("arma×perk não sinaliza com arma errada", () => {
+    expect(synergyPreview("cafe_forte", [], "grampeador")).toBeNull();
+  });
+  it("perk já possuído não sinaliza (null)", () => {
+    expect(synergyPreview("hora_extra", ["hora_extra", "piso_de_vidro"], "grampeador")).toBeNull();
   });
 });

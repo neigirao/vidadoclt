@@ -1,6 +1,7 @@
 import type { Player } from "../entities/Player";
 import type { RunState } from "./PlayerState";
 import type { WeaponId } from "./WeaponSystem";
+import { WEAPONS } from "./WeaponSystem";
 
 export type PerkId =
   | "autonomia"
@@ -343,6 +344,29 @@ export const WEAPON_SYNERGIES: Record<WeaponSynergyId, WeaponSynergyDef> = {
 };
 
 /** Aplica sinergias arma×perk e retorna os rótulos (ícone + nome) p/ o badge. */
+/** Telegrafia de sinergia (recomendação de GD): se ESCOLHER `candidate` agora
+ *  completaria uma sinergia ainda não ativa — perk×perk (o outro perk já está no
+ *  build) ou arma×perk (a arma equipada casa) — devolve o rótulo p/ a UI destacar
+ *  ("★ Valkyria CLT · c/ Hora Extra"). Puro/testável. null se não forma sinergia. */
+export function synergyPreview(
+  candidate: PerkId,
+  owned: PerkId[],
+  weapon: WeaponId,
+): { name: string; icon: string; with: string } | null {
+  if (owned.includes(candidate)) return null;
+  for (const syn of Object.values(SYNERGIES)) {
+    if (!syn.perks.includes(candidate)) continue;
+    const other = syn.perks.find((p) => p !== candidate);
+    if (other && owned.includes(other))
+      return { name: syn.name, icon: syn.icon, with: PERKS[other].name };
+  }
+  for (const ws of Object.values(WEAPON_SYNERGIES)) {
+    if (ws.perk === candidate && ws.weapon === weapon)
+      return { name: ws.name, icon: ws.icon, with: WEAPONS[weapon].name };
+  }
+  return null;
+}
+
 export function checkAndApplyWeaponSynergies(player: Player, run: RunState): string[] {
   const weapon = player.weaponId as WeaponId | undefined;
   const perks = run.perks ?? [];
