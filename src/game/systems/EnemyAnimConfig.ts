@@ -57,14 +57,15 @@ export const ATTACK_FRAME_COUNTS: Record<string, number> = {
 // in-betweens sintéticos (gen-inbetweens.mjs). Metade do ms por frame mantém a
 // MESMA duração de ciclo de antes — só mais suave. (ex.: senior 32×35 ≈ 16×70.)
 export const WALK_MS: Record<string, number> = {
-  estagiario: 80,
-  analista: 100,
-  facilitador: 90,
-  scrum: 70,
-  coordenador: 110,
-  senior: 35, // 32 frames × 35ms ≈ 1.1s/ciclo — caminhada suave
-  rh: 100,
+  estagiario: 55, // 16 × 55 ≈ 880ms/ciclo
+  analista: 65,
+  facilitador: 55,
+  scrum: 45, // 24 × 45 ≈ 1080ms
+  coordenador: 70,
+  senior: 35, // 32 × 35 ≈ 1.1s
+  rh: 65,
 };
+
 
 export const IDLE_MS: Record<string, number> = {
   estagiario: 280,
