@@ -16,17 +16,18 @@
 // walk interpolado 2× (ex.: senior 16→32). Contagens hardcoded aqui (não via
 // AtlasFrameScan) p/ o cycling não depender da varredura de pixels em runtime.
 export const WALK_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 8,
-  analista: 8,
-  facilitador: 4,
-  scrum: 12,
-  coordenador: 8,
-  senior: 32, // ciclo de caminhada premium — dobrado (era 16)
-  rh: 8,
-  // Bosses recolor (asBoss): sem estas entradas caíam no default 2.
-  "scrum-boss": 12,
-  "coord-boss": 8,
+  estagiario: 16, // dobrado (era 8) via gen-inbetweens
+  analista: 16,
+  facilitador: 16, // dobrado 2× (era 4)
+  scrum: 24, // dobrado (era 12)
+  coordenador: 16,
+  senior: 32,
+  rh: 16,
+  // Bosses recolor (asBoss)
+  "scrum-boss": 24,
+  "coord-boss": 16,
 };
+
 
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
   // estagiario/analista/facilitador: idle3 é frame CORROMPIDO (extração) → 0-2.
@@ -56,14 +57,15 @@ export const ATTACK_FRAME_COUNTS: Record<string, number> = {
 // in-betweens sintéticos (gen-inbetweens.mjs). Metade do ms por frame mantém a
 // MESMA duração de ciclo de antes — só mais suave. (ex.: senior 32×35 ≈ 16×70.)
 export const WALK_MS: Record<string, number> = {
-  estagiario: 80,
-  analista: 100,
-  facilitador: 90,
-  scrum: 70,
-  coordenador: 110,
-  senior: 35, // 32 frames × 35ms ≈ 1.1s/ciclo — caminhada suave
-  rh: 100,
+  estagiario: 55, // 16 × 55 ≈ 880ms/ciclo
+  analista: 65,
+  facilitador: 55,
+  scrum: 45, // 24 × 45 ≈ 1080ms
+  coordenador: 70,
+  senior: 35, // 32 × 35 ≈ 1.1s
+  rh: 65,
 };
+
 
 export const IDLE_MS: Record<string, number> = {
   estagiario: 280,
