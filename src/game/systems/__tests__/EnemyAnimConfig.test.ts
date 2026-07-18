@@ -38,7 +38,6 @@ describe("EnemyAnimConfig frameCount", () => {
     expect(walkFrames("facilitador")).toBe(18);
   });
 
-
   it("nunca REDUZ abaixo da base (substituir frame existente não encolhe)", () => {
     resetFrameAdditions();
     // estagiario walk base 8 (dobrado); um override baixo (conta 2) não reduz.
@@ -48,17 +47,18 @@ describe("EnemyAnimConfig frameCount", () => {
 
   it("mantém o MAIOR aumento visto (idempotente, não retrocede)", () => {
     resetFrameAdditions();
-    registerFrameAddition("idle", "scrum", 6);
-    registerFrameAddition("idle", "scrum", 5); // menor → ignorado
-    expect(idleFrames("scrum")).toBe(6);
+    // scrum idle base 8 (dobrado); registra ACIMA da base p/ exercitar o max.
+    registerFrameAddition("idle", "scrum", 10);
+    registerFrameAddition("idle", "scrum", 9); // menor → ignorado
+    expect(idleFrames("scrum")).toBe(10);
   });
 
   it("separa os estados (walk/idle/attack não se contaminam)", () => {
     resetFrameAdditions();
     registerFrameAddition("attack", "rh", 5);
     expect(attackFrames("rh")).toBe(5);
-    expect(walkFrames("rh")).toBe(WALK_FRAME_COUNTS.rh); // 4, intacto
-    expect(frameCount("idle", "rh")).toBe(4); // idle base do rh, intacto
+    expect(walkFrames("rh")).toBe(WALK_FRAME_COUNTS.rh); // intacto
+    expect(frameCount("idle", "rh")).toBe(8); // idle base do rh (dobrado), intacto
   });
 
   it("reset limpa os aumentos", () => {

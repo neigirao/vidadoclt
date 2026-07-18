@@ -28,16 +28,17 @@ export const WALK_FRAME_COUNTS: Record<string, number> = {
   "coord-boss": 16,
 };
 
-
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
   // estagiario/analista/facilitador: idle3 é frame CORROMPIDO (extração) → 0-2.
+  // NÃO dobrados (o idle3 ruim contaminaria os in-betweens).
   estagiario: 3,
   analista: 3,
   facilitador: 3,
-  scrum: 4,
-  coordenador: 4,
-  senior: 4,
-  rh: 4,
+  // Dobrados com in-betweens (idle 4→8), famílias com idle coerente. IDLE_MS halvado.
+  scrum: 8,
+  coordenador: 8,
+  senior: 8,
+  rh: 8,
 };
 
 // Ataque animado: whitelist dos frames de arte VALIDADA (48×64). Outliers 32×48 /
@@ -70,15 +71,15 @@ export const WALK_MS: Record<string, number> = {
   rh: 65,
 };
 
-
 export const IDLE_MS: Record<string, number> = {
   estagiario: 280,
   analista: 320,
   facilitador: 300,
-  scrum: 260,
-  coordenador: 350,
-  senior: 500,
-  rh: 320,
+  // scrum/coordenador/senior/rh: idle dobrado (8 frames) → ms/2 mantém a cadência.
+  scrum: 130,
+  coordenador: 175,
+  senior: 250,
+  rh: 160,
 };
 
 export const ATTACK_MS: Record<string, number> = {
@@ -105,10 +106,6 @@ export type AnimState = "walk" | "idle" | "attack";
 // registra aqui, ao carregar/subir, quantos frames o override implica para um
 // prefixo+estado (índice do frame extra + 1). Os acessores abaixo devolvem
 // max(base, registrado), então `setEnemyTex` e o LAB passam a ciclar os extras.
-// Além dos overrides de RUNTIME, `AtlasFrameScan` também registra aqui no boot a
-// contagem de frames CONTÍGUOS não-vazios que existem NO ATLAS (arte subida pelo
-// LAB direto no atlas via pack-atlas) → o jogo cicla o que está empacotado sem
-// editar as consts acima na mão.
 const _additions: Record<AnimState, Record<string, number>> = {
   walk: {},
   idle: {},
