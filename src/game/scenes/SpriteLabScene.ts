@@ -59,8 +59,8 @@ function walk(prefix: string, count: number): string[] {
 const SUBJECTS: Subject[] = [
   mkChar("PLAYER", "Personagem", "player", {
     idle: [1, 4],
-    walk: [0, 8],
-    run: [0, 8],
+    walk: [0, 16], // dobrado por in-betweens (game cicla 16 via %16 inline)
+    run: [0, 16],
     jump: [0, 6],
     fall: [0, 3],
     attack: [0, 3],
@@ -116,8 +116,8 @@ const SUBJECTS: Subject[] = [
     hurt: [0, 1],
   }),
   mkChar("Gerente (boss)", "Boss", "gerente", {
-    idle: [0, 2],
-    walk: [0, 4],
+    idle: [0, 4], // wiring: Boss cicla idle 4, walk 16
+    walk: [0, 16],
     run: [0, 4],
     hurt: [0, 3],
     death: [0, 3],
@@ -128,8 +128,8 @@ const SUBJECTS: Subject[] = [
     "run-charge": [0, 3],
   }),
   mkChar("CEO (boss)", "Boss", "boss-ceo", {
-    idle: [0, 2],
-    walk: [0, 2],
+    idle: [0, 4], // wiring: CeoBoss cicla idle 4, walk 16
+    walk: [0, 16],
     run: [0, 6],
     attack: [0, 4],
     special: [0, 4],
@@ -250,6 +250,20 @@ const SUBJECTS: Subject[] = [
   mkItem("Fundo F5 Diretoria", "Fundos", { idle: ["bg-diretoria"] }),
   mkItem("Fundo CEO Cobertura", "Fundos", { idle: ["bg-cobertura"] }),
 ];
+
+// Reconcilia as contagens de walk/idle/attack dos personagens que o jogo cicla
+// via setEnemyTex (hasAnimConfig) com a FONTE ÚNICA (EnemyAnimConfig.frameCount).
+// Sem isto o LAB mantém uma lista PARALELA que "mente" quando os counts mudam
+// (ex.: walks/idles dobrados por in-betweens → runFullAudit acusava LAB<jogo).
+// Só toca estados presentes no sujeito; essas famílias começam no frame 0.
+for (const s of SUBJECTS) {
+  if (!s.prefix || !hasAnimConfig(s.prefix)) continue;
+  for (const st of ["walk", "idle", "attack"] as AnimState[]) {
+    if (!(st in s.states)) continue;
+    const n = frameCount(st, s.prefix);
+    s.states[st] = Array.from({ length: n }, (_, i) => `tex-${s.prefix}-${st}${i}`);
+  }
+}
 
 const LAB_BGS = [
   "bg-openspace",
