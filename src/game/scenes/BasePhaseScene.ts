@@ -759,7 +759,13 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.physics.world.resume();
       this.shopPausedPhysics = false;
     }
-    if (this.phaseShop?.open) return;
+    if (this.phaseShop?.open) {
+      // CRÍTICO: o ShopUI processa as teclas (comprar / ESC fechar) no SEU update.
+      // Sem isto a loja não fecha → soft-lock com a física pausada. (A Copa também
+      // chama shop.update() todo frame.)
+      this.phaseShop.update();
+      return;
+    }
 
     // 1. Player update
     this.player.update(time, delta);
