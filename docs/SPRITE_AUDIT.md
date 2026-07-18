@@ -7,9 +7,9 @@ qualidade que estragam a animação/leitura. Complementa `FRAME_COVERAGE.md` (qu
 só conta frames). Regras: vazio < 25 px opacos; chapado > 92% de 1 cor;
 tamanho divergente na família; altura de conteúdo fora de ±25% da mediana.
 
-- **Sprites analisados:** 1093
-- **Com algum problema:** 80
-- **Vazios:** 0 · **Chapados:** 0 · **Tamanho inconsistente:** 39 · **Altura outlier:** 50
+- **Sprites analisados:** 1373
+- **Com algum problema:** 77
+- **Vazios:** 0 · **Chapados:** 0 · **Tamanho inconsistente:** 35 · **Altura outlier:** 50
 
 > ⚠️ Nem todo flag é bug: frames de FX/impacto (ex.: `*-hurt2` explosão) podem ser
 > "chapados"/"altura" legítimos, e famílias com frames idle/walk não-usados podem
@@ -45,10 +45,7 @@ tamanho divergente na família; altura de conteúdo fora de ±25% da mediana.
 | `enemy-evangelista-idle` | `enemy-evangelista-idle1` | tamanho 64x64 |
 | `enemy-evangelista-idle` | `enemy-evangelista-idle2` | tamanho 32x48 |
 | `enemy-evangelista-idle` | `enemy-evangelista-idle3` | tamanho 32x48 |
-| `enemy-evangelista-walk` | `enemy-evangelista-walk0` | tamanho 64x64 |
-| `enemy-evangelista-walk` | `enemy-evangelista-walk1` | tamanho 64x64 · altura 60 vs mediana 43 |
-| `enemy-evangelista-walk` | `enemy-evangelista-walk2` | tamanho 32x48 |
-| `enemy-evangelista-walk` | `enemy-evangelista-walk3` | tamanho 32x48 |
+| `enemy-evangelista-walk` | `enemy-evangelista-walk0` | altura 43 vs mediana 60 |
 | `enemy-facilitador-attack` | `enemy-facilitador-attack0` | tamanho 48x64 |
 | `enemy-facilitador-attack` | `enemy-facilitador-attack1` | tamanho 48x64 |
 | `enemy-facilitador-attack` | `enemy-facilitador-attack2` | tamanho 32x48 · altura 40 vs mediana 56 |
@@ -67,7 +64,7 @@ tamanho divergente na família; altura de conteúdo fora de ±25% da mediana.
 | `enemy-impressora-walk` | `enemy-impressora-walk5` | altura 25 vs mediana 34 |
 | `enemy-noticeboard-attack` | `enemy-noticeboard-attack1` | altura 42 vs mediana 33 |
 | `enemy-noticeboard-hurt` | `enemy-noticeboard-hurt1` | altura 29 vs mediana 42 |
-| `enemy-noticeboard-walk` | `enemy-noticeboard-walk2` | altura 26 vs mediana 42 |
+| `enemy-noticeboard-walk` | `enemy-noticeboard-walk4` | altura 26 vs mediana 42 |
 | `enemy-planilha-attack` | `enemy-planilha-attack1` | altura 14 vs mediana 23 |
 | `enemy-seguranca-attack` | `enemy-seguranca-attack0` | tamanho 64x64 |
 | `enemy-seguranca-attack` | `enemy-seguranca-attack1` | tamanho 64x64 |
@@ -92,7 +89,7 @@ tamanho divergente na família; altura de conteúdo fora de ±25% da mediana.
 | `item-email-idle` | `item-email-idle0` | altura 20 vs mediana 27 |
 | `item-email-idle` | `item-email-idle1` | altura 20 vs mediana 27 |
 | `npc-faxineiro-hurt` | `npc-faxineiro-hurt0` | altura 24 vs mediana 35 |
-| `npc-faxineiro-walk` | `npc-faxineiro-walk0` | altura 24 vs mediana 35 |
+| `npc-faxineiro-walk` | `npc-faxineiro-walk0` | altura 24 vs mediana 36 |
 | `prop-fase2-` | `prop-fase2-00` | altura 21 vs mediana 40 |
 | `prop-fase2-` | `prop-fase2-04` | altura 62 vs mediana 40 |
 | `prop-fase4-` | `prop-fase4-00` | altura 20 vs mediana 36 |
