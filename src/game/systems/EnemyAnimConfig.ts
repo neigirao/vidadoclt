@@ -42,9 +42,13 @@ export const IDLE_FRAME_COUNTS: Record<string, number> = {
 
 // Ataque animado: whitelist dos frames de arte VALIDADA (48×64). Outliers 32×48 /
 // lixo de extração ficam de fora. Prefixo ausente → 1 (frame 0 estático).
+// senior/rh subidos a 4: a leva de frames do Lovable ("auditou frames faltantes")
+// completou ciclos COERENTES aqui (conferido no strip). As demais famílias NÃO
+// foram subidas: os attack2/3 gerados por IA são um personagem DIFERENTE da base
+// (musculoso/chicote/ícone de som) — ciclar quebraria a leitura.
 export const ATTACK_FRAME_COUNTS: Record<string, number> = {
-  senior: 3,
-  rh: 2,
+  senior: 4,
+  rh: 4,
   facilitador: 2,
   analista: 2,
   // Bosses recolor: os 3 frames de attack são 48×64 limpos (recolor regenerou).
