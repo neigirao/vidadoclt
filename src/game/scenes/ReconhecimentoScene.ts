@@ -134,6 +134,17 @@ export class ReconhecimentoScene extends Phaser.Scene {
         const cost = nextCost(levels, id);
         const lockedBy = isLocked(levels, id);
         lvlT.setText(`Nível: ${lvl} / ${def.maxLevel}`);
+        // Projeção de impacto: troca o desc genérico pelo ganho CONCRETO da
+        // PRÓXIMA run (agora → após investir). Só nos upgrades escalares.
+        if (def.proj) {
+          const cur = def.proj.step * lvl;
+          const nxt = def.proj.step * (lvl + 1);
+          descT.setText(
+            cost !== null
+              ? `Próx. run: +${cur} → +${nxt} ${def.proj.unit}`
+              : `Próx. run: +${cur} ${def.proj.unit} (máx)`,
+          );
+        }
         if (lockedBy) {
           costT.setText(`TRANCADO por ${UPGRADES[lockedBy].name}`).setColor("#aa5555");
           btnT.setVisible(false);
