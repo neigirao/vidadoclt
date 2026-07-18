@@ -31,12 +31,13 @@ describe("EnemyAnimConfig frameCount", () => {
 
   it("um override ALÉM da base aumenta a contagem", () => {
     resetFrameAdditions();
-    // facilitador walk base 4 (dobrado) → um override ALÉM da base sobe a conta.
-    registerFrameAddition("walk", "facilitador", 5);
-    expect(walkFrames("facilitador")).toBe(5);
-    registerFrameAddition("walk", "facilitador", 6);
-    expect(walkFrames("facilitador")).toBe(6);
+    // facilitador walk base 16 (dobrado 2×) → override ALÉM da base sobe a conta.
+    registerFrameAddition("walk", "facilitador", 17);
+    expect(walkFrames("facilitador")).toBe(17);
+    registerFrameAddition("walk", "facilitador", 18);
+    expect(walkFrames("facilitador")).toBe(18);
   });
+
 
   it("nunca REDUZ abaixo da base (substituir frame existente não encolhe)", () => {
     resetFrameAdditions();
