@@ -16,17 +16,18 @@
 // walk interpolado 2× (ex.: senior 16→32). Contagens hardcoded aqui (não via
 // AtlasFrameScan) p/ o cycling não depender da varredura de pixels em runtime.
 export const WALK_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 8,
-  analista: 8,
-  facilitador: 4,
-  scrum: 12,
-  coordenador: 8,
-  senior: 32, // ciclo de caminhada premium — dobrado (era 16)
-  rh: 8,
-  // Bosses recolor (asBoss): sem estas entradas caíam no default 2.
-  "scrum-boss": 12,
-  "coord-boss": 8,
+  estagiario: 16, // dobrado (era 8) via gen-inbetweens
+  analista: 16,
+  facilitador: 16, // dobrado 2× (era 4)
+  scrum: 24, // dobrado (era 12)
+  coordenador: 16,
+  senior: 32,
+  rh: 16,
+  // Bosses recolor (asBoss)
+  "scrum-boss": 24,
+  "coord-boss": 16,
 };
+
 
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
   // estagiario/analista/facilitador: idle3 é frame CORROMPIDO (extração) → 0-2.
