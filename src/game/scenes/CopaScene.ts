@@ -372,13 +372,16 @@ export class CopaScene extends Phaser.Scene {
       const dest = r.nextScene ?? "OpenSpaceV2Scene";
       r.cameFrom = "copa"; // preserve energy/sanity on the next phase
       r.nextScene = undefined;
-      // FLUXO LINEAR (decisão do dono): sem escolha de rota. O jogo segue fixo
-      // 1→2→3→4→5→CEO. As Fases 2/3 ainda variam conteúdo por `route`/`route2`
-      // (fundo/título/objetivo/layout/inimigos), então fixamos uma variante
-      // canônica em vez de perguntar — mantém o conteúdo, tira a bifurcação.
-      // (A antiga RouteSelectScene continua registrada mas não é mais acessada.)
-      if (dest === "Phase2Scene") r.route ??= "comercial";
-      if (dest === "Phase3Scene") r.route2 ??= "produto";
+      // FLUXO LINEAR (decisão do dono): sem TELA de escolha de rota. O jogo segue
+      // fixo 1→2→3→4→5→CEO. Mas as Fases 2/3 têm DUAS variantes autoradas cada
+      // (fundo/título/objetivo/layout/inimigos + modificador de stat). Em vez de
+      // fixar uma e jogar a outra fora, escolhemos a variante por SEED (por run):
+      // recicla todo o conteúdo autorado e revive os modificadores de rota, sem
+      // reintroduzir a bifurcação. `??=` fixa por run (persiste na visita seguinte).
+      const seedNum = r.seed ? parseInt(r.seed.replace(/\D/g, "").slice(0, 6) || "0", 10) : 0;
+      if (dest === "Phase2Scene") r.route ??= seedNum % 2 === 0 ? "comercial" : "atendimento";
+      if (dest === "Phase3Scene")
+        r.route2 ??= Math.floor(seedNum / 2) % 2 === 0 ? "produto" : "tecnologia";
       this.scene.start(dest);
     };
 
