@@ -29,7 +29,14 @@ import { ParticleFactory } from "../systems/ParticleFactory";
 import { SanityFx } from "../systems/SanityFx";
 import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
-import { applyPerk, PERKS, SYNERGIES, PerkId, SynergyId } from "../systems/PerkSystem";
+import {
+  applyPerk,
+  PERKS,
+  SYNERGIES,
+  PerkId,
+  SynergyId,
+  synergyPreview,
+} from "../systems/PerkSystem";
 import { HEAT_LEVELS } from "./HoraExtraScene";
 import { CulturaId, selectableCulturaIds } from "../systems/CulturaSystem";
 import { addImage, resolveSprite } from "../systems/SpriteLibrary";
@@ -1637,6 +1644,24 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
           })
           .setOrigin(0.5, 0),
       );
+
+      // Telegrafia de sinergia (GD #2): se este perk fecha uma sinergia com o
+      // build atual, realça a carta e diz o quê ("★ Valkyria CLT · com Hora Extra").
+      const syn = synergyPreview(perkId, run.perks ?? [], this.player.weaponId as WeaponId);
+      if (syn) {
+        cardG.lineStyle(3, 0x66ccff, 1);
+        cardG.strokeRect(bx - 130, by - 60, 260, 140);
+        overlay.add(
+          this.add
+            .text(bx, by - 58, `★ ${syn.name}`, {
+              fontFamily: "monospace",
+              fontSize: "9px",
+              fontStyle: "bold",
+              color: "#66ccff",
+            })
+            .setOrigin(0.5, 0),
+        );
+      }
 
       const hitArea = this.add
         .rectangle(bx, by, 260, 140, 0xffffff, 0)

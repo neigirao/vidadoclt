@@ -36,7 +36,7 @@ import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
 import { ShopUI } from "../systems/Shop";
-import { applyPerk, PERKS, PerkId } from "../systems/PerkSystem";
+import { applyPerk, PERKS, PerkId, synergyPreview } from "../systems/PerkSystem";
 import { GameEnemy, BossEntity } from "../entities/types";
 import { BossPresence } from "../systems/BossPresence";
 import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
@@ -1836,7 +1836,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
   /** Detecta a estação mais próxima e ativa com E. Chamada em update(). */
   protected updateStations() {
-    if (this.phaseShop?.open) return;
+    if (this.phaseShop?.open || this.perkChoiceOpen) return;
     let nearest: BasePhaseScene["stations"][number] | undefined;
     let best = 70;
     for (const s of this.stations) {
@@ -1883,8 +1883,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.phaseShop.show();
       return;
     }
-    // Totem de perk: gasta VR, concede um perk ainda não possuído (1× por totem).
-    if (s.used) return;
+    // Totem de perk: gasta VR e oferece uma ESCOLHA entre 2 perks (não mais um
+    // aleatório — recomendação de GD: vira decisão, não gacha), com telegrafia de
+    // sinergia com o build atual.
+    if (s.used || this.perkChoiceOpen) return;
     const run = getRun(this);
     const owned = run.perks ?? [];
     const pool = (Object.keys(PERKS) as PerkId[]).filter((id) => !owned.includes(id));
@@ -1896,13 +1898,145 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.showPickupToast(`VR insuficiente (precisa ${BasePhaseScene.PERK_TOTEM_COST})`);
       return;
     }
-    this.player.vr -= BasePhaseScene.PERK_TOTEM_COST;
-    const id = pool[Math.floor(Math.random() * pool.length)];
-    applyPerk(id, this.player, run);
-    s.used = true;
-    s.obj.setAlpha(0.4);
-    Sfx.buy();
-    this.showPickupToast(`Perk: ${PERKS[id].icon} ${PERKS[id].name}`);
+    const options = Phaser.Utils.Array.Shuffle([...pool]).slice(0, 2) as PerkId[];
+    this.offerPerkChoice(options, `Totem de Perk — ${BasePhaseScene.PERK_TOTEM_COST} VR`, (id) => {
+      this.player.vr -= BasePhaseScene.PERK_TOTEM_COST;
+      applyPerk(id, this.player, run);
+      s.used = true;
+      s.obj.setAlpha(0.4);
+      Sfx.buy();
+      this.showPickupToast(`Perk: ${PERKS[id].icon} ${PERKS[id].name}`);
+    });
+  }
+
+  private perkChoiceOpen = false;
+
+  /** Overlay de escolha de perk (totem): 2 cartas, tecla 1/2 ou clique, ESC
+   *  cancela. Destaca sinergia com o build atual (perk×perk / arma×perk). Congela
+   *  a física (não a cena, senão o input morre). onPick só dispara ao escolher. */
+  private offerPerkChoice(options: PerkId[], title: string, onPick: (id: PerkId) => void) {
+    if (!options.length) return;
+    this.perkChoiceOpen = true;
+    this.physics.world.pause();
+    const run = getRun(this);
+    const weapon = this.player.weaponId as WeaponId;
+    const overlay = this.add.container(0, 0).setDepth(2000).setScrollFactor(0);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.8);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    overlay.add(bg);
+    overlay.add(
+      this.add
+        .text(GAME_WIDTH / 2, 118, title, {
+          fontFamily: "monospace",
+          fontSize: "18px",
+          fontStyle: "bold",
+          color: "#f2a800",
+          stroke: "#000000",
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5),
+    );
+    overlay.add(
+      this.add
+        .text(GAME_WIDTH / 2, 146, "Escolha um perk  ([1]/[2] ou clique · ESC cancela)", {
+          fontFamily: "monospace",
+          fontSize: "10px",
+          color: "#aaaaaa",
+        })
+        .setOrigin(0.5),
+    );
+
+    const cleanup = () => {
+      overlay.destroy();
+      k1.destroy();
+      k2.destroy();
+      kEsc.destroy();
+      this.physics.world.resume();
+      this.perkChoiceOpen = false;
+    };
+    const pick = (idx: number) => {
+      const id = options[idx];
+      if (!id) return;
+      cleanup();
+      onPick(id);
+    };
+
+    options.forEach((perkId, i) => {
+      const perk = PERKS[perkId];
+      const bx = GAME_WIDTH / 2 + (i === 0 ? -170 : 170);
+      const by = GAME_HEIGHT / 2;
+      const syn = synergyPreview(perkId, run.perks ?? [], weapon);
+      const border = syn ? 0x66ccff : 0xf2a800;
+      const cardG = this.add.graphics();
+      cardG.fillStyle(0x12151a, 1);
+      cardG.fillRect(bx - 130, by - 64, 260, 150);
+      cardG.lineStyle(syn ? 3 : 2, border, syn ? 1 : 0.8);
+      cardG.strokeRect(bx - 130, by - 64, 260, 150);
+      overlay.add(cardG);
+      overlay.add(
+        this.add
+          .text(bx, by - 50, `[${i + 1}]  ${perk.icon}`, {
+            fontFamily: "monospace",
+            fontSize: "22px",
+          })
+          .setOrigin(0.5),
+      );
+      overlay.add(
+        this.add
+          .text(bx, by - 18, perk.name.toUpperCase(), {
+            fontFamily: "monospace",
+            fontSize: "12px",
+            fontStyle: "bold",
+            color: "#f2c14e",
+          })
+          .setOrigin(0.5),
+      );
+      overlay.add(
+        this.add
+          .text(bx, by + 2, perk.description, {
+            fontFamily: "monospace",
+            fontSize: "8px",
+            color: "#cccccc",
+            wordWrap: { width: 236 },
+            align: "center",
+          })
+          .setOrigin(0.5, 0),
+      );
+      if (syn) {
+        overlay.add(
+          this.add
+            .text(bx, by + 62, `${syn.icon} SINERGIA: ${syn.name}\n★ com ${syn.with}`, {
+              fontFamily: "monospace",
+              fontSize: "8px",
+              color: "#66ccff",
+              align: "center",
+            })
+            .setOrigin(0.5, 0),
+        );
+      }
+      const hit = this.add
+        .rectangle(bx, by, 260, 150, 0xffffff, 0)
+        .setInteractive({ useHandCursor: true });
+      hit.on("pointerover", () => {
+        cardG.lineStyle(3, 0xffffff, 1);
+        cardG.strokeRect(bx - 130, by - 64, 260, 150);
+      });
+      hit.on("pointerout", () => {
+        cardG.lineStyle(syn ? 3 : 2, border, syn ? 1 : 0.8);
+        cardG.strokeRect(bx - 130, by - 64, 260, 150);
+      });
+      hit.on("pointerdown", () => pick(i));
+      overlay.add(hit);
+    });
+
+    const kb = this.input.keyboard!;
+    const k1 = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+    const k2 = kb.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+    const kEsc = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    k1.on("down", () => pick(0));
+    k2.on("down", () => pick(1));
+    kEsc.on("down", () => cleanup());
   }
 
   /** Larga uma arma no chão como pickup flutuante (peg com E). */
