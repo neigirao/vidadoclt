@@ -38,16 +38,18 @@ describe("CulturaSystem — efeitos aplicados na run", () => {
     expect(p).toEqual(before);
   });
 
-  it("happy_hour: +25 maxEnergy", () => {
+  it("happy_hour (tradeoff): +35 maxEnergy, -10 maxSanity", () => {
     const p = fakePlayer();
     reapplyAllCulturas(p, run(["happy_hour"]));
-    expect(p.maxEnergy).toBe(125);
+    expect(p.maxEnergy).toBe(135);
+    expect(p.maxSanity).toBe(90);
   });
 
-  it("gestao_burnout: +30 maxSanity", () => {
+  it("gestao_burnout (tradeoff): +40 maxSanity, -10 maxEnergy", () => {
     const p = fakePlayer();
     reapplyAllCulturas(p, run(["gestao_burnout"]));
-    expect(p.maxSanity).toBe(130);
+    expect(p.maxSanity).toBe(140);
+    expect(p.maxEnergy).toBe(90);
   });
 
   it("plano_imediato: +40 maxEnergy, -20 maxSanity", () => {
@@ -108,7 +110,8 @@ describe("CulturaSystem — efeitos aplicados na run", () => {
   it("empilha aditivamente múltiplas culturas de energia", () => {
     const p = fakePlayer();
     reapplyAllCulturas(p, run(["happy_hour", "refeicao_executiva"]));
-    expect(p.maxEnergy).toBe(100 + 25 + 20);
+    expect(p.maxEnergy).toBe(100 + 35 + 20); // happy_hour agora +35
+    expect(p.maxSanity).toBe(100 - 10 + 20); // custo do happy_hour + bônus refeição
   });
 
   it("padrao_clt é no-op (primeira run, sem modificadores)", () => {
