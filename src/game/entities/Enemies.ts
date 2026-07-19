@@ -250,8 +250,8 @@ export class EstagiarioDesesperado extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(20, 28);
-    body.setOffset(14, 36); // sprite 48×64: x=(48-20)/2, y=64-28
+    body.setSize(28, 28);
+    body.setOffset(10, 36); // corpo alargado p/ hitbox de contato mais justa (28 vs sprite 48)
     body.setCollideWorldBounds(true);
     this.dir = dir;
     this.setFlipX(dir === -1);
@@ -373,8 +373,8 @@ export class FacilitadorDeWorkshop extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(24, 36);
-    body.setOffset(12, 28); // sprite 48×64: x=(48-24)/2, y=64-36
+    body.setSize(30, 36);
+    body.setOffset(9, 28); // corpo alargado p/ hitbox de contato mais justa (30 vs sprite 48)
     body.setCollideWorldBounds(true);
   }
 
@@ -1052,8 +1052,8 @@ export class AnalistaJunior extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(24, 36);
-    body.setOffset(12, 28); // sprite 48×64: x=(48-24)/2, y=64-36
+    body.setSize(30, 36);
+    body.setOffset(9, 28); // corpo alargado p/ hitbox de contato mais justa (30 vs sprite 48)
     body.setCollideWorldBounds(true);
   }
 
@@ -1176,8 +1176,8 @@ export class EstagiarioSobrecarregado extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(20, 28);
-    body.setOffset(14, 36);
+    body.setSize(28, 28);
+    body.setOffset(10, 36); // corpo alargado (28) p/ hitbox de contato mais justa ao sprite
     body.setCollideWorldBounds(true);
     this.dir = dir;
     this.setFlipX(dir === -1);
@@ -1252,8 +1252,8 @@ export class AnalistaOnboarding extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.setDepth(10);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(24, 36);
-    body.setOffset(12, 28);
+    body.setSize(30, 36);
+    body.setOffset(9, 28); // corpo alargado (30) p/ hitbox de contato mais justa ao sprite
     body.setCollideWorldBounds(true);
     this._animOffset = (Math.random() * 2000) | 0;
     this._nextFireAt = scene.time.now + 2000 + Math.random() * 1000;
