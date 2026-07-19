@@ -47,19 +47,20 @@ describe("EnemyAnimConfig frameCount", () => {
 
   it("mantém o MAIOR aumento visto (idempotente, não retrocede)", () => {
     resetFrameAdditions();
-    // rh idle base 8; registra ACIMA da base p/ exercitar o max. (scrum não serve
-    // mais: idle base subiu p/ 16 com o re-corte da s7 dobrado a 16 frames.)
-    registerFrameAddition("idle", "rh", 10);
-    registerFrameAddition("idle", "rh", 9); // menor → ignorado
-    expect(idleFrames("rh")).toBe(10);
+    // Prefixo SINTÉTICO (fora de qualquer config) → base = default (idle 4). Assim
+    // o teste não quebra quando as contagens reais mudam (ex.: idle subiu p/ 16).
+    registerFrameAddition("idle", "__dummy__", 10);
+    registerFrameAddition("idle", "__dummy__", 9); // menor → ignorado
+    expect(idleFrames("__dummy__")).toBe(10);
   });
 
   it("separa os estados (walk/idle/attack não se contaminam)", () => {
     resetFrameAdditions();
-    registerFrameAddition("attack", "rh", 5);
-    expect(attackFrames("rh")).toBe(5);
-    expect(walkFrames("rh")).toBe(WALK_FRAME_COUNTS.rh); // intacto
-    expect(frameCount("idle", "rh")).toBe(8); // idle base do rh (dobrado), intacto
+    // Prefixo sintético → bases = defaults (walk 2, idle 4, attack 1).
+    registerFrameAddition("attack", "__dummy__", 5);
+    expect(attackFrames("__dummy__")).toBe(5);
+    expect(walkFrames("__dummy__")).toBe(2); // walk default, intacto
+    expect(frameCount("idle", "__dummy__")).toBe(4); // idle default, intacto
   });
 
   it("reset limpa os aumentos", () => {
