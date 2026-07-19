@@ -866,8 +866,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } else if (now < this.dashUntil) {
       key = "tex-player-dash0";
     } else if (now - this.lastAttackAt < 300) {
-      const f = Math.min(2, Math.floor((now - this.lastAttackAt) / 100));
-      key = `tex-player-attack${f}`; // attack0 → 1 → 2
+      // 6 frames (stapler strike, re-cortado da s31) na janela de 300ms → 50ms/frame.
+      const f = Math.min(5, Math.floor((now - this.lastAttackAt) / 50));
+      key = `tex-player-attack${f}`;
     } else if (!onGround) {
       if (body.velocity.y < -60) {
         key = `tex-player-jump${Math.floor(now / 80) % 6}`; // subindo (6 frames)
