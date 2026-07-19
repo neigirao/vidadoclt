@@ -52,8 +52,13 @@ export const IDLE_FRAME_COUNTS: Record<string, number> = {
 export const ATTACK_FRAME_COUNTS: Record<string, number> = {
   senior: 4,
   rh: 4,
-  facilitador: 2,
-  analista: 2,
+  // Attack RE-CORTADO da s7 (poses limpas do personagem, sem o FX que fica à
+  // direita — o jogo já spawna o próprio projétil). estagiário/scrum ficaram de
+  // fora: as poses de attack deles têm papéis/balão "SINERGIA!" grudados e pedem
+  // arte à mão; seguem em frame 0 estático.
+  facilitador: 5,
+  analista: 5,
+  coordenador: 5,
   // Bosses recolor: os 3 frames de attack são 48×64 limpos (recolor regenerou).
   "scrum-boss": 3,
   "coord-boss": 3,
@@ -89,6 +94,7 @@ export const ATTACK_MS: Record<string, number> = {
   rh: 110,
   facilitador: 100,
   analista: 110,
+  coordenador: 130,
 };
 
 // Defaults do consumidor (o que o jogo usa quando o prefixo não está no record).
