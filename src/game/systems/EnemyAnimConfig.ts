@@ -16,14 +16,14 @@
 // walk interpolado 2× (ex.: senior 16→32). Contagens hardcoded aqui (não via
 // AtlasFrameScan) p/ o cycling não depender da varredura de pixels em runtime.
 export const WALK_FRAME_COUNTS: Record<string, number> = {
-  // 5 inimigos da Fase 1 RE-CORTADOS da folha-fonte s7 (arte real coerente, 4
-  // frames/ciclo) e dobrados 1× p/ 8 via gen-inbetweens. Substituem os antigos
-  // 16/24 sintéticos de base incerta. WALK_MS dobrado p/ manter a duração do ciclo.
-  estagiario: 8,
-  analista: 8,
-  facilitador: 8,
-  scrum: 8,
-  coordenador: 8,
+  // 5 inimigos da Fase 1: arte real da s7 (4 frames) dobrada p/ 16 via
+  // gen-inbetweens (16 frames/ação — alvo do projeto). WALK_MS ajustado p/ manter
+  // a duração do ciclo.
+  estagiario: 16,
+  analista: 16,
+  facilitador: 16,
+  scrum: 16,
+  coordenador: 16,
   senior: 32,
   rh: 16,
   // Bosses recolor (asBoss)
@@ -32,14 +32,13 @@ export const WALK_FRAME_COUNTS: Record<string, number> = {
 };
 
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
-  // 5 inimigos da Fase 1 RE-CORTADOS da s7: idle real coerente de 4 frames
-  // (antes estagiario/analista/facilitador tinham idle3 corrompido → só 3; agora
-  // os 4 são limpos). scrum/coordenador baixaram de 8 sintético p/ 4 real.
-  estagiario: 4,
-  analista: 4,
-  facilitador: 4,
-  scrum: 4,
-  coordenador: 4,
+  // 5 inimigos da Fase 1: idle real da s7 (4 frames) dobrado 2× p/ 16 (alvo do
+  // projeto). IDLE_MS ajustado p/ manter a cadência calma de respiração.
+  estagiario: 16,
+  analista: 16,
+  facilitador: 16,
+  scrum: 16,
+  coordenador: 16,
   senior: 8,
   rh: 8,
 };
@@ -65,23 +64,22 @@ export const ATTACK_FRAME_COUNTS: Record<string, number> = {
 // in-betweens sintéticos (gen-inbetweens.mjs). Metade do ms por frame mantém a
 // MESMA duração de ciclo de antes — só mais suave. (ex.: senior 32×35 ≈ 16×70.)
 export const WALK_MS: Record<string, number> = {
-  estagiario: 110, // 8 × 110 ≈ 880ms/ciclo (era 16×55)
-  analista: 130, // 8 × 130 ≈ 1040ms
-  facilitador: 110,
-  scrum: 135, // 8 × 135 ≈ 1080ms
-  coordenador: 140, // 8 × 140 ≈ 1120ms
+  estagiario: 55, // 16 × 55 ≈ 880ms/ciclo
+  analista: 65, // 16 × 65 ≈ 1040ms
+  facilitador: 55,
+  scrum: 68, // 16 × 68 ≈ 1090ms
+  coordenador: 70, // 16 × 70 ≈ 1120ms
   senior: 35, // 32 × 35 ≈ 1.1s
   rh: 65,
 };
 
 export const IDLE_MS: Record<string, number> = {
-  estagiario: 280,
-  analista: 320,
-  facilitador: 300,
-  // scrum/coordenador voltaram a 4 frames reais (s7) → ms dobrado p/ manter a
-  // cadência calma de respiração. senior/rh seguem em 8 frames (idle sintético).
-  scrum: 260,
-  coordenador: 350,
+  // 5 inimigos da Fase 1: idle 16 frames → ms baixo mantém a respiração calma.
+  estagiario: 70, // 16 × 70 ≈ 1.1s/ciclo
+  analista: 80,
+  facilitador: 75,
+  scrum: 65,
+  coordenador: 88,
   senior: 250,
   rh: 160,
 };

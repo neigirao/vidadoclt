@@ -47,10 +47,11 @@ describe("EnemyAnimConfig frameCount", () => {
 
   it("mantém o MAIOR aumento visto (idempotente, não retrocede)", () => {
     resetFrameAdditions();
-    // scrum idle base 8 (dobrado); registra ACIMA da base p/ exercitar o max.
-    registerFrameAddition("idle", "scrum", 10);
-    registerFrameAddition("idle", "scrum", 9); // menor → ignorado
-    expect(idleFrames("scrum")).toBe(10);
+    // rh idle base 8; registra ACIMA da base p/ exercitar o max. (scrum não serve
+    // mais: idle base subiu p/ 16 com o re-corte da s7 dobrado a 16 frames.)
+    registerFrameAddition("idle", "rh", 10);
+    registerFrameAddition("idle", "rh", 9); // menor → ignorado
+    expect(idleFrames("rh")).toBe(10);
   });
 
   it("separa os estados (walk/idle/attack não se contaminam)", () => {
