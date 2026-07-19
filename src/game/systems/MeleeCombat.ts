@@ -5,6 +5,7 @@ import { meleeComboHits, meleeDamage, meleeKnockback, meleeVrDrop } from "./Mele
 import { CombatFx } from "./CombatFx";
 import { Sfx } from "./AudioSystem";
 import { ParticleFactory } from "./ParticleFactory";
+import { playEnemyDeath } from "./DeathAnim";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Núcleo ÚNICO do golpe corpo-a-corpo do player.
@@ -155,16 +156,13 @@ export function resolveMeleeAttack(
           player.sanity = Math.min(player.maxSanity, player.sanity + burnout.sanityHealOnKill);
         player.onKill?.();
         host.onEnemyKilled?.(e);
-        scene.tweens.add({
-          targets: e,
-          y: e.y - 18,
-          scaleY: 0.5,
-          alpha: 0,
-          duration: 200,
-          ease: "Quad.easeOut",
-          onComplete: () => e.destroy(),
-        });
+        // MORTE ANIMADA: toca death0→N (arte da folha-fonte) e some. Desativa o
+        // corpo antes p/ o "cadáver" não colidir/ferir durante a queda. Fallback
+        // ao squish quando o inimigo não tem frames de death (ver DeathAnim).
         e.setActive(false);
+        const eb = e.body as Phaser.Physics.Arcade.Body | null;
+        if (eb) eb.enable = false;
+        playEnemyDeath(scene, e);
       }
     });
   }
