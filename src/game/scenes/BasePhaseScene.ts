@@ -1101,12 +1101,19 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     if (this.boss?.active) {
       const bx = this.boss.x;
+      const by = this.boss.y;
       for (let i = 0; i < 12; i++) {
         this.time.delayedCall(i * 60, () => {
-          if (this.boss) this.dropVR(this.boss.x + Phaser.Math.Between(-60, 60), this.boss.y - 20);
+          this.dropVR(bx + Phaser.Math.Between(-60, 60), by - 20);
         });
       }
-      (this.boss as Phaser.Physics.Arcade.Sprite).destroy();
+      // MORTE ANIMADA do chefão: toca death0→N (arte própria) em vez de sumir na
+      // hora. Corpo desativado; fallback ao squish se não houver death frames.
+      const b = this.boss as Phaser.Physics.Arcade.Sprite;
+      b.setActive(false);
+      const bb = b.body as Phaser.Physics.Arcade.Body | null;
+      if (bb) bb.enable = false;
+      playEnemyDeath(this, b);
       this.bossPresence?.destroy();
       this.dropBossWeapon(bx); // recompensa garantida: arma do chefão
     }
