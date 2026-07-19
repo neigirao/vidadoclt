@@ -12,6 +12,18 @@ const HIT_INVULN_MS = 400;
 // Whitelist: só prefixos cujos frames de walk têm o MESMO tamanho da base
 // (evangelista fica de fora — walk 64x64 vs base 32x48 daria "pulo" visual).
 const _phaseAnimOff = new WeakMap<Phaser.GameObjects.Sprite, number>();
+// Conta frames de idle disponíveis por prefixo (cache) — pra o animPhase ciclar
+// idle quando o inimigo está parado, em vez de travar num frame base estático.
+const _phaseIdleCounts: Record<string, number> = {};
+function phaseIdleCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
+  if (prefix in _phaseIdleCounts) return _phaseIdleCounts[prefix];
+  const tex = e.scene?.textures?.get("sprites");
+  let n = 0;
+  if (tex) while (tex.has(`enemy-${prefix}-idle${n}`) || tex.has(`${prefix}-idle${n}`)) n++;
+  _phaseIdleCounts[prefix] = n;
+  return n;
+}
+
 function animPhase(
   e: Phaser.Physics.Arcade.Sprite,
   t: number,
@@ -30,7 +42,11 @@ function animPhase(
     const f = Math.floor((t + off) / ms) % total;
     applyTexture(e, `tex-${prefix}-walk${f}`);
   } else {
-    applyTexture(e, `tex-${prefix}`);
+    // PARADO: cicla idle (respiração) em vez de travar no frame base. Usa os
+    // frames de idle que já existem no atlas; cai no base se o inimigo não tem.
+    const idleN = Math.max(phaseIdleCount(e, prefix), runtimeFrameAddition("idle", prefix));
+    if (idleN > 1) applyTexture(e, `tex-${prefix}-idle${Math.floor((t + off) / 320) % idleN}`);
+    else applyTexture(e, `tex-${prefix}`);
   }
 }
 
