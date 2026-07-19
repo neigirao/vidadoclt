@@ -93,7 +93,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
         }
       }
     }
-    animPhase(this, t, "telemarketer", 8);
+    animPhase(this, t, "telemarketer", 16, 47);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -247,7 +247,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     }
     this.setFlipX(this._dir === -1);
     body.setVelocityX(this._dir * this.speed * speedMult);
-    animPhase(this, t, "guardiao-cafe", 8);
+    animPhase(this, t, "guardiao-cafe", 16, 47);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -324,7 +324,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
         if (this.active) this.onFire?.(this.x, this.y + 16);
       });
     }
-    animPhase(this, t, "noticeboard", 8);
+    animPhase(this, t, "noticeboard", 16, 47);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -498,7 +498,7 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
       body.setVelocity(Math.cos(angle) * spd, Math.sin(angle) * spd);
       this.setFlipX(this.target.x < this.x);
     }
-    animPhase(this, t, "coletor", 8);
+    animPhase(this, t, "coletor", 16, 47);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -580,7 +580,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
         if (this.active) this.onFire?.(this.x, this.y);
       });
     }
-    animPhase(this, t, "planilha", 8);
+    animPhase(this, t, "planilha", 16, 47);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -679,7 +679,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
         body.setVelocityX(dir * this.speed * speedMult);
       }
     }
-    animPhase(this, t, "cabo", 8);
+    animPhase(this, t, "cabo", 16, 47);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -758,7 +758,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
         if (this.active) this.onSpawnError?.(this.x, this.y - 30);
       });
     }
-    animPhase(this, t, "ti-suporte", 6);
+    animPhase(this, t, "ti-suporte", 16, 36);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -840,7 +840,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
         if (this.active) this.onBomb?.(this.x, this.y + 10);
       });
     }
-    animPhase(this, t, "drone", 8, 65);
+    animPhase(this, t, "drone", 16, 33);
   }
 
   hit(damage: number, knockback: number): boolean {
@@ -946,7 +946,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
     else if (this.x > this._startX + 80) this._patrolDir = -1;
     this.setFlipX(this._patrolDir === -1);
     body.setVelocityX(this._patrolDir * (this.speed * 0.5) * speedMult);
-    animPhase(this, t, "seguranca", 12);
+    animPhase(this, t, "seguranca", 16, 71);
   }
 
   hit(damage: number, knockback: number): boolean {
