@@ -16,10 +16,13 @@
 // walk interpolado 2× (ex.: senior 16→32). Contagens hardcoded aqui (não via
 // AtlasFrameScan) p/ o cycling não depender da varredura de pixels em runtime.
 export const WALK_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 16, // dobrado (era 8) via gen-inbetweens
+  // 5 inimigos da Fase 1: arte real da s7 (4 frames) dobrada p/ 16 via
+  // gen-inbetweens (16 frames/ação — alvo do projeto). WALK_MS ajustado p/ manter
+  // a duração do ciclo.
+  estagiario: 16,
   analista: 16,
-  facilitador: 16, // dobrado 2× (era 4)
-  scrum: 24, // dobrado (era 12)
+  facilitador: 16,
+  scrum: 16,
   coordenador: 16,
   senior: 32,
   rh: 16,
@@ -29,16 +32,18 @@ export const WALK_FRAME_COUNTS: Record<string, number> = {
 };
 
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
-  // estagiario/analista/facilitador: idle3 é frame CORROMPIDO (extração) → 0-2.
-  // NÃO dobrados (o idle3 ruim contaminaria os in-betweens).
-  estagiario: 3,
-  analista: 3,
-  facilitador: 3,
-  // Dobrados com in-betweens (idle 4→8), famílias com idle coerente. IDLE_MS halvado.
-  scrum: 8,
-  coordenador: 8,
-  senior: 8,
-  rh: 8,
+  // 5 inimigos da Fase 1: idle real da s7 (4 frames) dobrado 2× p/ 16 (alvo do
+  // projeto). IDLE_MS ajustado p/ manter a cadência calma de respiração.
+  estagiario: 16,
+  analista: 16,
+  facilitador: 16,
+  scrum: 16,
+  coordenador: 16,
+  // senior/rh e os bosses-recolor levados a 16 (idle dobrado via gen-inbetweens).
+  senior: 16,
+  rh: 16,
+  "scrum-boss": 16,
+  "coord-boss": 16,
 };
 
 // Ataque animado: whitelist dos frames de arte VALIDADA (48×64). Outliers 32×48 /
@@ -50,8 +55,13 @@ export const IDLE_FRAME_COUNTS: Record<string, number> = {
 export const ATTACK_FRAME_COUNTS: Record<string, number> = {
   senior: 4,
   rh: 4,
-  facilitador: 2,
-  analista: 2,
+  // Attack RE-CORTADO da s7 (poses limpas do personagem, sem o FX que fica à
+  // direita — o jogo já spawna o próprio projétil). estagiário/scrum ficaram de
+  // fora: as poses de attack deles têm papéis/balão "SINERGIA!" grudados e pedem
+  // arte à mão; seguem em frame 0 estático.
+  facilitador: 5,
+  analista: 5,
+  coordenador: 5,
   // Bosses recolor: os 3 frames de attack são 48×64 limpos (recolor regenerou).
   "scrum-boss": 3,
   "coord-boss": 3,
@@ -63,23 +73,26 @@ export const ATTACK_FRAME_COUNTS: Record<string, number> = {
 // MESMA duração de ciclo de antes — só mais suave. (ex.: senior 32×35 ≈ 16×70.)
 export const WALK_MS: Record<string, number> = {
   estagiario: 55, // 16 × 55 ≈ 880ms/ciclo
-  analista: 65,
+  analista: 65, // 16 × 65 ≈ 1040ms
   facilitador: 55,
-  scrum: 45, // 24 × 45 ≈ 1080ms
-  coordenador: 70,
+  scrum: 68, // 16 × 68 ≈ 1090ms
+  coordenador: 70, // 16 × 70 ≈ 1120ms
   senior: 35, // 32 × 35 ≈ 1.1s
   rh: 65,
 };
 
 export const IDLE_MS: Record<string, number> = {
-  estagiario: 280,
-  analista: 320,
-  facilitador: 300,
-  // scrum/coordenador/senior/rh: idle dobrado (8 frames) → ms/2 mantém a cadência.
-  scrum: 130,
-  coordenador: 175,
-  senior: 250,
-  rh: 160,
+  // 5 inimigos da Fase 1: idle 16 frames → ms baixo mantém a respiração calma.
+  estagiario: 70, // 16 × 70 ≈ 1.1s/ciclo
+  analista: 80,
+  facilitador: 75,
+  scrum: 65,
+  coordenador: 88,
+  // senior/rh/bosses-recolor: idle 16 frames → ms baixo mantém a respiração calma.
+  senior: 125,
+  rh: 80,
+  "scrum-boss": 90,
+  "coord-boss": 90,
 };
 
 export const ATTACK_MS: Record<string, number> = {
@@ -87,6 +100,7 @@ export const ATTACK_MS: Record<string, number> = {
   rh: 110,
   facilitador: 100,
   analista: 110,
+  coordenador: 130,
 };
 
 // Defaults do consumidor (o que o jogo usa quando o prefixo não está no record).

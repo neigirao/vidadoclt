@@ -46,9 +46,27 @@ function setEnemyTex(
       const ms = ATTACK_MS[prefix] ?? DEFAULT_ATTACK_MS;
       frame = Math.floor((t + offset) / ms) % maxFrames;
     }
+  } else if (state === "hurt") {
+    // hurt agora CICLA (antes travava no frame 0 → a arte de hurt nunca aparecia).
+    // Janela curta (flash de dano), então ms baixo; só cicla se houver >1 frame.
+    const maxFrames = hurtFrameCount(e, prefix);
+    if (maxFrames > 1) frame = Math.floor((t + offset) / 70) % maxFrames;
   }
   const key = `tex-${prefix}-${state}${frame}`;
   applyTexture(e, key);
+}
+
+// Conta frames de `hurt` disponíveis no atlas por prefixo (cache). O hurt não
+// está no EnemyAnimConfig (não tinha ciclo); contamos direto da textura 1× e
+// memorizamos. -1 antes de resolver → recalcula.
+const _hurtCounts: Record<string, number> = {};
+function hurtFrameCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
+  if (prefix in _hurtCounts) return _hurtCounts[prefix];
+  const tex = e.scene?.textures?.get("sprites");
+  let n = 0;
+  if (tex) while (tex.has(`enemy-${prefix}-hurt${n}`) || tex.has(`${prefix}-hurt${n}`)) n++;
+  _hurtCounts[prefix] = n;
+  return n;
 }
 
 // Edge-flash (glow) de feedback — NÃO tinge o sprite inteiro (evita o "bloco

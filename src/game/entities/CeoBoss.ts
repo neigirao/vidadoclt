@@ -74,13 +74,13 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   private _applyAnimFrame(t: number) {
     // Death animation takes highest priority
     if (this._dying) {
-      const f = Math.floor(t / 380) % 2;
+      const f = Math.floor(t / 380) % 3; // 3 frames de death (era %2, subusava 1)
       applyTexture(this, `tex-boss-ceo-death${f}`);
       return;
     }
-    // Hurt takes priority
+    // Hurt takes priority — CICLA os 2 frames de hurt (antes travava no hurt0).
     if (t < this._hurtUntil) {
-      applyTexture(this, "tex-boss-ceo-hurt0");
+      applyTexture(this, `tex-boss-ceo-hurt${Math.floor(t / 90) % 2}`);
       return;
     }
 
