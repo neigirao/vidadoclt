@@ -26,6 +26,7 @@ import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { WEAPONS, WeaponId } from "../systems/WeaponSystem";
 import { ParticleFactory } from "../systems/ParticleFactory";
+import { playEnemyDeath } from "../systems/DeathAnim";
 import { SanityFx } from "../systems/SanityFx";
 import { CombatFx } from "../systems/CombatFx";
 import { Hud } from "../systems/Hud";
@@ -636,7 +637,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
             );
           this.player.onKill?.();
           this.rollSanityDrop(enemy.x, enemy.y);
-          enemy.destroy();
+          // MORTE ANIMADA também no kill por projétil (antes só o melee tocava a
+          // arte de death). Desativa o corpo e toca death0→N; fallback ao squish.
+          Sfx.enemyDeath();
+          ParticleFactory.enemyDeath(this, enemy.x, enemy.y - 10);
+          enemy.setActive(false);
+          const eb = enemy.body as Phaser.Physics.Arcade.Body | null;
+          if (eb) eb.enable = false;
+          playEnemyDeath(this, enemy);
         }
         if (!piercing) ink.destroy();
       });

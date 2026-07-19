@@ -35,6 +35,7 @@ import { Telemetry } from "../systems/Telemetry";
 import { Music } from "../systems/MusicSystem";
 import { validateLevel, logLevelReport, drawLevelOverlay } from "../systems/LevelValidator";
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
+import { playEnemyDeath } from "../systems/DeathAnim";
 import { ShopUI } from "../systems/Shop";
 import { applyPerk, PERKS, PerkId, synergyPreview } from "../systems/PerkSystem";
 import { GameEnemy, BossEntity } from "../entities/types";
@@ -635,8 +636,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
           this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
           this.rollSanityDrop(enemy.x, enemy.y);
           this.rollWeaponDrop(enemy.x, enemy.y);
-          enemy.destroy();
           this.onEnemyKilledByProjectile(enemy);
+          this.killEnemyAnimated(enemy);
         }
       });
     }
@@ -1575,9 +1576,19 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.dropVR(e.x, e.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
       this.rollSanityDrop(e.x, e.y);
       this.rollWeaponDrop(e.x, e.y);
-      spr.destroy();
       this.onEnemyKilledByProjectile(e);
+      this.killEnemyAnimated(spr);
     }
+  }
+
+  /** Mata um inimigo com MORTE ANIMADA (death0→N) em vez de destroy imediato:
+   *  desativa o corpo (o cadáver não colide/fere) e toca a arte de death via
+   *  DeathAnim; fallback ao squish quando não há frames de death. */
+  protected killEnemyAnimated(spr: Phaser.Physics.Arcade.Sprite) {
+    spr.setActive(false);
+    const b = spr.body as Phaser.Physics.Arcade.Body | null;
+    if (b) b.enable = false;
+    playEnemyDeath(this, spr);
   }
 
   /**
