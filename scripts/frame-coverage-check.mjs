@@ -56,10 +56,12 @@ function cat(s) {
 // Ação ausente na tabela = SEM piso (não falha). Isto é intencional: ações
 // customizadas (ex.: `special`, `charge`, `sprint`) não têm requisito universal.
 const FLOORS = {
-  player: { idle: 4, walk: 16, run: 16, attack: 4, hurt: 2, jump: 3, fall: 2, dash: 1 },
-  boss: { idle: 4, walk: 8, attack: 4, hurt: 2, death: 3 },
-  enemy: { idle: 4, walk: 8, attack: 4, hurt: 2, death: 3 },
-  npc: { idle: 4, walk: 8 },
+  // idle subido a 16 (uniforme entre categorias): idle é 100% interpolável por
+  // gen-inbetweens (respiração) e queremos a mesma suavidade em qualquer sujeito.
+  player: { idle: 16, walk: 16, run: 16, attack: 4, hurt: 2, jump: 3, fall: 2, dash: 1 },
+  boss: { idle: 16, walk: 8, attack: 4, hurt: 2, death: 3 },
+  enemy: { idle: 16, walk: 8, attack: 4, hurt: 2, death: 3 },
+  npc: { idle: 16, walk: 8 },
   item: {}, // itens não têm piso — loops curtos (3–4) são de propósito
 };
 
