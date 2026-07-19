@@ -39,8 +39,11 @@ export const IDLE_FRAME_COUNTS: Record<string, number> = {
   facilitador: 16,
   scrum: 16,
   coordenador: 16,
-  senior: 8,
-  rh: 8,
+  // senior/rh e os bosses-recolor levados a 16 (idle dobrado via gen-inbetweens).
+  senior: 16,
+  rh: 16,
+  "scrum-boss": 16,
+  "coord-boss": 16,
 };
 
 // Ataque animado: whitelist dos frames de arte VALIDADA (48×64). Outliers 32×48 /
@@ -85,8 +88,11 @@ export const IDLE_MS: Record<string, number> = {
   facilitador: 75,
   scrum: 65,
   coordenador: 88,
-  senior: 250,
-  rh: 160,
+  // senior/rh/bosses-recolor: idle 16 frames → ms baixo mantém a respiração calma.
+  senior: 125,
+  rh: 80,
+  "scrum-boss": 90,
+  "coord-boss": 90,
 };
 
 export const ATTACK_MS: Record<string, number> = {
