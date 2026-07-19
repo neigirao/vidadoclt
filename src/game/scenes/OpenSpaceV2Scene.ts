@@ -2490,34 +2490,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       });
       if (nearEnemy) {
         this.parryTaught = true;
-        const p = this.add
-          .text(GAME_WIDTH / 2, HUD_TOP_H + 54, "⚠ APERTE  [ F ]  PARA RECLAMAR (parry)!", {
-            fontFamily: "monospace",
-            fontSize: "13px",
-            fontStyle: "bold",
-            color: "#ffdd44",
-            stroke: "#000000",
-            strokeThickness: 4,
-          })
-          .setOrigin(0.5)
-          .setScrollFactor(0)
-          .setDepth(985);
-        this.tweens.add({
-          targets: p,
-          scaleX: 1.08,
-          scaleY: 1.08,
-          duration: 420,
-          yoyo: true,
-          repeat: 4,
-          ease: "Sine.easeInOut",
-        });
-        this.tweens.add({
-          targets: p,
-          alpha: 0,
-          duration: 700,
-          delay: 4200,
-          onComplete: () => p.destroy(),
-        });
+        // Roteado pela MESMA fila serializada do TutorialPrompts — antes era um
+        // banner próprio no topo (y≈110) que SOBREPUNHA a dica de dash (y=96).
+        // A fila garante 1 banner por vez, sem "box por cima de outra".
+        TutorialPrompts.maybeShow(this, "parry", "⚠ Aperte [ F ] para RECLAMAR (parry)!");
       }
     }
 
