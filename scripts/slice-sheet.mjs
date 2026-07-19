@@ -440,7 +440,7 @@ const SHEET_MAPS = {
       { action: "jump", x0: 25, y0: 660, x1: 612, y1: 800, n: 6 },
       { action: "fall", x0: 960, y0: 660, x1: 1270, y1: 800, n: 3 },
       { action: "dash", x0: 1490, y0: 660, x1: 2110, y1: 800, n: 3 },
-      { action: "attack", x0: 28, y0: 872, x1: 520, y1: 1035, n: 4 },
+      { action: "attack", x0: 28, y0: 872, x1: 810, y1: 1035, n: 6 },
       { action: "hurt", x0: 28, y0: 1108, x1: 250, y1: 1282, n: 2 },
     ],
   },
