@@ -302,13 +302,14 @@ export class MenuScene extends Phaser.Scene {
     );
 
     // Arrow
-    this.add
-      .text(newsX + 285, GAME_HEIGHT - 26, "►", {
-        fontFamily: "monospace",
-        fontSize: "10px",
-        color: TEXT_ACCENT,
-      })
-      .setInteractive({ useHandCursor: true });
+    // Seta decorativa do painel de notícias — sem ação. Removido o setInteractive
+    // (useHandCursor sem pointerdown = "botão morto": prometia clique e não fazia
+    // nada). Vira só o indicador visual do ticker.
+    this.add.text(newsX + 285, GAME_HEIGHT - 26, "►", {
+      fontFamily: "monospace",
+      fontSize: "10px",
+      color: TEXT_ACCENT,
+    });
 
     // Right: Social + copyright — empilhados p/ não sobrepor (o copyright é
     // largo e alinhado à direita; antes ficava em cima do "Siga-nos:").
@@ -318,17 +319,19 @@ export class MenuScene extends Phaser.Scene {
       color: TEXT_DIM,
     });
 
+    // Ícones sociais: DECORATIVOS (sem URL configurada). Antes tinham
+    // useHandCursor + hover mas NENHUM pointerdown → prometiam clique e não faziam
+    // nada ("botão morto"), e o handler de hover ainda chamava `pointer.setColor`
+    // (o 1º arg do pointerover é o PONTEIRO, não o objeto) → "setColor is not a
+    // function" a cada passada do mouse. Removida a interatividade: viram texto
+    // puro (sem cursor de clique, sem crash). Religar quando houver links reais.
     const socials = ["𝕏", "TK", "▶", "in"];
     socials.forEach((s, i) => {
-      this.add
-        .text(GAME_WIDTH - 180 + i * 30, GAME_HEIGHT - 40, s, {
-          fontFamily: "monospace",
-          fontSize: "12px",
-          color: TEXT_DIM,
-        })
-        .setInteractive({ useHandCursor: true })
-        .on("pointerover", (obj: Phaser.GameObjects.Text) => obj.setColor(TEXT_ACCENT))
-        .on("pointerout", (obj: Phaser.GameObjects.Text) => obj.setColor(TEXT_DIM));
+      this.add.text(GAME_WIDTH - 180 + i * 30, GAME_HEIGHT - 40, s, {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: TEXT_DIM,
+      });
     });
 
     this.add

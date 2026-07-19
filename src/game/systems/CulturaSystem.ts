@@ -46,13 +46,13 @@ export const CULTURAS: Record<CulturaId, CulturaDef> = {
     id: "gestao_burnout",
     name: "Gestao de Burnout",
     icon: "~~",
-    description: "Sanidade maxima +30.",
+    description: "Sanidade maxima +40, mas Energia maxima -10.",
   },
   happy_hour: {
     id: "happy_hour",
     name: "Happy Hour",
     icon: "HH",
-    description: "Energia maxima +25.",
+    description: "Energia maxima +35, mas Sanidade maxima -10.",
   },
   daily_scrum: {
     id: "daily_scrum",
@@ -68,7 +68,9 @@ export const CULTURAS: Record<CulturaId, CulturaDef> = {
   },
   banco_horas: {
     id: "banco_horas",
-    name: "Banco de Horas",
+    // Nome distinto do perk "Banco de Horas" (PerkSystem) — antes colidiam na UI
+    // com efeitos diferentes (perk = +1 Energia/kill; esta Cultura = vida extra).
+    name: "Estabilidade no Emprego",
     icon: "++",
     description: "Uma vida extra.",
   },
@@ -135,11 +137,13 @@ export function reapplyAllCulturas(player: Player, run: RunState) {
         player.vrDropMult *= 1.6;
         player.maxEnergy = Math.round(player.maxEnergy * 0.8);
         break;
-      case "gestao_burnout":
-        player.maxSanity += 30;
+      case "gestao_burnout": // buffer mental à custa de fôlego
+        player.maxSanity += 40;
+        player.maxEnergy -= 10;
         break;
-      case "happy_hour":
-        player.maxEnergy += 25;
+      case "happy_hour": // fôlego à custa de sanidade (espelho do gestao_burnout)
+        player.maxEnergy += 35;
+        player.maxSanity -= 10;
         break;
       case "daily_scrum": // spam de especial pesa na saúde mental
         player.specialCooldown = Math.round(player.specialCooldown * 0.5);

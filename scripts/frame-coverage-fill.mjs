@@ -49,11 +49,14 @@ if (report.ok) {
 const solvable = report.violations.filter((v) => INTERP_ACTIONS.has(v.action));
 const unsolvable = report.violations.filter((v) => !INTERP_ACTIONS.has(v.action));
 
-console.log(`Plano: ${solvable.length} família(s) via gen-inbetweens; ${unsolvable.length} pulada(s) (ação sem interp).`);
+console.log(
+  `Plano: ${solvable.length} família(s) via gen-inbetweens; ${unsolvable.length} pulada(s) (ação sem interp).`,
+);
 for (const v of solvable) console.log(`  ↳ ${v.subject}-${v.action}: tem ${v.have}, min ${v.min}`);
 if (unsolvable.length) {
   console.log("Pulados (precisam de arte nova, não interpolação):");
-  for (const v of unsolvable) console.log(`  · ${v.subject}/${v.action}: tem ${v.have}, min ${v.min}`);
+  for (const v of unsolvable)
+    console.log(`  · ${v.subject}/${v.action}: tem ${v.have}, min ${v.min}`);
 }
 
 if (DRY) {
@@ -95,8 +98,11 @@ while (pass < MAX_PASSES) {
 if (!report.ok) {
   const stillSolvable = report.violations.filter((v) => INTERP_ACTIONS.has(v.action));
   if (stillSolvable.length) {
-    console.error(`❌ ainda faltam ${stillSolvable.length} violação(ões) interpoláveis após ${MAX_PASSES} passadas.`);
-    for (const v of stillSolvable) console.error(`  · ${v.subject}/${v.action}: tem ${v.have}, min ${v.min}`);
+    console.error(
+      `❌ ainda faltam ${stillSolvable.length} violação(ões) interpoláveis após ${MAX_PASSES} passadas.`,
+    );
+    for (const v of stillSolvable)
+      console.error(`  · ${v.subject}/${v.action}: tem ${v.have}, min ${v.min}`);
   }
   if (unsolvable.length) {
     console.error(`ℹ ${unsolvable.length} violação(ões) exigem arte nova (não interpoláveis).`);

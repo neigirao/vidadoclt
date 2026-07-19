@@ -36,3 +36,4 @@ generate_remaining_sprites.cjs
 
 # Prévia da IA do LAB (frame-gemini --preview) — nunca commitada
 public/assets/.frame-preview/
+scratchpad_preview/
