@@ -362,6 +362,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
   protected setupPauseKey(): void {
     this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
+      // Loja/totem no mapa aberto → ESC é DELES (fecha a loja no phaseShop.update()).
+      // Sem este guard, o ESC pausava a cena → update() parava → phaseShop.update()
+      // nunca rodava → a loja não fechava E a física ficava pausada = soft-lock
+      // (ESC "não fecha" + teclado "morto"). Não pausa por cima da loja.
+      if (this.phaseShop?.open || this.perkChoiceOpen) return;
       this.scene.pause();
       this.scene.launch("PauseScene", { caller: this.scene.key });
     });
