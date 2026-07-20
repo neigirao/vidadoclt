@@ -25,6 +25,14 @@ export interface Settings {
    * Diferente de reduceSanityFx (visual): este MEXE no gameplay de propósito.
    */
   assistMode: boolean;
+  /**
+   * Paleta daltônica-segura para os telegraphs. O par padrão é vermelho (investida)
+   * × amarelo (projétil) — justo o mais confundível por deuteranopia/protanopia
+   * (~8% dos homens). Ligado, o projétil vira AZUL (vermelho×azul é distinguível
+   * por todos os tipos comuns). A codificação por FORMA (`!!` vs `!`) segue ativa
+   * dos dois jeitos — a cor é reforço, não a única pista.
+   */
+  colorBlindSafe: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sfxVolume: 1,
   muted: false,
   assistMode: false,
+  colorBlindSafe: false,
 };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -87,6 +96,14 @@ export function toggleAssistMode(): boolean {
   s.assistMode = !s.assistMode;
   saveSettings(s);
   return s.assistMode;
+}
+
+/** Alterna a paleta daltônica-segura, persiste e devolve o novo valor. */
+export function toggleColorBlindSafe(): boolean {
+  const s = loadSettings();
+  s.colorBlindSafe = !s.colorBlindSafe;
+  saveSettings(s);
+  return s.colorBlindSafe;
 }
 
 // Parâmetros do modo assistido (fonte única — reusados pelo buildPlayer e testes).
