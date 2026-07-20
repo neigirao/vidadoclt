@@ -4,6 +4,69 @@
 
 const KEY = "vidaclt:settings";
 
+// ── Remap de teclas (acessibilidade) ─────────────────────────────────────────
+// Os 7 VERBOS de combate são rebindáveis. Movimento fica em setas + WASD (dois
+// esquemas fixos, já flexível). Guardamos o KeyCode NUMÉRICO (padrão JS/Phaser,
+// estável) para não precisar importar Phaser aqui (o módulo tem que rodar no
+// bun:test sem browser). Interact (E) é de cena, fora do remap por ora.
+export type BindAction =
+  | "jump"
+  | "dash"
+  | "attack"
+  | "special"
+  | "parry"
+  | "consumivel"
+  | "secondary";
+
+export const DEFAULT_KEYBINDS: Record<BindAction, number> = {
+  jump: 32, // SPACE
+  dash: 16, // SHIFT
+  attack: 74, // J
+  special: 75, // K
+  parry: 70, // F
+  consumivel: 67, // C
+  secondary: 81, // Q
+};
+
+// Rótulo humano por ação (ordem de exibição no menu).
+export const BIND_LABELS: [BindAction, string][] = [
+  ["jump", "Pular"],
+  ["dash", "Dash"],
+  ["attack", "Atacar"],
+  ["special", "Especial"],
+  ["parry", "Parry"],
+  ["consumivel", "Consumível"],
+  ["secondary", "Trocar arma"],
+];
+
+// Nome legível de um KeyCode (para a UI). Cobre os comuns; letras/números caem
+// no fromCharCode; o resto vira "#<code>".
+export function keyName(code: number): string {
+  const NAMED: Record<number, string> = {
+    32: "ESPAÇO",
+    16: "SHIFT",
+    17: "CTRL",
+    18: "ALT",
+    9: "TAB",
+    13: "ENTER",
+    8: "⌫",
+    37: "←",
+    38: "↑",
+    39: "→",
+    40: "↓",
+    188: ",",
+    190: ".",
+    186: ";",
+    191: "/",
+    219: "[",
+    221: "]",
+  };
+  if (NAMED[code]) return NAMED[code];
+  if ((code >= 48 && code <= 57) || (code >= 65 && code <= 90)) return String.fromCharCode(code);
+  if (code >= 96 && code <= 105) return "Num" + (code - 96); // teclado numérico
+  return "#" + code;
+}
+
 export interface Settings {
   /**
    * Reduz os efeitos visuais de Sanidade (barrel/vinheta/cromática/tremor/
@@ -33,6 +96,8 @@ export interface Settings {
    * dos dois jeitos — a cor é reforço, não a única pista.
    */
   colorBlindSafe: boolean;
+  /** Remap de teclas dos 7 verbos de combate (KeyCode numérico por ação). */
+  keybinds: Record<BindAction, number>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -43,6 +108,7 @@ export const DEFAULT_SETTINGS: Settings = {
   muted: false,
   assistMode: false,
   colorBlindSafe: false,
+  keybinds: { ...DEFAULT_KEYBINDS },
 };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -68,7 +134,13 @@ export function loadSettings(): Settings {
     const raw = typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null;
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw) as Partial<Settings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    // keybinds é aninhado → merge com os defaults (uma tecla nova no jogo entra
+    // sem apagar as rebindadas pelo jogador).
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      keybinds: { ...DEFAULT_KEYBINDS, ...(parsed.keybinds ?? {}) },
+    };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -104,6 +176,24 @@ export function toggleColorBlindSafe(): boolean {
   s.colorBlindSafe = !s.colorBlindSafe;
   saveSettings(s);
   return s.colorBlindSafe;
+}
+
+/** Rebinda uma ação a um KeyCode; se a tecla já estava em outra ação, TROCA
+ *  (swap) p/ não deixar duas ações na mesma tecla. Persiste. */
+export function setKeybind(action: BindAction, code: number): void {
+  const s = loadSettings();
+  const prev = s.keybinds[action];
+  const clash = (Object.keys(s.keybinds) as BindAction[]).find((a) => s.keybinds[a] === code);
+  if (clash && clash !== action) s.keybinds[clash] = prev; // swap
+  s.keybinds[action] = code;
+  saveSettings(s);
+}
+
+/** Restaura todos os keybinds ao padrão. Persiste. */
+export function resetKeybinds(): void {
+  const s = loadSettings();
+  s.keybinds = { ...DEFAULT_KEYBINDS };
+  saveSettings(s);
 }
 
 // Parâmetros do modo assistido (fonte única — reusados pelo buildPlayer e testes).
