@@ -775,6 +775,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       return;
     }
 
+    // Escolha de perk (totem) aberta → física pausada + input POR EVENTO (k1/k2/
+    // ESC no overlay). Congela o resto da fase como a loja faz: sem isto o
+    // player.update + drenagem de Sanidade + lógica de fase seguiam rodando
+    // durante a escolha (sanidade caía "pausado", e podia até morrer no overlay).
+    if (this.perkChoiceOpen) return;
+
     // 1. Player update
     this.player.update(time, delta);
     if (this.sanityDrainEnabled()) this.player.tickPassive(time);
@@ -1836,7 +1842,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected spawnStations() {
     const mk = (frac: number, icon: string, color: number, kind: "shop" | "perk") => {
       const px = Phaser.Math.Clamp(LEVEL_WIDTH * frac, 60, LEVEL_WIDTH - 60);
-      const py = FLOOR_Y - 26;
+      // A base (44px de altura, offset local y=14) tem que POUSAR no chão: a borda
+      // de baixo deve ficar em FLOOR_Y. Base bottom local = 14+22 = 36 → origem do
+      // container em FLOOR_Y-36. (Era FLOOR_Y-26 → base afundava 10px no chão.)
+      const py = FLOOR_Y - 36;
       const base = this.add.rectangle(0, 14, 30, 44, 0x20242c).setStrokeStyle(2, color);
       const glow = this.add.circle(0, -6, 16, color, 0.28).setBlendMode(Phaser.BlendModes.ADD);
       const ic = this.add
