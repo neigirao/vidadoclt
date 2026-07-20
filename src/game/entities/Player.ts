@@ -862,12 +862,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (now < this.parryActiveUntil) {
       key = "tex-player-attack0"; // pose de "mão estendida" durante parry
     } else if (now < this.invulnUntil && now >= this.dashUntil) {
-      key = "tex-player-hurt0";
+      // hurt a 16 frames (in-betweens) — cicla o flinch em vez de travar no 0.
+      key = `tex-player-hurt${Math.floor(now / 40) % 16}`;
     } else if (now < this.dashUntil) {
       key = "tex-player-dash0";
     } else if (now - this.lastAttackAt < 300) {
-      // 6 frames (stapler strike, re-cortado da s31) na janela de 300ms → 50ms/frame.
-      const f = Math.min(5, Math.floor((now - this.lastAttackAt) / 50));
+      // 16 frames (stapler strike, base re-cortada da s31 + in-betweens) na janela
+      // de 300ms → ~19ms/frame (mais suave, mesma duração de golpe).
+      const f = Math.min(15, Math.floor((now - this.lastAttackAt) / 19));
       key = `tex-player-attack${f}`;
     } else if (!onGround) {
       if (body.velocity.y < -60) {

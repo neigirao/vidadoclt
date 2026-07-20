@@ -207,6 +207,31 @@ Fluxo de qualidade para as contagens de frames por família. **3 formas de usar:
    precisa de ARTE** (hurt/death/loops curtos). É a "lista de compras de arte" — ver
    `docs/ART_GAPS.md` (o que só arte resolve) e `docs/FRAME_COVERAGE.md` / `SPRITE_AUDIT.md`.
 
+### 16 frames em TODA ação (in-betweens) + atlas 4096 de largura
+
+O alvo do projeto é **16 frames por ação** em todas as famílias (personagem, inimigos,
+bosses, npc). `scripts/fill-16-batch.mjs` leva CADA família|ação abaixo de 16 até ≥16
+chamando `gen-inbetweens.mjs` (interpolação por blend + trava de paleta — GRÁTIS,
+determinística, sem IA), reempacotando o atlas 1× no fim. Pula `item-*` (renderizam
+frame estático) e os estados aéreos/blur do player (`jump`/`fall`/`dash` — poses-hold
+curtas, não ciclos). Como a interpolação parte só dos frames CONTÍGUOS válidos a partir
+do 0, nenhum frame-lixo/foreign entra no ciclo.
+
+**Atlas alargado p/ 4096** (`ATLAS_W` em `pack-atlas.mjs`, era 1024): com 16 frames/ação
+em todas as famílias o atlas passava de 14000px de altura a 1024 — ESTOURANDO o teto de
+textura de GPU (8192 comum), o que quebraria TODOS os sprites. 4096 de largura derruba a
+altura p/ ~3900px, com folga confortável nos dois eixos. Transparente ao jogo (carrega por
+nome; coords no `atlas.json`).
+
+**Fiação do motor (senão é bloat sem reflexo no jogo):** `hurt`/`death` já auto-contam do
+atlas (`hurtFrameCount` em `Enemies.ts`, `deathFrameCount` em `DeathAnim.ts`) → refletem 16
+sozinhos. O que é config-gated foi subido a 16: `ATTACK_FRAME_COUNTS`/`ATTACK_MS` em
+`EnemyAnimConfig.ts` (Fase 1), player attack/hurt em `Player.ts`, e os bosses (`CeoBoss.ts`,
+`Boss.ts`) attack/hurt/death/idle/run. O `DeathAnim` agora usa passo = `DEATH_TARGET_MS/n`
+(morte snappy ~720ms mesmo com 16 frames). **Attack das Fases 2–5 (animPhase) NÃO é ciclado
+de propósito** (decisão do dono: parar no hurt) — os frames existem no atlas (não faltam),
+mas esses inimigos renderizam attack estático.
+
 **Limite conhecido:** o gate garante *quantidade* e coerência de *contagem*, mas é cego para
 arte *mismatched* (frame de personagem diferente com a dimensão certa) — isso só o
 `runFullAudit()` do LAB (canvas, no navegador) detecta.
