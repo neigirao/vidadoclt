@@ -3,13 +3,10 @@ import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { noise2d } from "../systems/CorporateAI";
 import { markKilled } from "../systems/BestiarySystem";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
-// Config de animação (contagem de frames + ms por estado) — FONTE ÚNICA em
-// systems/EnemyAnimConfig.ts, compartilhada com o SpriteLabScene (que cruza e
-// avisa quando os frames disponíveis divergem do que o jogo cicla).
+// MS por estado (timing = DESIGN) vem de EnemyAnimConfig; a CONTAGEM de frames
+// vem do ATLAS (systems/AtlasFrames — fonte única, gap-aware). Antes as contagens
+// eram hardcoded na config e podiam divergir do atlas ("config diz N, atlas tem M").
 import {
-  walkFrames,
-  idleFrames,
-  attackFrames,
   WALK_MS,
   IDLE_MS,
   ATTACK_MS,
@@ -17,6 +14,7 @@ import {
   DEFAULT_IDLE_MS,
   DEFAULT_ATTACK_MS,
 } from "../systems/EnemyAnimConfig";
+import { atlasFramesWithOverride, frameAt } from "../systems/AtlasFrames";
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
 // Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
@@ -30,43 +28,24 @@ function setEnemyTex(
 ) {
   if (!_animOffsets.has(e)) _animOffsets.set(e, (Math.random() * 2000) | 0);
   const offset = _animOffsets.get(e)!;
-  let frame = 0;
-  if (state === "walk") {
-    const maxFrames = walkFrames(prefix);
-    const ms = WALK_MS[prefix] ?? DEFAULT_WALK_MS;
-    frame = Math.floor((t + offset) / ms) % maxFrames;
-  } else if (state === "idle") {
-    const maxFrames = idleFrames(prefix);
-    const ms = IDLE_MS[prefix] ?? DEFAULT_IDLE_MS;
-    frame = Math.floor((t + offset) / ms) % maxFrames;
-  } else if (state === "attack") {
-    // Só cicla se o inimigo tem frames de ataque validados; senão fica no 0.
-    const maxFrames = attackFrames(prefix);
-    if (maxFrames > 1) {
-      const ms = ATTACK_MS[prefix] ?? DEFAULT_ATTACK_MS;
-      frame = Math.floor((t + offset) / ms) % maxFrames;
-    }
-  } else if (state === "hurt") {
-    // hurt agora CICLA (antes travava no frame 0 → a arte de hurt nunca aparecia).
-    // Janela curta (flash de dano), então ms baixo; só cicla se houver >1 frame.
-    const maxFrames = hurtFrameCount(e, prefix);
-    if (maxFrames > 1) frame = Math.floor((t + offset) / 70) % maxFrames;
-  }
-  const key = `tex-${prefix}-${state}${frame}`;
-  applyTexture(e, key);
-}
-
-// Conta frames de `hurt` disponíveis no atlas por prefixo (cache). O hurt não
-// está no EnemyAnimConfig (não tinha ciclo); contamos direto da textura 1× e
-// memorizamos. -1 antes de resolver → recalcula.
-const _hurtCounts: Record<string, number> = {};
-function hurtFrameCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
-  if (prefix in _hurtCounts) return _hurtCounts[prefix];
+  // Contagem/índices SEMPRE do atlas (gap-aware + override do LAB). MS = design.
   const tex = e.scene?.textures?.get("sprites");
-  let n = 0;
-  if (tex) while (tex.has(`enemy-${prefix}-hurt${n}`) || tex.has(`${prefix}-hurt${n}`)) n++;
-  _hurtCounts[prefix] = n;
-  return n;
+  const list = atlasFramesWithOverride(tex, prefix, state);
+  if (list.length === 0) {
+    // Sem frames desse estado no atlas → cai no base (nunca renderiza slot ausente).
+    applyTexture(e, `tex-${prefix}`);
+    return;
+  }
+  const ms =
+    state === "walk"
+      ? (WALK_MS[prefix] ?? DEFAULT_WALK_MS)
+      : state === "idle"
+        ? (IDLE_MS[prefix] ?? DEFAULT_IDLE_MS)
+        : state === "attack"
+          ? (ATTACK_MS[prefix] ?? DEFAULT_ATTACK_MS)
+          : 70; // hurt: janela curta (flash de dano) → ms baixo fixo
+  const frame = frameAt(list, t + offset, ms);
+  applyTexture(e, `tex-${prefix}-${state}${frame}`);
 }
 
 // Edge-flash (glow) de feedback — NÃO tinge o sprite inteiro (evita o "bloco

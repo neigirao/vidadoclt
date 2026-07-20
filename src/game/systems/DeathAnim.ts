@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { atlasFrames } from "./AtlasFrames";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Animação de MORTE dos inimigos — faz a arte de `death` REFLETIR no jogo.
@@ -23,13 +24,9 @@ function prefixOf(sprite: Phaser.GameObjects.Sprite): string | null {
   return m ? m[1] : null;
 }
 
-/** Conta frames contíguos `<prefix>-death0..N` presentes no atlas. */
-function deathFrameCount(scene: Phaser.Scene, prefix: string): number {
-  const tex = scene.textures.get(ATLAS);
-  if (!tex) return 0;
-  let n = 0;
-  while (tex.has(`${prefix}-death${n}`)) n++;
-  return n;
+/** Índices de death presentes no atlas (gap-aware, fonte única em AtlasFrames). */
+function deathFrames(scene: Phaser.Scene, prefix: string): number[] {
+  return atlasFrames(scene.textures.get(ATLAS), prefix, "death");
 }
 
 /**
@@ -39,7 +36,8 @@ function deathFrameCount(scene: Phaser.Scene, prefix: string): number {
  */
 export function playEnemyDeath(scene: Phaser.Scene, sprite: Phaser.Physics.Arcade.Sprite): void {
   const prefix = prefixOf(sprite);
-  const n = prefix ? deathFrameCount(scene, prefix) : 0;
+  const frames = prefix ? deathFrames(scene, prefix) : [];
+  const n = frames.length;
 
   // Sem frames de death → mantém o squish+fade histórico.
   if (!prefix || n === 0) {
@@ -61,8 +59,9 @@ export function playEnemyDeath(scene: Phaser.Scene, sprite: Phaser.Physics.Arcad
   if (body) body.setVelocity(0, 0);
   const stepMs = Math.max(DEATH_MIN_FRAME_MS, Math.round(DEATH_TARGET_MS / n));
   for (let i = 0; i < n; i++) {
+    const idx = frames[i]; // gap-aware: usa o índice presente, não a posição
     scene.time.delayedCall(i * stepMs, () => {
-      if (sprite.active === false && sprite.scene) sprite.setFrame(`${prefix}-death${i}`);
+      if (sprite.active === false && sprite.scene) sprite.setFrame(`${prefix}-death${idx}`);
     });
   }
   const holdUntil = n * stepMs + 260; // segura o "no chão" um tico
