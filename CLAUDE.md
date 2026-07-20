@@ -251,9 +251,18 @@ cicla os 6 existentes pulando o buraco, com warn 1×/prefixo/estado) — e cache
 contagens hardcoded de `EnemyAnimConfig` (`*_FRAME_COUNTS`) já não dirigem o runtime — só o
 SpriteLab/gate as usam para cruzar contra o atlas.
 
-**Limite conhecido:** o gate garante *quantidade* e coerência de *contagem*, mas é cego para
-arte *mismatched* (frame de personagem diferente com a dimensão certa) — isso só o
-`runFullAudit()` do LAB (canvas, no navegador) detecta.
+**Audit visual no CI (`bun run audit:sprites`, `scripts/audit-sprites.mjs`).** Fecha a lacuna:
+o `check:frames` garante *quantidade*/coerência/*tamanho*, mas é cego ao CONTEÚDO do pixel.
+Este gate sobe o jogo headless (job `smoke`), chama `runFullAudit()` do LAB (canvas) e
+**REPROVA** em defeito MECÂNICO: `missing`, `quase-vazio` (alpha%), `chapado` (% 1 cor =
+lixo de extração) e `LAB<jogo` (jogo cicla mais do que o LAB mostra). **`altura … (pulo de
+tamanho)` é só WARNING** — muitas poses/FX legítimos disparam (agachar no ataque, colapsar
+na morte), e o tamanho de CANVAS entre estados já é hard-gated no `check:frames`.
+
+**Limite conhecido:** o gate garante *quantidade*, coerência de *contagem* e *tamanho* de
+canvas; e o `audit:sprites` pega vazio/chapado/faltando. O que ainda escapa é arte
+*mismatched* com a dimensão certa e conteúdo não-trivial (frame de personagem diferente que
+não é vazio nem chapado) — isso só olho humano no `runFullAudit()`/LAB confirma.
 
 ### Gerador procedural de sprites (`scripts/gen-sprites.mjs`)
 
