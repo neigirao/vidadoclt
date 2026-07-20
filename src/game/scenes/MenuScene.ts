@@ -8,6 +8,7 @@ import {
   toggleMuted,
   toggleReduceSanityFx,
   toggleAssistMode,
+  toggleColorBlindSafe,
 } from "../systems/Settings";
 import { applyAudioSettings } from "../systems/applyAudio";
 import { Telemetry } from "../systems/Telemetry";
@@ -1008,6 +1009,14 @@ export class MenuScene extends Phaser.Scene {
       toggleAssistMode,
       iy,
       5,
+    );
+    iy += rowH;
+    toggleRow(
+      "Cores daltônico-seguras  (tiro amarelo → azul)",
+      () => loadSettings().colorBlindSafe,
+      toggleColorBlindSafe,
+      iy,
+      6,
     );
     iy += rowH + 8;
 

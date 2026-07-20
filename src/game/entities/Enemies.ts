@@ -3,6 +3,7 @@ import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { noise2d } from "../systems/CorporateAI";
 import { markKilled } from "../systems/BestiarySystem";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
+import { loadSettings } from "../systems/Settings";
 // MS por estado (timing = DESIGN) vem de EnemyAnimConfig; a CONTAGEM de frames
 // vem do ATLAS (systems/AtlasFrames — fonte única, gap-aware). Antes as contagens
 // eram hardcoded na config e podiam divergir do atlas ("config diz N, atlas tem M").
@@ -101,6 +102,14 @@ export const TELEGRAPH = {
   ranged: "#ffcc33", // projétil — saia da linha
 } as const;
 
+// Paleta daltônica-segura (setting colorBlindSafe): o projétil vira AZUL — o par
+// vermelho×azul é distinguível por deuteranopia/protanopia, ao contrário do
+// vermelho×amarelo padrão. O danger segue vermelho (alarme intuitivo).
+const TELEGRAPH_SAFE = {
+  danger: "#ff3b30",
+  ranged: "#3b9eff",
+} as const;
+
 export function showTelegraph(
   e: Phaser.Physics.Arcade.Sprite,
   color: string = TELEGRAPH.ranged,
@@ -110,15 +119,19 @@ export function showTelegraph(
   // Captura a cena AGORA: se o inimigo morrer durante o telegraph, destroy()
   // zera e.scene e o onComplete estouraria ao acessar e.scene.events.
   const scene = e.scene;
-  // Ensina a convenção por CONTEXTO (1×): quando surge o 1º aviso VERMELHO
-  // (investida/AoE), legenda o significado das cores. Amarelo é o caso comum e
-  // dispensa aula. maybeShow é no-op após a 1ª vez (flag em localStorage).
   const isDanger = color === TELEGRAPH.danger;
+  // Remapeia p/ a paleta daltônica-segura quando ligado (mantém as FORMAS).
+  const safe = loadSettings().colorBlindSafe;
+  const drawColor = safe ? (isDanger ? TELEGRAPH_SAFE.danger : TELEGRAPH_SAFE.ranged) : color;
+  // Ensina a convenção por CONTEXTO (1×): quando surge o 1º aviso de investida,
+  // legenda o significado (nome da cor acompanha o modo daltônico). maybeShow é
+  // no-op após a 1ª vez (flag em localStorage).
   if (isDanger) {
+    const rangedName = safe ? "azul" : "amarelo";
     TutorialPrompts.maybeShow(
       scene,
       "telegraph_color",
-      "!! (vermelho) = investida: PARRY ou reposicione.  ! (amarelo) = tiro: saia da linha.",
+      `!! (vermelho) = investida: PARRY ou reposicione.  ! (${rangedName}) = tiro: saia da linha.`,
     );
   }
   // Codificação DUPLA (cor + FORMA) — daltônico-segura. A convenção do #52 usava
@@ -131,7 +144,7 @@ export function showTelegraph(
       fontFamily: "monospace",
       fontSize: "18px",
       fontStyle: "bold",
-      color,
+      color: drawColor,
       stroke: "#000000",
       strokeThickness: 3,
     })
