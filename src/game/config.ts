@@ -99,7 +99,11 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       BestiaryScene,
       ReconhecimentoScene,
       HoraExtraScene,
-      SpriteLabScene,
+      // SpriteLabScene é ferramenta DEV: só entra no bundle do `bun dev` (e do
+      // smoke/audit, que rodam contra o dev server). No build PUBLICADO
+      // `import.meta.env.DEV` é false → a cena sai do array e o Rollup dropa o
+      // import por tree-shaking (menor bundle, sem ferramenta de teste no jogo).
+      ...(import.meta.env.DEV ? [SpriteLabScene] : []),
     ],
   };
 }
