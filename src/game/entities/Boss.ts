@@ -379,13 +379,13 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     if (now === undefined) now = this.scene.time.now;
     let key: string;
     if (this._dying) {
-      const f = Math.floor(now / 230) % 3;
+      const f = Math.floor(now / 120) % 16; // death a 16 frames (in-betweens)
       key = `tex-gerente-death${f}`;
       applyTexture(this, key);
       return;
     }
     if (now < this._hurtUntil) {
-      const f = Math.floor((now % 330) / 110) % 3;
+      const f = Math.floor(now / 40) % 16; // hurt a 16 frames (in-betweens)
       key = `tex-gerente-hurt${f}`;
     } else if (this.bossState === "attack" && this.currentAttack === "atualizacao") {
       // Dash charge — use run-charge frames for aggressive pose
@@ -400,6 +400,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       // Explicit mapping for all 6 attack types
       const f4 = Math.floor(now / 100) % 4;
       const f2 = Math.floor(now / 200) % 2;
+      const f16 = Math.floor(now / 50) % 16; // attack genérico a 16 frames (in-betweens)
       switch (this.currentAttack) {
         case "deadline":
           key = `tex-gerente-attack-deadline${f4}`;
@@ -411,10 +412,10 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
           key = `tex-gerente-attack-sprint${f4}`;
           break;
         case "follow_up":
-          key = `tex-gerente-attack${f2}`;
+          key = `tex-gerente-attack${f16}`;
           break;
         case "reuniao":
-          key = `tex-gerente-attack${f2}`;
+          key = `tex-gerente-attack${f16}`;
           break;
         case "freeze":
           key = `tex-gerente-idle${f2}`;
@@ -426,7 +427,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       const f = Math.floor(now / 35) % 16; // walk 4→16 (in-betweens), ms/4 mantém a cadência
       key = `tex-gerente-walk${f}`;
     } else {
-      const f = Math.floor(now / 300) % 4; // idle 2→4 (frames coerentes)
+      const f = Math.floor(now / 90) % 16; // idle a 16 frames (in-betweens)
       key = `tex-gerente-idle${f}`;
     }
     applyTexture(this, key);

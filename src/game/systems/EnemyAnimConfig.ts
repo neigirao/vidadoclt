@@ -52,19 +52,22 @@ export const IDLE_FRAME_COUNTS: Record<string, number> = {
 // completou ciclos COERENTES aqui (conferido no strip). As demais famílias NÃO
 // foram subidas: os attack2/3 gerados por IA são um personagem DIFERENTE da base
 // (musculoso/chicote/ícone de som) — ciclar quebraria a leitura.
+// Ataque a 16 frames/ação (alvo do projeto): os frames-base LIMPOS (4–5 poses reais
+// do personagem) foram INTERPOLADOS por gen-inbetweens (blend + trava de paleta,
+// sem IA) até 16. Como a interpolação parte só dos frames CONTÍGUOS válidos a
+// partir do 0, nenhum frame-lixo/foreign (o "musculoso/chicote" antigo) entra no
+// ciclo — as 16 poses derivam das boas. ATTACK_MS ajustado p/ manter a duração do
+// golpe (mais frames × menos ms = mesma janela).
 export const ATTACK_FRAME_COUNTS: Record<string, number> = {
-  senior: 4,
-  rh: 4,
-  // Attack RE-CORTADO da s7 (poses limpas do personagem, sem o FX que fica à
-  // direita — o jogo já spawna o próprio projétil). estagiário/scrum ficaram de
-  // fora: as poses de attack deles têm papéis/balão "SINERGIA!" grudados e pedem
-  // arte à mão; seguem em frame 0 estático.
-  facilitador: 5,
-  analista: 5,
-  coordenador: 5,
-  // Bosses recolor: os 3 frames de attack são 48×64 limpos (recolor regenerou).
-  "scrum-boss": 3,
-  "coord-boss": 3,
+  estagiario: 16,
+  analista: 16,
+  facilitador: 16,
+  scrum: 16,
+  coordenador: 16,
+  senior: 16,
+  rh: 16,
+  "scrum-boss": 16,
+  "coord-boss": 16,
 };
 
 // Duração de frame (ms) por estado — afinada à "energia" de cada inimigo.
@@ -95,12 +98,18 @@ export const IDLE_MS: Record<string, number> = {
   "coord-boss": 90,
 };
 
+// Attack dobrado p/ 16 → ms por frame reduzido p/ manter a MESMA janela de golpe
+// (ex.: analista 5×110 ≈ 16×34). ~30–40ms/frame ≈ 480–640ms/ciclo.
 export const ATTACK_MS: Record<string, number> = {
-  senior: 120,
-  rh: 110,
-  facilitador: 100,
-  analista: 110,
-  coordenador: 130,
+  estagiario: 34,
+  analista: 34,
+  facilitador: 32,
+  scrum: 36,
+  coordenador: 40,
+  senior: 36,
+  rh: 34,
+  "scrum-boss": 36,
+  "coord-boss": 36,
 };
 
 // Defaults do consumidor (o que o jogo usa quando o prefixo não está no record).

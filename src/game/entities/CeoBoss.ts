@@ -74,13 +74,13 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
   private _applyAnimFrame(t: number) {
     // Death animation takes highest priority
     if (this._dying) {
-      const f = Math.floor(t / 380) % 3; // 3 frames de death (era %2, subusava 1)
+      const f = Math.floor(t / 110) % 16; // death a 16 frames (in-betweens)
       applyTexture(this, `tex-boss-ceo-death${f}`);
       return;
     }
     // Hurt takes priority — CICLA os 2 frames de hurt (antes travava no hurt0).
     if (t < this._hurtUntil) {
-      applyTexture(this, `tex-boss-ceo-hurt${Math.floor(t / 90) % 2}`);
+      applyTexture(this, `tex-boss-ceo-hurt${Math.floor(t / 40) % 16}`);
       return;
     }
 
@@ -89,23 +89,23 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     let interval: number;
     if (this._animState === "attack") {
       prefix = "boss-ceo-attack";
-      count = 4;
-      interval = 80;
+      count = 16; // attack a 16 (in-betweens) — interval baixo mantém a janela
+      interval = 20;
     } else if (this._animState === "special") {
       prefix = "boss-ceo-special";
-      count = 4;
+      count = 4; // special: só 4 frames de arte (fora do lote de in-betweens)
       interval = 90;
     } else {
       const body = this.body as Phaser.Physics.Arcade.Body;
       const moving = body && Math.abs(body.velocity.x) > 10;
       if (!moving && !this._charging) {
         prefix = "boss-ceo-idle";
-        count = 4; // idle 2→4 (frames coerentes; respiração calma)
-        interval = 380;
+        count = 16; // idle a 16 (in-betweens) — respiração calma
+        interval = 95;
       } else if (this._charging) {
         prefix = "boss-ceo-run";
-        count = 6;
-        interval = 60;
+        count = 16; // run a 16 (in-betweens)
+        interval = 24;
       } else {
         prefix = "boss-ceo-walk";
         count = 16; // walk 2→16 (in-betweens) — interval/2 mantém a cadência

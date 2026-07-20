@@ -9,7 +9,11 @@ import Phaser from "phaser";
 // somem. Se o inimigo não tem frames de death no atlas, cai no squish antigo.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DEATH_FRAME_MS = 110; // por frame da sequência de morte
+// Duração-alvo da sequência de morte (ms). Dividida pelo nº de frames → com death
+// dobrado p/ 16 (in-betweens) o passo encolhe p/ manter a morte SNAPPY (~720ms)
+// em vez de arrastar 1,8s (16×110). Piso de 34ms/frame p/ deaths curtas.
+const DEATH_TARGET_MS = 720;
+const DEATH_MIN_FRAME_MS = 34;
 const ATLAS = "sprites";
 
 /** Deriva o prefixo (`enemy-estagiario`) a partir do frame atual do sprite. */
@@ -55,12 +59,13 @@ export function playEnemyDeath(scene: Phaser.Scene, sprite: Phaser.Physics.Arcad
   // depois fade + destroy. delayedCall é seguro contra shutdown da cena.
   const body = sprite.body as Phaser.Physics.Arcade.Body | null;
   if (body) body.setVelocity(0, 0);
+  const stepMs = Math.max(DEATH_MIN_FRAME_MS, Math.round(DEATH_TARGET_MS / n));
   for (let i = 0; i < n; i++) {
-    scene.time.delayedCall(i * DEATH_FRAME_MS, () => {
+    scene.time.delayedCall(i * stepMs, () => {
       if (sprite.active === false && sprite.scene) sprite.setFrame(`${prefix}-death${i}`);
     });
   }
-  const holdUntil = n * DEATH_FRAME_MS + 260; // segura o "no chão" um tico
+  const holdUntil = n * stepMs + 260; // segura o "no chão" um tico
   scene.time.delayedCall(holdUntil, () => {
     if (!sprite.scene) return;
     scene.tweens.add({
