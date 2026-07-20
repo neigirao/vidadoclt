@@ -35,24 +35,29 @@ const TEXT_ACCENT = "#f2a800";
 const BG_PANEL = 0x12151a;
 const BG_MENU = 0x1a1d23;
 
-type MenuItem = { label: string; icon: string; firstRun?: boolean };
+type MenuItem = { label: string; icon: string; firstRun?: boolean; dev?: boolean };
 
 // `firstRun: true` = visível na primeira run (antes de qualquer morte/vitória).
 // Itens sem a flag só aparecem a partir do 2º loop — reduz paralysis analysis
 // no primeiro contato com o jogo.
+// `dev: true` = ferramenta de DESENVOLVIMENTO. Filtrada do build PUBLICADO
+// (`import.meta.env.DEV === false`) — some do jogo final, permanece no `bun dev`
+// (e no smoke/audit, que rodam contra o dev server). Ver ALL_MENU_ITEMS filter.
 const ALL_MENU_ITEMS: MenuItem[] = [
   { label: "JOGAR", icon: "▶", firstRun: true },
-  { label: "TESTAR FASE", icon: "🧪", firstRun: true },
+  { label: "TESTAR FASE", icon: "🧪", firstRun: true, dev: true },
   { label: "HORA EXTRA", icon: "🔥" },
   { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
   { label: "BESTIARIO", icon: "👾" },
-  { label: "LAB SPRITES", icon: "🔬", firstRun: true }, // ferramenta de teste — visível já na 1ª run (remover depois)
-  { label: "TELEMETRIA", icon: "📊", firstRun: true }, // painel /telemetria — visível a todos na fase de teste (remover depois)
+  { label: "LAB SPRITES", icon: "🔬", firstRun: true, dev: true },
+  { label: "TELEMETRIA", icon: "📊", firstRun: true, dev: true },
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
   { label: "CONFIGURAÇÕES", icon: "⚙", firstRun: true },
-];
+  // Ferramentas DEV (TESTAR FASE / LAB SPRITES / TELEMETRIA) só entram no menu no
+  // `bun dev`; no build publicado somem via o filtro `dev` abaixo.
+].filter((it) => import.meta.env.DEV || !it.dev);
 
 export class MenuScene extends Phaser.Scene {
   private selectedIndex = 0;
