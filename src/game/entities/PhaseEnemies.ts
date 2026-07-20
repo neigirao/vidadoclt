@@ -24,6 +24,18 @@ function phaseIdleCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number
   return n;
 }
 
+// Idem p/ hurt — todos os inimigos das Fases 2–5 têm hurt no atlas mas nunca era
+// renderizado (animPhase só fazia walk). O hit() marca setData("hurtT", now+300).
+const _phaseHurtCounts: Record<string, number> = {};
+function phaseHurtCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
+  if (prefix in _phaseHurtCounts) return _phaseHurtCounts[prefix];
+  const tex = e.scene?.textures?.get("sprites");
+  let n = 0;
+  if (tex) while (tex.has(`enemy-${prefix}-hurt${n}`) || tex.has(`${prefix}-hurt${n}`)) n++;
+  _phaseHurtCounts[prefix] = n;
+  return n;
+}
+
 function animPhase(
   e: Phaser.Physics.Arcade.Sprite,
   t: number,
@@ -37,6 +49,17 @@ function animPhase(
   const off = _phaseAnimOff.get(e)!;
   // Multi-frame: se o LAB adicionou frames de walk por IA (override de runtime),
   // cicla até eles — max(base hardcoded, aumento registrado).
+  // HURT tem prioridade: durante a janela pós-golpe (setData no hit()), mostra a
+  // arte de hurt (que já existe no atlas) em vez de walk/idle. Aparece a cada
+  // golpe do player — antes o hit só dava knockback/tint, sem frame de hurt.
+  const hurtT = (e.getData("hurtT") as number) || 0;
+  if (t < hurtT) {
+    const hn = phaseHurtCount(e, prefix);
+    if (hn > 0) {
+      applyTexture(e, `tex-${prefix}-hurt${Math.floor((t + off) / 70) % hn}`);
+      return;
+    }
+  }
   const total = Math.max(frames, runtimeFrameAddition("walk", prefix));
   if (Math.abs(body.velocity.x) > 5 || Math.abs(body.velocity.y) > 5) {
     const f = Math.floor((t + off) / ms) % total;
@@ -117,6 +140,7 @@ export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -184,6 +208,7 @@ export class ImpressoraAssombrada extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -271,6 +296,7 @@ export class GuardiaoDoCafe extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -348,6 +374,7 @@ export class NuvemBoardSentinela extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -454,6 +481,7 @@ export class EvangelistaCorporativo extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -522,6 +550,7 @@ export class ColetorDeDados extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -604,6 +633,7 @@ export class PlanilhaViva extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -703,6 +733,7 @@ export class CaboDeRede extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -782,6 +813,7 @@ export class TiSuporte extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -864,6 +896,7 @@ export class DroneDeVigilancia extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -970,6 +1003,7 @@ export class SegurancaCorporativa extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1044,6 +1078,7 @@ export class CarimbadorAutomatico extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1112,6 +1147,7 @@ export class ArquivoAmbulante extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1184,6 +1220,7 @@ export class BateriaSocial extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1269,6 +1306,7 @@ export class ReuniaoCorportiva extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1346,6 +1384,7 @@ export class ImpressoraVermelha extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1426,6 +1465,7 @@ export class ImpressoraFantasma extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1509,6 +1549,7 @@ export class ImpressoraNecromorfa extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1596,6 +1637,7 @@ export class EvangelistaAvancado extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
@@ -1683,6 +1725,7 @@ export class EvangelistaMegaCorp extends Phaser.Physics.Arcade.Sprite {
     if (now < this._invulnUntil) return false;
     this.applyFreeze(75);
     this._invulnUntil = now + HIT_INVULN_MS;
+    this.setData("hurtT", now + 300); // janela de render do frame de hurt (animPhase)
     this.hp -= damage;
     fxGlow(this, 0xff8888, 130);
     this.scene.time.delayedCall(100, () => {
