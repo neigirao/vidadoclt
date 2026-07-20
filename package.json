@@ -18,7 +18,8 @@
     "visual": "node scripts/visual-regression.mjs",
     "visual:update": "node scripts/visual-regression.mjs --update",
     "format": "prettier --write .",
-    "audit:sprites": "node scripts/audit-sprites.mjs"
+    "audit:sprites": "node scripts/audit-sprites.mjs",
+    "audit:palette": "node scripts/palette-consistency.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

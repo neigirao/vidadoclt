@@ -259,10 +259,20 @@ lixo de extração) e `LAB<jogo` (jogo cicla mais do que o LAB mostra). **`altur
 tamanho)` é só WARNING** — muitas poses/FX legítimos disparam (agachar no ataque, colapsar
 na morte), e o tamanho de CANVAS entre estados já é hard-gated no `check:frames`.
 
-**Limite conhecido:** o gate garante *quantidade*, coerência de *contagem* e *tamanho* de
-canvas; e o `audit:sprites` pega vazio/chapado/faltando. O que ainda escapa é arte
-*mismatched* com a dimensão certa e conteúdo não-trivial (frame de personagem diferente que
-não é vazio nem chapado) — isso só olho humano no `runFullAudit()`/LAB confirma.
+**Consistência de PALETA (`bun run audit:palette`, `scripts/palette-consistency.mjs`).** Ataca
+a lacuna acima (arte *mismatched* com dimensão certa e conteúdo não-trivial): monta a paleta
+canônica de cada personagem (cores de idle+walk) e mede a **% de pixels "estrangeiros"** (fora
+da paleta, além de tolerância RGB) em attack/hurt/death/run — arte de OUTRO personagem usaria
+cores fora da paleta. **Estático (lê atlas.png/json, sem navegador), determinístico.** É
+**relatório por padrão** (`--gate` opt-in, **NÃO ligado no CI**): calibrado, o único frame
+acima do teto hoje é FX legítimo (`evangelista-mega-death16` desintegra em explosão de fogo
+→ cores novas esperadas). Serve pra flagrar arte trocada num diff futuro sem falso-positivo
+de FX no CI. **Resultado da varredura atual: nenhuma arte trocada real no atlas.**
+
+**Limite conhecido:** os gates cobrem *quantidade*, coerência de *contagem*, *tamanho* de
+canvas (`check:frames`), *conteúdo* vazio/chapado/faltando (`audit:sprites`) e *paleta*
+(`audit:palette`, relatório). O que ainda exige olho humano é arte *mismatched* SUTIL (mesmo
+personagem, pose/expressão errada, dentro da paleta) — `runFullAudit()`/LAB.
 
 ### Gerador procedural de sprites (`scripts/gen-sprites.mjs`)
 
