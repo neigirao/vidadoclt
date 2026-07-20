@@ -9,6 +9,11 @@ import {
   toggleReduceSanityFx,
   toggleAssistMode,
   toggleColorBlindSafe,
+  setKeybind,
+  resetKeybinds,
+  keyName,
+  BIND_LABELS,
+  type BindAction,
 } from "../systems/Settings";
 import { applyAudioSettings } from "../systems/applyAudio";
 import { Telemetry } from "../systems/Telemetry";
@@ -70,6 +75,11 @@ export class MenuScene extends Phaser.Scene {
   private prevDownDown = false;
   private prevEnterDown = false;
   private overlay?: Phaser.GameObjects.Container;
+  // Remap: ação aguardando captura de tecla (null = nenhuma). Enquanto setado, o
+  // ESC NÃO fecha o overlay (cancela a captura). Guard evita a tecla vazar p/ o
+  // update() no mesmo frame e fechar o painel logo após capturar/cancelar.
+  private rebindAction: BindAction | null = null;
+  private rebindGuardUntil = 0;
   private MENU_ITEMS: MenuItem[] = ALL_MENU_ITEMS;
   private itemH = 44; // altura de linha (adaptativa ao nº de itens)
 
@@ -361,8 +371,10 @@ export class MenuScene extends Phaser.Scene {
     const escDown = this.escKey.isDown;
 
     if (this.overlay) {
-      // Overlay open — ESC closes it
-      if (escDown) this.hideOverlay();
+      // Overlay open — ESC closes it, EXCETO durante captura de tecla (aí o ESC
+      // cancela a captura) ou no guard logo após capturar.
+      if (escDown && !this.rebindAction && this.time.now > this.rebindGuardUntil)
+        this.hideOverlay();
       this.prevUpDown = upDown;
       this.prevDownDown = downDown;
       this.prevEnterDown = enterDown;
@@ -526,6 +538,8 @@ export class MenuScene extends Phaser.Scene {
       this.buildConquistasOverlay(OW, OH);
     } else if (type === "testfase") {
       this.buildTestFaseOverlay(OW, OH);
+    } else if (type === "controls") {
+      this.buildControlsOverlay(OW, OH);
     } else {
       this.buildConfigOverlay(OW, OH);
     }
@@ -1018,6 +1032,20 @@ export class MenuScene extends Phaser.Scene {
       iy,
       6,
     );
+    iy += rowH + 4;
+
+    // Botão → sub-tela de remap de teclas (acessibilidade). Fica em overlay
+    // próprio p/ não estourar a altura do painel de Configurações.
+    rowBg(iy, 1);
+    clickable(
+      this.add.text(28, iy + 9, "⌨ CONTROLES — remapear teclas  ▸", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: TEXT_ACCENT,
+      }),
+      () => this.showOverlay("controls"),
+    );
     iy += rowH + 8;
 
     // Telemetria — agora é AUTOMÁTICA (sobe pro Supabase sozinha). O botão de
@@ -1042,7 +1070,7 @@ export class MenuScene extends Phaser.Scene {
     iy += rowH + 8;
 
     // Info estática (não ajustável) — mantida como referência.
-    ["Controles: Teclado (fixo)", "Resolução: 960 × 540", "Idioma: Português (BR)"].forEach(
+    ["Movimento: setas ou WASD", "Resolução: 960 × 540", "Idioma: Português (BR)"].forEach(
       (txt, k) => {
         ov.add(
           this.add.text(28, iy + k * 20, txt, {
@@ -1052,6 +1080,126 @@ export class MenuScene extends Phaser.Scene {
           }),
         );
       },
+    );
+  }
+
+  // Sub-tela de REMAP de teclas (acessibilidade). Cada verbo de combate é
+  // clicável → captura a próxima tecla (ESC cancela). Movimento fica fixo
+  // (setas + WASD). setKeybind faz swap se a tecla já estava em outra ação.
+  private buildControlsOverlay(OW: number, _OH: number) {
+    if (!this.overlay) return;
+    const ov = this.overlay;
+
+    ov.add(
+      this.add
+        .text(OW / 2, 14, "⌨ CONTROLES", {
+          fontFamily: "monospace",
+          fontSize: "16px",
+          fontStyle: "bold",
+          color: TEXT_ACCENT,
+        })
+        .setOrigin(0.5, 0),
+    );
+    ov.add(
+      this.add
+        .text(OW / 2, 38, "Clique numa ação e pressione a tecla · ESC cancela", {
+          fontFamily: "monospace",
+          fontSize: "10px",
+          color: TEXT_DIM,
+        })
+        .setOrigin(0.5, 0),
+    );
+
+    let iy = 62;
+    const rowH = 32;
+    const binds = loadSettings().keybinds;
+
+    const startCapture = (action: BindAction) => {
+      if (this.rebindAction) return; // já capturando
+      this.rebindAction = action;
+      this.showOverlay("controls"); // re-render p/ mostrar [pressione…]
+      this.input.keyboard!.once("keydown", (e: KeyboardEvent & { keyCode: number }) => {
+        if (e.keyCode !== 27) setKeybind(action, e.keyCode); // 27 = ESC → cancela
+        this.rebindAction = null;
+        this.rebindGuardUntil = this.time.now + 300; // não vaza p/ o update()
+        this.showOverlay("controls");
+      });
+    };
+
+    BIND_LABELS.forEach(([action, label], i) => {
+      const g = this.add.graphics();
+      g.fillStyle(i % 2 === 0 ? 0x141820 : 0x0f1218, 1);
+      g.fillRect(16, iy, OW - 32, rowH - 4);
+      ov.add(g);
+      ov.add(
+        this.add.text(28, iy + 8, label, {
+          fontFamily: "monospace",
+          fontSize: "12px",
+          color: TEXT_LIGHT,
+        }),
+      );
+      const capturing = this.rebindAction === action;
+      const keyLabel = capturing ? "[ pressione… ]" : keyName(binds[action]);
+      const keyT = this.add
+        .text(OW - 30, iy + 8, keyLabel, {
+          fontFamily: "monospace",
+          fontSize: "12px",
+          fontStyle: "bold",
+          color: capturing ? "#f2c14e" : TEXT_ACCENT,
+        })
+        .setOrigin(1, 0);
+      keyT
+        .setInteractive({ useHandCursor: true })
+        .on("pointerover", () => !this.rebindAction && keyT.setColor("#ffffff"))
+        .on("pointerout", () => keyT.setColor(capturing ? "#f2c14e" : TEXT_ACCENT))
+        .on("pointerdown", () => startCapture(action));
+      ov.add(keyT);
+      iy += rowH;
+    });
+
+    iy += 8;
+    // Restaurar padrão
+    const resetT = this.add.text(28, iy, "↺ Restaurar padrão", {
+      fontFamily: "monospace",
+      fontSize: "12px",
+      color: TEXT_LIGHT,
+    });
+    resetT
+      .setInteractive({ useHandCursor: true })
+      .on("pointerover", () => resetT.setColor(TEXT_ACCENT))
+      .on("pointerout", () => resetT.setColor(TEXT_LIGHT))
+      .on("pointerdown", () => {
+        if (this.rebindAction) return;
+        resetKeybinds();
+        this.showOverlay("controls");
+      });
+    ov.add(resetT);
+
+    // Voltar às Configurações
+    const backT = this.add
+      .text(OW - 30, iy, "◂ VOLTAR", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        fontStyle: "bold",
+        color: TEXT_ACCENT,
+      })
+      .setOrigin(1, 0);
+    backT
+      .setInteractive({ useHandCursor: true })
+      .on("pointerover", () => backT.setColor("#ffffff"))
+      .on("pointerout", () => backT.setColor(TEXT_ACCENT))
+      .on("pointerdown", () => {
+        if (this.rebindAction) return;
+        this.showOverlay("config");
+      });
+    ov.add(backT);
+
+    ov.add(
+      this.add.text(28, iy + 30, "Movimento: setas ou WASD (fixo)", {
+        fontFamily: "monospace",
+        fontSize: "10px",
+        color: TEXT_DIM,
+      }),
     );
   }
 }

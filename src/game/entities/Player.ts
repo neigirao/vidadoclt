@@ -6,6 +6,7 @@ import { Sfx } from "../systems/AudioSystem";
 import { sanityBand } from "../systems/PlayerState";
 import { ParticleFactory } from "../systems/ParticleFactory";
 import { Telemetry } from "../systems/Telemetry";
+import { loadSettings } from "../systems/Settings";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -252,17 +253,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setMaxVelocity(800, 1400);
 
     const kb = scene.input.keyboard!;
+    // Verbos de combate vêm do remap do jogador (acessibilidade); movimento fica
+    // em setas + WASD fixos. addKey aceita o KeyCode numérico direto.
+    const b = loadSettings().keybinds;
     this.keys = {
       left: kb.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
       right: kb.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
-      jump: kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+      jump: kb.addKey(b.jump),
       jumpAlt: kb.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      dash: kb.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
-      attack: kb.addKey(Phaser.Input.Keyboard.KeyCodes.J),
-      special: kb.addKey(Phaser.Input.Keyboard.KeyCodes.K),
-      parry: kb.addKey(Phaser.Input.Keyboard.KeyCodes.F),
-      consumivel: kb.addKey(Phaser.Input.Keyboard.KeyCodes.C),
-      secondary: kb.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+      dash: kb.addKey(b.dash),
+      attack: kb.addKey(b.attack),
+      special: kb.addKey(b.special),
+      parry: kb.addKey(b.parry),
+      consumivel: kb.addKey(b.consumivel),
+      secondary: kb.addKey(b.secondary),
     };
     // A/D
     kb.addKey(Phaser.Input.Keyboard.KeyCodes.A).on("down", () => (this.holdA = true));

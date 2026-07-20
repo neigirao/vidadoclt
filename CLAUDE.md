@@ -136,6 +136,12 @@ HIT_INVULN_MS = 600; // i-frames após tomar dano
 | Ataque especial         | K           |
 | Interagir (portas/loja) | E           |
 
+Os 7 verbos de combate (Pular/Dash/Atacar/Especial/Parry/Consumível/Trocar arma) são
+**rebindáveis** em CONFIGURAÇÕES → `⌨ CONTROLES` (acessibilidade). Os binds vivem em
+`Settings.keybinds` (KeyCode numérico por ação, persistido); o `Player` lê deles ao
+construir. Movimento (setas/WASD) e Interagir (E) são fixos. `setKeybind` faz **swap**
+(nunca duas ações na mesma tecla).
+
 ## Fluxo de cenas
 
 ```
