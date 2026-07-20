@@ -142,6 +142,12 @@ Os 7 verbos de combate (Pular/Dash/Atacar/Especial/Parry/Consumível/Trocar arma
 construir. Movimento (setas/WASD) e Interagir (E) são fixos. `setKeybind` faz **swap**
 (nunca duas ações na mesma tecla).
 
+**Acessibilidade** (tudo em `Settings.ts` + toggles em CONFIGURAÇÕES): `reduceSanityFx`
+(fotossensibilidade), `assistMode` (−30% dano/+1 vida), `colorBlindSafe` (telegraph de
+tiro amarelo→azul; forma `!!`/`!` sempre ativa), remap de teclas (acima) e `uiTextScale`
+(Normal/Grande/Enorme — escala as **dicas de tutorial** e os **toasts** de feedback; o HUD
+é pixel-tunado e fica fixo de propósito).
+
 ## Fluxo de cenas
 
 ```

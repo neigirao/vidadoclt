@@ -13,6 +13,8 @@ import {
   resetKeybinds,
   keyName,
   BIND_LABELS,
+  cycleUiTextScale,
+  UI_TEXT_SCALE_LABELS,
   type BindAction,
 } from "../systems/Settings";
 import { applyAudioSettings } from "../systems/applyAudio";
@@ -1001,6 +1003,36 @@ export class MenuScene extends Phaser.Scene {
       draw();
     };
 
+    // Linha de CICLO: rótulo + [ VALOR ] clicável que avança pra próxima opção.
+    const cycleRow = (
+      label: string,
+      getLabel: () => string,
+      cycle: () => void,
+      y: number,
+      i: number,
+    ) => {
+      rowBg(y, i);
+      ov.add(
+        this.add.text(28, y + 10, label, {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: TEXT_LIGHT,
+        }),
+      );
+      const state = this.add.text(OW - 120, y + 10, "", {
+        fontFamily: "monospace",
+        fontSize: "11px",
+        color: TEXT_ACCENT,
+      });
+      const draw = () => state.setText(`[ ${getLabel()} ]`);
+      state.setInteractive({ useHandCursor: true }).on("pointerdown", () => {
+        cycle();
+        draw();
+      });
+      ov.add(state);
+      draw();
+    };
+
     volumeRow("Volume Geral", "masterVolume", iy, 0);
     iy += rowH;
     volumeRow("Música", "musicVolume", iy, 1);
@@ -1031,6 +1063,14 @@ export class MenuScene extends Phaser.Scene {
       toggleColorBlindSafe,
       iy,
       6,
+    );
+    iy += rowH;
+    cycleRow(
+      "Tamanho do texto  (dicas · avisos)",
+      () => UI_TEXT_SCALE_LABELS[loadSettings().uiTextScale] ?? "Normal",
+      () => cycleUiTextScale(),
+      iy,
+      7,
     );
     iy += rowH + 4;
 
