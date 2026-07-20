@@ -111,8 +111,6 @@ function animPhase(
   }
 }
 
-
-
 // ─── TelemarketerZumbi ────────────────────────────────────────────────────────
 export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
   hp = 42;
