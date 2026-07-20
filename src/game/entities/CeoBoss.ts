@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { fxGlow } from "./Enemies";
+import { atlasFrames, type FrameState } from "../systems/AtlasFrames";
 
 const HIT_INVULN_MS = 400;
 
@@ -71,16 +72,22 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     this._nextSpreadAt = now + 3000;
   }
 
+  // Contagem de frames por estado SEMPRE do atlas (fonte única, gap-aware).
+  private _ceoCount(state: FrameState): number {
+    const n = atlasFrames(this.scene?.textures?.get("sprites"), "boss-ceo", state).length;
+    return n > 0 ? n : 1;
+  }
+
   private _applyAnimFrame(t: number) {
-    // Death animation takes highest priority
+    // Death animation takes highest priority — conta do atlas (in-betweens = 16+).
     if (this._dying) {
-      const f = Math.floor(t / 110) % 16; // death a 16 frames (in-betweens)
+      const f = Math.floor(t / 110) % this._ceoCount("death");
       applyTexture(this, `tex-boss-ceo-death${f}`);
       return;
     }
-    // Hurt takes priority — CICLA os 2 frames de hurt (antes travava no hurt0).
+    // Hurt takes priority — CICLA os frames de hurt (antes travava no hurt0).
     if (t < this._hurtUntil) {
-      applyTexture(this, `tex-boss-ceo-hurt${Math.floor(t / 40) % 16}`);
+      applyTexture(this, `tex-boss-ceo-hurt${Math.floor(t / 40) % this._ceoCount("hurt")}`);
       return;
     }
 
@@ -89,7 +96,7 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     let interval: number;
     if (this._animState === "attack") {
       prefix = "boss-ceo-attack";
-      count = 16; // attack a 16 (in-betweens) — interval baixo mantém a janela
+      count = this._ceoCount("attack"); // interval baixo mantém a janela do golpe
       interval = 20;
     } else if (this._animState === "special") {
       prefix = "boss-ceo-special";
@@ -100,15 +107,15 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
       const moving = body && Math.abs(body.velocity.x) > 10;
       if (!moving && !this._charging) {
         prefix = "boss-ceo-idle";
-        count = 16; // idle a 16 (in-betweens) — respiração calma
+        count = this._ceoCount("idle"); // respiração calma
         interval = 95;
       } else if (this._charging) {
         prefix = "boss-ceo-run";
-        count = 16; // run a 16 (in-betweens)
+        count = this._ceoCount("run");
         interval = 24;
       } else {
         prefix = "boss-ceo-walk";
-        count = 16; // walk 2→16 (in-betweens) — interval/2 mantém a cadência
+        count = this._ceoCount("walk"); // interval/2 mantém a cadência
         interval = 24;
       }
     }

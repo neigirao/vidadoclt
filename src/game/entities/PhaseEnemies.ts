@@ -2,60 +2,16 @@ import Phaser from "phaser";
 import { resolveSprite, applyTexture } from "../systems/SpriteLibrary";
 import { markKilled } from "../systems/BestiarySystem";
 import { fxGlow, showTelegraph, TELEGRAPH } from "./Enemies";
-import { runtimeFrameAddition } from "../systems/EnemyAnimConfig";
+import { atlasFramesWithOverride, frameAt } from "../systems/AtlasFrames";
 
 const HIT_INVULN_MS = 400;
 
-// ── Animação de caminhada dos inimigos de fase ───────────────────────────────
+// ── Animação dos inimigos de fase ────────────────────────────────────────────
 // Estes inimigos renderizavam a base ESTÁTICA (liam como objeto, não ameaça).
-// Cicla frames enemy-<prefix>-walkN quando em movimento; parado volta à base.
-// Whitelist: só prefixos cujos frames de walk têm o MESMO tamanho da base
-// (evangelista fica de fora — walk 64x64 vs base 32x48 daria "pulo" visual).
+// Cicla enemy-<prefix>-walkN em movimento, idleN parado, hurtN na janela de dano.
+// A CONTAGEM/índices saem do ATLAS (systems/AtlasFrames — fonte única, gap-aware,
+// já com o override do LAB). Ms = design.
 const _phaseAnimOff = new WeakMap<Phaser.GameObjects.Sprite, number>();
-
-// Listas de índices EXISTENTES por estado (não só contagem contígua). Antes o
-// scan parava no 1º gap → walk0,1,2,3,_,5,6 virava ciclo de 4 (perdia 5 e 6).
-// Agora varre até MAX_SCAN e guarda os índices presentes; ao ciclar, o step %
-// list.length pula os buracos SEM esticar o timing (dt de frame permanece = ms).
-// Se a lista fica vazia, cai no base (`tex-<prefix>`) — nunca renderiza slot
-// inexistente. Um warn 1×/prefixo/estado sinaliza gap ao dev.
-const MAX_SCAN = 64;
-const _phaseFrameLists: Record<string, number[]> = {};
-const _gapWarned = new Set<string>();
-function phaseFrames(
-  e: Phaser.Physics.Arcade.Sprite,
-  prefix: string,
-  state: "walk" | "idle" | "hurt",
-): number[] {
-  const key = `${prefix}/${state}`;
-  const cached = _phaseFrameLists[key];
-  if (cached) return cached;
-  const tex = e.scene?.textures?.get("sprites");
-  const list: number[] = [];
-  if (tex) {
-    let lastPresent = -1;
-    for (let i = 0; i < MAX_SCAN; i++) {
-      if (tex.has(`enemy-${prefix}-${state}${i}`) || tex.has(`${prefix}-${state}${i}`)) {
-        list.push(i);
-        lastPresent = i;
-      }
-    }
-    // Warn 1× se houve gap no meio (índice ausente antes do último presente).
-    if (lastPresent >= 0 && list.length !== lastPresent + 1 && !_gapWarned.has(key)) {
-      _gapWarned.add(key);
-      const missing: number[] = [];
-      for (let i = 0; i <= lastPresent; i++) if (!list.includes(i)) missing.push(i);
-      console.warn(
-        `[animPhase] gap em enemy-${prefix}-${state}: faltam ${missing.join(",")} (ciclando ${list.length} frames existentes)`,
-      );
-    }
-  }
-  _phaseFrameLists[key] = list;
-  return list;
-}
-function phaseIdleCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
-  return phaseFrames(e, prefix, "idle").length;
-}
 
 function animPhase(
   e: Phaser.Physics.Arcade.Sprite,
@@ -68,46 +24,26 @@ function animPhase(
   if (!body) return;
   if (!_phaseAnimOff.has(e)) _phaseAnimOff.set(e, (Math.random() * 1500) | 0);
   const off = _phaseAnimOff.get(e)!;
+  const tex = e.scene?.textures?.get("sprites");
   // HURT tem prioridade: durante a janela pós-golpe (setData no hit()), mostra a
   // arte de hurt em vez de walk/idle.
   const hurtT = (e.getData("hurtT") as number) || 0;
   if (t < hurtT) {
-    const hurts = phaseFrames(e, prefix, "hurt");
+    const hurts = atlasFramesWithOverride(tex, prefix, "hurt");
     if (hurts.length > 0) {
-      const f = hurts[Math.floor((t + off) / 70) % hurts.length];
-      applyTexture(e, `tex-${prefix}-hurt${f}`);
+      applyTexture(e, `tex-${prefix}-hurt${frameAt(hurts, t + off, 70)}`);
       return;
     }
   }
-  // Walk: usa a LISTA real de índices do atlas (pula buracos). Override de LAB
-  // ainda soma frames contíguos por cima do último presente.
-  const walks = phaseFrames(e, prefix, "walk");
-  const overrideAdd = runtimeFrameAddition("walk", prefix);
-  const lastWalk = walks.length ? walks[walks.length - 1] : -1;
-  const extras: number[] = [];
-  for (let i = lastWalk + 1; i < overrideAdd; i++) extras.push(i);
-  const walkList = extras.length ? walks.concat(extras) : walks;
   if (Math.abs(body.velocity.x) > 5 || Math.abs(body.velocity.y) > 5) {
-    if (walkList.length > 0) {
-      const f = walkList[Math.floor((t + off) / ms) % walkList.length];
-      applyTexture(e, `tex-${prefix}-walk${f}`);
-    } else {
-      applyTexture(e, `tex-${prefix}`);
-    }
+    const walks = atlasFramesWithOverride(tex, prefix, "walk");
+    if (walks.length > 0) applyTexture(e, `tex-${prefix}-walk${frameAt(walks, t + off, ms)}`);
+    else applyTexture(e, `tex-${prefix}`);
   } else {
-    // PARADO: cicla idle (respiração). Também respeita gaps via lista.
-    const idles = phaseFrames(e, prefix, "idle");
-    const idleAdd = runtimeFrameAddition("idle", prefix);
-    const lastIdle = idles.length ? idles[idles.length - 1] : -1;
-    const idleExtras: number[] = [];
-    for (let i = lastIdle + 1; i < idleAdd; i++) idleExtras.push(i);
-    const idleList = idleExtras.length ? idles.concat(idleExtras) : idles;
-    if (idleList.length > 1) {
-      const f = idleList[Math.floor((t + off) / 320) % idleList.length];
-      applyTexture(e, `tex-${prefix}-idle${f}`);
-    } else {
-      applyTexture(e, `tex-${prefix}`);
-    }
+    // PARADO: cicla idle (respiração); cai no base se não houver idle.
+    const idles = atlasFramesWithOverride(tex, prefix, "idle");
+    if (idles.length > 1) applyTexture(e, `tex-${prefix}-idle${frameAt(idles, t + off, 320)}`);
+    else applyTexture(e, `tex-${prefix}`);
   }
 }
 

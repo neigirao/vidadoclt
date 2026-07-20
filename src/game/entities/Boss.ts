@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { pickCorporatePhrase } from "../systems/CorporateAI";
 import { fxGlow } from "./Enemies";
+import { atlasFrames, type FrameState } from "../systems/AtlasFrames";
 
 // ─── Email projectile (Follow-Up attack) ────────────────────────────────────
 export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
@@ -375,17 +376,23 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     return false;
   }
 
+  // Contagem de frames por estado SEMPRE do atlas (fonte única, gap-aware).
+  private _gerCount(state: FrameState): number {
+    const n = atlasFrames(this.scene?.textures?.get("sprites"), "gerente", state).length;
+    return n > 0 ? n : 1;
+  }
+
   private updateTexture(now?: number) {
     if (now === undefined) now = this.scene.time.now;
     let key: string;
     if (this._dying) {
-      const f = Math.floor(now / 120) % 16; // death a 16 frames (in-betweens)
+      const f = Math.floor(now / 120) % this._gerCount("death"); // death (in-betweens)
       key = `tex-gerente-death${f}`;
       applyTexture(this, key);
       return;
     }
     if (now < this._hurtUntil) {
-      const f = Math.floor(now / 40) % 16; // hurt a 16 frames (in-betweens)
+      const f = Math.floor(now / 40) % this._gerCount("hurt"); // hurt (in-betweens)
       key = `tex-gerente-hurt${f}`;
     } else if (this.bossState === "attack" && this.currentAttack === "atualizacao") {
       // Dash charge — use run-charge frames for aggressive pose
@@ -400,7 +407,7 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       // Explicit mapping for all 6 attack types
       const f4 = Math.floor(now / 100) % 4;
       const f2 = Math.floor(now / 200) % 2;
-      const f16 = Math.floor(now / 50) % 16; // attack genérico a 16 frames (in-betweens)
+      const f16 = Math.floor(now / 50) % this._gerCount("attack"); // attack genérico (in-betweens)
       switch (this.currentAttack) {
         case "deadline":
           key = `tex-gerente-attack-deadline${f4}`;
@@ -424,10 +431,10 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
           key = `tex-gerente-attack0`;
       }
     } else if (this.bossState === "enter" || this.bossState === "recover") {
-      const f = Math.floor(now / 35) % 16; // walk 4→16 (in-betweens), ms/4 mantém a cadência
+      const f = Math.floor(now / 35) % this._gerCount("walk"); // walk (in-betweens)
       key = `tex-gerente-walk${f}`;
     } else {
-      const f = Math.floor(now / 90) % 16; // idle a 16 frames (in-betweens)
+      const f = Math.floor(now / 90) % this._gerCount("idle"); // idle (in-betweens)
       key = `tex-gerente-idle${f}`;
     }
     applyTexture(this, key);

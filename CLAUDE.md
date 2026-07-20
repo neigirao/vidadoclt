@@ -232,6 +232,19 @@ sozinhos. O que é config-gated foi subido a 16: `ATTACK_FRAME_COUNTS`/`ATTACK_M
 de propósito** (decisão do dono: parar no hurt) — os frames existem no atlas (não faltam),
 mas esses inimigos renderizam attack estático.
 
+**Contagem de frames = ATLAS (fonte única, `systems/AtlasFrames.ts`).** Aprendizado do
+commit do Lovable no animPhase, generalizado para TODO o motor: a contagem/índices de
+cada animação sai da varredura do atlas, não de contagens hardcoded (que podiam divergir
+→ "config diz N, atlas tem M": o bug do sênior 16 e dos bosses recolor). `atlasFrames(tex,
+prefix, state)` devolve a LISTA de índices presentes — **gap-aware** (`walk0,1,2,3,_,5,6`
+cicla os 6 existentes pulando o buraco, com warn 1×/prefixo/estado) — e cacheada.
+`atlasFramesWithOverride` anexa os extras de override do LAB (walk/idle/attack). Consumidores:
+`Enemies.ts` (`setEnemyTex`, Fase 1), `PhaseEnemies.ts` (`animPhase`, Fases 2–5), `DeathAnim.ts`,
+`CeoBoss.ts`/`Boss.ts` (bosses). **O MS (timing) NÃO sai do atlas** — é design, fica em
+`EnemyAnimConfig.ts` (que segue como referência do SpriteLab + gate de coerência). As
+contagens hardcoded de `EnemyAnimConfig` (`*_FRAME_COUNTS`) já não dirigem o runtime — só o
+SpriteLab/gate as usam para cruzar contra o atlas.
+
 **Limite conhecido:** o gate garante *quantidade* e coerência de *contagem*, mas é cego para
 arte *mismatched* (frame de personagem diferente com a dimensão certa) — isso só o
 `runFullAudit()` do LAB (canvas, no navegador) detecta.
