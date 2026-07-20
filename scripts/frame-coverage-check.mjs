@@ -23,7 +23,12 @@
 import { readFileSync } from "node:fs";
 
 const atlas = JSON.parse(readFileSync(new URL("../public/assets/atlas.json", import.meta.url)));
-const frames = atlas.textures.flatMap((t) => t.frames.map((f) => f.filename));
+const frameObjs = atlas.textures.flatMap((t) => t.frames);
+const frames = frameObjs.map((f) => f.filename);
+// Dimensão de canvas por frame (sourceSize = tamanho original antes do trim).
+const dimOf = new Map(
+  frameObjs.map((f) => [f.filename, [f.sourceSize?.w ?? f.frame.w, f.sourceSize?.h ?? f.frame.h]]),
+);
 
 // Parseia frame `<subject>-<action><N>` (mesma regra do frame-coverage).
 const re = /^(.*?)-([a-z]+)(\d+)$/;
@@ -145,6 +150,45 @@ try {
 }
 for (const cv of coherenceViolations) violations.push({ ...cv, min: cv.cycles, coherence: true });
 
+// ── Consistência de TAMANHO entre estados do MESMO personagem ─────────────────
+// Um estado com canvas diferente dos outros faz o sprite "inchar/encolher" ao
+// trocar de ação (ex.: death 64×64 vs walk/idle 48×64 → pop de ~40% ao morrer).
+// O gate de contagem é cego a isto; aqui reprovamos se os estados de animação de
+// um personagem divergem de dimensão além da tolerância. Itens/objetos isentos
+// (frame único, sem família). Tolerância de 8px absorve trims legítimos.
+const SIZE_TOL = 8;
+const ANIM_STATES = new Set(["idle", "walk", "run", "attack", "hurt", "death"]);
+const sizeViolations = [];
+for (const [subj, am] of map) {
+  if (cat(subj) === "item") continue;
+  // Dimensão representativa (frame 0) de cada estado de animação presente.
+  const perState = [];
+  for (const [act, idxs] of am) {
+    if (!ANIM_STATES.has(act)) continue;
+    const i0 = Math.min(...idxs);
+    const d = dimOf.get(`${subj}-${act}${i0}`);
+    if (d) perState.push({ act, w: d[0], h: d[1] });
+  }
+  if (perState.length < 2) continue;
+  // Mediana de largura/altura da família; flag quem escapa da tolerância.
+  const med = (arr) => [...arr].sort((a, b) => a - b)[Math.floor(arr.length / 2)];
+  const mw = med(perState.map((s) => s.w));
+  const mh = med(perState.map((s) => s.h));
+  for (const s of perState) {
+    if (Math.abs(s.w - mw) > SIZE_TOL || Math.abs(s.h - mh) > SIZE_TOL) {
+      sizeViolations.push({
+        category: cat(subj),
+        subject: subj,
+        action: s.act,
+        have: `${s.w}x${s.h}`,
+        min: `${mw}x${mh}`,
+        size: true,
+      });
+    }
+  }
+}
+for (const sv of sizeViolations) violations.push(sv);
+
 // Sanity extra: pisos declarados para famílias que NÃO existem no atlas =
 // provável typo no FLOORS/EXCEPTIONS. Sinaliza mas não falha o CI.
 const declaredExceptionsMissing = Object.keys(EXCEPTIONS).filter((k) => {
@@ -174,6 +218,12 @@ if (wantJson) {
     console.error(`❌ frame-coverage-check: ${violations.length} violação(ões) de ${total} pares:`);
     console.error("");
     for (const v of violations) {
+      if (v.size) {
+        console.error(
+          `  · ${v.category.padEnd(6)} ${v.subject}/${v.action}: canvas ${v.have} ≠ família ${v.min} [TAMANHO: sprite incha/encolhe ao trocar de estado]`,
+        );
+        continue;
+      }
       const tag = v.coherence
         ? " [COERÊNCIA: o jogo cicla mais do que existe → frame faltando]"
         : "";
