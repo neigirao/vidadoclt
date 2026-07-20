@@ -36,19 +36,32 @@ function phaseHurtCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number
   return n;
 }
 
+// Idem p/ walk — auto-detecta o ciclo REAL do atlas (contíguo a partir de 0), pra
+// o animPhase deixar de ciclar a contagem hardcoded (4/16) e passar a usar o que
+// existe. Assim quando um inimigo ganha in-betweens (4→8→16) o jogo cicla sozinho;
+// e quando o atlas tem menos que o hint (ex.: ti-suporte walk=12), não estoura em
+// frame inexistente.
+const _phaseWalkCounts: Record<string, number> = {};
+function phaseWalkCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
+  if (prefix in _phaseWalkCounts) return _phaseWalkCounts[prefix];
+  const tex = e.scene?.textures?.get("sprites");
+  let n = 0;
+  if (tex) while (tex.has(`enemy-${prefix}-walk${n}`) || tex.has(`${prefix}-walk${n}`)) n++;
+  _phaseWalkCounts[prefix] = n;
+  return n;
+}
+
 function animPhase(
   e: Phaser.Physics.Arcade.Sprite,
   t: number,
   prefix: string,
-  frames: number, // quantos walkN ciclar (0..frames-1)
+  _hint: number = 16, // legado: hint dos callers; hoje ignorado — a contagem sai do atlas
   ms = 95, // halvado (era 190): o walk foi DOBRADO com in-betweens → metade do ms/frame mantém a cadência
 ): void {
   const body = e.body as Phaser.Physics.Arcade.Body | null;
   if (!body) return;
   if (!_phaseAnimOff.has(e)) _phaseAnimOff.set(e, (Math.random() * 1500) | 0);
   const off = _phaseAnimOff.get(e)!;
-  // Multi-frame: se o LAB adicionou frames de walk por IA (override de runtime),
-  // cicla até eles — max(base hardcoded, aumento registrado).
   // HURT tem prioridade: durante a janela pós-golpe (setData no hit()), mostra a
   // arte de hurt (que já existe no atlas) em vez de walk/idle. Aparece a cada
   // golpe do player — antes o hit só dava knockback/tint, sem frame de hurt.
@@ -60,10 +73,18 @@ function animPhase(
       return;
     }
   }
-  const total = Math.max(frames, runtimeFrameAddition("walk", prefix));
+  // Walk: usa a contagem REAL do atlas (auto-detect), com o override de runtime do
+  // LAB somando por cima. O hint dos callers vira só um piso mínimo pra segurança
+  // caso o atlas ainda não tenha nenhum walk (nunca acontece hoje, mas defensivo).
+  const atlasWalk = phaseWalkCount(e, prefix);
+  const total = Math.max(atlasWalk, runtimeFrameAddition("walk", prefix)) || _hint;
   if (Math.abs(body.velocity.x) > 5 || Math.abs(body.velocity.y) > 5) {
-    const f = Math.floor((t + off) / ms) % total;
-    applyTexture(e, `tex-${prefix}-walk${f}`);
+    if (total > 0) {
+      const f = Math.floor((t + off) / ms) % total;
+      applyTexture(e, `tex-${prefix}-walk${f}`);
+    } else {
+      applyTexture(e, `tex-${prefix}`);
+    }
   } else {
     // PARADO: cicla idle (respiração) em vez de travar no frame base. Usa os
     // frames de idle que já existem no atlas; cai no base se o inimigo não tem.
@@ -72,6 +93,7 @@ function animPhase(
     else applyTexture(e, `tex-${prefix}`);
   }
 }
+
 
 // ─── TelemarketerZumbi ────────────────────────────────────────────────────────
 export class TelemarketerZumbi extends Phaser.Physics.Arcade.Sprite {
