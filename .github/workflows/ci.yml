@@ -71,6 +71,13 @@ jobs:
       - name: Smoke de cenas
         run: bun smoke
 
+      # Gate de qualidade VISUAL: roda o runFullAudit() do LAB (canvas) e falha
+      # em defeito MECÂNICO (frame vazio/chapado/faltando ou LAB<jogo). Pega o
+      # que o check:frames (quantidade/tamanho) é cego: o CONTEÚDO do pixel.
+      # Pulos de altura (poses/FX) são só warning. Reusa o Chromium já instalado.
+      - name: Audit visual de sprites
+        run: bun run audit:sprites
+
   # Regressão VISUAL: captura as cenas de UI estáveis e compara pixel-a-pixel
   # contra os baselines commitados (tests/visual/baseline). Pega arte que "sumiu"
   # /desalinhou sem gerar erro de console (o smoke não vê isso).

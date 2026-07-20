@@ -17,7 +17,8 @@
     "fill:frames": "node scripts/frame-coverage-fill.mjs",
     "visual": "node scripts/visual-regression.mjs",
     "visual:update": "node scripts/visual-regression.mjs --update",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "audit:sprites": "node scripts/audit-sprites.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
