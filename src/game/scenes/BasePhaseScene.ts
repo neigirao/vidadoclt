@@ -2162,10 +2162,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   }
 
   private showPickupToast(text: string) {
+    const sc = loadSettings().uiTextScale; // escala de texto (acessibilidade)
     const t = this.add
       .text(GAME_WIDTH / 2, 150, text, {
         fontFamily: "monospace",
-        fontSize: "13px",
+        fontSize: `${Math.round(13 * sc)}px`,
         color: "#88bbff",
         stroke: "#000000",
         strokeThickness: 3,

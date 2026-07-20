@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_WIDTH } from "../constants";
+import { loadSettings } from "./Settings";
 
 /**
  * TutorialPrompts — dicas contextuais de 1 linha para a PRIMEIRA sessão.
@@ -44,22 +45,19 @@ const SHOW_MS = 4500;
 function render(scene: Phaser.Scene, item: QueueItem) {
   _showing.add(scene);
   const y = 96;
+  // Escala de texto (acessibilidade): fonte + caixa crescem juntas. Limitadas à
+  // largura da tela p/ não vazar. wordWrap acompanha p/ quebrar em mais linhas.
+  const sc = loadSettings().uiTextScale;
+  const bgW = Math.min(GAME_WIDTH - 24, (item.text.length * 8 + 48) * sc);
   const bg = scene.add
-    .rectangle(
-      GAME_WIDTH / 2,
-      y,
-      Math.min(GAME_WIDTH - 40, item.text.length * 8 + 48),
-      34,
-      0x0d1018,
-      0.92,
-    )
+    .rectangle(GAME_WIDTH / 2, y, bgW, Math.round(34 * sc), 0x0d1018, 0.92)
     .setStrokeStyle(1, 0xf2a800, 0.8)
     .setScrollFactor(0)
     .setDepth(1200);
   const label = scene.add
     .text(GAME_WIDTH / 2, y, `💡 ${item.text}`, {
       fontFamily: "monospace",
-      fontSize: "12px",
+      fontSize: `${Math.round(12 * sc)}px`,
       color: "#ffe0a0",
       align: "center",
       wordWrap: { width: GAME_WIDTH - 70 },
@@ -67,6 +65,8 @@ function render(scene: Phaser.Scene, item: QueueItem) {
     .setOrigin(0.5)
     .setScrollFactor(0)
     .setDepth(1201);
+  // Se o texto (escalado) ficou mais alto que a caixa, cresce a caixa p/ envolver.
+  if (label.height + 10 > bg.height) bg.setSize(bgW, Math.round(label.height + 12));
 
   const dismiss = () => {
     if (!bg.active) return;

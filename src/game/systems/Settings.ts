@@ -98,6 +98,12 @@ export interface Settings {
   colorBlindSafe: boolean;
   /** Remap de teclas dos 7 verbos de combate (KeyCode numérico por ação). */
   keybinds: Record<BindAction, number>;
+  /**
+   * Escala do texto informativo transiente (dicas de tutorial + toasts de
+   * feedback). Acessibilidade — baixa visão. 1 = Normal, 1.25 = Grande, 1.5 =
+   * Enorme. NÃO mexe no HUD (posicionamento pixel-tunado) nem em sprites.
+   */
+  uiTextScale: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -109,6 +115,15 @@ export const DEFAULT_SETTINGS: Settings = {
   assistMode: false,
   colorBlindSafe: false,
   keybinds: { ...DEFAULT_KEYBINDS },
+  uiTextScale: 1,
+};
+
+// Passos de escala de texto (Normal / Grande / Enorme) — o toggle cicla entre eles.
+export const UI_TEXT_SCALES = [1, 1.25, 1.5] as const;
+export const UI_TEXT_SCALE_LABELS: Record<number, string> = {
+  1: "Normal",
+  1.25: "Grande",
+  1.5: "Enorme",
 };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -194,6 +209,15 @@ export function resetKeybinds(): void {
   const s = loadSettings();
   s.keybinds = { ...DEFAULT_KEYBINDS };
   saveSettings(s);
+}
+
+/** Cicla a escala de texto (Normal→Grande→Enorme→Normal), persiste e devolve o novo valor. */
+export function cycleUiTextScale(): number {
+  const s = loadSettings();
+  const i = UI_TEXT_SCALES.indexOf(s.uiTextScale as (typeof UI_TEXT_SCALES)[number]);
+  s.uiTextScale = UI_TEXT_SCALES[(i + 1) % UI_TEXT_SCALES.length];
+  saveSettings(s);
+  return s.uiTextScale;
 }
 
 // Parâmetros do modo assistido (fonte única — reusados pelo buildPlayer e testes).
