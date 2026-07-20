@@ -198,7 +198,13 @@ Fluxo de qualidade para as contagens de frames por família. **3 formas de usar:
    attack 4, hurt 2, death 3; itens isentos). **Também é coherence-aware**: parseia
    `EnemyAnimConfig.ts` e falha se o jogo ciclar MAIS frames do que o atlas tem (o caso
    perigoso: `%count` pede um índice inexistente → frame faltando em runtime). Relaxar
-   um piso exige uma `EXCEPTION` **documentada** — nunca baixar o piso global.
+   um piso exige uma `EXCEPTION` **documentada** — nunca baixar o piso global. **Também é
+   size-aware**: reprova se um ESTADO de animação de um personagem tem canvas diferente
+   dos outros estados dele (tolerância 8px) — o sprite "inchava/encolhia" ao trocar de
+   ação (ex.: `death` 64×64 vs `walk`/`idle` 48×64 → pop de ~40% ao morrer). Para
+   normalizar death fora do tamanho da família: **`node scripts/normalize-death-size.mjs`**
+   (reescala p/ o canvas dos outros estados, escala única por personagem = casa a altura
+   do death0 com a do idle, alinhado pelos pés; determinístico, sem IA, reempacota).
 2. **`bun run fill:frames`** — AUTO-FILL em lote. Pega as violações do gate e resolve as
    **interpoláveis** (walk/idle/run/attack) chamando `gen-inbetweens.mjs` (dobra o ciclo
    até o piso, determinístico, sem IA), reempacota 1× no fim. Use ao adicionar conteúdo
