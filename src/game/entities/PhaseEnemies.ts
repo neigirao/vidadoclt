@@ -12,43 +12,49 @@ const HIT_INVULN_MS = 400;
 // Whitelist: só prefixos cujos frames de walk têm o MESMO tamanho da base
 // (evangelista fica de fora — walk 64x64 vs base 32x48 daria "pulo" visual).
 const _phaseAnimOff = new WeakMap<Phaser.GameObjects.Sprite, number>();
-// Conta frames de idle disponíveis por prefixo (cache) — pra o animPhase ciclar
-// idle quando o inimigo está parado, em vez de travar num frame base estático.
-const _phaseIdleCounts: Record<string, number> = {};
+
+// Listas de índices EXISTENTES por estado (não só contagem contígua). Antes o
+// scan parava no 1º gap → walk0,1,2,3,_,5,6 virava ciclo de 4 (perdia 5 e 6).
+// Agora varre até MAX_SCAN e guarda os índices presentes; ao ciclar, o step %
+// list.length pula os buracos SEM esticar o timing (dt de frame permanece = ms).
+// Se a lista fica vazia, cai no base (`tex-<prefix>`) — nunca renderiza slot
+// inexistente. Um warn 1×/prefixo/estado sinaliza gap ao dev.
+const MAX_SCAN = 64;
+const _phaseFrameLists: Record<string, number[]> = {};
+const _gapWarned = new Set<string>();
+function phaseFrames(
+  e: Phaser.Physics.Arcade.Sprite,
+  prefix: string,
+  state: "walk" | "idle" | "hurt",
+): number[] {
+  const key = `${prefix}/${state}`;
+  const cached = _phaseFrameLists[key];
+  if (cached) return cached;
+  const tex = e.scene?.textures?.get("sprites");
+  const list: number[] = [];
+  if (tex) {
+    let lastPresent = -1;
+    for (let i = 0; i < MAX_SCAN; i++) {
+      if (tex.has(`enemy-${prefix}-${state}${i}`) || tex.has(`${prefix}-${state}${i}`)) {
+        list.push(i);
+        lastPresent = i;
+      }
+    }
+    // Warn 1× se houve gap no meio (índice ausente antes do último presente).
+    if (lastPresent >= 0 && list.length !== lastPresent + 1 && !_gapWarned.has(key)) {
+      _gapWarned.add(key);
+      const missing: number[] = [];
+      for (let i = 0; i <= lastPresent; i++) if (!list.includes(i)) missing.push(i);
+      console.warn(
+        `[animPhase] gap em enemy-${prefix}-${state}: faltam ${missing.join(",")} (ciclando ${list.length} frames existentes)`,
+      );
+    }
+  }
+  _phaseFrameLists[key] = list;
+  return list;
+}
 function phaseIdleCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
-  if (prefix in _phaseIdleCounts) return _phaseIdleCounts[prefix];
-  const tex = e.scene?.textures?.get("sprites");
-  let n = 0;
-  if (tex) while (tex.has(`enemy-${prefix}-idle${n}`) || tex.has(`${prefix}-idle${n}`)) n++;
-  _phaseIdleCounts[prefix] = n;
-  return n;
-}
-
-// Idem p/ hurt — todos os inimigos das Fases 2–5 têm hurt no atlas mas nunca era
-// renderizado (animPhase só fazia walk). O hit() marca setData("hurtT", now+300).
-const _phaseHurtCounts: Record<string, number> = {};
-function phaseHurtCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
-  if (prefix in _phaseHurtCounts) return _phaseHurtCounts[prefix];
-  const tex = e.scene?.textures?.get("sprites");
-  let n = 0;
-  if (tex) while (tex.has(`enemy-${prefix}-hurt${n}`) || tex.has(`${prefix}-hurt${n}`)) n++;
-  _phaseHurtCounts[prefix] = n;
-  return n;
-}
-
-// Idem p/ walk — auto-detecta o ciclo REAL do atlas (contíguo a partir de 0), pra
-// o animPhase deixar de ciclar a contagem hardcoded (4/16) e passar a usar o que
-// existe. Assim quando um inimigo ganha in-betweens (4→8→16) o jogo cicla sozinho;
-// e quando o atlas tem menos que o hint (ex.: ti-suporte walk=12), não estoura em
-// frame inexistente.
-const _phaseWalkCounts: Record<string, number> = {};
-function phaseWalkCount(e: Phaser.Physics.Arcade.Sprite, prefix: string): number {
-  if (prefix in _phaseWalkCounts) return _phaseWalkCounts[prefix];
-  const tex = e.scene?.textures?.get("sprites");
-  let n = 0;
-  if (tex) while (tex.has(`enemy-${prefix}-walk${n}`) || tex.has(`${prefix}-walk${n}`)) n++;
-  _phaseWalkCounts[prefix] = n;
-  return n;
+  return phaseFrames(e, prefix, "idle").length;
 }
 
 function animPhase(
@@ -63,36 +69,48 @@ function animPhase(
   if (!_phaseAnimOff.has(e)) _phaseAnimOff.set(e, (Math.random() * 1500) | 0);
   const off = _phaseAnimOff.get(e)!;
   // HURT tem prioridade: durante a janela pós-golpe (setData no hit()), mostra a
-  // arte de hurt (que já existe no atlas) em vez de walk/idle. Aparece a cada
-  // golpe do player — antes o hit só dava knockback/tint, sem frame de hurt.
+  // arte de hurt em vez de walk/idle.
   const hurtT = (e.getData("hurtT") as number) || 0;
   if (t < hurtT) {
-    const hn = phaseHurtCount(e, prefix);
-    if (hn > 0) {
-      applyTexture(e, `tex-${prefix}-hurt${Math.floor((t + off) / 70) % hn}`);
+    const hurts = phaseFrames(e, prefix, "hurt");
+    if (hurts.length > 0) {
+      const f = hurts[Math.floor((t + off) / 70) % hurts.length];
+      applyTexture(e, `tex-${prefix}-hurt${f}`);
       return;
     }
   }
-  // Walk: usa a contagem REAL do atlas (auto-detect), com o override de runtime do
-  // LAB somando por cima. O hint dos callers vira só um piso mínimo pra segurança
-  // caso o atlas ainda não tenha nenhum walk (nunca acontece hoje, mas defensivo).
-  const atlasWalk = phaseWalkCount(e, prefix);
-  const total = Math.max(atlasWalk, runtimeFrameAddition("walk", prefix)) || _hint;
+  // Walk: usa a LISTA real de índices do atlas (pula buracos). Override de LAB
+  // ainda soma frames contíguos por cima do último presente.
+  const walks = phaseFrames(e, prefix, "walk");
+  const overrideAdd = runtimeFrameAddition("walk", prefix);
+  const lastWalk = walks.length ? walks[walks.length - 1] : -1;
+  const extras: number[] = [];
+  for (let i = lastWalk + 1; i < overrideAdd; i++) extras.push(i);
+  const walkList = extras.length ? walks.concat(extras) : walks;
   if (Math.abs(body.velocity.x) > 5 || Math.abs(body.velocity.y) > 5) {
-    if (total > 0) {
-      const f = Math.floor((t + off) / ms) % total;
+    if (walkList.length > 0) {
+      const f = walkList[Math.floor((t + off) / ms) % walkList.length];
       applyTexture(e, `tex-${prefix}-walk${f}`);
     } else {
       applyTexture(e, `tex-${prefix}`);
     }
   } else {
-    // PARADO: cicla idle (respiração) em vez de travar no frame base. Usa os
-    // frames de idle que já existem no atlas; cai no base se o inimigo não tem.
-    const idleN = Math.max(phaseIdleCount(e, prefix), runtimeFrameAddition("idle", prefix));
-    if (idleN > 1) applyTexture(e, `tex-${prefix}-idle${Math.floor((t + off) / 320) % idleN}`);
-    else applyTexture(e, `tex-${prefix}`);
+    // PARADO: cicla idle (respiração). Também respeita gaps via lista.
+    const idles = phaseFrames(e, prefix, "idle");
+    const idleAdd = runtimeFrameAddition("idle", prefix);
+    const lastIdle = idles.length ? idles[idles.length - 1] : -1;
+    const idleExtras: number[] = [];
+    for (let i = lastIdle + 1; i < idleAdd; i++) idleExtras.push(i);
+    const idleList = idleExtras.length ? idles.concat(idleExtras) : idles;
+    if (idleList.length > 1) {
+      const f = idleList[Math.floor((t + off) / 320) % idleList.length];
+      applyTexture(e, `tex-${prefix}-idle${f}`);
+    } else {
+      applyTexture(e, `tex-${prefix}`);
+    }
   }
 }
+
 
 
 // ─── TelemarketerZumbi ────────────────────────────────────────────────────────
