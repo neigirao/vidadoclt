@@ -20,6 +20,7 @@ import { Hud } from "../systems/Hud";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { reapplyAllPerks } from "../systems/PerkSystem";
 import { CombatFx } from "../systems/CombatFx";
+import { Lighting, Light } from "../systems/Lighting";
 import { resolveMeleeAttack, MeleeHost } from "../systems/MeleeCombat";
 import { GameEnemy } from "../entities/types";
 
@@ -40,6 +41,10 @@ export class CeoScene extends Phaser.Scene {
   private combatFx!: CombatFx;
   private hud!: Hud;
   private levelWidth = LEVEL_WIDTH;
+  // Iluminação dramática do clímax (o CEO é o pior fundo do jogo — a luz o salva).
+  private lighting?: Lighting;
+  private playerLight?: Light | null;
+  private bossLight?: Light | null;
 
   constructor() {
     super("CeoScene");
@@ -159,6 +164,42 @@ export class CeoScene extends Phaser.Scene {
     this.boss = new CeoBoss(this, LEVEL_WIDTH - 120, FLOOR_Y - 60);
     this.boss.target = this.player;
     this.physics.add.collider(this.boss, this.platforms);
+
+    // ── Iluminação dramática do clímax ──
+    // Penumbra âmbar-crepúsculo + poças de luz: tocha quente no player, aura
+    // vermelha pulsante no CEO (reforça a ameaça), e brilhos frios fixos nas
+    // "janelas"/monitores do fundo. Transforma o fundo chapado do CEO em uma
+    // arena tensa e legível. No-op sob reduceSanityFx (ver Lighting.ts).
+    this.lighting = new Lighting(this, 0.5, 0x0a0710);
+    if (this.lighting.active) {
+      // Janelas frias ao fundo (estáticas) — profundidade de cena.
+      this.lighting.addLight(180, FLOOR_Y - 180, {
+        radius: 200,
+        color: 0x2a3a6a,
+        intensity: 0.6,
+      });
+      this.lighting.addLight(LEVEL_WIDTH - 200, FLOOR_Y - 200, {
+        radius: 220,
+        color: 0x2a3a6a,
+        intensity: 0.6,
+      });
+      // Tocha quente do player (segue o player, flicker leve).
+      this.playerLight = this.lighting.addLight(this.player.x, this.player.y, {
+        radius: 190,
+        color: 0xffd8a0,
+        intensity: 1.1,
+        flicker: 0.08,
+        flickerSpeed: 9,
+      });
+      // Aura vermelha do CEO (segue o boss, pulsa forte — "cara de chefão").
+      this.bossLight = this.lighting.addLight(this.boss.x, this.boss.y, {
+        radius: 240,
+        color: 0xff3a2a,
+        intensity: 1.0,
+        flicker: 0.18,
+        flickerSpeed: 4,
+      });
+    }
 
     this.boss.onHpChange = (hp, _maxHp) => {
       this.hud.updateBoss(hp);
@@ -677,6 +718,14 @@ export class CeoScene extends Phaser.Scene {
   update(time: number, delta: number) {
     this.player.update(time, delta);
     this.player.tickPassive(time);
+
+    // Iluminação: luzes seguem player/boss + flicker.
+    if (this.lighting?.active) {
+      this.playerLight?.setPosition(this.player.x, this.player.y - 20);
+      if (this.boss.active) this.bossLight?.setPosition(this.boss.x, this.boss.y - 20);
+      else this.bossLight?.setIntensity(0); // CEO derrotado → apaga a aura vermelha
+      this.lighting.update(time);
+    }
 
     // NOTE: preUpdate is called automatically by Phaser for scene children — no manual calls needed
 

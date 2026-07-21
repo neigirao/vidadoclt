@@ -77,6 +77,7 @@ src/
       sanity.ts              # sanityBand() puro (faixas), testável
       ProductivityMeter.ts   # Medidor de Produtividade da Fase 1 (streak → mult VR)
       Apagao.ts              # Evento APAGÃO (lanterna radial) da Fase 1
+      Lighting.ts            # Lightmap aditivo (escuro ambiente + poças de luz) — iluminação dinâmica; ligado no CEO (ver docs/LIGHTING_SPIKE.md)
       CombatFx.ts            # Juice de combate (hitStop, shake, flash, finisher)
       MeleeCombat.ts         # resolveMeleeAttack() canônico (host pattern)
       CorporateAI.ts         # Helpers de IA (windup, telegraph, dashes)
