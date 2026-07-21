@@ -498,6 +498,7 @@ bun test src/game            # testes unitários (bun:test) — mesma checagem d
 bun sim:balance              # Balance Simulator: DPS por classe/arma, TTK por inimigo, pressão + flags de outlier (--loop=N / --json / --gate)
 bun smoke                    # smoke de cenas: boota CADA cena headless; falha se houver erro de console (rode ANTES de subir mudança visual/de cena)
 bun visual                   # regressão visual: compara cenas de UI estáveis vs baselines (tests/visual/baseline)
+bun gallery                  # Beauty gallery: contact-sheet de TODAS as cenas/fases em seed fixo (tests/gallery/, git-ignored) — beauty pass/review visual
 bun visual:update            # (re)grava os baselines — rodar quando a mudança visual é INTENCIONAL (conferir o diff no PR)
 bun format                   # Prettier
 node scripts/gen-sprites.mjs # (re)gera sprites procedurais (post-it, café, copo)
