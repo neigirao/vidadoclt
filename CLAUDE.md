@@ -472,6 +472,7 @@ Gatilhos ligados (9): `goal` (objetivo da Fase 1), `vr` (1º VR pego — moeda),
 ### Juice de combate (CombatFx.ts)
 
 - `hitStop`, `shake`, `flash`, `comboFinisher`, `finisherImpact`. **Não** rotacionar a câmera: num side-scroller preso aos limites do mundo, girar na borda joga o alvo/boss para fora do frame (era a causa do "boss some ao tomar hit"). Zoom-pop centrado é seguro.
+- **Números de feel são TUNÁVEIS numa fonte única: `systems/Juice.ts`** (tabela `JUICE`). Squash & stretch (`land`/`jump`/`hit`), hit-stop e presets de shake vivem lá — CombatFx delega (não duplica magic numbers). Editar `Juice.ts` afeta o jogo todo; `bun juice:report` imprime o orçamento; `Juice.test.ts` trava faixas sãs. Squash & stretch: `CombatFx.landSquash`/`jumpStretch`/`hitSquash` (o `hitSquash` = recuo ao tomar dano, ligado no `Player.takeDamage`); o helper `squash()` multiplica a escala BASE (não quebra sprites já escalados) e garante retorno exato.
 - Distorção por sanidade fica em `SanityFx.ts` (vignette + barrel + chromatic). O barrel do burnout foi limitado (pincushion ≤7%) para não desalinhar a mira do combate.
 
 ### HUD
@@ -507,6 +508,7 @@ bun run build                # build de produção (vite build)
 bun lint                     # ESLint
 bun test src/game            # testes unitários (bun:test) — mesma checagem do CI
 bun sim:balance              # Balance Simulator: DPS por classe/arma, TTK por inimigo, pressão + flags de outlier (--loop=N / --json / --gate)
+bun juice:report             # Juice report: orçamento de feel (squash & stretch, hit-stop, shake) da fonte única systems/Juice.ts (--json)
 bun smoke                    # smoke de cenas: boota CADA cena headless; falha se houver erro de console (rode ANTES de subir mudança visual/de cena)
 bun visual                   # regressão visual: compara cenas de UI estáveis vs baselines (tests/visual/baseline)
 bun gallery                  # Beauty gallery: contact-sheet de TODAS as cenas/fases em seed fixo (tests/gallery/, git-ignored) — beauty pass/review visual

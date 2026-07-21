@@ -397,6 +397,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.invulnUntil = now + HIT_INVULN_MS;
     Sfx.playerHit();
     CombatFx.flashSprite(this, 55);
+    CombatFx.hitSquash(this); // recuo de squash — peso ao tomar dano
     this.scene.time.delayedCall(55, () => this.setTint(0xff8888));
     this.scene.time.delayedCall(175, () => this.clearTint());
     this.onHit?.();
