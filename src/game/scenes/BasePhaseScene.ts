@@ -14,6 +14,7 @@ import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
 import { seedAmbientLore } from "../systems/AmbientLore";
 import { applyCinematicPostFx, applyBiomePalette } from "../systems/PostFx";
+import { Lighting, Light } from "../systems/Lighting";
 import { loadSettings, ASSIST_DAMAGE_TAKEN_MULT, ASSIST_MIN_LIVES } from "../systems/Settings";
 import { Player } from "../entities/Player";
 import { getRun, savePersisted } from "../systems/PlayerState";
@@ -112,6 +113,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected levelWidth = LEVEL_WIDTH;
   protected enemyGroups: EnemyGroupDef[] = [];
   protected combatFx!: CombatFx;
+  // Iluminação dinâmica das Fases 2–5 (a Fase 1 tem create() próprio e não a usa;
+  // tem apagão/fundo pintado). Penumbra + tocha no player + aura no boss.
+  protected lighting?: Lighting;
+  private playerLight?: Light | null;
+  private bossLight?: Light | null;
   // Evento de sala da fase (personalidade própria por fase, como os da Fase 1).
   // O apply() do evento mexe nestes; dropVR/sanityDrain os leem.
   protected phaseEventVrMult = 1;
@@ -757,6 +763,45 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       },
       `${this.getPhaseTitle()} (layout ${this._layoutVariant})`,
     );
+
+    // 12. Iluminação dinâmica (paridade com o clímax do CEO): penumbra tintada por
+    // bioma + tocha quente no player + aura no boss. Nas Fases 2–5 o fundo é
+    // skyline chapado — a luz dá atmosfera e disfarça isso. No-op sob reduceSanityFx.
+    this.setupPhaseLighting();
+  }
+
+  /** Penumbra por bioma + luzes do player/boss. Ambiente sutil (fase normal, não
+   *  clímax): não escurece a ponto de atrapalhar a leitura. */
+  private setupPhaseLighting(): void {
+    // Cor da penumbra por fase (casa com applyBiomePalette): frio nas tech, morno
+    // no atendimento/diretoria. [ambient, ambientColor].
+    const PRESETS: Record<number, { ambient: number; color: number; torch: number }> = {
+      2: { ambient: 0.28, color: 0x0e0a08, torch: 0xffe0b0 }, // atendimento — morno
+      3: { ambient: 0.32, color: 0x080b12, torch: 0xd8e0ff }, // tecnologia — frio
+      4: { ambient: 0.42, color: 0x050a14, torch: 0xcfe6ff }, // TI/servidores — frio forte
+      5: { ambient: 0.34, color: 0x100a06, torch: 0xffdca0 }, // diretoria — âmbar
+    };
+    const pn = this.getPhaseNumber();
+    const p = pn != null ? PRESETS[pn] : undefined;
+    if (!p) return;
+    this.lighting = new Lighting(this, p.ambient, p.color);
+    if (!this.lighting.active) return;
+    this.playerLight = this.lighting.addLight(this.player.x, this.player.y, {
+      radius: 200,
+      color: p.torch,
+      intensity: 1.05,
+      flicker: 0.06,
+      flickerSpeed: 8,
+    });
+    if (this.boss?.active) {
+      this.bossLight = this.lighting.addLight(this.boss.x, this.boss.y, {
+        radius: 230,
+        color: 0xff4030,
+        intensity: 0.95,
+        flicker: 0.16,
+        flickerSpeed: 4,
+      });
+    }
   }
 
   update(time: number, delta: number) {
@@ -787,6 +832,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 2. Subclass phase logic
     this.onPhaseUpdate(time, delta);
+
+    // 2b. Iluminação: luzes seguem player/boss + flicker (no-op se desligada).
+    if (this.lighting?.active) {
+      this.playerLight?.setPosition(this.player.x, this.player.y - 20);
+      if (this.boss?.active) this.bossLight?.setPosition(this.boss.x, this.boss.y - 20);
+      else this.bossLight?.setIntensity(0);
+      this.lighting.update(time);
+    }
 
     // 3. Homing ink projectile logic (lifetime + homing). Só monta a lista de
     // inimigos e faz a busca do mais próximo se HÁ tinta viva — na maioria dos

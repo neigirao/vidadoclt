@@ -263,7 +263,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   impressora_fantasma: {
     id: "impressora_fantasma",
     label: "Impressora Fantasma",
-    hp: 560,
+    hp: 460,
     speed: 50,
     contactDamage: 15,
     vrReward: 12,
@@ -279,7 +279,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   impressora_necromorfa: {
     id: "impressora_necromorfa",
     label: "Impressora Necromorfa",
-    hp: 720,
+    hp: 470,
     speed: 65,
     contactDamage: 22,
     vrReward: 16,
@@ -326,7 +326,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   evangelista_megacorp: {
     id: "evangelista_megacorp",
     label: "Evangelista MegaCorp",
-    hp: 600,
+    hp: 460,
     speed: 100,
     contactDamage: 16,
     vrReward: 9,
