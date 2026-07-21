@@ -282,10 +282,21 @@ acima do teto hoje é FX legítimo (`evangelista-mega-death16` desintegra em exp
 → cores novas esperadas). Serve pra flagrar arte trocada num diff futuro sem falso-positivo
 de FX no CI. **Resultado da varredura atual: nenhuma arte trocada real no atlas.**
 
+**SUAVIDADE de animação (`bun audit:anim`, `scripts/audit-anim.mjs`).** Ataca o eixo que
+falta: os gates acima veem *quantidade*/*tamanho*/*conteúdo* de FRAME, mas são cegos ao
+MOVIMENTO. Este lê o atlas e mede o DELTA de pixel entre frames vizinhos (e o wrap
+último→primeiro nos ciclos), flagando **dead** (não se mexe), **jerk** (pulo brusco no
+ciclo), **loop-pop** (estala ao repetir) e **padded** (só X% dos frames se movem — filler).
+Estático/determinístico, relatório por padrão (`--gate` opt-in, NÃO no CI). **Achado
+sistêmico:** os in-betweens de 16 frames produziram ciclos com muito filler quase-duplicado
+e loops que não fecham (uniformidade ~0, loop-pop generalizado) — os "16 frames" não leem
+como mais suaves. Candidato a re-gerar in-betweens com fechamento de loop, ou enxugar.
+
 **Limite conhecido:** os gates cobrem *quantidade*, coerência de *contagem*, *tamanho* de
-canvas (`check:frames`), *conteúdo* vazio/chapado/faltando (`audit:sprites`) e *paleta*
-(`audit:palette`, relatório). O que ainda exige olho humano é arte *mismatched* SUTIL (mesmo
-personagem, pose/expressão errada, dentro da paleta) — `runFullAudit()`/LAB.
+canvas (`check:frames`), *conteúdo* vazio/chapado/faltando (`audit:sprites`), *paleta*
+(`audit:palette`, relatório) e *suavidade* de movimento (`audit:anim`, relatório). O que
+ainda exige olho humano é arte *mismatched* SUTIL (mesmo personagem, pose/expressão errada,
+dentro da paleta) — `runFullAudit()`/LAB.
 
 ### Gerador procedural de sprites (`scripts/gen-sprites.mjs`)
 
@@ -499,6 +510,7 @@ bun sim:balance              # Balance Simulator: DPS por classe/arma, TTK por i
 bun smoke                    # smoke de cenas: boota CADA cena headless; falha se houver erro de console (rode ANTES de subir mudança visual/de cena)
 bun visual                   # regressão visual: compara cenas de UI estáveis vs baselines (tests/visual/baseline)
 bun gallery                  # Beauty gallery: contact-sheet de TODAS as cenas/fases em seed fixo (tests/gallery/, git-ignored) — beauty pass/review visual
+bun audit:anim               # Animation auditor: mede suavidade frame-a-frame (delta de pixel) — flaga dead/jerk/loop-pop/padded (--gate/--json/--top=N)
 bun visual:update            # (re)grava os baselines — rodar quando a mudança visual é INTENCIONAL (conferir o diff no PR)
 bun format                   # Prettier
 node scripts/gen-sprites.mjs # (re)gera sprites procedurais (post-it, café, copo)
