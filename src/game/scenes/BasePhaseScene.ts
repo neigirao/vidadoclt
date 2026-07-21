@@ -1410,6 +1410,35 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         this.cameras.main.shake(120, 0.006);
         break;
       }
+      case "ranged_barrage": {
+        // Especial de CLASSE do Estagiário: leque de 5 projéteis PERFURANTES na
+        // direção do facing — recompensa manter distância e controlar a linha.
+        const spread = [-0.28, -0.14, 0, 0.14, 0.28];
+        const spd = 560;
+        const dmg = Math.max(def.rangedDamage || def.hitDamages[0], 12);
+        spread.forEach((a, i) => {
+          this.time.delayedCall(i * 40, () => {
+            this.spawnProjectile({
+              x: fx + facing * 20,
+              y: fy - 5,
+              velX: facing * spd * Math.cos(a),
+              velY: spd * Math.sin(a),
+              damage: dmg,
+              piercing: true,
+            });
+          });
+        });
+        const flash = this.add.circle(fx + facing * 24, fy - 5, 6, 0x88ffcc, 0.6);
+        this.tweens.add({
+          targets: flash,
+          scaleX: 4,
+          scaleY: 4,
+          alpha: 0,
+          duration: 250,
+          onComplete: () => flash.destroy(),
+        });
+        break;
+      }
     }
   }
 

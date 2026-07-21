@@ -28,7 +28,8 @@ export type SpecialType =
   | "heal_pulse"
   | "dash_strike"
   | "clock_slow"
-  | "melee_sweep"; // especial de CLASSE (Terceirizado): redemoinho melee 360°
+  | "melee_sweep" // especial de CLASSE (Terceirizado): redemoinho melee 360°
+  | "ranged_barrage"; // especial de CLASSE (Estagiário): leque de projéteis perfurantes
 
 export type WeaponDef = {
   id: WeaponId;
@@ -349,15 +350,19 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   estagiario: {
     id: "estagiario",
     label: "Estagiario",
-    description: "Kiter intocavel.\nDash turbo + Caneta Bic:\ndance pela horda.",
+    description: "Kiter RANGED.\nDash turbo + LEQUE (K):\ndance e metralha a horda.",
     maxEnergy: 80,
     maxSanity: 120,
     speedMult: 1.2,
     damageMult: 1.0,
     vrMult: 1.0,
     startWeapon: "caneta",
-    trait: "+20% vel. · DASH quase 2x mais frequente",
+    trait: "+20% vel. · DASH ~2x · ESPECIAL = leque de 5 projéteis perfurantes",
     color: 0x3a7a5a,
+    // Identidade ranged: o K é sempre a Rajada de Demandas (leque perfurante),
+    // não o especial da arma. Recompensa manter distância e controlar linhas.
+    classSpecial: "ranged_barrage",
+    classSpecialName: "Rajada de Demandas",
   },
   analista: {
     id: "analista",
