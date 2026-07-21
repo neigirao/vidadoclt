@@ -83,6 +83,15 @@ const EXCEPTIONS = {
   "enemy-impressora-c/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
   "enemy-impressora-d/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
   "enemy-seguranca/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
+  // Idles revertidos à arte original limpa (o in-between por blend fantasmava).
+  // ti-suporte/seguranca idle NÃO revertidos (original tinha tamanho inconsistente
+  // 64×64/32×48 → encolhia; mantido o inflado normalizado, estático mas no tamanho certo).
+  "enemy-bateria/idle": { min: 4, why: "arte original limpa; in-between fantasmava o idle" },
+  "enemy-diretor/idle": { min: 4, why: "arte original limpa; in-between fantasmava o idle" },
+  "enemy-evangelista-boss/idle": {
+    min: 4,
+    why: "arte original limpa; in-between fantasmava o idle",
+  },
 };
 
 function floorFor(subject, action) {
