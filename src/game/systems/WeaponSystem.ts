@@ -27,7 +27,8 @@ export type SpecialType =
   | "chain_lightning"
   | "heal_pulse"
   | "dash_strike"
-  | "clock_slow";
+  | "clock_slow"
+  | "melee_sweep"; // especial de CLASSE (Terceirizado): redemoinho melee 360°
 
 export type WeaponDef = {
   id: WeaponId;
@@ -65,6 +66,11 @@ export type ClassDef = {
   startWeapon: WeaponId;
   trait: string;
   color: number;
+  // Especial de CLASSE: quando presente, o especial (K) é SEMPRE este, independente
+  // da arma — é o que dá identidade de ESTILO à classe (não só stat). O Terceirizado
+  // é melee: seu K é um redemoinho, não o especial da arma equipada.
+  classSpecial?: SpecialType;
+  classSpecialName?: string;
 };
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
@@ -369,14 +375,18 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   terceirizado: {
     id: "terceirizado",
     label: "Terceirizado",
-    description: "Juggernaut.\nRegua longa + blindagem:\naguenta o tranco e revida.",
+    description: "Juggernaut MELEE.\nBlindagem + RODADA (K):\nmergulha na horda e gira.",
     maxEnergy: 130,
     maxSanity: 70,
     speedMult: 0.85,
     damageMult: 1.15,
     vrMult: 1.0,
     startWeapon: "regua",
-    trait: "+15% dano · BLINDAGEM -15% dano recebido",
+    trait: "+15% dano · BLINDAGEM -15% · ESPECIAL = redemoinho melee 360°",
     color: 0x8a3a3a,
+    // Identidade melee: o K é sempre a Rodada de Serviço (redemoinho), não o
+    // especial da arma. Recompensa entrar no meio da horda em vez de kitar.
+    classSpecial: "melee_sweep",
+    classSpecialName: "Rodada de Serviço",
   },
 };

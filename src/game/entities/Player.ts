@@ -142,6 +142,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   comboHits: 2 | 3 | 4 = 3;
   specialCooldown = 3000;
   specialType: SpecialType = "burst_ranged";
+  // Override de especial POR CLASSE (identidade). Quando não-nulo, o especial (K)
+  // é sempre este, independente da arma equipada — é o que dá "estilo" à classe
+  // (ex.: melee = redemoinho, não o especial da arma). Setado no applyClassAndWeapon.
+  classSpecialType: SpecialType | null = null;
+  classSpecialName: string | null = null;
   onSpecialAttack?: (type: SpecialType, x: number, y: number, facing: 1 | -1) => void;
 
   onRangedAttack?: (fromX: number, fromY: number, facing: 1 | -1) => void;

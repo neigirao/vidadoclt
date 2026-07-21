@@ -480,7 +480,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     {
       const wdef = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
       this.hud.setWeapon(`${WEAPON_ICONS[wdef.id]} ${wdef.name}`);
-      this.hud.setSpecial(wdef.specialName);
+      this.hud.setSpecial(this.player.classSpecialName ?? wdef.specialName);
       this.updateSecondaryHud();
       this.hud.setSynergies(this.synergyLabels);
     }
@@ -1382,6 +1382,34 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         });
         break;
       }
+      case "melee_sweep": {
+        // Especial de CLASSE do Terceirizado: redemoinho melee 360° centrado no
+        // player (não direcional) — recompensa MERGULHAR na horda em vez de kitar.
+        const R = 92;
+        const hb = new Phaser.Geom.Rectangle(fx - R, fy - 50, R * 2, 100);
+        this.resolveAttack(hb, 3);
+        // FX: anel de impacto expandindo + rastro giratório + shake.
+        const ring = this.add.circle(fx, fy, 8, 0xffcc44, 0.5);
+        this.tweens.add({
+          targets: ring,
+          scaleX: R / 4,
+          scaleY: R / 4,
+          alpha: 0,
+          duration: 350,
+          onComplete: () => ring.destroy(),
+        });
+        const arc = this.add.arc(fx, fy, R * 0.8, 0, 300, false, 0xffee88, 0.35);
+        arc.setStrokeStyle(4, 0xffee88, 0.8);
+        this.tweens.add({
+          targets: arc,
+          angle: 360,
+          alpha: 0,
+          duration: 300,
+          onComplete: () => arc.destroy(),
+        });
+        this.cameras.main.shake(120, 0.006);
+        break;
+      }
     }
   }
 
@@ -1816,6 +1844,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.player.attackRange = w.attackRange;
     this.player.specialCooldown = w.specialCooldown;
     this.player.specialType = w.specialType;
+    // Classe com especial próprio (melee) mantém o especial dela na troca de arma.
+    if (this.player.classSpecialType) this.player.specialType = this.player.classSpecialType;
     this.player.hitAutoRanged = w.hitAutoRanged;
     this.player.isRangedPrimary = w.type === "ranged";
     this.player.comboHits = w.type === "melee" && w.hitDamages[2] === 0 ? 2 : 3;
@@ -1828,7 +1858,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     }
     this.player.attackIntervalMs = Math.round(220 / (w.attackSpeedMult ?? 1));
     this.hud?.setWeapon(`${WEAPON_ICONS[weaponId]} ${w.name}`);
-    this.hud?.setSpecial(w.specialName);
+    this.hud?.setSpecial(this.player.classSpecialName ?? w.specialName);
   }
 
   private updateSecondaryHud() {
