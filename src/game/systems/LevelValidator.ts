@@ -35,6 +35,7 @@ export interface LevelSpec {
   enemies: EnemyGroup[];
   boss?: Phaser.GameObjects.Components.Transform & { active: boolean };
   expectBoss?: boolean; // false p/ fases sem boss por design (ex.: Fase 5 → CEO)
+  bossLazy?: boolean; // true p/ fases cujo boss spawna na aproximação (Fase 1) — não existe no create()
   exit?: { x: number; y: number };
 }
 
@@ -251,6 +252,12 @@ export function validateLevel(spec: LevelSpec): LevelReport {
         ? `boss em (${b.x.toFixed(0)},${b.y.toFixed(0)})`
         : `boss fora do nível jogável (y=${b.y.toFixed(0)})`,
     );
+  } else if (spec.bossLazy) {
+    // A Fase 1 TEM boss (Gerente), mas ele spawna na APROXIMAÇÃO do jogador, não
+    // no create() — então não existe no momento da validação. Não é ausência de
+    // boss nem layout injusto; o spawn é determinístico. (Antes isto gerava um
+    // ❌ FAIL falso-positivo em toda seed da Fase 1.)
+    add(true, "boss-presente", "boss spawna na aproximação (lazy)");
   } else if (spec.expectBoss === false) {
     add(true, "boss-presente", "fase sem boss (por design)");
   } else {

@@ -798,6 +798,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
           this.rhs,
         ],
         boss: this.boss,
+        // O Gerente (boss da Fase 1) spawna na APROXIMAÇÃO, não no create() → no
+        // momento da validação `this.boss` é undefined. bossLazy evita o FAIL
+        // falso-positivo "cena sem boss" (o spawn é determinístico, não ausência).
+        bossLazy: true,
         exit: { x: this.doorEl.x, y: this.doorEl.y },
       },
       `OpenSpaceV2 (seed variant ${seedVariant})`,
