@@ -33,6 +33,12 @@ export function applyClassAndWeapon(player: Player, run: RunState): void {
   player.attackRange = weaponDef.attackRange;
   player.specialCooldown = weaponDef.specialCooldown;
   player.specialType = weaponDef.specialType;
+  // Override de especial POR CLASSE (identidade de estilo). Guardamos no player p/
+  // sobreviver a trocas de arma (applyWeaponStats reaplica): o especial (K) da
+  // classe melee é sempre o redemoinho, não o da arma.
+  player.classSpecialType = classDef.classSpecial ?? null;
+  player.classSpecialName = classDef.classSpecialName ?? null;
+  if (classDef.classSpecial) player.specialType = classDef.classSpecial;
   player.hitAutoRanged = weaponDef.hitAutoRanged;
   player.isRangedPrimary = weaponDef.type === "ranged";
   player.comboHits = weaponDef.type === "melee" && weaponDef.hitDamages[2] === 0 ? 2 : 3;
