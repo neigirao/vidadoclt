@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { ParticleFactory } from "./ParticleFactory";
+import { JUICE, squash } from "./Juice";
 
 /**
  * CombatFx — centralises all combat-feedback effects so every scene
@@ -13,7 +14,7 @@ export class CombatFx {
   /** Light hit: short shake + white screen flash + light particles */
   hitLight(x?: number, y?: number): void {
     const cam = this.scene.cameras.main;
-    cam.shake(80, 0.005);
+    cam.shake(JUICE.shake.light.ms, JUICE.shake.light.amp);
     cam.flash(60, 255, 255, 255, false);
     if (x !== undefined && y !== undefined) {
       ParticleFactory.hitLight(this.scene, x, y);
@@ -23,7 +24,7 @@ export class CombatFx {
   /** Heavy hit: longer shake + stronger flash + heavy particles */
   hitHeavy(x?: number, y?: number): void {
     const cam = this.scene.cameras.main;
-    cam.shake(180, 0.012);
+    cam.shake(JUICE.shake.heavy.ms, JUICE.shake.heavy.amp);
     cam.flash(90, 255, 80, 80, false);
     if (x !== undefined && y !== undefined) {
       ParticleFactory.hitHeavy(this.scene, x, y);
@@ -56,7 +57,7 @@ export class CombatFx {
    * Hit-stop: pauses physics for `durationMs` (default 85ms).
    * Uses setTimeout (real time) so the resume fires even while scene time is paused.
    */
-  hitStop(durationMs = 85): void {
+  hitStop(durationMs: number = JUICE.hitStop.light): void {
     const phys = this.scene.physics as Phaser.Physics.Arcade.ArcadePhysics;
     phys.pause();
     // Use real-time setTimeout so the physics.resume() fires regardless of scene time scale
@@ -74,9 +75,9 @@ export class CombatFx {
    * Call on the last hit of a combo or any heavy melee finisher.
    */
   finisherImpact(): void {
-    this.hitStop(110);
+    this.hitStop(JUICE.hitStop.finisher);
     const cam = this.scene.cameras.main;
-    cam.shake(140, 0.009);
+    cam.shake(JUICE.shake.finisher.ms, JUICE.shake.finisher.amp);
     // Two-colour flash: white then orange — simulates chromatic split
     cam.flash(40, 255, 255, 255, false);
     this.scene.time.delayedCall(40, () => {
@@ -87,7 +88,7 @@ export class CombatFx {
   /**
    * Hit-stop + heavy shake combo. Use for boss slams, finishing blow on an enemy.
    */
-  impactHeavy(stopMs = 85): void {
+  impactHeavy(stopMs: number = JUICE.hitStop.light): void {
     this.hitStop(stopMs);
     this.hitHeavy();
   }
@@ -164,28 +165,21 @@ export class CombatFx {
    * scaleX widens, scaleY shortens, then springs back.
    */
   static landSquash(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite): void {
-    sprite.scene.tweens.add({
-      targets: sprite,
-      scaleX: 1.15,
-      scaleY: 0.85,
-      duration: 55,
-      yoyo: true,
-      ease: "Bounce.easeOut",
-    });
+    squash(sprite, JUICE.squash.land);
   }
 
   /**
    * Jump stretch: taller and thinner on the way up.
    */
   static jumpStretch(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite): void {
-    sprite.scene.tweens.add({
-      targets: sprite,
-      scaleX: 0.75,
-      scaleY: 1.25,
-      duration: 80,
-      yoyo: true,
-      ease: "Quad.easeOut",
-    });
+    squash(sprite, JUICE.squash.jump);
+  }
+
+  /**
+   * Hit squash: recuo rápido ao tomar dano — dá peso ao golpe recebido.
+   */
+  static hitSquash(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite): void {
+    squash(sprite, JUICE.squash.hit);
   }
 
   /**

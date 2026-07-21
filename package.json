@@ -22,6 +22,7 @@
     "audit:palette": "node scripts/palette-consistency.mjs",
     "audit:anim": "node scripts/audit-anim.mjs",
     "sim:balance": "bun scripts/balance-sim.mjs",
+    "juice:report": "bun scripts/juice-report.mjs",
     "gallery": "node scripts/gallery.mjs"
   },
   "dependencies": {
