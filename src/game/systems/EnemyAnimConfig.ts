@@ -24,7 +24,7 @@ export const WALK_FRAME_COUNTS: Record<string, number> = {
   facilitador: 16,
   scrum: 16,
   coordenador: 16,
-  senior: 32,
+  senior: 16, // revertido de 32: o in-between por blend fantasmava a cauda do walk (2 personagens). Arte original limpa de 16 frames.
   rh: 16,
   // Bosses recolor (asBoss)
   "scrum-boss": 24,
@@ -80,7 +80,7 @@ export const WALK_MS: Record<string, number> = {
   facilitador: 55,
   scrum: 68, // 16 × 68 ≈ 1090ms
   coordenador: 70, // 16 × 70 ≈ 1120ms
-  senior: 35, // 32 × 35 ≈ 1.1s
+  senior: 70, // 16 × 70 ≈ 1.1s (walk revertido a 16 frames limpos; era 32×35)
   rh: 65,
 };
 

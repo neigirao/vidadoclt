@@ -74,8 +74,15 @@ const FLOORS = {
 // Chave `<subject>/<action>` → { min, why }. Aplica piso local em vez do global.
 // Adicionar exceção EXIGE justificativa — para o próximo dev saber por que existe.
 const EXCEPTIONS = {
-  // exemplo (deixado vazio hoje):
-  // "enemy-evangelista/walk": { min: 8, why: "evangelista base 2, dobrado 3× é o máximo antes de degradar" },
+  // Walks revertidos à ARTE ORIGINAL LIMPA (pré-projeto 16-frames): o in-between
+  // por blend fantasmava a cauda do ciclo (2 personagens sobrepostos — flagado por
+  // audit:anim, confirmado visualmente). Regenerar reproduz o ghost (poses do walk
+  // ficam longe demais p/ interpolar limpo). Melhor um ciclo curto e LIMPO que um
+  // inflado e corrompido. Piso local = contagem original de cada arte.
+  "enemy-carimbador/walk": { min: 4, why: "arte original limpa; in-between fantasmava a cauda" },
+  "enemy-impressora-c/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
+  "enemy-impressora-d/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
+  "enemy-seguranca/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
 };
 
 function floorFor(subject, action) {
