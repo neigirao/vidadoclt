@@ -75,7 +75,7 @@ src/
       Shop.ts                # Loja da Copa
       SanityFx.ts            # Efeitos visuais por faixa de sanidade
       sanity.ts              # sanityBand() puro (faixas), testável
-      ProductivityMeter.ts   # Medidor de Produtividade da Fase 1 (streak → mult VR)
+      ProductivityMeter.ts   # Medidor de Produtividade (streak → mult VR) — run-wide: F1 tem instância própria; Fases 2–5 herdam via BasePhaseScene (Momentum)
       Apagao.ts              # Evento APAGÃO (lanterna radial) da Fase 1
       Lighting.ts            # Lightmap aditivo (escuro ambiente + poças de luz) — iluminação dinâmica; ligado no CEO (ver docs/LIGHTING_SPIKE.md)
       CombatFx.ts            # Juice de combate (hitStop, shake, flash, finisher)

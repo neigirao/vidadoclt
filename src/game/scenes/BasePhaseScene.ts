@@ -43,6 +43,7 @@ import { GameEnemy, BossEntity } from "../entities/types";
 import { BossPresence } from "../systems/BossPresence";
 import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
 import { EliteSystem, eliteChance, rollElite } from "../systems/EliteSystem";
+import { ProductivityMeter } from "../systems/ProductivityMeter";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -91,6 +92,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected bossPresence?: BossPresence;
   protected threatMarkers?: ThreatMarkers;
   protected elites?: EliteSystem;
+  // Momentum (Produtividade run-wide): streak de kills → mult de VR. Antes só na
+  // Fase 1; agora todas as Fases 2–5 herdam via Base (a F1 mantém a própria).
+  protected momentum?: ProductivityMeter;
   /** Labels das sinergias perk×perk ativas (ícone + nome) p/ o badge do HUD. */
   protected synergyLabels: string[] = [];
   private _bossMaxHp = 0;
@@ -484,6 +488,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.fx = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.combatFx = new CombatFx(this);
+    this.momentum = new ProductivityMeter(this); // streak de kills → mult de VR (run-wide)
     // Reflete a arma/especial equipados no HUD (ícone + nome).
     {
       const wdef = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
@@ -657,10 +662,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         if (!piercing) ink.destroy();
         if (died) {
           const eBonus = (enemy.getData?.("eliteVrBonus") as number) ?? 0;
+          const mMult = this.momentum?.registerKill(enemy.x, enemy.y) ?? 1; // Produtividade
           this.dropVR(
             enemy.x,
             enemy.y,
-            Math.max(1, Math.round((vrDrop + eBonus) * this.player.vrDropMult)),
+            Math.max(1, Math.round((vrDrop * mMult + eBonus) * this.player.vrDropMult)),
           );
           this.handleEliteExplode(enemy as GameEnemy & Phaser.GameObjects.Sprite);
           this.rollSanityDrop(enemy.x, enemy.y);
@@ -932,6 +938,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 6. Marcadores de ameaça + parry hint + weapon pickups + near-door check
     this.threatMarkers?.update();
     this.elites?.update();
+    this.momentum?.draw(time);
     this.updateParryHint(time);
     this.updateWeaponPickups();
     this.updateStations();
@@ -1252,6 +1259,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         getGroups: () => this.enemyGroups,
         getBoss: () => this.boss as ReturnType<MeleeHost["getBoss"]>,
         dropVR: (x, y, n) => this.dropVR(x, y, n),
+        killVrMult: (x, y) => this.momentum?.registerKill(x, y) ?? 1, // Produtividade run-wide
         onBossDied: () => this.handleBossDefeat(),
         onEnemyKilled: (e) => {
           this.handleEliteExplode(e as GameEnemy & Phaser.GameObjects.Sprite);
