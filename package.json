@@ -24,6 +24,7 @@
     "deghost": "node scripts/deghost-frames.mjs",
     "sim:balance": "bun scripts/balance-sim.mjs",
     "juice:report": "bun scripts/juice-report.mjs",
+    "docs:bestiary": "bun scripts/gen-bestiary.mjs",
     "gallery": "node scripts/gallery.mjs"
   },
   "dependencies": {
