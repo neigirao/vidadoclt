@@ -16,6 +16,9 @@ const SPRITES = "public/assets/sprites";
 const args = process.argv.slice(2);
 const dry = args.includes("--dry");
 const includeAttack = args.includes("--include-attack");
+const MAX_BRIDGE = Number((args.find((a) => a.startsWith("--max=")) || "--max=4").split("=")[1]);
+const LOOPPOP_FACTOR = 3.0; // mesma constante do audit-anim
+const JERK_MIN_ABS = 4.0;
 const CYCLIC = new Set(["walk", "idle", "run", ...(includeAttack ? ["attack"] : [])]);
 
 async function loadRaw(file) {
