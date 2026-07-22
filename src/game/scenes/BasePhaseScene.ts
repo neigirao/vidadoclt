@@ -42,6 +42,7 @@ import { applyPerk, PERKS, PerkId, synergyPreview } from "../systems/PerkSystem"
 import { GameEnemy, BossEntity } from "../entities/types";
 import { BossPresence } from "../systems/BossPresence";
 import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
+import { EliteSystem, eliteChance, rollElite } from "../systems/EliteSystem";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -89,6 +90,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected boss?: BossEntity;
   protected bossPresence?: BossPresence;
   protected threatMarkers?: ThreatMarkers;
+  protected elites?: EliteSystem;
   /** Labels das sinergias perk×perk ativas (ícone + nome) p/ o badge do HUD. */
   protected synergyLabels: string[] = [];
   private _bossMaxHp = 0;
@@ -531,6 +533,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       }
     }
 
+    // 8a-elite. Elites (staple roguelite): promove alguns inimigos comuns por seed.
+    this.sprinkleElites(run);
+
     // 8b. Evento de sala próprio da fase (personalidade — como os da Fase 1).
     // Depois do player + inimigos + escalonamento existirem.
     this.rollPhaseEvent(run);
@@ -913,6 +918,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 6. Marcadores de ameaça + parry hint + weapon pickups + near-door check
     this.threatMarkers?.update();
+    this.elites?.update();
     this.updateParryHint(time);
     this.updateWeaponPickups();
     this.updateStations();
@@ -1648,6 +1654,25 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // (segredo/produtividade × evento) precisam "estalar" na hora. Um número
     // sobe + fade, com escala baseada no total (pequeno pra +1, grande pra +25).
     this.spawnVrPopup(x, y, count);
+  }
+
+  /**
+   * Promove alguns inimigos comuns a ELITES por seed (chance escala com loop/Heat).
+   * Determinístico (usa this.rng). Pula bosses. Cada elite ganha afixo + aura +
+   * badge e dropa VR bônus (MeleeCombat lê `eliteVrBonus`).
+   */
+  protected sprinkleElites(run: ReturnType<typeof getRun>) {
+    const chance = eliteChance(run.loopCount ?? 0, run.heatLevel ?? 0);
+    this.elites = new EliteSystem(this);
+    for (const def of this.enemyGroups) {
+      def.group.getChildren().forEach((obj) => {
+        const e = obj as GameEnemy & Phaser.GameObjects.Sprite;
+        if (!e.active || typeof e.hp !== "number") return;
+        const affix = rollElite(this.rng.frac(), this.rng.between(0, 999), chance);
+        if (affix)
+          this.elites!.makeElite(e as unknown as Parameters<EliteSystem["makeElite"]>[0], affix);
+      });
+    }
   }
 
   protected spawnVrPopup(x: number, y: number, count: number) {

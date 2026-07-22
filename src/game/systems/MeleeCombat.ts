@@ -148,6 +148,9 @@ export function resolveMeleeAttack(
         const mult = host.killVrMult?.(e.x, e.y) ?? 1;
         const burnout = player.getBurnoutMods();
         host.dropVR(e.x, e.y, meleeVrDrop(vrDrop, player.vrDropMult, mult, burnout.vrDropMult));
+        // Elite: bônus de VR dropado por cima (o "funcionário premiado" vale mais).
+        const eliteBonus = (e.getData?.("eliteVrBonus") as number) ?? 0;
+        if (eliteBonus > 0) host.dropVR(e.x, e.y - 12, Math.round(eliteBonus * player.vrDropMult));
         if (player.healOnKill > 0)
           player.energy = Math.min(player.maxEnergy, player.energy + player.healOnKill);
         // VAI NA RAÇA: matar de dentro do Burnout devolve sanidade — a saída

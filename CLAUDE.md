@@ -89,6 +89,8 @@ src/
       LevelValidator.ts      # Validação de invariantes de fase + overlay DEV
       ThreatMarkers.ts       # Ícones de ameaça por arquétipo (!/♦/+) acima dos inimigos
       BossPresence.ts        # "Cara de chefão": escala + aura + sombra + coroa 👑
+      EliteAffixes.ts        # Núcleo puro dos Elites (afixos/roll/stats — testável, sem Phaser)
+      EliteSystem.ts         # Elites: inimigos "premiados" por seed (aura + badge + VR bônus)
       TutorialPrompts.ts     # Dicas contextuais de 1ª sessão (VR, Sanidade, Copa, loop)
       Telemetry.ts           # Telemetria de playtest → Supabase dedicado (fire-and-forget)
       telemetryClient.ts     # Cliente Supabase da telemetria (projeto consultável)
@@ -399,6 +401,7 @@ Nenhum band-aid ativo no momento.
 - Sprites reais via atlas; Sanidade com efeitos visuais por faixa (SanityFx)
 - **Áudio 100% procedural** (Web Audio): SFX em `AudioSystem.ts`, trilha ambiente em `MusicSystem.ts` (temas office/boss/burnout)
 - **Meta-progressão**: Reconhecimento persistente, loja de upgrades permanentes (`ReconhecimentoScene` + `ReconhecimentoSystem`)
+- **Elites** (`EliteSystem`/`EliteAffixes`): staple roguelite — alguns inimigos comuns surgem "premiados" por seed com um AFIXO corporativo (Efetivado 🛡️ blindado +HP, Cafeinado ⚡ frenético +vel/+dano, Bonificado 💰 +VR), com aura pulsante + badge e recompensa maior (VR bônus lido no kill pelo `MeleeCombat`). Chance escala com loop/Heat (teto 25%). Determinístico por seed; núcleo puro testável (`EliteAffixes.test`). Ligado em TODAS as fases (`sprinkleElites` no `BasePhaseScene` + F1).
 - **Heat System / Hora Extra**: dificuldade opt-in que multiplica HP inimigo em troca de VR/Reconhecimento
 - **Ranking online**: submissão e leitura de scores via Supabase/Lovable Cloud (`Ranking.ts`)
 - **Bestiário persistente**: `BestiarySystem` grava kills + contagens em `localStorage`; `BestiaryScene` mostra silhueta `???` para não-vistos
