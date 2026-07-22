@@ -128,6 +128,17 @@ export function resolveMeleeAttack(
     group.getChildren().forEach((c) => {
       const e = c as MeleeEnemy;
       if (!e.active || typeof e.hit !== "function" || !tryHit(e) || !freshHit(e)) return;
+      // Elite Sindicalizado: barreira absorve os N primeiros golpes (spark, sem dano).
+      const shield = (e.getData?.("eliteShieldHits") as number) ?? 0;
+      if (shield > 0) {
+        e.setData("eliteShieldHits", shield - 1);
+        hitAnything = true;
+        Sfx.enemyHit();
+        sparks(e.x, e.y - 10);
+        CombatFx.flashSprite(e, 90);
+        combatFx.spawnDamageNumber(e.x, e.y - 20, 0, "#33ddcc", false);
+        return;
+      }
       hitAnything = true;
       if (slowMs > 0 && e.applySlowdown) e.applySlowdown(slowMs);
       Sfx.enemyHit();

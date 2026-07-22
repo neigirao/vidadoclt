@@ -646,10 +646,23 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         if (!enemy.active || !enemy.hit) return;
         const dmg = (ink.getData("damage") as number) ?? 10;
         const piercing = (ink.getData("piercing") as boolean) ?? false;
+        // Elite Sindicalizado: barreira absorve o projétil (sem dano/kill).
+        const eShield = (enemy.getData?.("eliteShieldHits") as number) ?? 0;
+        if (eShield > 0) {
+          enemy.setData?.("eliteShieldHits", eShield - 1);
+          if (!piercing) ink.destroy();
+          return;
+        }
         const died = enemy.hit(Math.round(dmg * this.player.damageMult), 0);
         if (!piercing) ink.destroy();
         if (died) {
-          this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
+          const eBonus = (enemy.getData?.("eliteVrBonus") as number) ?? 0;
+          this.dropVR(
+            enemy.x,
+            enemy.y,
+            Math.max(1, Math.round((vrDrop + eBonus) * this.player.vrDropMult)),
+          );
+          this.handleEliteExplode(enemy as GameEnemy & Phaser.GameObjects.Sprite);
           this.rollSanityDrop(enemy.x, enemy.y);
           this.rollWeaponDrop(enemy.x, enemy.y);
           this.onEnemyKilledByProjectile(enemy);
@@ -1241,6 +1254,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         dropVR: (x, y, n) => this.dropVR(x, y, n),
         onBossDied: () => this.handleBossDefeat(),
         onEnemyKilled: (e) => {
+          this.handleEliteExplode(e as GameEnemy & Phaser.GameObjects.Sprite);
           this.rollSanityDrop(e.x, e.y);
           this.rollWeaponDrop(e.x, e.y);
           this.onEnemyKilledByMelee(e);
@@ -1671,6 +1685,40 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         const affix = rollElite(this.rng.frac(), this.rng.between(0, 999), chance);
         if (affix)
           this.elites!.makeElite(e as unknown as Parameters<EliteSystem["makeElite"]>[0], affix);
+      });
+    }
+  }
+
+  /**
+   * Elite Homologado: ao morrer, explode numa AoE que fere o player (se perto) e
+   * outros inimigos no raio. Chamado nos dois caminhos de kill (melee + projétil).
+   */
+  protected handleEliteExplode(e: GameEnemy & Phaser.GameObjects.Sprite) {
+    const dmg = (e.getData?.("eliteExplode") as number) ?? 0;
+    if (dmg <= 0) return;
+    const R = 92;
+    const ring = this.add.circle(e.x, e.y, 10, 0xff8822, 0.55).setDepth(20);
+    this.tweens.add({
+      targets: ring,
+      scaleX: R / 5,
+      scaleY: R / 5,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => ring.destroy(),
+    });
+    this.cameras.main.shake(130, 0.008);
+    if (
+      !this.player.isInvulnerable(this.time.now) &&
+      Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y) <= R
+    ) {
+      this.player.takeDamage(dmg, 0, e.x);
+    }
+    // dano em cadeia nos outros inimigos (sem explosão recursiva).
+    for (const gd of this.enemyGroups) {
+      gd.group.getChildren().forEach((o) => {
+        const en = o as GameEnemy & Phaser.GameObjects.Sprite;
+        if (en !== e && en.active && typeof en.hit === "function")
+          if (Phaser.Math.Distance.Between(e.x, e.y, en.x, en.y) <= R) en.hit(dmg, 120);
       });
     }
   }

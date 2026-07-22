@@ -41,6 +41,8 @@ export class EliteSystem {
     enemy.setScale((enemy.scaleX || 1) * affix.scaleMult, (enemy.scaleY || 1) * affix.scaleMult);
     enemy.setData("elite", affix.id);
     enemy.setData("eliteVrBonus", affix.vrBonus); // MeleeCombat lê no kill
+    if (affix.explodeDmg) enemy.setData("eliteExplode", affix.explodeDmg); // AoE na morte
+    if (affix.shieldHits) enemy.setData("eliteShieldHits", affix.shieldHits); // barreira
 
     // Aura pulsante ATRÁS do inimigo (depth abaixo do sprite).
     const aura = this.scene.add

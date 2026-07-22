@@ -19,6 +19,17 @@ describe("EliteSystem", () => {
     }
   });
 
+  test("afixos comportamentais existem (explode + escudo)", () => {
+    const explode = ELITE_AFFIXES.find((a) => a.explodeDmg);
+    const shield = ELITE_AFFIXES.find((a) => a.shieldHits);
+    expect(explode !== undefined).toBe(true);
+    expect(explode!.explodeDmg!).toBeGreaterThan(0);
+    expect(shield !== undefined).toBe(true);
+    expect(shield!.shieldHits!).toBeGreaterThanOrEqual(1);
+    // afixos de stat puro não têm comportamento
+    expect(ELITE_AFFIXES.find((a) => a.id === "efetivado")!.explodeDmg === undefined).toBe(true);
+  });
+
   test("eliteChance escala com loop/Heat e tem teto 25%", () => {
     expect(eliteChance(0, 0)).toBeCloseTo(0.09, 5);
     expect(eliteChance(2, 1)).toBeCloseTo(0.09 + 0.04 + 0.03, 5);
