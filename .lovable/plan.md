@@ -1,94 +1,56 @@
-# Auditoria — Arte 2D · Design · UX · Game Design
+# Plano — Melhorar animações/frames
 
-Recorte focado nas 4 disciplinas pedidas. Reconciliado com o código atual (itens já resolvidos vêm marcados ✅ pra não repetir trabalho). Severidade: 🔴 alto · 🟡 médio · ⚪ baixo.
+## Diagnóstico atual (das ferramentas)
 
----
+Rodei `bun audit:anim` no estado atual: **77 jerks · 50 loop-pops · 69 padded · 4 dead**. Os gates que já protegem (`check:frames`, `audit:sprites`, `palette-consistency`) cobrem QUANTIDADE, CANVAS, VAZIO/CHAPADO e PALETA — mas o eixo de **suavidade/loop** é só relatório, nunca foi endereçado. É a maior lacuna hoje.
 
-## 1) ARTE 2D
+**Achado sistêmico** (já anotado em CLAUDE.md): os in-betweens que subiram tudo a 16 frames produziram **loops que não fecham** (`loop-pop` generalizado) e ciclos com **filler quase-duplicado** (padded). Ou seja: 16 frames "no papel", mas o olho não lê como mais suave que 4 bem animados. Além disso, quase todo `attack` acusa jerk/loop-pop — porque o in-between de blend deforma poses de ação (o script hoje só respeita esse limite em walk/idle/run via `fill-16-batch`).
 
-| Sev | Achado | Nota |
-|-----|--------|------|
-| 🔴 | **Fundos das Fases 2–5 chapados** (skyline PNG 32–44 KB) vs. Fase 1/Copa pintadas ricas | Pipeline (upload no LAB → `💾 FIXAR NO REPO`) pronto. Bloqueado em arte externa. |
-| 🔴 | **CEO tem o pior fundo do jogo** — clímax visual falha | Prioridade sobre as outras fases. |
-| 🔴 | **Sem NPCs de cenário** além de Faxineiro | 2–3 sprites "vivos" (colega no cubículo, chefe passando) contariam história barato. |
-| 🟡 | **Parallax raso** — 1 camada distante em `Background.ts` | Hollow Knight/Blasphemous fazem 4–6 camadas com desat progressivo. |
-| 🟡 | **Sem paleta por bioma** — RH/TI/Diretoria compartilham a mesma cor | Leitura de progresso pobre. Resolve com ColorMatrix filter por fase. |
-| 🟡 | **AmbientLore genérico** — sistema plugado, conteúdo não-curatorial | Post-its/e-mails vazando por fase × rota. |
-| ⚪ | Band-aids de sprite ativos = 0 | Pipeline maduro (`gen-sprites` + `frame-fix` + Gemini). Sem ROI em revisitar. |
+## Escopo
 
-## 2) DESIGN VISUAL (UI/HUD/telas)
+Fechar o eixo **suavidade** com 4 frentes, na ordem: (1) fechar loops, (2) enxugar padded, (3) subir gate, (4) atacar attacks caso a caso.
 
-| Sev | Achado | Nota |
-|-----|--------|------|
-| 🔴 | **Sem identidade tipográfica** — Menu/HUD/GameOver em fonte de sistema | Maior ganho/hora do projeto. 1 display pixel + 1 mono legível resolve em 1 dia. |
-| 🔴 | **Sem paleta por bioma** (mesma raiz de Arte) | ColorMatrix por fase é 1 shader parametrizado. |
-| 🟡 | **Tela de Vitória sem epílogo** — `run.` tem tudo (loops, kills, sanidade, cultura, causa) | Carta de rescisão + manchete "CLT escapa às 18h" + gancho NG+ é montável do que existe. |
-| 🟡 | **Beat de entrada de mid-boss só na Fase 1** | Reusa `BossPresence` nas Fases 2–5 (câmera para, stinger, portal fecha). |
-| ⚪ | HUD já mostra perks + cooldowns · Death recap no GameOver · Fundos WebP | ✅ |
+### 1. Fechar loops (loop-pop → 0)
 
-## 3) UX
+Novo script `scripts/close-loops.mjs` (mesma família dos existentes):
+- Lê `audit:anim --json`, seleciona famílias `walk`/`idle`/`run` com flag `loop-pop`.
+- Para cada uma, gera **1 in-between extra entre o último e o primeiro** (mesmo motor do `gen-inbetweens.mjs`: blend + trava de paleta), inserido como frame final. Determinístico, sem IA.
+- Reempacota atlas 1×. Comando: `bun close:loops` (+ `--dry`).
 
-| Sev | Achado | Nota |
-|-----|--------|------|
-| 🔴 | **Class + Cultura antes da 1ª jogada** — 3 classes × 12 culturas sem contexto | Padrão moderno: 1ª run fixa, sistemas destravam a cada morte. Menor fricção. |
-| 🔴 | **Meta-loja não projeta impacto** — sem "próxima run começa com +X sanidade" | Sem projeção, meta-progressão vira paisagem. |
-| 🟡 | **Sem popup de VR flutuante ao matar** — `onKill` hook existe, falta o número dourado + fade | Kill lucrativo (segredo/produtividade) não "estala". |
-| 🟡 | **Micro-legenda de sanidade some após tutorial** | "-2 sanidade — email do chefe" por evento. |
-| 🟡 | **NG+ invisível pra 95%** (aparece só pós-vitória) | Teaser na tela de Vitória. |
-| ⚪ | **Heat é slider chato** — só multiplica HP+VR | Modificadores flavored ("inimigos revivem 1×", "sem Copa", "boss 2ª fase") viram decisão. |
+Alvo realista: derrubar `loop-pop` de 50 → <10 (o resto é ciclo de attack, tratado depois).
 
-## 4) GAME DESIGN
+### 2. Enxugar padded (69 → <20)
 
-| Sev | Achado | Nota |
-|-----|--------|------|
-| 🔴 | **Classes lidas como planilha** — Estagiário/Analista/Terceirizado só variam mult de speed/HP/energia | Mudança de mais alto teto. Cada classe deveria ter especial (K) mecânica e visualmente único (Estagiário: grito que chama colega; Analista: planilha AoE; Terceirizado: boleto explosivo). |
-| 🔴 | **Fase 1 ainda é o pico de densidade** mesmo após melhorias em 2–3 | Medir com telemetria antes de tunar. |
-| 🟡 | **Dash tem 1 uso** (esquivar) — sem cancel de recovery, sem dash aéreo ofensivo | Benchmark: Dead Cells. |
-| 🟡 | **Parry invisível fora da zona 1** — nenhum inimigo tem marker "parryável" | Sistema esquecido. |
-| 🟡 | **Sem sala de tesouro/aposta/mini-boss opcional entre zonas** — drop linear | Benchmark: Gungeon. Zero risco/recompensa mid-run. |
-| 🟡 | **Nenhum inimigo pede verticalidade** — todos atiram horizontal | Plataformas viram cenário. |
-| 🟡 | **Healers (mecânica mais rica da F1) sub-replicados** nas outras fases | |
-| ⚪ | **Faxineiro não lembra do loop** (Hades era referência declarada) | 6 linhas condicionais por `run.lastDeathCause`/`loops`. |
-| ⚪ | **CEO chega frio** — sem buildup (menção no Faxineiro, memo, outdoor) | |
+Novo script `scripts/trim-filler.mjs`:
+- Detecta pares consecutivos com Δ≈0 (frames idênticos criados por in-between excessivo) via mesma métrica do `audit:anim`.
+- Remove o duplicado, reindexa contíguo, reempacota. `--dry` obrigatório antes.
+- Respeita piso do `check:frames` (só apara se ficar ≥ piso). Se a família cair abaixo, pula e reporta.
 
----
+Reflete melhor a máxima "16 frames deve LER como mais suave" — hoje muitos ciclos de 16 têm 8 filler e leem pior que os originais de 4.
 
-## PLANO CONSOLIDADO — 3 SPRINTS
+### 3. Subir o gate (ligar `audit:anim` no CI como warning-gate)
 
-### 🟢 Sprint 1 — Leitura + Juice (~1 semana)
-1. Fonte assinatura (1 display pixel + 1 mono) aplicada em Menu/HUD/GameOver
-2. Popup de VR flutuante ao matar (número dourado + fade)
-3. Micro-legenda de sanidade por evento
-4. Parry-hint no marker de ameaça (contorno pulsante em inimigos parryáveis)
-5. Beat de entrada de mid-boss nas Fases 2–5 (reusa `BossPresence`)
+- Passa `audit:anim --gate` a rodar no CI **em modo warning** (imprime, não falha) por 1–2 iterações; depois vira gate estrito (`exit !=0`) só para `loop-pop` e `dead` (defeitos objetivos). `jerk`/`padded` ficam como relatório (têm falso-positivo em pose legítima).
+- Adiciona `bun anim:report` no `package.json` (alias já existe como `audit:anim`; padroniza uso).
 
-### 🟡 Sprint 2 — Bioma + Ambientação (~1 semana)
-6. ColorMatrix filter por fase (paleta por bioma: RH/TI/Diretoria/Cobertura)
-7. Parallax denso em `Background.ts` (4 camadas com desat progressivo)
-8. AmbientLore curatorial (passe de conteúdo por fase × rota)
-9. NPCs de cenário (colega/chefe/faxineira em outra fase — 2–3 sprites sem interação)
+### 4. Attacks (77 jerks — arte, não interpolação)
 
-### 🔴 Sprint 3 — Onboarding + Progressão (~1 semana)
-10. 1ª run fixa (classe default, sem cultura, sem loja) — sistemas destravam a cada morte
-11. Meta-loja projeta impacto ("comprando X, próxima run começa com Y")
-12. Faxineiro lembra do loop (6–10 linhas condicionais)
-13. Vitória com epílogo (carta de rescisão + manchete + gancho NG+)
-14. Modo assistido opcional (dano ×0.7, +1 vida por fase)
+Attack não interpola bem por blend (pose muda: braço/arma). Aqui não vale gerar mais frames deterministicamente — o script `fill-16-batch.mjs` já pula `attack` de propósito. Duas opções, escolho a leve:
+- **Recomendado:** rebaixar a expectativa — deixar attacks em 4–8 frames por padrão (é o que Dead Cells/Hades fazem) e usar o LAB `🤖 REFAZER COM IA` só nos attacks visíveis dos bosses (ceo/diretor/brenda/gerente) 1 a 1, quando o teto de gasto do Gemini liberar. **Sem trabalho em massa.**
+- Documentar em `docs/ART_GAPS.md` a lista final dos attacks que valem redesenho.
 
-### 🟣 Backlog estrutural (multi-sprint, alto teto)
-- **Identidade por classe** — especial K único (Estagiário/Analista/Terceirizado) — muda "planilha" pra "estilo"
-- **Sala de tesouro/aposta** entre zonas (40 VR vs. arma vs. reroll perk)
-- **Heat flavored** ("inimigos revivem", "sem Copa", "boss 2ª fase")
-- **Dash ofensivo** + variante aérea de especial
-- **Inimigo verticalizador** por fase
-- **Fundos pintados Fases 2–5 + CEO prioridade** (arte externa — bloqueado)
+## Verificação
 
----
+Após cada script: `bun audit:anim` (comparar antes/depois) + `bun check:frames` (garantir que não caiu piso) + `bun smoke` (nenhuma cena crasha) + `bun visual` (baselines de UI intactos).
 
-## RESUMO
+## Fora de escopo
 
-- **Item de maior ROI:** tipografia assinatura (Sprint 1) — visual muda de patamar em 1 dia.
-- **Item de maior teto:** identidade por classe (Backlog) — muda a percepção de "planilha" pra "estilo".
-- **Bloqueado em arte externa:** fundos pintados Fases 2–5 + CEO. Pipeline pronto, falta imagem.
+- Gerar arte nova via IA (bloqueada por 429/teto de gasto).
+- Mexer em attacks em massa (deforma pose).
+- Novo pipeline de skeletal/spine — o projeto é pixel-art frame-by-frame por decisão.
 
-Diz qual sprint (ou item específico) quer começar e eu passo pra build.
+## Arquivos afetados
+
+- **Novos:** `scripts/close-loops.mjs`, `scripts/trim-filler.mjs`.
+- **Editados:** `package.json` (2 scripts), `.github/workflows/ci.yml` (1 job warning), `docs/FRAME_COVERAGE.md` (registro de resultados), `docs/ART_GAPS.md` (lista de attacks para redesenho).
+- **Atlas:** `public/assets/atlas.{png,json}` + `public/assets/sprites/*.png` (reempacotados).
