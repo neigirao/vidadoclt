@@ -136,6 +136,7 @@ for (const r of targets) console.log(`  • ${r.prefix}-${r.state} (${r.frames} 
 if (dry || targets.length === 0) process.exit(0);
 
 let fixed = 0;
+let framesAdded = 0;
 for (const r of targets) {
   const family = `${r.prefix}-${r.state}`;
   const frames = await loadFamily(family);
@@ -145,12 +146,28 @@ for (const r of targets) {
   }
   const last = frames[frames.length - 1];
   const first = frames[0];
-  const t = tween(last, first);
-  const outPath = `${SPRITES}/${family}${frames.length}.png`;
-  await rawToPng(t).toFile(outPath);
+  // Baseline = mediana dos deltas consecutivos do ciclo atual (mesma métrica
+  // do audit). Wrap = distância last→first hoje.
+  const deltas = [];
+  for (let i = 0; i < frames.length - 1; i++) deltas.push(frameDelta(frames[i], frames[i + 1]));
+  const baseline = median(deltas) || 1;
+  const wrap = frameDelta(last, first);
+  const threshold = Math.max(JERK_MIN_ABS, LOOPPOP_FACTOR * baseline);
+  // Subsegmentos necessários p/ cada trecho ficar ≤ threshold → N = ceil-1 novos.
+  const segs = Math.max(2, Math.ceil(wrap / threshold));
+  const bridge = Math.min(MAX_BRIDGE, segs - 1);
+  if (bridge <= 0) continue;
+  for (let k = 1; k <= bridge; k++) {
+    const t = k / (bridge + 1);
+    const mid = tween(last, first, t);
+    const outPath = `${SPRITES}/${family}${frames.length + k - 1}.png`;
+    await rawToPng(mid).toFile(outPath);
+    framesAdded++;
+  }
+  console.log(`  ↳ ${family}: +${bridge} frame(s) de ponte (wrap ${wrap.toFixed(1)} → ≤${threshold.toFixed(1)}/segmento)`);
   fixed++;
 }
-console.log(`\n${fixed} loops fechados. Reempacotando atlas…`);
+console.log(`\n${fixed} loops fechados (${framesAdded} frames). Reempacotando atlas…`);
 const pack = spawnSync("node", ["scripts/pack-atlas.mjs"], { encoding: "utf8" });
 console.log(pack.stdout.split("\n").slice(-3).join("\n"));
 process.exit(pack.status ?? 0);
