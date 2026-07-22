@@ -10,21 +10,23 @@ itens de engenharia do `CLAUDE.md`.
 
 ## Status por camada (GDD original)
 
-| Camada / Sprint            | Status       | Observação                                                                                                                   |
-| -------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| 1 — Núcleo jogável         | ✅ Concluído | Player, combo, HUD, VR, morte→Reconhecimento                                                                                 |
-| 2 — Loop de run            | ✅ Concluído | Sanidade/faixas, Copa, Ponto Eletrônico, Reconhecimento, FGTS                                                                |
-| 3 — Fase 1 completa        | ✅ Concluído | Áreas 2/4, Gerente Microgestor (6 ataques), Autonomia, boss bar                                                              |
-| 4 — Rogue-lite             | 🟢 ~95%      | 3 classes, 12 armas, perks, 12 Culturas, sinergias perk×perk + arma×perk. Falta só rota **divergente de verdade** (conteúdo) |
-| 5 — Fases 2–3              | 🟢 Boa       | Bosses temáticos com assinatura + enrage com dentes; falta conteúdo próprio (eventos/verticalidade como a Fase 1)            |
-| 6 — Fases 4–5 + CEO        | ✅ Concluído | Fases 4/5, CEO, Vitória; Diretor com Cascata de Metas na phase 2                                                             |
-| 7 — NPCs / eventos         | 🟢 Boa       | Faxineiro, Conspiracionista, LinkedIn, Veterano + eventos de RH na Copa                                                      |
-| 8 — Áudio / acessibilidade | 🟡 Parcial   | Áudio procedural ✅ + toggle de fotossensibilidade ✅; falta remap/daltônico/texto escalável                                 |
+| Camada / Sprint            | Status       | Observação                                                                                                                            |
+| -------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — Núcleo jogável         | ✅ Concluído | Player, combo, HUD, VR, morte→Reconhecimento                                                                                          |
+| 2 — Loop de run            | ✅ Concluído | Sanidade/faixas, Copa, Ponto Eletrônico, Reconhecimento, FGTS                                                                         |
+| 3 — Fase 1 completa        | ✅ Concluído | Áreas 2/4, Gerente Microgestor (6 ataques), Autonomia, boss bar                                                                       |
+| 4 — Rogue-lite             | 🟢 ~95%      | 3 classes, 12 armas, perks, 12 Culturas, sinergias perk×perk + arma×perk. Falta só rota **divergente de verdade** (conteúdo)          |
+| 5 — Fases 2–3              | 🟢 Boa       | Bosses temáticos com assinatura + enrage com dentes; falta conteúdo próprio (eventos/verticalidade como a Fase 1)                     |
+| 6 — Fases 4–5 + CEO        | ✅ Concluído | Fases 4/5, CEO, Vitória; Diretor com Cascata de Metas na phase 2                                                                      |
+| 7 — NPCs / eventos         | 🟢 Boa       | Faxineiro, Conspiracionista, LinkedIn, Veterano + eventos de RH na Copa                                                               |
+| 8 — Áudio / acessibilidade | ✅ Concluído | Áudio procedural ✅; fotossensibilidade ✅, remap de teclas ✅, modo daltônico (telegraphs) ✅, texto escalável ✅, modo assistido ✅ |
 
 ### Extras entregues (fora do GDD original)
 
 - Sistema de **Burnout "VAI NA RAÇA"** (glass-cannon opt-in: dano ×1.35, VR/kill ×1.5, +4 sanidade/kill como saída por agressão, contra dano recebido ×1.4 e parry apertado; ensinado 1× via `TutorialPrompts`). Deixou de ser relógio-de-derrota.
-- **Qualidade**: `tsc` strict + ESLint 0 erros, **37 testes unitários** (bun:test), **CI** (GitHub Actions).
+- **Qualidade**: `tsc` strict + ESLint 0 erros, **123 testes unitários** (bun:test), **CI** (GitHub Actions) com gates determinísticos: `check:frames`, `smoke`, `validate:levels` (nível jogável headless), `audit:sprites`, `audit:anim --gate` (ratchet de suavidade — ver `docs/ANIM_POLICY.md`), `visual`.
+- **Ferramentas de análise**: `sim:balance` (DPS/TTK/pressão + outliers), `juice:report` (orçamento de feel), `gallery` (contact-sheet), `audit:palette`/`audit:anim` (relatórios), `docs:bestiary` (gera `docs/BESTIARIO.md`).
+- **Polimento visual (leitura espacial)**: sombras de contato, rim-light, secondary motion (crachá pendular), iluminação reativa de combate, leitura das portas (depth + contraste), catálogo de VFX + LAB VFX.
 - **Encontros por seed** (Fase 1 varia tipos; Fases 2–5 variam posições).
 - **Sinergias de build** em dois eixos: perk×perk (`SYNERGIES`, 8) e **arma×perk** (`WEAPON_SYNERGIES`, 4 — Cafeína Pura, Queda de Produtividade, Choque Térmico, Planilha Infinita), avaliadas no `buildPlayer`, badge compartilhado.
 - **Arquitetura**: Fase 1 migrada p/ `BasePhaseScene`; God-scene decomposto (`ProductivityMeter`, `Apagao`).
@@ -69,7 +71,10 @@ itens de engenharia do `CLAUDE.md`.
 - ✅ Opção "reduzir efeitos de Sanidade" (fotossensibilidade) — toggle no Pause.
 - ✅ Gamepad completo: consumível em **L2** e troca de arma (Q) em **R2** — as duas ações que faltavam no controle.
 - ✅ Legibilidade de HUD: 💰 no contador de VR e ícone de faixa na Sanidade (🙂/😰/😱/🔥).
-- Pendente: desativar input-lag, remap de teclas, modo daltônico p/ telegraphs, texto escalável.
+- ✅ **Remap de teclas** dos 7 verbos de combate (CONFIGURAÇÕES → ⌨ CONTROLES, `Settings.keybinds`, swap sem colisão).
+- ✅ **Modo daltônico** para telegraphs (`colorBlindSafe`: amarelo→azul + forma `!!`/`!`).
+- ✅ **Texto escalável** (`uiTextScale`: dicas + toasts em Normal/Grande/Enorme).
+- ✅ **Modo assistido** (`assistMode`: −30% dano recebido + 1 vida/fase).
 
 ---
 
@@ -150,42 +155,26 @@ criar `applyAll(settings)` (hoje só `applyAudioSettings`).
 Passada por todas as áreas. Sequência sugerida em 5 sprints.
 
 **Sprint 1 — percepção (quick wins):**
+
 1. Death recap na `GameOverScene` (causa, kills, VR, sanidade, +Reconhecimento, recorde).
 2. Popup de VR flutuante ao matar.
 3. Cooldown/carga do Especial (K) visível na HUD.
 4. HUD mostra perks ativos com tooltip.
-6. Beat de entrada de boss médio (câmera para, stinger, portal fecha).
+5. Beat de entrada de boss médio (câmera para, stinger, portal fecha).
 
-**Sprint 2 — identidade:**
-10. NPC que lembra do loop (Faxineiro comenta mortes/culturas/bosses por milestone).
-11. ✅ Storytelling ambiental (`AmbientLore`: post-its com piada corporativa BR por
-    seed, revelados por proximidade) — feito. NPC-lembra-do-loop já existia (Faxineiro
-    + NPCs escalam por loopCount/causa da morte).
-5. Remover "TESTAR FASE" do menu (ou esconder atrás de dev-only).
-8. Tela de vitória com epílogo (carta de demissão + gancho NG+).
-7. Micro-legenda de perda de sanidade por evento ("−2 sanidade: viu email do chefe").
+**Sprint 2 — identidade:** 10. NPC que lembra do loop (Faxineiro comenta mortes/culturas/bosses por milestone). 11. ✅ Storytelling ambiental (`AmbientLore`: post-its com piada corporativa BR por
+seed, revelados por proximidade) — feito. NPC-lembra-do-loop já existia (Faxineiro + NPCs escalam por loopCount/causa da morte). 5. Remover "TESTAR FASE" do menu (ou esconder atrás de dev-only). 8. Tela de vitória com epílogo (carta de demissão + gancho NG+). 7. Micro-legenda de perda de sanidade por evento ("−2 sanidade: viu email do chefe").
 
-**Sprint 3 — onboarding:**
-9. ✅ 1ª run FIXA — feito. Na 1ª run (`loopCount === 0`) o JOGAR pula as telas de
-   Classe e Cultura e começa direto na Fase 1 com o Analista (default) + Cultura
-   neutra; escolha destrava a partir da 2ª run. Meta-loja (EVOLUÇÃO) já era gated
-   por `firstRun` no menu. Dica contextual 1× explica a run fixa.
-14. ✅ Modo assistido opcional (dano recebido ×0.7, +1 vida/fase; sem estigma) —
-    feito. Toggle em CONFIGURAÇÕES (`Settings.assistMode`), aplicado no `buildPlayer`
-    (`damageReductionMult ×0.7` + piso de `extraLives` por fase). Testado (Settings)
-    + verificado headless (OFF 1.0 / ON 0.7 + 1 vida).
+**Sprint 3 — onboarding:** 9. ✅ 1ª run FIXA — feito. Na 1ª run (`loopCount === 0`) o JOGAR pula as telas de
+Classe e Cultura e começa direto na Fase 1 com o Analista (default) + Cultura
+neutra; escolha destrava a partir da 2ª run. Meta-loja (EVOLUÇÃO) já era gated
+por `firstRun` no menu. Dica contextual 1× explica a run fixa. 14. ✅ Modo assistido opcional (dano recebido ×0.7, +1 vida/fase; sem estigma) —
+feito. Toggle em CONFIGURAÇÕES (`Settings.assistMode`), aplicado no `buildPlayer`
+(`damageReductionMult ×0.7` + piso de `extraLives` por fase). Testado (Settings) + verificado headless (OFF 1.0 / ON 0.7 + 1 vida).
 
-**Sprint 4 — conteúdo (tirar Fases 2–5 da magreza):**
-12. 1 evento de sala próprio por fase 2–5 (inventar por tema, não copiar APAGÃO).
-13. 1 healer + 1 arquétipo verticalizador por fase 2–5 (força usar plataformas).
-20. Fundos high-res Fases 3/4/5 + CEO (CEO é o mais crítico; pipeline do LAB pronto).
+**Sprint 4 — conteúdo (tirar Fases 2–5 da magreza):** 12. 1 evento de sala próprio por fase 2–5 (inventar por tema, não copiar APAGÃO). 13. 1 healer + 1 arquétipo verticalizador por fase 2–5 (força usar plataformas). 20. Fundos high-res Fases 3/4/5 + CEO (CEO é o mais crítico; pipeline do LAB pronto).
 
-**Sprint 5 — estrutural (teto do jogo):**
-16. Rotas divergentes de verdade (cada rota → variante da fase: encontros/layout/boss mod).
-18. Sala de aposta/tesouro entre zonas (40 VR agora VS arma aleatória VS reroll perk).
-19. Heat com modificadores _flavored_ (inimigos revivem 1×, boss ganha 2ª fase, sem Copa).
-17. Meta-loja projeta impacto ("sua próxima run começa com X").
-15. Especial/Dash ofensivos (dash cancela recovery; especial ganha variante aérea).
+**Sprint 5 — estrutural (teto do jogo):** 16. Rotas divergentes de verdade (cada rota → variante da fase: encontros/layout/boss mod). 18. Sala de aposta/tesouro entre zonas (40 VR agora VS arma aleatória VS reroll perk). 19. Heat com modificadores _flavored_ (inimigos revivem 1×, boss ganha 2ª fase, sem Copa). 17. Meta-loja projeta impacto ("sua próxima run começa com X"). 15. Especial/Dash ofensivos (dash cancela recovery; especial ganha variante aérea).
 
 ✅ **Classes se sentem diferentes no 1º minuto** — cada classe ganhou uma ASSINATURA
 (forma de jogo, não só stat), sentida já na primeira luta: Estagiário = dash quase 2×
@@ -206,4 +195,6 @@ sem death recap. Cada item vira 1 plano executável quando escolhermos a direç�
 
 - **`.lovable/plan.md`** — plano de trabalho ativo do Lovable (onboarding + burnout). Este ROADMAP absorve o status; o plano detalha a execução.
 - **`CLAUDE.md` → "Pendente / em aberto"** — recorte de engenharia/level-design (mesmos itens, mais detalhe técnico).
-- **`ARCHITECTURE.md`** — como o código está montado (não é roadmap).
+- **`ARCHITECTURE.md`** — como o código está montado (não é roadmap). Inclui a camada de sistemas visuais e os portões de qualidade do CI.
+- **`docs/ANIM_POLICY.md`** — o acordo sobre contagem de frames × suavidade (por que o blend não suaviza; o ratchet de `audit:anim`).
+- **`docs/BESTIARIO.md`** — inimigos por fase (gerado por `bun docs:bestiary`).

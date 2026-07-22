@@ -15,16 +15,25 @@
 // tende a deltas parelhos; movimento "aos trancos" tem CV alto).
 //
 // Estático (lê atlas.png/json, sem navegador), determinístico. Relatório por
-// padrão; `--gate` sai !=0 acima do teto (opt-in, NÃO ligado no CI — calibrar
-// primeiro, como palette/visual começaram). `--json`, `--top=N`.
+// padrão.
 //
-// Uso: node scripts/audit-anim.mjs [--gate] [--json] [--top=N]
+// `--gate` = GATE RATCHET (trava de não-regressão): compara a contagem por TIPO
+// (dead/jerk/loop-pop/padded) contra a baseline commitada (anim-baseline.json) e
+// sai !=0 se QUALQUER tipo PIORAR. Congela o estado atual como teto e só deixa os
+// números CAÍREM — teria bloqueado o lote de in-betweens que piorou loop-pop
+// 50→62. Não exige "zerar" os defeitos (o baseline clean só sai de arte autoral);
+// exige NÃO REGREDIR. Quando a suavidade melhorar de fato, `--update-baseline`
+// baixa o teto e trava o ganho. `--json`, `--top=N`.
+//
+// Uso: node scripts/audit-anim.mjs [--gate] [--update-baseline] [--json] [--top=N]
 // ─────────────────────────────────────────────────────────────────────────────
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { PNG } from "pngjs";
 
 const gate = process.argv.includes("--gate");
+const updateBaseline = process.argv.includes("--update-baseline");
 const asJson = process.argv.includes("--json");
+const BASELINE_PATH = new URL("./anim-baseline.json", import.meta.url);
 const topN = Number((process.argv.find((a) => a.startsWith("--top=")) || "--top=40").split("=")[1]);
 
 // Limiares (mean abs diff por pixel, escala 0..255). Calibrados p/ pegar defeito
@@ -189,15 +198,57 @@ reports.sort(
 const warned = reports.filter(hasWarn);
 const infoOnly = reports.filter((r) => !hasWarn(r) && r.flags.length > 0);
 
+// Contagem por TIPO — headline acionável E entrada do gate ratchet.
+const byKind = {};
+for (const r of reports) for (const f of r.flags) byKind[f.kind] = (byKind[f.kind] ?? 0) + 1;
+
+// Gate RATCHET: trava de não-regressão contra a baseline commitada. Reprova se
+// QUALQUER tipo piorar (count > baseline). `--update-baseline` regrava o teto
+// (quando a arte melhora de verdade). Retorna o código de saída do processo.
+function gateExitCode() {
+  if (updateBaseline) {
+    writeFileSync(BASELINE_PATH, JSON.stringify(byKind, null, 2) + "\n");
+    console.error(`baseline de animação atualizada: ${JSON.stringify(byKind)}`);
+    return 0;
+  }
+  if (!gate) return 0;
+  let baseline = {};
+  try {
+    baseline = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
+  } catch {
+    console.error("✖ anim-baseline.json ausente/inválido — rode: bun audit:anim --update-baseline");
+    return 1;
+  }
+  const kinds = new Set([...Object.keys(byKind), ...Object.keys(baseline)]);
+  const regress = [];
+  for (const k of kinds) {
+    const cur = byKind[k] ?? 0;
+    const base = baseline[k] ?? 0;
+    if (cur > base) regress.push(`${k}: ${base} → ${cur} (+${cur - base})`);
+  }
+  if (regress.length) {
+    console.error(`\n✖ REGRESSÃO de suavidade (audit:anim ratchet vs baseline):`);
+    for (const r of regress) console.error("  " + r);
+    console.error(
+      `\nA animação piorou vs a baseline commitada. Se for INTENCIONAL/aprovado,\n` +
+        `rode 'bun audit:anim --update-baseline' e commite scripts/anim-baseline.json.\n` +
+        `Senão, NÃO infle o ciclo com in-betweens por blend (piora jerk/loop-pop).`,
+    );
+    return 1;
+  }
+  console.error(`\n✓ sem regressão de suavidade (dentro da baseline).`);
+  return 0;
+}
+
 if (asJson) {
   console.log(
     JSON.stringify(
-      { total: reports.length, warned: warned.length, info: infoOnly.length, reports },
+      { total: reports.length, warned: warned.length, info: infoOnly.length, byKind, reports },
       null,
       2,
     ),
   );
-  process.exit(gate && warned.length ? 1 : 0);
+  process.exit(gateExitCode());
 }
 
 const pad = (s, n) => String(s).padEnd(n);
@@ -231,8 +282,6 @@ if (infoOnly.length) {
 }
 
 // Resumo por TIPO — o headline acionável (defeito sistêmico vs. pontual).
-const byKind = {};
-for (const r of reports) for (const f of r.flags) byKind[f.kind] = (byKind[f.kind] ?? 0) + 1;
 const kindOrder = ["dead", "dim", "jerk", "loop-pop", "padded"];
 const summary = kindOrder
   .filter((k) => byKind[k])
@@ -240,4 +289,4 @@ const summary = kindOrder
   .join("  ");
 console.log(`\nResumo por tipo: ${summary || "nenhum"}`);
 console.log("");
-process.exit(gate && warned.length ? 1 : 0);
+process.exit(gateExitCode());

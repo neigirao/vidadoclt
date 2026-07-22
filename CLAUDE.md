@@ -42,6 +42,7 @@ src/
       RankingScene.ts        # Leaderboard online (Supabase/Lovable Cloud)
       BestiaryScene.ts       # Bestiário — inimigos derrotados persistidos em LS
       SpriteLabScene.ts      # Lab de sprites: valida todos os assets (ver abaixo)
+      VfxLabScene.ts         # LAB VFX (DEV): catálogo clicável que roda cada efeito de Vfx.ts no palco
       OpenSpaceV2Scene.ts    # Fase 1 — Open Space (rendering sólido, ver abaixo)
       BasePhaseScene.ts      # Classe base compartilhada pelas Fases 2–5
       Phase2Scene.ts         # Fases 2–5
@@ -79,6 +80,10 @@ src/
       Apagao.ts              # Evento APAGÃO (lanterna radial) da Fase 1
       Lighting.ts            # Lightmap aditivo (escuro ambiente + poças de luz) — iluminação dinâmica; ligado no CEO (ver docs/LIGHTING_SPIKE.md)
       CombatFx.ts            # Juice de combate (hitStop, shake, flash, finisher)
+      ContactShadows.ts      # Sombra de contato sob cada personagem (ancora no chão; encolhe ao pular)
+      RimLight.ts            # Contorno quente que separa o sprite do fundo (cópia ADD deslocada — build sem sprite.preFX)
+      SecondaryMotion.ts     # Crachá pendular do player (follow-through: pêndulo mola-amortecedor)
+      Vfx.ts                 # Catálogo único de VFX (ponto/sprite) — alimenta o LAB VFX; ParticleFactory tem VFX_PALETTE + ringPulse
       MeleeCombat.ts         # resolveMeleeAttack() canônico (host pattern)
       CorporateAI.ts         # Helpers de IA (windup, telegraph, dashes)
       AudioSystem.ts         # SFX procedural via Web Audio (sem arquivos)
@@ -267,7 +272,7 @@ contagens hardcoded de `EnemyAnimConfig` (`*_FRAME_COUNTS`) já não dirigem o r
 SpriteLab/gate as usam para cruzar contra o atlas.
 
 **Audit visual no CI (`bun run audit:sprites`, `scripts/audit-sprites.mjs`).** Fecha a lacuna:
-o `check:frames` garante *quantidade*/coerência/*tamanho*, mas é cego ao CONTEÚDO do pixel.
+o `check:frames` garante _quantidade_/coerência/_tamanho_, mas é cego ao CONTEÚDO do pixel.
 Este gate sobe o jogo headless (job `smoke`), chama `runFullAudit()` do LAB (canvas) e
 **REPROVA** em defeito MECÂNICO: `missing`, `quase-vazio` (alpha%), `chapado` (% 1 cor =
 lixo de extração) e `LAB<jogo` (jogo cicla mais do que o LAB mostra). **`altura … (pulo de
@@ -275,7 +280,7 @@ tamanho)` é só WARNING** — muitas poses/FX legítimos disparam (agachar no a
 na morte), e o tamanho de CANVAS entre estados já é hard-gated no `check:frames`.
 
 **Consistência de PALETA (`bun run audit:palette`, `scripts/palette-consistency.mjs`).** Ataca
-a lacuna acima (arte *mismatched* com dimensão certa e conteúdo não-trivial): monta a paleta
+a lacuna acima (arte _mismatched_ com dimensão certa e conteúdo não-trivial): monta a paleta
 canônica de cada personagem (cores de idle+walk) e mede a **% de pixels "estrangeiros"** (fora
 da paleta, além de tolerância RGB) em attack/hurt/death/run — arte de OUTRO personagem usaria
 cores fora da paleta. **Estático (lê atlas.png/json, sem navegador), determinístico.** É
@@ -285,19 +290,28 @@ acima do teto hoje é FX legítimo (`evangelista-mega-death16` desintegra em exp
 de FX no CI. **Resultado da varredura atual: nenhuma arte trocada real no atlas.**
 
 **SUAVIDADE de animação (`bun audit:anim`, `scripts/audit-anim.mjs`).** Ataca o eixo que
-falta: os gates acima veem *quantidade*/*tamanho*/*conteúdo* de FRAME, mas são cegos ao
+falta: os gates acima veem _quantidade_/_tamanho_/_conteúdo_ de FRAME, mas são cegos ao
 MOVIMENTO. Este lê o atlas e mede o DELTA de pixel entre frames vizinhos (e o wrap
 último→primeiro nos ciclos), flagando **dead** (não se mexe), **jerk** (pulo brusco no
 ciclo), **loop-pop** (estala ao repetir) e **padded** (só X% dos frames se movem — filler).
-Estático/determinístico, relatório por padrão (`--gate` opt-in, NÃO no CI). **Achado
-sistêmico:** os in-betweens de 16 frames produziram ciclos com muito filler quase-duplicado
-e loops que não fecham (uniformidade ~0, loop-pop generalizado) — os "16 frames" não leem
-como mais suaves. Candidato a re-gerar in-betweens com fechamento de loop, ou enxugar.
+Estático/determinístico, relatório por padrão. **Achado sistêmico (confirmado 2×):** os
+in-betweens de 16 frames por blend produzem ciclos com filler quase-duplicado e loops que
+não fecham (loop-pop generalizado) — os "16 frames" NÃO leem como mais suaves. Tentar
+"fechar loop" com MAIS ponte por blend (`close:loops`) só PIORA (jerk/loop-pop sobem);
+`trim:filler` não remove nada (já no piso do `check:frames`). **Suavidade real acima do
+baseline limpo só sai de arte autoral** — o blend é beco sem saída.
 
-**Limite conhecido:** os gates cobrem *quantidade*, coerência de *contagem*, *tamanho* de
-canvas (`check:frames`), *conteúdo* vazio/chapado/faltando (`audit:sprites`), *paleta*
-(`audit:palette`, relatório) e *suavidade* de movimento (`audit:anim`, relatório). O que
-ainda exige olho humano é arte *mismatched* SUTIL (mesmo personagem, pose/expressão errada,
+**`--gate` = GATE RATCHET no CI (job check).** Não exige zerar os defeitos (impossível sem
+arte); trava a NÃO-REGRESSÃO: compara a contagem por tipo (dead/jerk/loop-pop/padded) contra
+`scripts/anim-baseline.json` e reprova se qualquer tipo piorar. Foi calibrado assim porque um
+teto absoluto exigiria primeiro reverter/redesenhar. **Teria bloqueado o lote que piorou
+loop-pop 50→62.** Melhorou de verdade (revert de blend, arte nova, trim)? `bun audit:anim
+--update-baseline` regrava o teto e trava o ganho — o ratchet só anda pra baixo. `--json`/`--top=N`.
+
+**Limite conhecido:** os gates cobrem _quantidade_, coerência de _contagem_, _tamanho_ de
+canvas (`check:frames`), _conteúdo_ vazio/chapado/faltando (`audit:sprites`), _paleta_
+(`audit:palette`, relatório) e _suavidade_ de movimento (`audit:anim`, relatório). O que
+ainda exige olho humano é arte _mismatched_ SUTIL (mesmo personagem, pose/expressão errada,
 dentro da paleta) — `runFullAudit()`/LAB.
 
 ### Gerador procedural de sprites (`scripts/gen-sprites.mjs`)
@@ -414,7 +428,7 @@ Nenhum band-aid ativo no momento.
 - **Balance Simulator** (`bun sim:balance`, `systems/BalanceModel.ts` + `scripts/balance-sim.mjs`): modelo PURO (sem Phaser) que, a partir das mesmas fontes canônicas do jogo (`WEAPONS`/`CLASSES`/`ENEMIES` + `MeleeMath`), computa **DPS por classe/arma**, **TTK (time-to-kill) por inimigo/fase** e **pressão** (dano recebido → tempo até o player cair), e **flaga outliers** (classe dominante, inimigo esponja/trivial/letal). Torna o tuning uma decisão por DADO (como Dead Cells/Hades) e pega regressão de balanceamento num diff. Flags/limiares em `THRESHOLDS`; `--loop=N` aplica o escalonamento de HP, `--json` p/ máquina, `--gate` sai !=0 em aviso (portão opt-in). É MODELO DE 1ª ORDEM (acerto contínuo, ignora deslocamento/perks/parry; i-frames = gargalo do dano recebido) — pega desproporção grossa, não substitui playtest. Testado em `BalanceModel.test.ts`.
 - **Legibilidade/onboarding**: marcadores de ameaça por arquétipo (`ThreatMarkers`), presença de chefão (`BossPresence`: escala+aura+coroa), momento de enrage do boss aos 35% HP (`playBossEnrageMoment` — beat visual; e o flag `bossEnraged` + hook `onBossEnrage()` que **apertam a cadência de especial** na 2ª metade da luta: Coordenador/Scrum aceleram e disparam um especial na virada; Brenda/Diretor/Gerente já auto-escalam via phase2 interno), beat de fim de fase (`playPhaseClearBeat`), e **dicas contextuais de 1ª sessão** (`TutorialPrompts`)
 - **Armas no meio da fase**: drop de arma por kill/boss (`dropWeapon`) + slot secundário com troca (Q); telemetria de playtest gravada no Supabase dedicado (`Telemetry` + `telemetryClient`)
-- **Passe de polimento visual/juice/UX** (sessão de auditoria): (a) **pós-FX cinematográfico** por câmera (`systems/PostFx.ts` — grade ColorMatrix + vignette, via Phaser 4 Filters) ligado em todas as fases; (b) **paleta-assinatura por bioma** (`applyBiomePalette` — tint por canal quente/frio com `ColorMatrix.multiply`: TI/Servidores frio azul, Diretoria âmbar, CEO vermelho tenso — leitura de progresso); (c) **fundos pintados em WebP** (−94% boot — ver Decisões); (d) **tipografia self-hosted** (`systems/Fonts.ts`: Press Start 2P títulos / VT323 corpo; woff2 OFL em `public/assets/fonts/` + `@font-face` em `styles.css` — **sem CDN**, que o ambiente bloqueia); (e) **telegrafia por cor padronizada** (`TELEGRAPH` em `Enemies.ts`: 🔴 danger = investida/AoE → parry/reposicione, 🟡 ranged = projétil → saia da linha; ensinada 1× por `TutorialPrompts`); (f) **micro-legenda de sanidade** (`Player.drainSanity(amount, reason)` — "−N Sanidade · post-it na cara"); (g) **dash ofensivo** (perk `dashDamage` agora consumido: atravessar inimigo no dash fere, dedup por `dashId`); (h) **verticalidade nas Fases 2–5** (`spawnPhaseVerticalReward` — cache no topo + healer/ranged relocado); (i) **parallax denso** (Lovable). Além de fixes: crash de render por override de sprite inválido (`SpriteOverrides` valida o source), lote da IA que não refletia no LAB (`extendSubjectForNewFrame` achava o sujeito pelo prefixo, não pelo selecionado), erro legível do Gemini (429/teto de gasto).
+- **Passe de polimento visual/juice/UX** (sessão de auditoria): (a) **pós-FX cinematográfico** por câmera (`systems/PostFx.ts` — grade ColorMatrix + vignette, via Phaser 4 Filters) ligado em todas as fases; (b) **paleta-assinatura por bioma** (`applyBiomePalette` — tint por canal quente/frio com `ColorMatrix.multiply`: TI/Servidores frio azul, Diretoria âmbar, CEO vermelho tenso — leitura de progresso); (c) **fundos pintados em WebP** (−94% boot — ver Decisões); (d) **tipografia self-hosted** (`systems/Fonts.ts`: Press Start 2P títulos / VT323 corpo; woff2 OFL em `public/assets/fonts/` + `@font-face` em `styles.css` — **sem CDN**, que o ambiente bloqueia); (e) **telegrafia por cor padronizada** (`TELEGRAPH` em `Enemies.ts`: 🔴 danger = investida/AoE → parry/reposicione, 🟡 ranged = projétil → saia da linha; ensinada 1× por `TutorialPrompts`); (f) **micro-legenda de sanidade** (`Player.drainSanity(amount, reason)` — "−N Sanidade · post-it na cara"); (g) **dash ofensivo** (perk `dashDamage` agora consumido: atravessar inimigo no dash fere, dedup por `dashId`); (h) **verticalidade nas Fases 2–5** (`spawnPhaseVerticalReward` — cache no topo + healer/ranged relocado, com **guarda de distância do spawn** p/ não colar inimigo no player — pego pelo `validate:levels`); (i) **parallax denso** (Lovable). **Camada de leitura espacial** (sessão posterior): (j) **sombras de contato** (`ContactShadows` — ancora no chão, encolhe ao pular); (k) **rim-light** (`RimLight` — contorno quente que separa do fundo); (l) **secondary motion** (`SecondaryMotion` — crachá pendular do player, follow-through); (m) **iluminação reativa de combate** (`Lighting.flash` — impacto/morte/hit-no-boss acendem o ambiente, via `MeleeCombat`); (n) **leitura das portas** (porta+rótulo em `DOOR_DEPTH` acima do decor + tint travado mais claro — a porta da Copa da Fase 1 estava oculta por um prop); (o) **catálogo de VFX** (`Vfx.ts` + `VFX_PALETTE` + `VfxLabScene`). Além de fixes: crash de render por override de sprite inválido (`SpriteOverrides` valida o source), lote da IA que não refletia no LAB (`extendSubjectForNewFrame` achava o sujeito pelo prefixo, não pelo selecionado), erro legível do Gemini (429/teto de gasto).
 
 ### Pendente / em aberto
 
@@ -528,7 +542,7 @@ node scripts/pack-atlas.mjs  # re-empacota o atlas a partir de public/assets/spr
 - **Phaser isolado do React**: `GameMount.tsx` é o único ponto de contato. O jogo não usa hooks, estado React ou context — tudo via Phaser + registry (`run`).
 - **Estado da run no registry**: `getRun(scene)` lê/cria `RunState` no `scene.registry`; persiste Reconhecimento/FGTS/Loops em `localStorage`.
 - **Atlas empacotado**: sprites reais vêm de `atlas.png`. Editar PNG individual exige `pack-atlas.mjs`.
-- **Ferramentas DEV no menu (gated por `import.meta.env.DEV`)**: `TESTAR FASE`, `LAB SPRITES` e `TELEMETRIA` são itens de DESENVOLVIMENTO no `MenuScene`, marcados com `dev: true` em `ALL_MENU_ITEMS` e **filtrados do build PUBLICADO** (`.filter(it => import.meta.env.DEV || !it.dev)` — vira `!it.dev` no build, então somem). A `SpriteLabScene` também só entra no array de cenas do `config.ts` sob `import.meta.env.DEV` (spread condicional). No `bun dev` (e no smoke/audit, que rodam contra o dev server, `DEV === true`) tudo continua visível — é o loop rápido de validar arte/pular pra fase. **NÃO listar como problema em auditorias**: no jogo publicado essas ferramentas não aparecem nem são alcançáveis.
+- **Ferramentas DEV no menu (gated por `import.meta.env.DEV`)**: `TESTAR FASE`, `LAB SPRITES`, `LAB VFX` e `TELEMETRIA` são itens de DESENVOLVIMENTO no `MenuScene`, marcados com `dev: true` em `ALL_MENU_ITEMS` e **filtrados do build PUBLICADO** (`.filter(it => import.meta.env.DEV || !it.dev)` — vira `!it.dev` no build, então somem). `SpriteLabScene` e `VfxLabScene` também só entram no array de cenas do `config.ts` sob `import.meta.env.DEV` (spread condicional; a classe é tree-shaken do bundle publicado — só o literal de rota no `MenuScene` fica). No `bun dev` (e no smoke/audit, que rodam contra o dev server, `DEV === true`) tudo continua visível — é o loop rápido de validar arte/pular pra fase. **NÃO listar como problema em auditorias**: no jogo publicado essas ferramentas não aparecem nem são alcançáveis.
 - **Tipografia SELF-HOSTED (sem CDN)**: identidade em `systems/Fonts.ts` (`display` = Press Start 2P títulos, `body` = VT323 corpo, `mono` = system p/ números de HUD). As woff2 (OFL, obtidas via fontsource) vivem em `public/assets/fonts/` e são declaradas por `@font-face` em `src/styles.css`. **NÃO usar Google Fonts CDN**: o ambiente/CSP bloqueia `fonts.googleapis.com` → o CDN caía sempre no fallback monospace (a tipografia ficava invisível). `pixelArt: true` põe `image-rendering: pixelated` no canvas → o texto TTF é upscalado nearest-neighbor junto com os sprites e fica **crisp** (sondado a 1600×900); por isso BitmapText é desnecessário aqui.
 - **Fundos pintados em WebP**: os 3 fundos pintados grandes (`bg-menu`, `bg-openspace`, `bg-atendimento`) são `.webp` q82 — PNG era péssimo p/ arte pintada (gradientes), o WebP corta **~94%** (3,5MB → 0,2MB no boot) sem perda visível. `bgUrl()` (BgOverrides) é **extension-aware** via `WEBP_BGS`: retorna `.webp` p/ esses 3, `.png` p/ os skylines chapados das Fases 2–5 (que ainda são pequenos, 32–44KB; quando ganharem arte pintada de alta-res, converter p/ WebP e adicionar ao `WEBP_BGS`). **Caveat DEV**: o endpoint `FIXAR FUNDO NO REPO` grava `.png` — promover um dos 3 WebP por lá geraria um `.png` órfão (não carregado). Não afeta o jogo (esses 3 já têm arte boa); só re-promover exigiria gravar `.webp`.
 - **furnitureBodies separado de platforms** (V2): móveis bloqueiam player **e** inimigos de chão; inimigos dão um pulinho ao travar (respeitam a mesa sem clipar/prender).

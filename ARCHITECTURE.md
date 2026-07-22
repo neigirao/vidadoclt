@@ -9,10 +9,13 @@ Browser
   └── React (TanStack Start shell)
         └── GameMount.tsx
               └── Phaser.Game (canvas)
-                    ├── BootScene
-                    ├── OpenSpaceScene
-                    └── GameOverScene
+                    ├── PreloadScene → BootScene → MenuScene
+                    ├── OpenSpaceV2Scene (Fase 1) → Copa → Fase 2..5 → CEO
+                    └── VitoriaScene / GameOverScene
 ```
+
+> Nota histórica: a V1 `OpenSpaceScene` foi aposentada — só existe a
+> `OpenSpaceV2Scene`. As cenas de fase estendem `BasePhaseScene`.
 
 ## Camadas
 
@@ -103,14 +106,18 @@ Os inimigos são adicionados a `physics.add.group({ runChildUpdate: false })`. A
 Não usa `physics.add.overlap` para ataques do jogador — usa hitboxes calculadas manualmente:
 
 ```
-Player.onAttack(hitbox, comboStep)
-  → OpenSpaceScene.resolveAttack(hb, step)
+Player.onAttack(hb, step, swingId, firstFrame)
+  → cena.resolveAttack(...) → systems/MeleeCombat.resolveMeleeAttack(host, ...)
     → para cada inimigo ativo:
         Phaser.Geom.Intersects.RectangleToRectangle(hb, enemy.getBounds())
-        → se colidiu: enemy.hit(damage, knockback)
+        → se colidiu (dedup por swingId): enemy.hit(damage, knockback)
 ```
 
-**Motivo:** controle preciso sobre o frame exato do hit, sem depender de eventos de física assíncronos. O ataque existe por exatamente 1 frame (hitbox criada e resolvida no mesmo tick).
+**Motivo:** controle preciso do frame do hit, sem latência de eventos de física.
+`systems/MeleeCombat.ts` é a implementação **canônica** (dedup por swingId, juice,
+sparks, healOnKill, elite VR, `flash` de luz reativa); OpenSpaceV2/BasePhaseScene/
+CeoScene delegam via um `MeleeHost`. **Não** reimplementar `resolveAttack` numa
+cena nova — montar um host.
 
 Ataques dos inimigos (Analista Júnior) usam o caminho inverso: o inimigo mantém `swingHitbox` ativo durante o estado `swing`, e a cena checa a intersecção com o player em `update()`.
 
@@ -129,16 +136,54 @@ hudContainer (scrollFactor 0, depth 1000)
 
 `Graphics` é mais eficiente para barras dinâmicas que `Image` escalada porque evita criar texturas intermediárias.
 
-### 8. Texturas (BootScene)
+### 8. Sprites (atlas empacotado)
 
-Todas as texturas são retângulos coloridos gerados em runtime via `Graphics.generateTexture()`. Isso permite rodar o jogo sem nenhum asset externo (zero requisições de rede para sprites).
+Os sprites de personagem/inimigo/boss/objeto vêm de um **atlas empacotado**
+(`public/assets/atlas.png` + `atlas.json`), carregado em `BootScene` como textura
+`"sprites"`. `resolveSprite("tex-<nome>")` (SpriteLibrary) resolve a chave lógica
+para `[textura, frame]`. Alguns assets soltos (backgrounds, tex-floor, projéteis)
+vêm de `load.image`. Texturas simples/geradas em runtime ainda existem em
+`TextureFactory.ts` (makeRect/makeX) para placeholders.
 
-Quando sprites reais forem adicionados:
+Fonte dos sprites: PNGs individuais em `public/assets/sprites/` (a **fonte** do
+atlas). Após editar qualquer PNG, re-empacotar: `node scripts/pack-atlas.mjs`.
+Ver `CLAUDE.md` → "Sistema de sprites" para o pipeline completo (cobertura de
+frames, audits, LAB de sprites, geração procedural).
 
-1. Colocar imagens em `public/assets/`
-2. Carregar em `BootScene.preload()`: `this.load.image("tex-player", "assets/player.png")`
-3. Remover o `makeRect("tex-player", ...)` correspondente
-4. Ativar `pixelArt: true` já está no config — funciona sem mudança
+### 8b. Camada de sistemas visuais (juice/leitura)
+
+Sobre o gameplay há uma camada de sistemas puramente visuais, cada um seguindo o
+padrão "follow" (lista de pares repovoada no `update` da cena):
+
+- **`ContactShadows`** — elipse de sombra sob cada personagem, ancorada ao chão
+  (encolhe ao pular).
+- **`RimLight`** — contorno quente que separa o sprite do fundo (cópia ADD
+  deslocada; `sprite.preFX` não existe nesta build).
+- **`SecondaryMotion`** — crachá pendular do player (follow-through por pêndulo
+  mola-amortecedor).
+- **`Lighting`** — lightmap aditivo (penumbra + poças de luz) com `flash()`
+  reativo a combate (impacto/morte acendem o ambiente). Ligado no CEO + Fases 2–5.
+- **`ParticleFactory` + `Vfx`** — catálogo único de VFX (paleta `VFX_PALETTE`);
+  `VfxLabScene` (DEV) é o visualizador.
+- **`BossPresence`**, **`ThreatMarkers`**, **`EliteSystem`**, **`SanityFx`**,
+  **`PostFx`**, **`CombatFx`/`Juice`** — presença de boss, leitura de ameaça,
+  elites, efeitos de sanidade, grade cinematográfico e juice de combate.
+
+Todos respeitam `reduceSanityFx` (acessibilidade) onde faz sentido.
+
+### 8c. Portões de qualidade (CI)
+
+Além de `tsc`/lint/testes, o CI roda gates determinísticos (ver `CLAUDE.md` →
+Comandos):
+
+- `check:frames` — piso de cobertura de frames por categoria×ação.
+- `smoke` — boota cada cena headless (erro de console = falha).
+- `validate:levels` — boota cada fase × seed × rota e reprova nível **injogável**
+  (`LevelValidator` headless; `scene.lastLevelReport`).
+- `audit:sprites` — defeito mecânico de frame (vazio/chapado/faltando).
+- `audit:anim --gate` — **ratchet de suavidade** (não-regressão vs
+  `anim-baseline.json`; ver `docs/ANIM_POLICY.md`).
+- `visual` — regressão pixel-a-pixel de cenas de UI (não-bloqueante por ora).
 
 ### 9. Persistência (`systems/PlayerState.ts`)
 
