@@ -47,6 +47,7 @@ import { Music } from "../systems/MusicSystem";
 import { MeleeHost } from "../systems/MeleeCombat";
 import { ProductivityMeter } from "../systems/ProductivityMeter";
 import { ContactShadows } from "../systems/ContactShadows";
+import { RimLight } from "../systems/RimLight";
 import { Apagao } from "../systems/Apagao";
 import { BasePhaseScene, DOOR_DEPTH } from "./BasePhaseScene";
 
@@ -785,9 +786,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // própria (BossPresence), então fica de fora.
     this.contactShadows = new ContactShadows(this);
     this.contactShadows.add(this.player, 0.55);
+    // Rim-light: contorno quente que separa os personagens do fundo. O Gerente
+    // fica de fora (aura própria via BossPresence).
+    this.rimLight = new RimLight(this);
+    this.rimLight.add(this.player);
     for (const { group } of this.enemyGroups) {
       group.getChildren().forEach((obj) => {
         this.contactShadows!.add(obj as Parameters<ContactShadows["add"]>[0]);
+        this.rimLight!.add(obj as Parameters<RimLight["add"]>[0]);
       });
     }
 
