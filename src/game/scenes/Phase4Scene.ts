@@ -64,7 +64,7 @@ export class Phase4Scene extends BasePhaseScene {
   protected getDoorConfig() {
     return {
       x: LEVEL_WIDTH - 60,
-      tint: 0x555555,
+      tint: 0x8a8a8a,
       label: "COPA\n[BLOQUEADO]",
       cameFrom: "phase4",
       destScene: "CopaScene",

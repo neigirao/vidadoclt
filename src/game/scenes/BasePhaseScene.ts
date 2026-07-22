@@ -48,6 +48,10 @@ import { ProductivityMeter } from "../systems/ProductivityMeter";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
+// Depth da porta de saída: acima do decor de cenário (que chega a ~depth 9),
+// abaixo do player (depth 10) — o CLT passa NA FRENTE da porta. Antes a porta
+// ficava em depth 0 e um prop de decor (depth 2) a ocultava na Fase 1.
+export const DOOR_DEPTH = 6;
 
 export interface EnemyGroupDef {
   group: Phaser.Physics.Arcade.Group;
@@ -456,16 +460,17 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 3. Door
     const doorCfg = this.getDoorConfig();
-    this.doorEl = this.add.image(doorCfg.x, FLOOR_Y - 30, "tex-door");
+    this.doorEl = this.add.image(doorCfg.x, FLOOR_Y - 30, "tex-door").setDepth(DOOR_DEPTH);
     this.doorEl.setTint(doorCfg.tint);
     this.doorLabel = this.add
       .text(doorCfg.x, FLOOR_Y - 72, doorCfg.label, {
         fontFamily: "monospace",
         fontSize: "9px",
-        color: "#666666",
+        color: "#8a8a8a",
         align: "center",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(DOOR_DEPTH);
 
     // 4. Player setup (bloco idêntico compartilhado com a Fase 1 — ver buildPlayer)
     const spawnX = run.cameFrom === "copa" ? 120 : 80;
