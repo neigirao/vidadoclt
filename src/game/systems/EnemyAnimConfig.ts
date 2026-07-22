@@ -16,32 +16,32 @@
 // walk interpolado 2× (ex.: senior 16→32). Contagens hardcoded aqui (não via
 // AtlasFrameScan) p/ o cycling não depender da varredura de pixels em runtime.
 export const WALK_FRAME_COUNTS: Record<string, number> = {
-  // 5 inimigos da Fase 1: arte real da s7 (4 frames) dobrada p/ 16 via
-  // gen-inbetweens (16 frames/ação — alvo do projeto). WALK_MS ajustado p/ manter
-  // a duração do ciclo.
-  estagiario: 16,
-  analista: 16,
-  facilitador: 16,
-  scrum: 16,
-  coordenador: 16,
-  senior: 16, // revertido de 32: o in-between por blend fantasmava a cauda do walk (2 personagens). Arte original limpa de 16 frames.
-  rh: 16,
-  // Bosses recolor (asBoss)
+  // REVERTIDO à arte ORIGINAL LIMPA (pré-projeto 16-frames): os in-betweens por
+  // blend fantasmavam frames do meio/cauda do ciclo (poses borradas/duplas —
+  // flagado por audit:anim como loop-pop, confirmado visualmente). Ciclos curtos
+  // e limpos > inflados e corrompidos. senior fica 16 (arte premium, sem ghost).
+  estagiario: 4,
+  analista: 4,
+  facilitador: 2,
+  scrum: 6,
+  coordenador: 4,
+  senior: 16,
+  rh: 4,
+  // Bosses recolor (asBoss) — mantidos (não flagados pelo audit)
   "scrum-boss": 24,
   "coord-boss": 16,
 };
 
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
-  // 5 inimigos da Fase 1: idle real da s7 (4 frames) dobrado 2× p/ 16 (alvo do
-  // projeto). IDLE_MS ajustado p/ manter a cadência calma de respiração.
-  estagiario: 16,
-  analista: 16,
-  facilitador: 16,
-  scrum: 16,
-  coordenador: 16,
-  // senior/rh e os bosses-recolor levados a 16 (idle dobrado via gen-inbetweens).
-  senior: 16,
-  rh: 16,
+  // Revertido à arte original (idle3 de estagiario/analista/facilitador era frame
+  // corrompido → 3). Mesma razão do walk.
+  estagiario: 3,
+  analista: 3,
+  facilitador: 3,
+  scrum: 4,
+  coordenador: 4,
+  senior: 4,
+  rh: 4,
   "scrum-boss": 16,
   "coord-boss": 16,
 };
@@ -75,25 +75,25 @@ export const ATTACK_FRAME_COUNTS: Record<string, number> = {
 // in-betweens sintéticos (gen-inbetweens.mjs). Metade do ms por frame mantém a
 // MESMA duração de ciclo de antes — só mais suave. (ex.: senior 32×35 ≈ 16×70.)
 export const WALK_MS: Record<string, number> = {
-  estagiario: 55, // 16 × 55 ≈ 880ms/ciclo
-  analista: 65, // 16 × 65 ≈ 1040ms
-  facilitador: 55,
-  scrum: 68, // 16 × 68 ≈ 1090ms
-  coordenador: 70, // 16 × 70 ≈ 1120ms
-  senior: 70, // 16 × 70 ≈ 1.1s (walk revertido a 16 frames limpos; era 32×35)
-  rh: 65,
+  // Cadência ORIGINAL restaurada (com a revert dos frames): ciclos curtos e
+  // snappy. senior fica 70 (16 frames × 70 ≈ 1.1s).
+  estagiario: 160,
+  analista: 200,
+  facilitador: 180,
+  scrum: 140,
+  coordenador: 220,
+  senior: 70,
+  rh: 200,
 };
 
 export const IDLE_MS: Record<string, number> = {
-  // 5 inimigos da Fase 1: idle 16 frames → ms baixo mantém a respiração calma.
-  estagiario: 70, // 16 × 70 ≈ 1.1s/ciclo
-  analista: 80,
-  facilitador: 75,
-  scrum: 65,
-  coordenador: 88,
-  // senior/rh/bosses-recolor: idle 16 frames → ms baixo mantém a respiração calma.
-  senior: 125,
-  rh: 80,
+  estagiario: 280,
+  analista: 320,
+  facilitador: 300,
+  scrum: 260,
+  coordenador: 350,
+  senior: 500,
+  rh: 320,
   "scrum-boss": 90,
   "coord-boss": 90,
 };
