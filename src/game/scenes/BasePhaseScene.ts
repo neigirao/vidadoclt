@@ -127,6 +127,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected doorLabel!: Phaser.GameObjects.Text;
   protected interactKey!: Phaser.Input.Keyboard.Key;
   protected levelWidth = LEVEL_WIDTH;
+  // Último relatório do LevelValidator (DEV) — exposto p/ o gate headless
+  // `bun validate:levels` ler `scene.lastLevelReport` e reprovar seeds injogáveis.
+  lastLevelReport?: import("../systems/LevelValidator").LevelReport;
   protected enemyGroups: EnemyGroupDef[] = [];
   protected combatFx!: CombatFx;
   // Iluminação dinâmica das Fases 2–5 (a Fase 1 tem create() próprio e não a usa;
@@ -398,6 +401,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected installLevelDebug(spec: Parameters<typeof validateLevel>[0], label: string): void {
     if (!import.meta.env.DEV) return;
     const report = validateLevel(spec);
+    this.lastLevelReport = report;
     logLevelReport(label, report);
     let overlay: Phaser.GameObjects.Container | undefined;
     this.input.keyboard?.on("keydown-V", () => {
@@ -1847,8 +1851,17 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       const b = (p as Phaser.GameObjects.GameObject & { body?: Phaser.Physics.Arcade.StaticBody })
         .body;
       if (!b) return;
-      // Só plataformas realmente elevadas (não a base do chão) e longe do boss.
-      if (b.y < FLOOR_Y - 45 && b.x + b.width / 2 < LEVEL_WIDTH - 260 && b.y < bestTop) {
+      // Só plataformas realmente elevadas (não a base do chão), longe do boss E
+      // longe do spawn do player: em layouts de alturas alternadas a plataforma
+      // mais alta pode cair à esquerda, colando o inimigo relocado no spawn
+      // (reprovava spawn-seguro no LevelValidator). Margem = raio seguro + folga.
+      const pcx = b.x + b.width / 2;
+      if (
+        b.y < FLOOR_Y - 45 &&
+        pcx < LEVEL_WIDTH - 260 &&
+        pcx > this.player.x + 220 &&
+        b.y < bestTop
+      ) {
         bestTop = b.y;
         best = b;
       }
