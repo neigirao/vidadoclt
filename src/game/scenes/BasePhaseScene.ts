@@ -42,6 +42,7 @@ import { applyPerk, PERKS, PerkId, synergyPreview } from "../systems/PerkSystem"
 import { GameEnemy, BossEntity } from "../entities/types";
 import { BossPresence } from "../systems/BossPresence";
 import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
+import { ContactShadows } from "../systems/ContactShadows";
 import { EliteSystem, eliteChance, rollElite } from "../systems/EliteSystem";
 import { ProductivityMeter } from "../systems/ProductivityMeter";
 
@@ -92,6 +93,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected bossPresence?: BossPresence;
   protected threatMarkers?: ThreatMarkers;
   protected elites?: EliteSystem;
+  protected contactShadows?: ContactShadows;
   // Momentum (Produtividade run-wide): streak de kills → mult de VR. Antes só na
   // Fase 1; agora todas as Fases 2–5 herdam via Base (a F1 mantém a própria).
   protected momentum?: ProductivityMeter;
@@ -513,6 +515,17 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       def.group.getChildren().forEach((obj) => {
         const e = obj as Phaser.GameObjects.Sprite & { threatType?: ThreatType };
         if (e.threatType) this.threatMarkers!.add(e, e.threatType);
+      });
+    }
+
+    // 8-shadows. Sombras de contato: ancoram player + inimigos no chão (encolhem
+    // ao pular). Leitura espacial base — sempre ligada. O boss já tem sombra
+    // própria (BossPresence), então fica de fora daqui.
+    this.contactShadows = new ContactShadows(this);
+    this.contactShadows.add(this.player, 0.55);
+    for (const def of this.enemyGroups) {
+      def.group.getChildren().forEach((obj) => {
+        this.contactShadows!.add(obj as Parameters<ContactShadows["add"]>[0]);
       });
     }
 
@@ -938,6 +951,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 6. Marcadores de ameaça + parry hint + weapon pickups + near-door check
     this.threatMarkers?.update();
     this.elites?.update();
+    this.contactShadows?.update();
     this.momentum?.draw(time);
     this.updateParryHint(time);
     this.updateWeaponPickups();

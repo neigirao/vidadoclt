@@ -46,6 +46,7 @@ import { Telemetry } from "../systems/Telemetry";
 import { Music } from "../systems/MusicSystem";
 import { MeleeHost } from "../systems/MeleeCombat";
 import { ProductivityMeter } from "../systems/ProductivityMeter";
+import { ContactShadows } from "../systems/ContactShadows";
 import { Apagao } from "../systems/Apagao";
 import { BasePhaseScene } from "./BasePhaseScene";
 
@@ -775,6 +776,17 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     // Elites (staple roguelite): promove alguns inimigos por seed. Herdado de Base.
     this.sprinkleElites(run);
+
+    // Sombras de contato: ancoram player + inimigos no chão (encolhem ao pular).
+    // Leitura espacial base — atualizada em onPhaseUpdate. O Gerente tem sombra
+    // própria (BossPresence), então fica de fora.
+    this.contactShadows = new ContactShadows(this);
+    this.contactShadows.add(this.player, 0.55);
+    for (const { group } of this.enemyGroups) {
+      group.getChildren().forEach((obj) => {
+        this.contactShadows!.add(obj as Parameters<ContactShadows["add"]>[0]);
+      });
+    }
 
     // Validação de fase (só DEV) + overlay na tecla V — helper compartilhado.
     this.installLevelDebug(
