@@ -21,6 +21,8 @@
     "audit:sprites": "node scripts/audit-sprites.mjs",
     "audit:palette": "node scripts/palette-consistency.mjs",
     "audit:anim": "node scripts/audit-anim.mjs",
+    "close:loops": "node scripts/close-loops.mjs",
+    "trim:filler": "node scripts/trim-filler.mjs",
     "deghost": "node scripts/deghost-frames.mjs",
     "sim:balance": "bun scripts/balance-sim.mjs",
     "juice:report": "bun scripts/juice-report.mjs",
