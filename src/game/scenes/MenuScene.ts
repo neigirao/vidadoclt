@@ -59,6 +59,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { label: "RANKING", icon: "🏆" },
   { label: "BESTIARIO", icon: "👾" },
   { label: "LAB SPRITES", icon: "🔬", firstRun: true, dev: true },
+  { label: "LAB VFX", icon: "✨", firstRun: true, dev: true },
   { label: "TELEMETRIA", icon: "📊", firstRun: true, dev: true },
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
@@ -482,6 +483,11 @@ export class MenuScene extends Phaser.Scene {
       this.cameras.main.fadeOut(200, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("SpriteLabScene");
+      });
+    } else if (item.label === "LAB VFX") {
+      this.cameras.main.fadeOut(200, 0, 0, 0);
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        this.scene.start("VfxLabScene");
       });
     } else if (item.label === "TELEMETRIA") {
       // Painel de telemetria é uma rota React (/telemetria), fora do Phaser —

@@ -1,12 +1,25 @@
 import Phaser from "phaser";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PALETA DE VFX — fonte única das cores dos efeitos corporativos. Antes cada
+// método tinha o seu array inline (fácil divergir: um "azul de papel" diferente
+// por efeito). Centralizado aqui e consumido abaixo + pelo catálogo (Vfx.ts).
+// ─────────────────────────────────────────────────────────────────────────────
+export const VFX_PALETTE = {
+  spark: 0xffffff, // faísca de hit leve
+  ink: [0x4a90d9, 0xd0e4f8, 0x2a5a9a, 0xffffff, 0x1a3a6a], // hit pesado (tinta/papel)
+  death: [0xffffff, 0x4a90d9, 0xd0e4f8, 0xaaaaaa, 0x2a3a5a], // morte (papel + café)
+  gold: 0xffd766, // pickup (VR/dourado)
+  dust: 0xc9c2b3, // poeira de pouso
+} as const;
+
 export class ParticleFactory {
   static hitLight(scene: Phaser.Scene, x: number, y: number) {
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
       const speed = 48 + Math.floor(Math.random() * 3) * 16; // multiples of 16 for pixel grid
       const g = scene.add.graphics().setDepth(50);
-      g.fillStyle(0xffffff, 1);
+      g.fillStyle(VFX_PALETTE.spark, 1);
       g.fillRect(-2, -2, 4, 4);
       g.setPosition(Math.round(x), Math.round(y));
       scene.tweens.add({
@@ -28,7 +41,7 @@ export class ParticleFactory {
 
   // Corporate-themed heavy hit: paper/ink blue palette
   static hitHeavy(scene: Phaser.Scene, x: number, y: number) {
-    const corpColors = [0x4a90d9, 0xd0e4f8, 0x2a5a9a, 0xffffff, 0x1a3a6a];
+    const corpColors = VFX_PALETTE.ink;
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
       const speed = 64 + Math.floor(Math.random() * 4) * 16; // 64,80,96,112
@@ -58,7 +71,7 @@ export class ParticleFactory {
     for (let i = 0; i < 6; i++) {
       const side = i < 3 ? -1 : 1;
       const g = scene.add.graphics().setDepth(9);
-      g.fillStyle(0xc9c2b3, 0.75);
+      g.fillStyle(VFX_PALETTE.dust, 0.75);
       const s = 2 + Math.floor(Math.random() * 2);
       g.fillRect(-s / 2, -s / 2, s, s);
       g.setPosition(Math.round(x + side * (2 + Math.random() * 4)), Math.round(y));
@@ -75,7 +88,12 @@ export class ParticleFactory {
   }
 
   // Faísca de pickup — brilho dourado radial, curto, sem gravidade.
-  static pickupSparkle(scene: Phaser.Scene, x: number, y: number, color = 0xffd766) {
+  static pickupSparkle(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    color: number = VFX_PALETTE.gold,
+  ) {
     for (let i = 0; i < 10; i++) {
       const angle = (i / 10) * Math.PI * 2;
       const speed = 30 + Math.floor(Math.random() * 4) * 8;
@@ -113,7 +131,7 @@ export class ParticleFactory {
 
   // Corporate-themed death: paper shreds + coffee spill
   static enemyDeath(scene: Phaser.Scene, x: number, y: number) {
-    const corpColors = [0xffffff, 0x4a90d9, 0xd0e4f8, 0xaaaaaa, 0x2a3a5a];
+    const corpColors = VFX_PALETTE.death;
     for (let i = 0; i < 22; i++) {
       const angle = (i / 22) * Math.PI * 2 + Math.random() * 0.3;
       const speed = 48 + Math.floor(Math.random() * 5) * 16; // 48,64,80,96,112
@@ -140,5 +158,31 @@ export class ParticleFactory {
         onComplete: () => g.destroy(),
       });
     }
+  }
+
+  // Aro que expande e desbota — telegrafia de AoE / impacto / choque. Padrão
+  // reusado ad-hoc em várias cenas (extintor, enrage, parry, choques). Canônico
+  // aqui p/ 1 timing/estilo só.
+  static ringPulse(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    radius = 40,
+    color = VFX_PALETTE.gold,
+    duration = 320,
+  ) {
+    const ring = scene.add.graphics().setDepth(55);
+    ring.lineStyle(2, color, 0.9);
+    ring.strokeCircle(0, 0, radius);
+    ring.setPosition(Math.round(x), Math.round(y)).setScale(0.2);
+    scene.tweens.add({
+      targets: ring,
+      scaleX: 1,
+      scaleY: 1,
+      alpha: 0,
+      duration,
+      ease: "Cubic.easeOut",
+      onComplete: () => ring.destroy(),
+    });
   }
 }
