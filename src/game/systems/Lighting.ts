@@ -144,6 +144,34 @@ export class Lighting {
     return l;
   }
 
+  /**
+   * FLASH reativo one-shot: uma poça de luz que ACENDE forte e apaga sozinha —
+   * a iluminação responde ao combate (impacto/morte/tiro clareiam o ambiente por
+   * um instante em vez do lightmap ficar estático). Auto-destrói ao fim; barato.
+   *
+   * @param color cor do lampejo (branco p/ hit, dourado p/ VR, vermelho p/ boss…).
+   * @param radius raio no ápice. @param intensity alpha no ápice. @param ms duração.
+   */
+  flash(x: number, y: number, color = 0xffffff, radius = 130, intensity = 1.1, ms = 200): void {
+    if (!this.enabled) return;
+    const img = this.scene.add
+      .image(x, y, LIGHT_TEX)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(LIGHT_DEPTH)
+      .setDisplaySize(radius * 0.6, radius * 0.6)
+      .setTint(color)
+      .setAlpha(intensity);
+    this.scene.tweens.add({
+      targets: img,
+      displayWidth: radius * 2,
+      displayHeight: radius * 2,
+      alpha: 0,
+      duration: ms,
+      ease: "Quad.easeOut",
+      onComplete: () => img.destroy(),
+    });
+  }
+
   /** Anima o flicker das luzes. Chamar no update da cena (t = this.time.now). */
   update(t: number): void {
     if (!this.enabled) return;

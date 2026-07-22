@@ -123,6 +123,20 @@ export function resolveMeleeAttack(
     return true;
   };
   const sparks = (x: number, y: number) => spawnHitSparks(scene, x, y, isFinisher);
+  // Iluminação reativa: se a cena tem lightmap ativo (Fases 2–5/CEO), o impacto
+  // ACENDE o ambiente por um instante. Duck-typed p/ não acoplar MeleeCombat ao
+  // tipo da cena; no-op onde não há Lighting (Fase 1) ou sob reduceSanityFx.
+  const lit = (
+    scene as unknown as {
+      lighting?: {
+        active: boolean;
+        flash: (x: number, y: number, c: number, r: number, i: number, ms: number) => void;
+      };
+    }
+  ).lighting;
+  const flashLight = (x: number, y: number, color: number, radius: number, ms: number) => {
+    if (lit?.active) lit.flash(x, y, color, radius, 1.1, ms);
+  };
 
   for (const { group, vrDrop } of host.getGroups()) {
     group.getChildren().forEach((c) => {
@@ -146,6 +160,7 @@ export function resolveMeleeAttack(
       CombatFx.flashSprite(e, 55);
       if (isFinisher) ParticleFactory.hitHeavy(scene, e.x, e.y - 20);
       else ParticleFactory.hitLight(scene, e.x, e.y - 20);
+      flashLight(e.x, e.y - 16, 0xfff2d0, isFinisher ? 150 : 90, isFinisher ? 220 : 150);
       combatFx.spawnDamageNumber(
         e.x,
         e.y - 20,
@@ -156,6 +171,7 @@ export function resolveMeleeAttack(
       if (e.hit(damage, knockback)) {
         Sfx.enemyDeath();
         ParticleFactory.enemyDeath(scene, e.x, e.y - 10);
+        flashLight(e.x, e.y - 10, 0xffffff, 170, 280);
         const mult = host.killVrMult?.(e.x, e.y) ?? 1;
         const burnout = player.getBurnoutMods();
         host.dropVR(e.x, e.y, meleeVrDrop(vrDrop, player.vrDropMult, mult, burnout.vrDropMult));
@@ -193,6 +209,7 @@ export function resolveMeleeAttack(
     } else {
       ParticleFactory.hitLight(scene, boss.x, boss.y - 20);
     }
+    flashLight(boss.x, boss.y - 20, 0xffd0c0, isFinisher ? 190 : 120, isFinisher ? 260 : 170);
     combatFx.spawnDamageNumber(
       boss.x,
       boss.y - 20,

@@ -4,6 +4,7 @@ import { BootScene } from "./scenes/BootScene";
 import { MenuScene } from "./scenes/MenuScene";
 import { ClassSelectScene } from "./scenes/ClassSelectScene";
 import { SpriteLabScene } from "./scenes/SpriteLabScene";
+import { VfxLabScene } from "./scenes/VfxLabScene";
 import { IntroScene } from "./scenes/IntroScene";
 import { LdtkRoomScene } from "./scenes/LdtkRoomScene";
 import { OpenSpaceV2Scene } from "./scenes/OpenSpaceV2Scene";
@@ -103,7 +104,7 @@ export function buildGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConf
       // smoke/audit, que rodam contra o dev server). No build PUBLICADO
       // `import.meta.env.DEV` é false → a cena sai do array e o Rollup dropa o
       // import por tree-shaking (menor bundle, sem ferramenta de teste no jogo).
-      ...(import.meta.env.DEV ? [SpriteLabScene] : []),
+      ...(import.meta.env.DEV ? [SpriteLabScene, VfxLabScene] : []),
     ],
   };
 }
