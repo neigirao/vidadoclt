@@ -289,10 +289,19 @@ falta: os gates acima veem *quantidade*/*tamanho*/*conteúdo* de FRAME, mas são
 MOVIMENTO. Este lê o atlas e mede o DELTA de pixel entre frames vizinhos (e o wrap
 último→primeiro nos ciclos), flagando **dead** (não se mexe), **jerk** (pulo brusco no
 ciclo), **loop-pop** (estala ao repetir) e **padded** (só X% dos frames se movem — filler).
-Estático/determinístico, relatório por padrão (`--gate` opt-in, NÃO no CI). **Achado
-sistêmico:** os in-betweens de 16 frames produziram ciclos com muito filler quase-duplicado
-e loops que não fecham (uniformidade ~0, loop-pop generalizado) — os "16 frames" não leem
-como mais suaves. Candidato a re-gerar in-betweens com fechamento de loop, ou enxugar.
+Estático/determinístico, relatório por padrão. **Achado sistêmico (confirmado 2×):** os
+in-betweens de 16 frames por blend produzem ciclos com filler quase-duplicado e loops que
+não fecham (loop-pop generalizado) — os "16 frames" NÃO leem como mais suaves. Tentar
+"fechar loop" com MAIS ponte por blend (`close:loops`) só PIORA (jerk/loop-pop sobem);
+`trim:filler` não remove nada (já no piso do `check:frames`). **Suavidade real acima do
+baseline limpo só sai de arte autoral** — o blend é beco sem saída.
+
+**`--gate` = GATE RATCHET no CI (job check).** Não exige zerar os defeitos (impossível sem
+arte); trava a NÃO-REGRESSÃO: compara a contagem por tipo (dead/jerk/loop-pop/padded) contra
+`scripts/anim-baseline.json` e reprova se qualquer tipo piorar. Foi calibrado assim porque um
+teto absoluto exigiria primeiro reverter/redesenhar. **Teria bloqueado o lote que piorou
+loop-pop 50→62.** Melhorou de verdade (revert de blend, arte nova, trim)? `bun audit:anim
+--update-baseline` regrava o teto e trava o ganho — o ratchet só anda pra baixo. `--json`/`--top=N`.
 
 **Limite conhecido:** os gates cobrem *quantidade*, coerência de *contagem*, *tamanho* de
 canvas (`check:frames`), *conteúdo* vazio/chapado/faltando (`audit:sprites`), *paleta*
