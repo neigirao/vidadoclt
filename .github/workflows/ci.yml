@@ -43,6 +43,14 @@ jobs:
       - name: Cobertura de frames (por família/estado)
         run: bun run check:frames
 
+      # Auditor de suavidade de animação (dead/jerk/loop-pop/padded). Roda como
+      # WARNING p/ observar tendências — sem --gate, não bloqueia. Vira portão de
+      # verdade quando os alertas atuais forem endereçados via close:loops e
+      # trim:filler.
+      - name: Auditor de animação (informativo)
+        continue-on-error: true
+        run: bun run audit:anim
+
   # Smoke de cenas: boota CADA cena num navegador headless e falha se houver
   # erro de console/exceção. Pega regressões de render/scene que o bun:test
   # (sem Phaser) não vê. Playwright é instalado de forma EFÊMERA (não vai pro
