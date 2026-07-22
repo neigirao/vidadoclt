@@ -70,7 +70,7 @@ function nearest(pal, r, g, b) {
   }
   return best;
 }
-function tween(A, B) {
+function tween(A, B, t = 0.5) {
   const pal = paletteOf([A, B]);
   const out = Buffer.alloc(A.data.length);
   for (let i = 0; i < A.data.length; i += 4) {
@@ -81,9 +81,9 @@ function tween(A, B) {
     if (!oA && !oB) continue;
     let r, g, b;
     if (oA && oB) {
-      r = (A.data[i] + B.data[i]) >> 1;
-      g = (A.data[i + 1] + B.data[i + 1]) >> 1;
-      b = (A.data[i + 2] + B.data[i + 2]) >> 1;
+      r = Math.round(A.data[i] * (1 - t) + B.data[i] * t);
+      g = Math.round(A.data[i + 1] * (1 - t) + B.data[i + 1] * t);
+      b = Math.round(A.data[i + 2] * (1 - t) + B.data[i + 2] * t);
     } else if (oA) {
       [r, g, b] = [A.data[i], A.data[i + 1], A.data[i + 2]];
     } else {
@@ -96,6 +96,24 @@ function tween(A, B) {
     out[i + 3] = 255;
   }
   return { data: out, w: A.w, h: A.h };
+}
+function frameDelta(a, b) {
+  if (!a || !b || a.w !== b.w || a.h !== b.h) return Infinity;
+  let sum = 0;
+  const n = a.data.length;
+  for (let i = 0; i < n; i += 4) {
+    sum +=
+      (Math.abs(a.data[i] - b.data[i]) +
+        Math.abs(a.data[i + 1] - b.data[i + 1]) +
+        Math.abs(a.data[i + 2] - b.data[i + 2]) +
+        Math.abs(a.data[i + 3] - b.data[i + 3])) /
+      4;
+  }
+  return sum / (n / 4);
+}
+function median(xs) {
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length ? s[Math.floor(s.length / 2)] : 0;
 }
 const rawToPng = (fr) => sharp(fr.data, { raw: { width: fr.w, height: fr.h, channels: 4 } }).png();
 
