@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Close-loops — fecha os LOOP-POPs sinalizados por audit:anim. Determinístico,
-// sem IA. Roda o auditor em JSON, seleciona famílias walk/idle/run com flag
-// `loop-pop`, e para cada uma gera 1 frame extra AO FINAL: o in-between entre
-// o último frame e o primeiro (mesmo motor de blend + trava-de-paleta do
-// gen-inbetweens.mjs). Isso suaviza o wrap → o ciclo deixa de "estalar" quando
-// repete. Reempacota o atlas 1× no fim.
+// sem IA. Para cada família walk/idle/run com flag `loop-pop`, calcula quantos
+// frames de PONTE precisa entre o último e o primeiro para o wrap deixar de
+// estalar (delta ≤ ~3×baseline), e insere N frames interpolados por blend +
+// trava-de-paleta (mesmo motor do gen-inbetweens.mjs) AO FINAL do ciclo.
+// Reempacota o atlas 1× no fim.
 //
-// Uso: node scripts/close-loops.mjs [--dry] [--include-attack]
+// Uso: node scripts/close-loops.mjs [--dry] [--include-attack] [--max=N]
 // ─────────────────────────────────────────────────────────────────────────────
 import sharp from "sharp";
 import { existsSync } from "node:fs";
