@@ -13,7 +13,7 @@
 // instantâneo e determinístico. É um MODELO DE 1ª ORDEM: pega desproporção grossa
 // e regressão, não substitui playtest (ver cabeçalho de BalanceModel.ts).
 // ─────────────────────────────────────────────────────────────────────────────
-import { analyzeBalance, THRESHOLDS } from "../src/game/systems/BalanceModel.ts";
+import { analyzeBalance, analyzeElites, THRESHOLDS } from "../src/game/systems/BalanceModel.ts";
 
 const args = process.argv.slice(2);
 const asJson = args.includes("--json");
@@ -22,14 +22,34 @@ const loopArg = args.find((a) => a.startsWith("--loop="));
 const loop = loopArg ? Math.max(0, parseInt(loopArg.split("=")[1], 10) || 0) : 0;
 
 const report = analyzeBalance(loop);
-
-if (asJson) {
-  console.log(JSON.stringify(report, null, 2));
-  process.exit(gate && report.flags.some((f) => f.severity === "warn") ? 1 : 0);
-}
+const elite = args.includes("--elite");
 
 const pad = (s, n) => String(s).padEnd(n);
 const padL = (s, n) => String(s).padStart(n);
+
+if (asJson) {
+  const out = elite ? { ...report, elites: analyzeElites(loop) } : report;
+  console.log(JSON.stringify(out, null, 2));
+  process.exit(gate && report.flags.some((f) => f.severity === "warn") ? 1 : 0);
+}
+
+// Modo --elite: só a seção de elites (impacto dos afixos).
+if (elite) {
+  const er = analyzeElites(loop);
+  console.log(`\n── Elites ── loop ${loop} · ref: ${er.refLabel} (${er.refHp.toFixed(0)} HP) ──\n`);
+  console.log(
+    `  ${pad("afixo", 14)}${padL("HP×", 6)}${padL("dano×", 7)}${padL("TTK(s)", 8)}${padL("×base", 7)}${padL("VR+", 6)}  comportamento`,
+  );
+  for (const a of er.affixes) {
+    console.log(
+      `  ${pad(a.label, 14)}${padL(a.hpMult.toFixed(2), 6)}${padL(a.dmgMult.toFixed(2), 7)}${padL(a.ttk.toFixed(1), 8)}${padL(a.ttkVsBase.toFixed(1) + "×", 7)}${padL(a.vrBonus, 6)}  ${a.behavior}`,
+    );
+  }
+  console.log(
+    `\n  → base TTK ${(er.refHp / er.avgDps).toFixed(1)}s · elites aguentam ${er.affixes[0].ttkVsBase.toFixed(1)}–${Math.max(...er.affixes.map((a) => a.ttkVsBase)).toFixed(1)}× mais e batem até ${Math.max(...er.affixes.map((a) => a.dmgMult)).toFixed(2)}×.\n`,
+  );
+  process.exit(0);
+}
 
 console.log(`\n── Balance Simulator ── loop ${loop}${loop === 0 ? " (Segunda-feira)" : ""} ──\n`);
 
