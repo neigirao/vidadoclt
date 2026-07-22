@@ -48,6 +48,7 @@ import { MeleeHost } from "../systems/MeleeCombat";
 import { ProductivityMeter } from "../systems/ProductivityMeter";
 import { ContactShadows } from "../systems/ContactShadows";
 import { RimLight } from "../systems/RimLight";
+import { SecondaryMotion } from "../systems/SecondaryMotion";
 import { Apagao } from "../systems/Apagao";
 import { BasePhaseScene, DOOR_DEPTH } from "./BasePhaseScene";
 
@@ -790,6 +791,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // fica de fora (aura própria via BossPresence).
     this.rimLight = new RimLight(this);
     this.rimLight.add(this.player);
+    this.badgeMotion = new SecondaryMotion(this, this.player);
     for (const { group } of this.enemyGroups) {
       group.getChildren().forEach((obj) => {
         this.contactShadows!.add(obj as Parameters<ContactShadows["add"]>[0]);
