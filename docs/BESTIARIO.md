@@ -1,7 +1,8 @@
 # Bestiário — A Vida do CLT
 
-> Gerado de `src/game/systems/EnemyCatalog.ts` (fonte única). Não editar à mão — re-gerar quando o catálogo mudar.
-> **31 inimigos** + 6 chefes. Qualquer inimigo comum pode surgir **Elite** por seed (ver `EliteAffixes.ts`).
+> Gerado de `src/game/systems/EnemyCatalog.ts` por `bun docs:bestiary` (fonte única).
+> Não editar à mão — re-gerar quando o catálogo mudar.
+> **31 inimigos** + 6 chefes. Qualquer comum pode surgir **Elite** por seed (`EliteAffixes.ts`).
 
 ## Fase 1 — Open Space
 
