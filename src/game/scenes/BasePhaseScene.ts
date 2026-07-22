@@ -44,6 +44,7 @@ import { BossPresence } from "../systems/BossPresence";
 import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
 import { ContactShadows } from "../systems/ContactShadows";
 import { RimLight } from "../systems/RimLight";
+import { SecondaryMotion } from "../systems/SecondaryMotion";
 import { EliteSystem, eliteChance, rollElite } from "../systems/EliteSystem";
 import { ProductivityMeter } from "../systems/ProductivityMeter";
 
@@ -100,6 +101,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected elites?: EliteSystem;
   protected contactShadows?: ContactShadows;
   protected rimLight?: RimLight;
+  protected badgeMotion?: SecondaryMotion;
   // Momentum (Produtividade run-wide): streak de kills → mult de VR. Antes só na
   // Fase 1; agora todas as Fases 2–5 herdam via Base (a F1 mantém a própria).
   protected momentum?: ProductivityMeter;
@@ -534,6 +536,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // fica de fora (já tem aura própria via BossPresence → evita muddiness).
     this.rimLight = new RimLight(this);
     this.rimLight.add(this.player);
+    // Secondary motion: crachá que balança com o movimento do player (follow-through).
+    this.badgeMotion = new SecondaryMotion(this, this.player);
     for (const def of this.enemyGroups) {
       def.group.getChildren().forEach((obj) => {
         this.contactShadows!.add(obj as Parameters<ContactShadows["add"]>[0]);
@@ -965,6 +969,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.elites?.update();
     this.contactShadows?.update();
     this.rimLight?.update();
+    this.badgeMotion?.update(delta);
     this.momentum?.draw(time);
     this.updateParryHint(time);
     this.updateWeaponPickups();
