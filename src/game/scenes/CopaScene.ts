@@ -417,7 +417,9 @@ export class CopaScene extends Phaser.Scene {
     // continuam alcançáveis por TESTAR FASE / LAB. Religam quando ganharem
     // fundos próprios (hoje são cor sólida).
     const OPTIONAL_ROOMS_ENABLED = false;
-    const ALL_ROOMS = ["reuniao", "banheiro", "ti", "rh", "financeiro"] as const;
+    // "arquivo" = ARQUIVO MORTO (LdtkRoomScene) — sala desenhada no LDtk,
+    // promovida de POC a jogável; entra no sorteio quando o pool religar.
+    const ALL_ROOMS = ["reuniao", "banheiro", "ti", "rh", "financeiro", "arquivo"] as const;
     const cleared = new Set(run.optionalRoomsCleared ?? []);
     const available = ALL_ROOMS.filter((r) => !cleared.has(r));
     if (OPTIONAL_ROOMS_ENABLED && available.length > 0) {
@@ -429,6 +431,7 @@ export class CopaScene extends Phaser.Scene {
         ti: "TI\n(CHAMADO)",
         rh: "RH\n(ROLETA)",
         financeiro: "FINANCEIRO",
+        arquivo: "ARQUIVO\nMORTO",
       };
       const salaDoor = this.add.image(LEVEL_WIDTH / 2, FLOOR_Y - 30, "tex-door").setTint(0xffaa55);
       this.add
@@ -449,6 +452,7 @@ export class CopaScene extends Phaser.Scene {
           this.persist();
           getRun(this).cameFrom = "copa";
           if (pick === "reuniao") this.scene.start("SalaReuniaoScene");
+          else if (pick === "arquivo") this.scene.start("LdtkRoomScene");
           else this.scene.start("SalaBonusScene", { type: pick });
         }
         salaDoor.setTint(0xffdd99);

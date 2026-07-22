@@ -68,6 +68,7 @@ src/
       ParticleFactory.ts     # Emitters compartilhados (sparks, dust, hitfx)
       Hud.ts                 # HUD (Energia, Sanidade, VR, boss bar, minimapa)
       PlayerState.ts         # RunState (registry "run"), persistência localStorage
+      Pathing.ts             # Pathfinding coarse (rot-js A*) — núcleo puro/testável; usado pelo hopOverFurniture da F1 (pular só quando HÁ rota; sem rota → meia-volta)
       RNG.ts                 # Seed determinística (seedrandom) + prefixos temáticos
       WeaponSystem.ts        # CLASSES + WEAPONS (3 classes, 12 armas)
       PerkSystem.ts          # Perks pós-boss + sinergias perk×perk (SYNERGIES) e arma×perk (WEAPON_SYNERGIES)
@@ -533,6 +534,7 @@ bun gallery                  # Beauty gallery: contact-sheet de TODAS as cenas/f
 bun audit:anim               # Animation auditor: mede suavidade frame-a-frame (delta de pixel) — flaga dead/jerk/loop-pop/padded (--gate/--json/--top=N)
 bun visual:update            # (re)grava os baselines — rodar quando a mudança visual é INTENCIONAL (conferir o diff no PR)
 bun format                   # Prettier
+bun import:aseprite          # importa export do Aseprite/LibreSprite (sheet+json c/ tags) → sprites do repo + repack (docs/ASEPRITE_PIPELINE.md)
 node scripts/gen-sprites.mjs # (re)gera sprites procedurais (post-it, café, copo)
 node scripts/pack-atlas.mjs  # re-empacota o atlas a partir de public/assets/sprites/
 ```

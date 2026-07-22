@@ -31,6 +31,7 @@ const SCENES = [
   ["CopaScene", {}],
   ["SalaReuniaoScene", {}],
   ["SalaBonusScene", { type: "banheiro" }],
+  ["LdtkRoomScene", {}],
   ["VitoriaScene", { vr: 0 }],
   ["GameOverScene", { vr: 0, cause: "energy" }],
   ["ClassSelectScene", {}],
