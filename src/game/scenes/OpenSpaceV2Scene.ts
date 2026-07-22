@@ -773,6 +773,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // Item 2 — modificador da sala (depende do seed + loop)
     this.rollRoomEvent(run);
 
+    // Elites (staple roguelite): promove alguns inimigos por seed. Herdado de Base.
+    this.sprinkleElites(run);
+
     // Validação de fase (só DEV) + overlay na tecla V — helper compartilhado.
     this.installLevelDebug(
       {
