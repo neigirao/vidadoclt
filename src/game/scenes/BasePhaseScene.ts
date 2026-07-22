@@ -42,11 +42,17 @@ import { applyPerk, PERKS, PerkId, synergyPreview } from "../systems/PerkSystem"
 import { GameEnemy, BossEntity } from "../entities/types";
 import { BossPresence } from "../systems/BossPresence";
 import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
+import { ContactShadows } from "../systems/ContactShadows";
+import { RimLight } from "../systems/RimLight";
 import { EliteSystem, eliteChance, rollElite } from "../systems/EliteSystem";
 import { ProductivityMeter } from "../systems/ProductivityMeter";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
+// Depth da porta de saída: acima do decor de cenário (que chega a ~depth 9),
+// abaixo do player (depth 10) — o CLT passa NA FRENTE da porta. Antes a porta
+// ficava em depth 0 e um prop de decor (depth 2) a ocultava na Fase 1.
+export const DOOR_DEPTH = 6;
 
 export interface EnemyGroupDef {
   group: Phaser.Physics.Arcade.Group;
@@ -92,6 +98,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected bossPresence?: BossPresence;
   protected threatMarkers?: ThreatMarkers;
   protected elites?: EliteSystem;
+  protected contactShadows?: ContactShadows;
+  protected rimLight?: RimLight;
   // Momentum (Produtividade run-wide): streak de kills → mult de VR. Antes só na
   // Fase 1; agora todas as Fases 2–5 herdam via Base (a F1 mantém a própria).
   protected momentum?: ProductivityMeter;
@@ -454,16 +462,17 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 3. Door
     const doorCfg = this.getDoorConfig();
-    this.doorEl = this.add.image(doorCfg.x, FLOOR_Y - 30, "tex-door");
+    this.doorEl = this.add.image(doorCfg.x, FLOOR_Y - 30, "tex-door").setDepth(DOOR_DEPTH);
     this.doorEl.setTint(doorCfg.tint);
     this.doorLabel = this.add
       .text(doorCfg.x, FLOOR_Y - 72, doorCfg.label, {
         fontFamily: "monospace",
         fontSize: "9px",
-        color: "#666666",
+        color: "#8a8a8a",
         align: "center",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(DOOR_DEPTH);
 
     // 4. Player setup (bloco idêntico compartilhado com a Fase 1 — ver buildPlayer)
     const spawnX = run.cameFrom === "copa" ? 120 : 80;
@@ -513,6 +522,22 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       def.group.getChildren().forEach((obj) => {
         const e = obj as Phaser.GameObjects.Sprite & { threatType?: ThreatType };
         if (e.threatType) this.threatMarkers!.add(e, e.threatType);
+      });
+    }
+
+    // 8-shadows. Sombras de contato: ancoram player + inimigos no chão (encolhem
+    // ao pular). Leitura espacial base — sempre ligada. O boss já tem sombra
+    // própria (BossPresence), então fica de fora daqui.
+    this.contactShadows = new ContactShadows(this);
+    this.contactShadows.add(this.player, 0.55);
+    // Rim-light: contorno quente que separa os personagens do fundo escuro. O boss
+    // fica de fora (já tem aura própria via BossPresence → evita muddiness).
+    this.rimLight = new RimLight(this);
+    this.rimLight.add(this.player);
+    for (const def of this.enemyGroups) {
+      def.group.getChildren().forEach((obj) => {
+        this.contactShadows!.add(obj as Parameters<ContactShadows["add"]>[0]);
+        this.rimLight!.add(obj as Parameters<RimLight["add"]>[0]);
       });
     }
 
@@ -938,6 +963,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 6. Marcadores de ameaça + parry hint + weapon pickups + near-door check
     this.threatMarkers?.update();
     this.elites?.update();
+    this.contactShadows?.update();
+    this.rimLight?.update();
     this.momentum?.draw(time);
     this.updateParryHint(time);
     this.updateWeaponPickups();

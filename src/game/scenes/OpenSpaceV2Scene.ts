@@ -46,8 +46,10 @@ import { Telemetry } from "../systems/Telemetry";
 import { Music } from "../systems/MusicSystem";
 import { MeleeHost } from "../systems/MeleeCombat";
 import { ProductivityMeter } from "../systems/ProductivityMeter";
+import { ContactShadows } from "../systems/ContactShadows";
+import { RimLight } from "../systems/RimLight";
 import { Apagao } from "../systems/Apagao";
-import { BasePhaseScene } from "./BasePhaseScene";
+import { BasePhaseScene, DOOR_DEPTH } from "./BasePhaseScene";
 
 const LEVEL_WIDTH = 1920;
 const FLOOR_Y = HUD_BOT_Y - 32;
@@ -312,17 +314,20 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         .setScrollFactor(0.2, 0),
     );
 
-    // Copa door — locked until boss defeated
-    this.doorEl = addImage(this, LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door");
-    this.doorEl.setTint(0x555555);
+    // Copa door — locked until boss defeated. Depth acima do decor (DOOR_DEPTH):
+    // antes um prop de cenário a ocultava e o tint escuro a fazia sumir no fundo
+    // frio da Fase 1 → a porta ficava invisível sob o rótulo flutuante.
+    this.doorEl = addImage(this, LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door").setDepth(DOOR_DEPTH);
+    this.doorEl.setTint(0x8a8a8a);
     this.doorLabel = this.add
       .text(LEVEL_WIDTH - 60, FLOOR_Y - 72, "COPA\n[BLOQUEADO]", {
         fontFamily: "monospace",
         fontSize: "9px",
-        color: "#666666",
+        color: "#8a8a8a",
         align: "center",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(DOOR_DEPTH);
 
     // Setup do player compartilhado (stats/arma/upgrades/perks/culturas/onDeath/
     // onAttack/onRangedAttack) via BasePhaseScene. Callbacks abaixo são da Fase 1.
@@ -775,6 +780,22 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     // Elites (staple roguelite): promove alguns inimigos por seed. Herdado de Base.
     this.sprinkleElites(run);
+
+    // Sombras de contato: ancoram player + inimigos no chão (encolhem ao pular).
+    // Leitura espacial base — atualizada em onPhaseUpdate. O Gerente tem sombra
+    // própria (BossPresence), então fica de fora.
+    this.contactShadows = new ContactShadows(this);
+    this.contactShadows.add(this.player, 0.55);
+    // Rim-light: contorno quente que separa os personagens do fundo. O Gerente
+    // fica de fora (aura própria via BossPresence).
+    this.rimLight = new RimLight(this);
+    this.rimLight.add(this.player);
+    for (const { group } of this.enemyGroups) {
+      group.getChildren().forEach((obj) => {
+        this.contactShadows!.add(obj as Parameters<ContactShadows["add"]>[0]);
+        this.rimLight!.add(obj as Parameters<RimLight["add"]>[0]);
+      });
+    }
 
     // Validação de fase (só DEV) + overlay na tecla V — helper compartilhado.
     this.installLevelDebug(
