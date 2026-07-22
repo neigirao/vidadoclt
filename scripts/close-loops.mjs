@@ -164,7 +164,9 @@ for (const r of targets) {
     await rawToPng(mid).toFile(outPath);
     framesAdded++;
   }
-  console.log(`  ↳ ${family}: +${bridge} frame(s) de ponte (wrap ${wrap.toFixed(1)} → ≤${threshold.toFixed(1)}/segmento)`);
+  console.log(
+    `  ↳ ${family}: +${bridge} frame(s) de ponte (wrap ${wrap.toFixed(1)} → ≤${threshold.toFixed(1)}/segmento)`,
+  );
   fixed++;
 }
 console.log(`\n${fixed} loops fechados (${framesAdded} frames). Reempacotando atlas…`);

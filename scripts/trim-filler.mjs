@@ -74,9 +74,7 @@ const audit = spawnSync("node", ["scripts/audit-anim.mjs", "--json"], {
 const report = JSON.parse(audit.stdout);
 // padded flag é `info` (não warn) — está em reports com kind=padded
 const padded = report.reports.filter(
-  (r) =>
-    r.flags.some((f) => f.kind === "padded") &&
-    ["walk", "idle", "run"].includes(r.state), // attack não interpola; deixar
+  (r) => r.flags.some((f) => f.kind === "padded") && ["walk", "idle", "run"].includes(r.state), // attack não interpola; deixar
 );
 
 console.log(`Famílias padded (candidatas a trim): ${padded.length}`);
