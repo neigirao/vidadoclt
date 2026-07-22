@@ -92,6 +92,23 @@ const EXCEPTIONS = {
     min: 4,
     why: "arte original limpa; in-between fantasmava o idle",
   },
+  // Inimigos da FASE 1 revertidos à arte original (audit:anim revelou os frames
+  // interpolados 5–7/13–15 borrados/duplos no walk/idle — renderizam no jogo). O
+  // ghost aqui é sutil (poses de corrida sobrepostas → opaque-count não flagra,
+  // mas o delta/loop-pop sim). Contagens = arte original de cada família.
+  "enemy-estagiario/walk": { min: 4, why: "F1: arte original; in-between borrava o ciclo" },
+  "enemy-estagiario/idle": { min: 3, why: "F1: arte original (idle3 era frame corrompido)" },
+  "enemy-analista/walk": { min: 4, why: "F1: arte original; in-between borrava o ciclo" },
+  "enemy-analista/idle": { min: 3, why: "F1: arte original (idle3 era frame corrompido)" },
+  "enemy-facilitador/walk": { min: 2, why: "F1: arte original (2 frames — support estático)" },
+  "enemy-facilitador/idle": { min: 3, why: "F1: arte original (idle3 era frame corrompido)" },
+  "enemy-scrum/walk": { min: 6, why: "F1: arte original; in-between borrava o ciclo" },
+  "enemy-scrum/idle": { min: 4, why: "F1: arte original" },
+  "enemy-coordenador/walk": { min: 4, why: "F1: arte original; in-between borrava o ciclo" },
+  "enemy-coordenador/idle": { min: 4, why: "F1: arte original" },
+  "enemy-senior/idle": { min: 4, why: "F1: arte original (walk fica 16, premium)" },
+  "enemy-rh/walk": { min: 4, why: "F1: arte original; in-between borrava o ciclo" },
+  "enemy-rh/idle": { min: 4, why: "F1: arte original" },
 };
 
 function floorFor(subject, action) {
