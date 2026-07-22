@@ -18,6 +18,7 @@
 // Fonte única: reusa meleeBaseDamage/meleeComboHits (MeleeMath) e as constantes
 // abaixo espelham Player.ts / PlayerLoadout.ts (comentado onde vem cada uma).
 // ─────────────────────────────────────────────────────────────────────────────
+import { ELITE_AFFIXES } from "./EliteAffixes";
 import { ENEMIES, type EnemyDef, type EnemyId } from "./EnemyCatalog";
 import { meleeBaseDamage, meleeComboHits } from "./MeleeMath";
 import { CLASSES, WEAPONS, type ClassId, type WeaponId, type WeaponDef } from "./WeaponSystem";
@@ -218,4 +219,63 @@ export function analyzeBalance(loop = 0): BalanceReport {
   }
 
   return { loop, classes, dpsSpread, weaponDpsAnalista, enemies, flags };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ELITES — impacto dos afixos no TTK/pressão sobre um inimigo de referência (a
+// mediana de HP do trash, sem mid-boss). Mostra quanto mais o elite AGUENTA
+// (TTK) e BATE (pressão) que a versão comum, + a recompensa (VR bônus). É de 1ª
+// ordem como o resto: mede a desproporção, não substitui playtest.
+// ─────────────────────────────────────────────────────────────────────────────
+export type EliteReport = {
+  refLabel: string;
+  refHp: number;
+  avgDps: number;
+  affixes: {
+    id: string;
+    label: string;
+    hpMult: number;
+    dmgMult: number;
+    ttk: number; // s p/ matar a versão elite
+    ttkVsBase: number; // ×base
+    threatMult: number; // pressão ×base (escala com dano)
+    vrBonus: number;
+    behavior: string; // explode/escudo/—
+  }[];
+};
+
+export function analyzeElites(loop = 0): EliteReport {
+  const trash = (Object.keys(ENEMIES) as EnemyId[])
+    .map((id) => ENEMIES[id])
+    .filter((e) => !MIDBOSS_IDS.includes(e.id));
+  const hps = trash.map((e) => scaledHp(e, loop)).sort((a, b) => a - b);
+  const refHp = hps[Math.floor(hps.length / 2)];
+  const refEnemy = trash.reduce((a, b) =>
+    Math.abs(scaledHp(a, loop) - refHp) < Math.abs(scaledHp(b, loop) - refHp) ? a : b,
+  );
+  const avgDps =
+    CLASS_IDS.reduce((s, c) => s + playerDps(c, CLASSES[c].startWeapon), 0) / CLASS_IDS.length;
+  const baseTtk = refHp / avgDps;
+
+  const affixes = ELITE_AFFIXES.map((a) => {
+    const ttk = (refHp * a.hpMult) / avgDps;
+    const behavior = a.explodeDmg
+      ? `explode ${a.explodeDmg}`
+      : a.shieldHits
+        ? `escudo ${a.shieldHits}`
+        : "—";
+    return {
+      id: a.id,
+      label: a.label,
+      hpMult: a.hpMult,
+      dmgMult: a.dmgMult,
+      ttk,
+      ttkVsBase: ttk / baseTtk,
+      threatMult: a.dmgMult,
+      vrBonus: a.vrBonus,
+      behavior,
+    };
+  });
+
+  return { refLabel: refEnemy.label, refHp, avgDps, affixes };
 }

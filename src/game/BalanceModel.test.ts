@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   analyzeBalance,
+  analyzeElites,
   attackIntervalMs,
   comboHitsFor,
   effectiveHp,
@@ -70,5 +71,18 @@ describe("BalanceModel", () => {
     expect(r.classes.length).toBe(3);
     expect(r.enemies.length).toBe(Object.keys(ENEMIES).length);
     expect(r.dpsSpread).toBeGreaterThanOrEqual(1);
+  });
+
+  test("analyzeElites: TTK do elite escala com hpMult; comportamentais têm rótulo", () => {
+    const er = analyzeElites(0);
+    expect(er.affixes.length).toBeGreaterThanOrEqual(5);
+    for (const a of er.affixes) {
+      expect(a.ttk).toBeGreaterThan(0);
+      expect(a.ttkVsBase).toBeCloseTo(a.hpMult, 5); // TTK ∝ hpMult (mesmo DPS)
+    }
+    const explode = er.affixes.find((a) => a.behavior.startsWith("explode"));
+    const escudo = er.affixes.find((a) => a.behavior.startsWith("escudo"));
+    expect(explode !== undefined).toBe(true);
+    expect(escudo !== undefined).toBe(true);
   });
 });

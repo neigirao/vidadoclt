@@ -14,6 +14,9 @@ export type EliteAffix = {
   speedMult: number;
   scaleMult: number;
   vrBonus: number; // VR extra dropado na morte
+  // Comportamentais (opcionais):
+  explodeDmg?: number; // AoE de dano no player ao morrer (0/undefined = não explode)
+  shieldHits?: number; // absorve os N primeiros golpes (barreira sindical) antes de tomar dano
 };
 
 export const ELITE_AFFIXES: EliteAffix[] = [
@@ -50,6 +53,30 @@ export const ELITE_AFFIXES: EliteAffix[] = [
     scaleMult: 1.06,
     vrBonus: 18,
   }, // RICO — bateu a meta, dá muito mais VR
+  {
+    id: "homologado",
+    label: "Homologado",
+    color: 0xff8822,
+    badge: "🧨",
+    hpMult: 1.3,
+    dmgMult: 1.1,
+    speedMult: 1.05,
+    scaleMult: 1.04,
+    vrBonus: 10,
+    explodeDmg: 16,
+  }, // EXPLODE ao morrer — a rescisão sai cara; mate e AFASTE-SE
+  {
+    id: "sindicalizado",
+    label: "Sindicalizado",
+    color: 0x33ddcc,
+    badge: "🛡️",
+    hpMult: 1.4,
+    dmgMult: 1.15,
+    speedMult: 1.0,
+    scaleMult: 1.08,
+    vrBonus: 10,
+    shieldHits: 2,
+  }, // ESCUDO — o sindicato blinda os 2 primeiros golpes
 ];
 
 /** Chance de um inimigo virar elite, escalando com loop e Heat (teto 25%). */

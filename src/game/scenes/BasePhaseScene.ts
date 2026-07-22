@@ -43,6 +43,7 @@ import { GameEnemy, BossEntity } from "../entities/types";
 import { BossPresence } from "../systems/BossPresence";
 import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
 import { EliteSystem, eliteChance, rollElite } from "../systems/EliteSystem";
+import { ProductivityMeter } from "../systems/ProductivityMeter";
 
 export const LEVEL_WIDTH = 1920;
 export const FLOOR_Y = HUD_BOT_Y - 32;
@@ -91,6 +92,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected bossPresence?: BossPresence;
   protected threatMarkers?: ThreatMarkers;
   protected elites?: EliteSystem;
+  // Momentum (Produtividade run-wide): streak de kills → mult de VR. Antes só na
+  // Fase 1; agora todas as Fases 2–5 herdam via Base (a F1 mantém a própria).
+  protected momentum?: ProductivityMeter;
   /** Labels das sinergias perk×perk ativas (ícone + nome) p/ o badge do HUD. */
   protected synergyLabels: string[] = [];
   private _bossMaxHp = 0;
@@ -484,6 +488,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.fx = new SanityFx(this);
     this.hud = new Hud(this, LEVEL_WIDTH);
     this.combatFx = new CombatFx(this);
+    this.momentum = new ProductivityMeter(this); // streak de kills → mult de VR (run-wide)
     // Reflete a arma/especial equipados no HUD (ícone + nome).
     {
       const wdef = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
@@ -646,10 +651,24 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         if (!enemy.active || !enemy.hit) return;
         const dmg = (ink.getData("damage") as number) ?? 10;
         const piercing = (ink.getData("piercing") as boolean) ?? false;
+        // Elite Sindicalizado: barreira absorve o projétil (sem dano/kill).
+        const eShield = (enemy.getData?.("eliteShieldHits") as number) ?? 0;
+        if (eShield > 0) {
+          enemy.setData?.("eliteShieldHits", eShield - 1);
+          if (!piercing) ink.destroy();
+          return;
+        }
         const died = enemy.hit(Math.round(dmg * this.player.damageMult), 0);
         if (!piercing) ink.destroy();
         if (died) {
-          this.dropVR(enemy.x, enemy.y, Math.max(1, Math.round(vrDrop * this.player.vrDropMult)));
+          const eBonus = (enemy.getData?.("eliteVrBonus") as number) ?? 0;
+          const mMult = this.momentum?.registerKill(enemy.x, enemy.y) ?? 1; // Produtividade
+          this.dropVR(
+            enemy.x,
+            enemy.y,
+            Math.max(1, Math.round((vrDrop * mMult + eBonus) * this.player.vrDropMult)),
+          );
+          this.handleEliteExplode(enemy as GameEnemy & Phaser.GameObjects.Sprite);
           this.rollSanityDrop(enemy.x, enemy.y);
           this.rollWeaponDrop(enemy.x, enemy.y);
           this.onEnemyKilledByProjectile(enemy);
@@ -919,6 +938,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 6. Marcadores de ameaça + parry hint + weapon pickups + near-door check
     this.threatMarkers?.update();
     this.elites?.update();
+    this.momentum?.draw(time);
     this.updateParryHint(time);
     this.updateWeaponPickups();
     this.updateStations();
@@ -1239,8 +1259,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         getGroups: () => this.enemyGroups,
         getBoss: () => this.boss as ReturnType<MeleeHost["getBoss"]>,
         dropVR: (x, y, n) => this.dropVR(x, y, n),
+        killVrMult: (x, y) => this.momentum?.registerKill(x, y) ?? 1, // Produtividade run-wide
         onBossDied: () => this.handleBossDefeat(),
         onEnemyKilled: (e) => {
+          this.handleEliteExplode(e as GameEnemy & Phaser.GameObjects.Sprite);
           this.rollSanityDrop(e.x, e.y);
           this.rollWeaponDrop(e.x, e.y);
           this.onEnemyKilledByMelee(e);
@@ -1671,6 +1693,40 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         const affix = rollElite(this.rng.frac(), this.rng.between(0, 999), chance);
         if (affix)
           this.elites!.makeElite(e as unknown as Parameters<EliteSystem["makeElite"]>[0], affix);
+      });
+    }
+  }
+
+  /**
+   * Elite Homologado: ao morrer, explode numa AoE que fere o player (se perto) e
+   * outros inimigos no raio. Chamado nos dois caminhos de kill (melee + projétil).
+   */
+  protected handleEliteExplode(e: GameEnemy & Phaser.GameObjects.Sprite) {
+    const dmg = (e.getData?.("eliteExplode") as number) ?? 0;
+    if (dmg <= 0) return;
+    const R = 92;
+    const ring = this.add.circle(e.x, e.y, 10, 0xff8822, 0.55).setDepth(20);
+    this.tweens.add({
+      targets: ring,
+      scaleX: R / 5,
+      scaleY: R / 5,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => ring.destroy(),
+    });
+    this.cameras.main.shake(130, 0.008);
+    if (
+      !this.player.isInvulnerable(this.time.now) &&
+      Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y) <= R
+    ) {
+      this.player.takeDamage(dmg, 0, e.x);
+    }
+    // dano em cadeia nos outros inimigos (sem explosão recursiva).
+    for (const gd of this.enemyGroups) {
+      gd.group.getChildren().forEach((o) => {
+        const en = o as GameEnemy & Phaser.GameObjects.Sprite;
+        if (en !== e && en.active && typeof en.hit === "function")
+          if (Phaser.Math.Distance.Between(e.x, e.y, en.x, en.y) <= R) en.hit(dmg, 120);
       });
     }
   }
