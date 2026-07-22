@@ -79,6 +79,13 @@ jobs:
       - name: Smoke de cenas
         run: bun smoke
 
+      # Gate de NÍVEL: boota cada fase headless em várias seeds (todas as
+      # variantes de layout) e rotas, e reprova se o LevelValidator marcar a fase
+      # como INJOGÁVEL (plataforma inalcançável, spawn inseguro, saída ausente…).
+      # O smoke garante que a cena BOOTA; este garante que ela é JOGÁVEL/justa.
+      - name: Gate de nível (LevelValidator headless)
+        run: bun validate:levels
+
       # Gate de qualidade VISUAL: roda o runFullAudit() do LAB (canvas) e falha
       # em defeito MECÂNICO (frame vazio/chapado/faltando ou LAB<jogo). Pega o
       # que o check:frames (quantidade/tamanho) é cego: o CONTEÚDO do pixel.

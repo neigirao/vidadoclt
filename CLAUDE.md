@@ -513,6 +513,7 @@ bun test src/game            # testes unitários (bun:test) — mesma checagem d
 bun sim:balance              # Balance Simulator: DPS por classe/arma, TTK por inimigo, pressão + flags de outlier (--loop=N / --json / --gate)
 bun juice:report             # Juice report: orçamento de feel (squash & stretch, hit-stop, shake) da fonte única systems/Juice.ts (--json)
 bun smoke                    # smoke de cenas: boota CADA cena headless; falha se houver erro de console (rode ANTES de subir mudança visual/de cena)
+bun validate:levels          # gate de NÍVEL: boota cada fase headless em várias seeds/rotas e reprova se o LevelValidator marcar a fase injogável (plataforma inalcançável, spawn inseguro, saída ausente). Roda no CI (job smoke). Complementa o smoke: "boota" vs "é jogável/justa"
 bun visual                   # regressão visual: compara cenas de UI estáveis vs baselines (tests/visual/baseline)
 bun gallery                  # Beauty gallery: contact-sheet de TODAS as cenas/fases em seed fixo (tests/gallery/, git-ignored) — beauty pass/review visual
 bun audit:anim               # Animation auditor: mede suavidade frame-a-frame (delta de pixel) — flaga dead/jerk/loop-pop/padded (--gate/--json/--top=N)

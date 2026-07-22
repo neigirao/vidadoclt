@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test src/game",
     "smoke": "node scripts/smoke-scenes.mjs",
+    "validate:levels": "node scripts/validate-levels.mjs",
     "check:frames": "node scripts/frame-coverage-check.mjs",
     "fill:frames": "node scripts/frame-coverage-fill.mjs",
     "visual": "node scripts/visual-regression.mjs",
