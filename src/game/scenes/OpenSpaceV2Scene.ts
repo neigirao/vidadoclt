@@ -49,6 +49,7 @@ import { ProductivityMeter } from "../systems/ProductivityMeter";
 import { ContactShadows } from "../systems/ContactShadows";
 import { RimLight } from "../systems/RimLight";
 import { SecondaryMotion } from "../systems/SecondaryMotion";
+import { buildGrid, nextDirX, type PathGrid, type Rect as PathRect } from "../systems/Pathing";
 import { Apagao } from "../systems/Apagao";
 import { BasePhaseScene, DOOR_DEPTH } from "./BasePhaseScene";
 
@@ -87,8 +88,15 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   private reuniaoUsed = false;
   private bossEntryTriggered = false;
 
+  // Grade de pathfinding dos móveis (rot-js A*, systems/Pathing) — cacheada 1×
+  // depois de spawnar os móveis (são estáticos). Consultada pelo hop abaixo.
+  private furnitureGrid?: PathGrid;
+
   // Pulinho ao travar de lado num móvel (chão): usado por inimigos E boss —
   // sem isso o perseguidor encalha atrás da mesa (o boss "sumia" fora da câmera).
+  // AGORA path-aware (rot-js A*): antes de pular, consulta se EXISTE rota até o
+  // player. Sem rota (obstáculo intransponível) → não fica quicando à toa: dá
+  // meia-volta com cooldown longo. Com rota, pula como antes.
   private hopOverFurniture: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (eObj) => {
     const e = eObj as Phaser.Physics.Arcade.Sprite;
     const body = e.body as Phaser.Physics.Arcade.Body;
@@ -96,6 +104,15 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     if (!(body.blocked.left || body.blocked.right)) return;
     const now = this.time.now;
     if (now < ((e.getData("nextHop") as number) ?? 0)) return;
+    if (this.furnitureGrid && this.player) {
+      const dir = nextDirX(this.furnitureGrid, e.x, e.y, this.player.x, this.player.y);
+      if (dir === null) {
+        // Sem rota até o player deste lado — recua em vez de quicar no móvel.
+        body.setVelocityX(body.blocked.left ? 160 : -160);
+        e.setData("nextHop", now + 1200);
+        return;
+      }
+    }
     body.setVelocityY(-320);
     e.setData("nextHop", now + 500);
   };
@@ -781,6 +798,18 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     // Elites (staple roguelite): promove alguns inimigos por seed. Herdado de Base.
     this.sprinkleElites(run);
+
+    // Grade de pathfinding dos móveis (rot-js A*) — os corpos são estáticos, 1×.
+    const furnitureRects: PathRect[] = this.furnitureBodies.getChildren().flatMap((obj) => {
+      const b = (obj as Phaser.GameObjects.GameObject & { body?: Phaser.Physics.Arcade.StaticBody })
+        .body;
+      return b ? [{ x: b.x, y: b.y, w: b.width, h: b.height }] : [];
+    });
+    this.furnitureGrid = buildGrid(furnitureRects, {
+      width: LEVEL_WIDTH,
+      floorY: FLOOR_Y,
+      ceilingY: HUD_TOP_H,
+    });
 
     // Sombras de contato: ancoram player + inimigos no chão (encolhem ao pular).
     // Leitura espacial base — atualizada em onPhaseUpdate. O Gerente tem sombra
