@@ -32,7 +32,8 @@ const TEST_PHASES: { label: string; scene: string; data: object }[] = [
   { label: "Fase 4 — Tecnologia", scene: "Phase4Scene", data: { fromRoute: true } },
   { label: "Fase 5 — Diretoria", scene: "Phase5Scene", data: { fromRoute: true } },
   { label: "CEO — Cobertura", scene: "CeoScene", data: {} },
-  { label: "POC LDtk — Arquivo Morto", scene: "LdtkRoomScene", data: {} },
+  { label: "Sala LDtk — Arquivo Morto", scene: "LdtkRoomScene", data: { room: "arquivo" } },
+  { label: "Sala LDtk — Depósito", scene: "LdtkRoomScene", data: { room: "deposito" } },
 ];
 
 const ACCENT = 0xf2a800;
