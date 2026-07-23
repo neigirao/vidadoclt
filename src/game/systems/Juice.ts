@@ -58,15 +58,37 @@ export function squash(
   sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite,
   spec: SquashSpec,
 ): void {
-  const baseX = sprite.scaleX;
-  const baseY = sprite.scaleY;
-  sprite.scene.tweens.add({
+  // BUG histórico: o baseX/baseY vinha de `sprite.scaleX/scaleY` (interpolado se
+  // um tween anterior ainda estava rodando) → chamadas empilhadas MULTIPLICAVAM
+  // a escala (drift → scaleY → 0). Sintoma: player "vira uma linha" quando
+  // landSquash/jumpStretch disparavam em rajada (jitter de blocked.down sobre
+  // móveis, land+jump encadeados). Fix: cachear a escala ORIGINAL em data,
+  // matar SÓ o tween anterior de squash (não outros tweens do sprite), e sempre
+  // partir do valor original.
+  const s = sprite as Phaser.GameObjects.Sprite & {
+    getData(k: string): number | Phaser.Tweens.Tween | undefined;
+  };
+  let baseX = s.getData("juice:baseX") as number | undefined;
+  let baseY = s.getData("juice:baseY") as number | undefined;
+  if (baseX === undefined || baseY === undefined) {
+    baseX = sprite.scaleX;
+    baseY = sprite.scaleY;
+    sprite.setData("juice:baseX", baseX);
+    sprite.setData("juice:baseY", baseY);
+  }
+  const prev = s.getData("juice:squashTween") as Phaser.Tweens.Tween | undefined;
+  if (prev && prev.isPlaying()) prev.stop();
+  sprite.setScale(baseX, baseY);
+  const originX = baseX;
+  const originY = baseY;
+  const tw = sprite.scene.tweens.add({
     targets: sprite,
-    scaleX: baseX * spec.sx,
-    scaleY: baseY * spec.sy,
+    scaleX: originX * spec.sx,
+    scaleY: originY * spec.sy,
     duration: spec.ms,
     yoyo: true,
     ease: spec.ease,
-    onComplete: () => sprite.setScale(baseX, baseY), // garante retorno exato
+    onComplete: () => sprite.setScale(originX, originY),
   });
+  sprite.setData("juice:squashTween", tw);
 }
