@@ -60,26 +60,28 @@ export function squash(
 ): void {
   // BUG histórico: o baseX/baseY vinha de `sprite.scaleX/scaleY` (interpolado se
   // um tween anterior ainda estava rodando) → chamadas empilhadas MULTIPLICAVAM
-  // a escala (baseY drift → scaleY → 0). Sintoma: player "vira uma linha" ao
-  // entrar na fase quando landSquash disparava vários frames seguidos (jitter
-  // de blocked.down sobre móveis, ou land+jump em rajada). Fix:
-  //  (a) cachear a escala ORIGINAL em data no 1º uso (não muda mais);
-  //  (b) matar qualquer tween de escala em andamento antes de começar novo;
-  //  (c) resetar pra escala original antes de tweenar → sempre parte do 0.
-  const s = sprite as Phaser.GameObjects.Sprite & { getData(k: string): number | undefined };
-  let baseX = s.getData("juice:baseX");
-  let baseY = s.getData("juice:baseY");
+  // a escala (drift → scaleY → 0). Sintoma: player "vira uma linha" quando
+  // landSquash/jumpStretch disparavam em rajada (jitter de blocked.down sobre
+  // móveis, land+jump encadeados). Fix: cachear a escala ORIGINAL em data,
+  // matar SÓ o tween anterior de squash (não outros tweens do sprite), e sempre
+  // partir do valor original.
+  const s = sprite as Phaser.GameObjects.Sprite & {
+    getData(k: string): number | Phaser.Tweens.Tween | undefined;
+  };
+  let baseX = s.getData("juice:baseX") as number | undefined;
+  let baseY = s.getData("juice:baseY") as number | undefined;
   if (baseX === undefined || baseY === undefined) {
     baseX = sprite.scaleX;
     baseY = sprite.scaleY;
     sprite.setData("juice:baseX", baseX);
     sprite.setData("juice:baseY", baseY);
   }
-  sprite.scene.tweens.killTweensOf(sprite);
+  const prev = s.getData("juice:squashTween") as Phaser.Tweens.Tween | undefined;
+  if (prev && prev.isPlaying()) prev.stop();
   sprite.setScale(baseX, baseY);
   const originX = baseX;
   const originY = baseY;
-  sprite.scene.tweens.add({
+  const tw = sprite.scene.tweens.add({
     targets: sprite,
     scaleX: originX * spec.sx,
     scaleY: originY * spec.sy,
@@ -88,4 +90,5 @@ export function squash(
     ease: spec.ease,
     onComplete: () => sprite.setScale(originX, originY),
   });
+  sprite.setData("juice:squashTween", tw);
 }
