@@ -2,11 +2,11 @@
   "__header__": {
     "app": "LDtk",
     "schemaVersion": "1.5.3",
-    "note": "gerado por gen-ldtk-rooms.mjs (Arquivo_Morto)"
+    "note": "gerado por gen-ldtk-rooms.mjs (Deposito)"
   },
   "levels": [
     {
-      "identifier": "Arquivo_Morto",
+      "identifier": "Deposito",
       "layerInstances": [
         {
           "__identifier": "Collisions",
@@ -275,6 +275,44 @@
             0,
             0,
             0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
             0,
             0,
             0,
@@ -420,26 +458,6 @@
             0,
             0,
             0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
             1,
             1,
             1,
@@ -461,9 +479,14 @@
             0,
             0,
             0,
-            1,
-            1,
-            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
             1,
             1,
             0,
@@ -504,31 +527,8 @@
             0,
             0,
             0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
+            1,
+            1,
             0,
             0,
             0,
@@ -585,63 +585,77 @@
             {
               "__identifier": "Lamp",
               "px": [
-                368,
+                144,
                 60
               ]
             },
             {
               "__identifier": "Lamp",
               "px": [
-                752,
+                560,
                 60
               ]
             },
             {
               "__identifier": "Lamp",
               "px": [
-                1136,
+                1008,
                 60
               ]
             },
             {
-              "__identifier": "Computer",
+              "__identifier": "Enemy",
               "px": [
-                656,
-                384
-              ]
-            },
-            {
-              "__identifier": "PlayerStart",
-              "px": [
-                80,
-                350
+                688,
+                160
               ]
             },
             {
               "__identifier": "Enemy",
               "px": [
                 432,
+                256
+              ]
+            },
+            {
+              "__identifier": "Computer",
+              "px": [
+                336,
                 384
+              ]
+            },
+            {
+              "__identifier": "PlayerStart",
+              "px": [
+                48,
+                350
               ]
             },
             {
               "__identifier": "Desk",
               "px": [
-                656,
+                336,
                 416
               ]
             },
             {
               "__identifier": "Enemy",
               "px": [
-                976,
+                592,
                 384
+              ]
+            },
+            {
+              "__identifier": "Desk",
+              "px": [
+                912,
+                416
               ]
             },
             {
               "__identifier": "Exit",
               "px": [
-                1136,
+                1168,
                 388
               ]
             }

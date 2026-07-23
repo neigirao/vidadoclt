@@ -25,8 +25,35 @@ import { ContactShadows } from "../systems/ContactShadows";
 // optionalRoomsCleared` evita repetir na mesma run. Vindo da Copa, a saída
 // volta pra Copa; vindo do menu (dev), volta pro menu.
 // ─────────────────────────────────────────────────────────────────────────────
-const ROOM_ID = "arquivo";
-const REWARD_VR = 30;
+// Salas disponíveis — o .json de cada uma é gerado por scripts/gen-ldtk-rooms.mjs
+// (desenho ASCII) OU substituído por um export real do editor LDtk.
+const ROOMS = {
+  arquivo: {
+    cacheKey: "ldtk-arquivo",
+    json: "/assets/levels/ldtk-poc.json",
+    title: "ARQUIVO MORTO",
+    reward: 30,
+  },
+  deposito: {
+    cacheKey: "ldtk-deposito",
+    json: "/assets/levels/ldtk-deposito.json",
+    title: "DEPÓSITO",
+    reward: 35,
+  },
+  servidor: {
+    cacheKey: "ldtk-servidor",
+    json: "/assets/levels/ldtk-servidor.json",
+    title: "SERVIDOR LEGADO",
+    reward: 35,
+  },
+  trofeus: {
+    cacheKey: "ldtk-trofeus",
+    json: "/assets/levels/ldtk-trofeus.json",
+    title: "SALA DE TROFÉUS",
+    reward: 40,
+  },
+} as const;
+export type LdtkRoomId = keyof typeof ROOMS;
 
 export class LdtkRoomScene extends Phaser.Scene {
   private player!: Player;
@@ -43,21 +70,27 @@ export class LdtkRoomScene extends Phaser.Scene {
   private cleared = false;
   private hadEnemies = false;
   private fromCopa = false;
+  private roomId: LdtkRoomId = "arquivo";
 
   constructor() {
     super("LdtkRoomScene");
   }
 
+  init(data?: { room?: LdtkRoomId }) {
+    this.roomId = data?.room && data.room in ROOMS ? data.room : "arquivo";
+  }
+
   preload() {
-    this.load.json("ldtk-poc", "/assets/levels/ldtk-poc.json");
+    for (const r of Object.values(ROOMS)) this.load.json(r.cacheKey, r.json);
   }
 
   create() {
     const run = getRun(this);
+    const room = ROOMS[this.roomId];
     this.fromCopa = run.cameFrom === "copa";
     this.cleared = false;
 
-    const raw = this.cache.json.get("ldtk-poc");
+    const raw = this.cache.json.get(room.cacheKey);
     this.level = parseLdtk(raw);
     const W = this.level.widthPx;
     const grid = this.level.gridSize;
@@ -151,7 +184,7 @@ export class LdtkRoomScene extends Phaser.Scene {
     });
 
     // Inimigos REAIS nos marcadores Enemy do LDtk (a POC só mostrava losangos).
-    const alreadyCleared = (run.optionalRoomsCleared ?? []).includes(ROOM_ID);
+    const alreadyCleared = (run.optionalRoomsCleared ?? []).includes(this.roomId);
     if (!alreadyCleared) {
       for (const e of this.level.entities.filter((e) => e.id === "Enemy")) {
         const en = new EstagiarioDesesperado(this, e.x, e.y - 10, Math.random() < 0.5 ? 1 : -1);
@@ -187,9 +220,11 @@ export class LdtkRoomScene extends Phaser.Scene {
 
     this.combatFx = new CombatFx(this);
     this.hud = new Hud(this, W);
-    this.hud.setPhaseTitle("ARQUIVO MORTO");
+    this.hud.setPhaseTitle(room.title);
     this.hud.setObjective(
-      alreadyCleared ? "Sala já limpa — saia por [E]" : "Limpe o arquivo morto e pegue o VR",
+      alreadyCleared
+        ? "Sala já limpa — saia por [E]"
+        : `Limpe a sala e pegue o VR (+${room.reward})`,
     );
 
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -276,9 +311,10 @@ export class LdtkRoomScene extends Phaser.Scene {
   private onCleared() {
     this.cleared = true;
     const run = getRun(this);
-    run.optionalRoomsCleared = [...(run.optionalRoomsCleared ?? []), ROOM_ID];
-    this.hud.setObjective(`Arquivo limpo! +${REWARD_VR} VR — saia por [E]`);
-    for (let i = 0; i < REWARD_VR / 5; i++) {
+    const reward = ROOMS[this.roomId].reward;
+    run.optionalRoomsCleared = [...(run.optionalRoomsCleared ?? []), this.roomId];
+    this.hud.setObjective(`Sala limpa! +${reward} VR — saia por [E]`);
+    for (let i = 0; i < reward / 5; i++) {
       this.time.delayedCall(i * 60, () =>
         this.dropVR(this.player.x + Phaser.Math.Between(-70, 70), this.player.y - 20, 5),
       );
@@ -333,7 +369,7 @@ export class LdtkRoomScene extends Phaser.Scene {
       this.cameras.main.fadeOut(250, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
         if (this.fromCopa) {
-          getRun(this).cameFrom = ROOM_ID; // não altera sourcePhase (fora do phaseBackMap)
+          getRun(this).cameFrom = this.roomId; // não altera sourcePhase (fora do phaseBackMap)
           this.scene.start("CopaScene");
         } else {
           this.scene.start("MenuScene");
