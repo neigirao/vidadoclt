@@ -40,6 +40,18 @@ const ROOMS = {
     title: "DEPÓSITO",
     reward: 35,
   },
+  servidor: {
+    cacheKey: "ldtk-servidor",
+    json: "/assets/levels/ldtk-servidor.json",
+    title: "SERVIDOR LEGADO",
+    reward: 35,
+  },
+  trofeus: {
+    cacheKey: "ldtk-trofeus",
+    json: "/assets/levels/ldtk-trofeus.json",
+    title: "SALA DE TROFÉUS",
+    reward: 40,
+  },
 } as const;
 export type LdtkRoomId = keyof typeof ROOMS;
 

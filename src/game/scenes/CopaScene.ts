@@ -428,6 +428,8 @@ export class CopaScene extends Phaser.Scene {
       "financeiro",
       "arquivo",
       "deposito",
+      "servidor",
+      "trofeus",
     ] as const;
     const cleared = new Set(run.optionalRoomsCleared ?? []);
     const available = ALL_ROOMS.filter((r) => !cleared.has(r));
@@ -442,6 +444,8 @@ export class CopaScene extends Phaser.Scene {
         financeiro: "FINANCEIRO",
         arquivo: "ARQUIVO\nMORTO",
         deposito: "DEPÓSITO",
+        servidor: "SERVIDOR\nLEGADO",
+        trofeus: "SALA DE\nTROFÉUS",
       };
       const salaDoor = this.add.image(LEVEL_WIDTH / 2, FLOOR_Y - 30, "tex-door").setTint(0xffaa55);
       this.add
@@ -462,7 +466,12 @@ export class CopaScene extends Phaser.Scene {
           this.persist();
           getRun(this).cameFrom = "copa";
           if (pick === "reuniao") this.scene.start("SalaReuniaoScene");
-          else if (pick === "arquivo" || pick === "deposito")
+          else if (
+            pick === "arquivo" ||
+            pick === "deposito" ||
+            pick === "servidor" ||
+            pick === "trofeus"
+          )
             this.scene.start("LdtkRoomScene", { room: pick });
           else this.scene.start("SalaBonusScene", { type: pick });
         }

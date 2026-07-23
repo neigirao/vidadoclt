@@ -33,6 +33,8 @@ const SCENES = [
   ["SalaBonusScene", { type: "banheiro" }],
   ["LdtkRoomScene", { room: "arquivo" }],
   ["LdtkRoomScene", { room: "deposito" }],
+  ["LdtkRoomScene", { room: "servidor" }],
+  ["LdtkRoomScene", { room: "trofeus" }],
   ["VitoriaScene", { vr: 0 }],
   ["GameOverScene", { vr: 0, cause: "energy" }],
   ["ClassSelectScene", {}],
