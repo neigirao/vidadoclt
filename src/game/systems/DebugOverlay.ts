@@ -109,7 +109,7 @@ export class DebugOverlay {
     const squashTw = p.getData("juice:squashTween") as Phaser.Tweens.Tween | undefined;
     const squashing = squashTw && squashTw.isPlaying();
     const activeTweens = this.scene.tweens.getTweensOf(this.player).length;
-    const totalTweens = this.scene.tweens.getGlobalTweens().length;
+    const totalTweens = this.scene.tweens.getTweens().length;
     const invuln = p.isInvulnerable(time);
     const state = (p as unknown as { getStateLabel?: () => string }).getStateLabel?.() ?? "";
 
