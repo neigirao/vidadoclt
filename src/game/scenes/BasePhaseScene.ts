@@ -984,6 +984,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.contactShadows?.update();
     this.rimLight?.update();
     this.badgeMotion?.update(delta);
+    this.debugOverlay?.update(time);
     this.momentum?.draw(time);
     this.updateParryHint(time);
     this.updateWeaponPickups();
