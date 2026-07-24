@@ -132,6 +132,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   lastLevelReport?: import("../systems/LevelValidator").LevelReport;
   protected enemyGroups: EnemyGroupDef[] = [];
   protected combatFx!: CombatFx;
+  /** Overlay de debug (F3) — inspecionar escala/tweens/body do player em tempo real. */
+  protected debugOverlay?: import("../systems/DebugOverlay").DebugOverlay;
   // Iluminação dinâmica das Fases 2–5 (a Fase 1 tem create() próprio e não a usa;
   // tem apagão/fundo pintado). Penumbra + tocha no player + aura no boss.
   protected lighting?: Lighting;
@@ -395,6 +397,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch("PauseScene", { caller: this.scene.key });
     });
+    // Debug overlay (F3): expõe escala/tweens/body/hitbox do player. DEV-only.
+    if (import.meta.env.DEV && this.player) {
+      import("../systems/DebugOverlay").then(({ DebugOverlay }) => {
+        if (this.scene.isActive() && this.player?.active) {
+          this.debugOverlay = new DebugOverlay(this, this.player);
+        }
+      });
+    }
   }
 
   /** Valida a fase montada (só DEV) e liga o overlay de debug na tecla V. */
@@ -974,6 +984,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.contactShadows?.update();
     this.rimLight?.update();
     this.badgeMotion?.update(delta);
+    this.debugOverlay?.update(time);
     this.momentum?.draw(time);
     this.updateParryHint(time);
     this.updateWeaponPickups();
