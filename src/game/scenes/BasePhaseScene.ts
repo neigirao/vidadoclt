@@ -132,6 +132,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   lastLevelReport?: import("../systems/LevelValidator").LevelReport;
   protected enemyGroups: EnemyGroupDef[] = [];
   protected combatFx!: CombatFx;
+  /** Overlay de debug (F3) — inspecionar escala/tweens/body do player em tempo real. */
+  protected debugOverlay?: import("../systems/DebugOverlay").DebugOverlay;
   // Iluminação dinâmica das Fases 2–5 (a Fase 1 tem create() próprio e não a usa;
   // tem apagão/fundo pintado). Penumbra + tocha no player + aura no boss.
   protected lighting?: Lighting;
