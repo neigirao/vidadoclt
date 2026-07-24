@@ -397,6 +397,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch("PauseScene", { caller: this.scene.key });
     });
+    // Debug overlay (F3): expõe escala/tweens/body/hitbox do player. DEV-only.
+    if (import.meta.env.DEV && this.player) {
+      import("../systems/DebugOverlay").then(({ DebugOverlay }) => {
+        if (this.scene.isActive() && this.player?.active) {
+          this.debugOverlay = new DebugOverlay(this, this.player);
+        }
+      });
+    }
   }
 
   /** Valida a fase montada (só DEV) e liga o overlay de debug na tecla V. */
