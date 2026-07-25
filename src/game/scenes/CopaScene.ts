@@ -879,8 +879,8 @@ export class CopaScene extends Phaser.Scene {
           ? "Cafeteira recarregando..."
           : "[ E ]  Cafe Triplo (2 VR)"
         : nearPonto
-          ? "[ E ]  Ponto Eletronico (loja)"
-          : undefined,
+          ? "[ E ]  Ponto Eletrônico — bater o ponto e avançar →"
+          : "→ Ande até o Ponto Eletrônico para avançar",
       burnoutMods: this.player.getBurnoutMods(),
       tremoring: this.player.isTremoring(time),
       tremorWarnMs: this.player.getTremorWarnMs(time),
@@ -892,8 +892,8 @@ export class CopaScene extends Phaser.Scene {
           ? "Cafeteira recarregando..."
           : "E: Cafe Triplo (2 VR  +25 Energia  -5 Sanidade)"
         : nearPonto
-          ? "E: abrir Ponto Eletronico (loja)"
-          : "E para interagir  •  <- voltar pelo escritorio",
+          ? "E: Ponto Eletrônico — bater o ponto e avançar para a próxima fase"
+          : "→ Ande até o Ponto Eletrônico (direita) para avançar  •  ← voltar pelo escritório",
     );
   }
 }
