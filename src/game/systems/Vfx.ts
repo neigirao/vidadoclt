@@ -89,4 +89,24 @@ export const VFX_CATALOG: VfxEntry[] = [
     kind: "sprite",
     sprite: (_s, t) => CombatFx.jumpStretch(t),
   },
+  // ─── Especiais de classe (K) ───────────────────────────────────────────────
+  {
+    id: "estagiarioBurst",
+    label: "Estagiário · Rajada",
+    kind: "point",
+    point: (s, x, y) => ParticleFactory.estagiarioBurst(s, x, y, 1),
+  },
+  {
+    id: "analistaSlam",
+    label: "Analista · Slam Planilha",
+    kind: "point",
+    point: (s, x, y) => ParticleFactory.analistaSlam(s, x, y, 1),
+  },
+  {
+    id: "terceirizadoSweep",
+    label: "Terceirizado · Redemoinho",
+    kind: "point",
+    point: (s, x, y) => ParticleFactory.terceirizadoSweep(s, x, y, 92),
+  },
 ];
+

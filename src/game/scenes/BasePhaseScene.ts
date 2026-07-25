@@ -1519,26 +1519,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         const R = 92;
         const hb = new Phaser.Geom.Rectangle(fx - R, fy - 50, R * 2, 100);
         this.resolveAttack(hb, 3);
-        // FX: anel de impacto expandindo + rastro giratório + shake.
-        const ring = this.add.circle(fx, fy, 8, 0xffcc44, 0.5);
-        this.tweens.add({
-          targets: ring,
-          scaleX: R / 4,
-          scaleY: R / 4,
-          alpha: 0,
-          duration: 350,
-          onComplete: () => ring.destroy(),
-        });
-        const arc = this.add.arc(fx, fy, R * 0.8, 0, 300, false, 0xffee88, 0.35);
-        arc.setStrokeStyle(4, 0xffee88, 0.8);
-        this.tweens.add({
-          targets: arc,
-          angle: 360,
-          alpha: 0,
-          duration: 300,
-          onComplete: () => arc.destroy(),
-        });
-        this.cameras.main.shake(120, 0.006);
+        // FX temático (âmbar/café + boletos voando radialmente).
+        ParticleFactory.terceirizadoSweep(this, fx, fy - 8, R);
+        this.cameras.main.shake(140, 0.007);
         break;
       }
       case "ranged_barrage": {
@@ -1559,19 +1542,26 @@ export abstract class BasePhaseScene extends Phaser.Scene {
             });
           });
         });
-        const flash = this.add.circle(fx + facing * 24, fy - 5, 6, 0x88ffcc, 0.6);
-        this.tweens.add({
-          targets: flash,
-          scaleX: 4,
-          scaleY: 4,
-          alpha: 0,
-          duration: 250,
-          onComplete: () => flash.destroy(),
-        });
+        // FX temático (post-its verdes voando na direção do leque).
+        ParticleFactory.estagiarioBurst(this, fx, fy, facing);
+        break;
+      }
+      case "planilha_slam": {
+        // Especial de CLASSE do Analista: SLAM AoE frontal grande (110×60) —
+        // recompensa pressionar em vez de recuar. Alcance maior que o wide_sweep
+        // básico (100×48), com juice temático de planilha.
+        const W = 110,
+          H = 60;
+        const hb = new Phaser.Geom.Rectangle(facing > 0 ? fx : fx - W, fy - H / 2, W, H);
+        this.resolveAttack(hb, 3);
+        // FX temático (grid de planilha azul + números caindo).
+        ParticleFactory.analistaSlam(this, fx, fy, facing);
+        this.cameras.main.shake(100, 0.005);
         break;
       }
     }
   }
+
 
   protected spawnEnemyProjectile(
     fx: number,
