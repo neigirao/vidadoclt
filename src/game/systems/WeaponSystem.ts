@@ -29,7 +29,8 @@ export type SpecialType =
   | "dash_strike"
   | "clock_slow"
   | "melee_sweep" // especial de CLASSE (Terceirizado): redemoinho melee 360°
-  | "ranged_barrage"; // especial de CLASSE (Estagiário): leque de projéteis perfurantes
+  | "ranged_barrage" // especial de CLASSE (Estagiário): leque de projéteis perfurantes
+  | "planilha_slam"; // especial de CLASSE (Analista): SLAM AoE frontal com planilha
 
 export type WeaponDef = {
   id: WeaponId;
