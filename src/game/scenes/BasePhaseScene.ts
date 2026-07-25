@@ -1008,9 +1008,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       playerX: this.player.x,
       interactHint: nearDoor
         ? `[ E ]  ${this.getDoorConfig().nearLabel}`
-        : this.nearestPickup
-          ? `[ E ]  Pegar ${WEAPONS[this.nearestPickup.weaponId].name}`
-          : this.stationHint(),
+        : nearLockedDoor
+          ? `🔒 Porta trancada — derrote ${this.getBossName()} primeiro`
+          : this.nearestPickup
+            ? `[ E ]  Pegar ${WEAPONS[this.nearestPickup.weaponId].name}`
+            : this.stationHint(),
       dashCooldown: this.player.getDashCooldownRatio(time),
       specialCooldown: this.player.specialChargeRatio(time),
       perks: run.perks,
