@@ -374,9 +374,14 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     damageMult: 1.0,
     vrMult: 1.1,
     startWeapon: "grampeador",
-    trait: "+10% VR · COMBO de 4 golpes",
+    trait: "+10% VR · COMBO de 4 · ESPECIAL = SLAM DE PLANILHA (AoE frontal)",
     color: 0x3a4a8a,
+    // Identidade brawler: o K é sempre o Slam de Planilha (AoE frontal grande),
+    // não o especial da arma. Recompensa pressionar em vez de recuar.
+    classSpecial: "planilha_slam",
+    classSpecialName: "Slam de Planilha",
   },
+
   terceirizado: {
     id: "terceirizado",
     label: "Terceirizado",
