@@ -11,7 +11,15 @@ export const VFX_PALETTE = {
   death: [0xffffff, 0x4a90d9, 0xd0e4f8, 0xaaaaaa, 0x2a3a5a], // morte (papel + café)
   gold: 0xffd766, // pickup (VR/dourado)
   dust: 0xc9c2b3, // poeira de pouso
+  // ─── Especiais de classe ────────────────────────────────────────────────────
+  // Estagiário: verde-neon (crachá/energia jovem) + amarelo post-it.
+  estagiarioSpecial: [0x88ffcc, 0x3affb0, 0xffee66, 0xffffff],
+  // Analista: azul planilha + números caindo (excel/relatório).
+  analistaSpecial: [0x3a7ad9, 0x88b8ff, 0xd0e4f8, 0xffffff],
+  // Terceirizado: âmbar/café + vermelho-boleto (motor bruto).
+  terceirizadoSpecial: [0xffcc44, 0xff8844, 0xd94a2a, 0x6b3a2a],
 } as const;
+
 
 export class ParticleFactory {
   static hitLight(scene: Phaser.Scene, x: number, y: number) {
