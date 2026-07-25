@@ -989,9 +989,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.updateParryHint(time);
     this.updateWeaponPickups();
     this.updateStations();
-    const nearDoor =
-      this.bossDefeated &&
+    const nearDoorZone =
       Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorEl.x, this.doorEl.y) < 40;
+    const nearDoor = this.bossDefeated && nearDoorZone;
+    const nearLockedDoor = !this.bossDefeated && nearDoorZone;
 
     // 7. HUD update
     const run = getRun(this);
