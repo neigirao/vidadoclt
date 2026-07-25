@@ -989,9 +989,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.updateParryHint(time);
     this.updateWeaponPickups();
     this.updateStations();
-    const nearDoor =
-      this.bossDefeated &&
+    const nearDoorZone =
       Phaser.Math.Distance.Between(this.player.x, this.player.y, this.doorEl.x, this.doorEl.y) < 40;
+    const nearDoor = this.bossDefeated && nearDoorZone;
+    const nearLockedDoor = !this.bossDefeated && nearDoorZone;
 
     // 7. HUD update
     const run = getRun(this);
@@ -1007,9 +1008,11 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       playerX: this.player.x,
       interactHint: nearDoor
         ? `[ E ]  ${this.getDoorConfig().nearLabel}`
-        : this.nearestPickup
-          ? `[ E ]  Pegar ${WEAPONS[this.nearestPickup.weaponId].name}`
-          : this.stationHint(),
+        : nearLockedDoor
+          ? `🔒 Porta trancada — derrote ${this.getBossName()} primeiro`
+          : this.nearestPickup
+            ? `[ E ]  Pegar ${WEAPONS[this.nearestPickup.weaponId].name}`
+            : this.stationHint(),
       dashCooldown: this.player.getDashCooldownRatio(time),
       specialCooldown: this.player.specialChargeRatio(time),
       perks: run.perks,
