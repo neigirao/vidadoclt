@@ -98,8 +98,8 @@ export class DebugOverlay {
       const b = this.samples[i];
       const ax = gx + ((i - 1) / this.SAMPLE_MAX) * 124;
       const bx = gx + (i / this.SAMPLE_MAX) * 124;
-      const ay = gy + 40 - Phaser.Math.Clamp((a.sy - 0.5), 0, 1) * 40;
-      const by = gy + 40 - Phaser.Math.Clamp((b.sy - 0.5), 0, 1) * 40;
+      const ay = gy + 40 - Phaser.Math.Clamp(a.sy - 0.5, 0, 1) * 40;
+      const by = gy + 40 - Phaser.Math.Clamp(b.sy - 0.5, 0, 1) * 40;
       this.g.lineBetween(ax, ay, bx, by);
     }
 

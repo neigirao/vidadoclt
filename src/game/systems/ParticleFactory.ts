@@ -20,7 +20,6 @@ export const VFX_PALETTE = {
   terceirizadoSpecial: [0xffcc44, 0xff8844, 0xd94a2a, 0x6b3a2a],
 } as const;
 
-
 export class ParticleFactory {
   static hitLight(scene: Phaser.Scene, x: number, y: number) {
     for (let i = 0; i < 8; i++) {
@@ -335,4 +334,3 @@ export class ParticleFactory {
     }
   }
 }
-
