@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "check:sprites": "node scripts/pack-atlas.mjs",
-    "build": "vite build",
+    "build": "vite build && node scripts/prune-deploy.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
