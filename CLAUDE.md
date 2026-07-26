@@ -422,7 +422,7 @@ Nenhum band-aid ativo no momento.
 - **Bestiário persistente**: `BestiarySystem` grava kills + contagens em `localStorage`; `BestiaryScene` mostra silhueta `???` para não-vistos
 - **RNG determinística** por seed temática (`RNG.ts` — prefixos CLT/FGTS/META/...)
 - Persistência de Reconhecimento/FGTS/Loops em `localStorage` (PlayerState)
-- Copa: cura de sanidade + loja (Faxineiro), checkpoint
+- Copa: cura de sanidade + loja (Faxineiro), checkpoint. A **porta do meio** oferece uma **sala opcional** por run (`OPTIONAL_ROOMS_ENABLED` em `CopaScene`): pool determinístico por seed entre as 4 salas LDtk (`LdtkRoomScene` — Arquivo Morto, Depósito, Servidor Legado, Sala de Troféus), que têm cenário próprio e são validadas pelo `LdtkRooms.test.ts`. As 5 salas planas (`SalaReuniaoScene`/`SalaBonusScene`) ficam **fora do sorteio** até ganharem cenário — as cenas seguem no repo e alcançáveis por TESTAR FASE
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 - **Encontros por seed**: Fase 1 varia o TIPO de inimigo por zona (`spawnEnemyOfType`); Fases 2–5 variam POSIÇÃO/densidade (`pickPositions` em `BasePhaseScene`) — contagem fixa p/ o validador
 - **Qualidade**: `tsc` strict + ESLint 0 erros; **testes unitários** (bun:test) de EnemyCatalog, WeaponSystem, ReconhecimentoSystem, **CulturaSystem, PerkSystem (incl. sinergias arma×perk), sanityBand** (49 testes); **CI** (GitHub Actions: tsc + lint + test) em `.github/workflows/ci.yml`
