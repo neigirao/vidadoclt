@@ -30,13 +30,20 @@ describe("JUICE — tabela de game feel", () => {
   });
 
   test("squash() multiplica a escala BASE e agenda retorno exato", () => {
-    // Fake mínimo de sprite: registra o tween pedido e expõe setScale.
+    // Fake mínimo de sprite: registra o tween pedido, expõe setScale e o
+    // data-store (o squash cacheia a escala ORIGINAL em `juice:base*` p/ não
+    // acumular drift quando chamadas empilham — ver comentário em Juice.ts).
     let added: Record<string, unknown> | null = null;
+    const data: Record<string, unknown> = {};
     const sprite = {
       scaleX: 2,
       scaleY: 2, // escala base != 1 (personagem já escalado)
       scene: { tweens: { add: (cfg: Record<string, unknown>) => (added = cfg) } },
       setScale: (_x: number, _y: number) => {},
+      getData: (k: string) => data[k],
+      setData: (k: string, v: unknown) => {
+        data[k] = v;
+      },
     } as unknown as Parameters<typeof squash>[0];
     squash(sprite, JUICE.squash.land);
     expect(added).not.toBeNull();

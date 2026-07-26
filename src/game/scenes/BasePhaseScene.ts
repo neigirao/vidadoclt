@@ -1562,7 +1562,6 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     }
   }
 
-
   protected spawnEnemyProjectile(
     fx: number,
     fy: number,

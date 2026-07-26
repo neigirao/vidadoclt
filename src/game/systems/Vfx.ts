@@ -109,4 +109,3 @@ export const VFX_CATALOG: VfxEntry[] = [
     point: (s, x, y) => ParticleFactory.terceirizadoSweep(s, x, y, 92),
   },
 ];
-
