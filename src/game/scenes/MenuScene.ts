@@ -21,6 +21,7 @@ import { applyAudioSettings } from "../systems/applyAudio";
 import { Telemetry } from "../systems/Telemetry";
 import { WEAPONS, CLASSES, ClassId } from "../systems/WeaponSystem";
 import { PERKS } from "../systems/PerkSystem";
+import { needsKeyboardWarning } from "../systems/InputSupport";
 
 // FERRAMENTA DE TESTE (temporária): pular direto pra uma fase criada, p/ os
 // testadores validarem uma fase específica sem jogar desde o começo. Boota a
@@ -67,6 +68,10 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
   { label: "CONFIGURAÇÕES", icon: "⚙", firstRun: true },
+  // `firstRun: true` de propósito: o menu da 1ª run é enxuto, mas a atribuição
+  // das fontes OFL é obrigação de licença — não pode depender de o jogador ter
+  // morrido uma vez para ficar alcançável.
+  { label: "CRÉDITOS", icon: "📜", firstRun: true },
   // Ferramentas DEV (TESTAR FASE / LAB SPRITES / TELEMETRIA) só entram no menu no
   // `bun dev`; no build publicado somem via o filtro `dev` abaixo.
 ].filter((it) => import.meta.env.DEV || !it.dev);
@@ -368,6 +373,40 @@ export class MenuScene extends Phaser.Scene {
         },
       )
       .setOrigin(1, 0);
+
+    this.showKeyboardWarningIfNeeded();
+  }
+
+  // Aviso honesto no celular: o jogo é 100% teclado e NÃO tem controles de
+  // toque. Sem isto, o jogador toca em JOGAR (os botões de menu respondem ao
+  // toque), cai na fase, o personagem não anda e ele conclui que o jogo está
+  // quebrado. Uma faixa vale mais que um bug report.
+  private showKeyboardWarningIfNeeded() {
+    if (!needsKeyboardWarning()) return;
+    const H = 44;
+    // No TOPO: no meio da tela a faixa cobria o subtítulo e a borda do botão
+    // JOGAR — o aviso não pode atrapalhar justamente o menu que ele explica.
+    const y = 0;
+    const g = this.add.graphics().setDepth(2000);
+    g.fillStyle(0x2a1408, 0.96);
+    g.fillRect(0, y, GAME_WIDTH, H);
+    g.lineStyle(2, 0xf2a24e, 0.9);
+    g.strokeRect(0, y, GAME_WIDTH, H);
+    this.add
+      .text(
+        GAME_WIDTH / 2,
+        y + H / 2,
+        "⌨  Este jogo precisa de TECLADO.\nNão há controles de toque — jogue no computador.",
+        {
+          fontFamily: "monospace",
+          fontSize: "10px",
+          color: "#ffd9a8",
+          align: "center",
+          lineSpacing: 3,
+        },
+      )
+      .setOrigin(0.5)
+      .setDepth(2001);
   }
 
   update(_time: number, _delta: number) {
@@ -504,6 +543,8 @@ export class MenuScene extends Phaser.Scene {
       this.showOverlay("conquistas");
     } else if (item.label === "CONFIGURAÇÕES") {
       this.showOverlay("config");
+    } else if (item.label === "CRÉDITOS") {
+      this.showOverlay("creditos");
     }
   }
 
@@ -551,6 +592,8 @@ export class MenuScene extends Phaser.Scene {
       this.buildTestFaseOverlay(OW, OH);
     } else if (type === "controls") {
       this.buildControlsOverlay(OW, OH);
+    } else if (type === "creditos") {
+      this.buildCreditosOverlay(OW, OH);
     } else {
       this.buildConfigOverlay(OW, OH);
     }
@@ -679,6 +722,97 @@ export class MenuScene extends Phaser.Scene {
         );
       }
     });
+  }
+
+  // Créditos — NÃO é cortesia: as duas fontes empacotadas em
+  // `public/assets/fonts/` estão sob a SIL Open Font License, que exige o aviso
+  // de copyright junto do software que as distribui. As bibliotecas MIT/BSD
+  // pedem o mesmo. Sem esta tela o jogo publicado estava fora de licença.
+  private buildCreditosOverlay(OW: number, OH: number) {
+    if (!this.overlay) return;
+
+    this.overlay.add(
+      this.add
+        .text(OW / 2, 14, "📜 CRÉDITOS", {
+          fontFamily: "monospace",
+          fontSize: "16px",
+          fontStyle: "bold",
+          color: TEXT_ACCENT,
+        })
+        .setOrigin(0.5, 0),
+    );
+    this.overlay.add(
+      this.add
+        .text(OW / 2, 34, "A Vida do CLT — Corporate Escape", {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        })
+        .setOrigin(0.5, 0),
+    );
+
+    const secoes: Array<{ titulo: string; linhas: string[] }> = [
+      {
+        titulo: "MOTOR E FRAMEWORK",
+        linhas: [
+          "Phaser 4 — MIT · Photon Storm",
+          "React 19 — MIT · Meta",
+          "TanStack Start / Router — MIT · Tanner Linsley",
+          "Vite — MIT · Evan You",
+        ],
+      },
+      {
+        titulo: "TIPOGRAFIA (SIL Open Font License 1.1)",
+        linhas: ["Press Start 2P — © CodeMan38", "VT323 — © Peter Hull"],
+      },
+      {
+        titulo: "BIBLIOTECAS",
+        linhas: [
+          "rot-js — BSD-3-Clause · Ondrej Zara",
+          "seedrandom — MIT · David Bau",
+          "supabase-js — MIT · Supabase",
+        ],
+      },
+      {
+        titulo: "ÁUDIO",
+        linhas: ["Trilha e efeitos 100% procedurais (Web Audio) — sem samples de terceiros"],
+      },
+    ];
+
+    let y = 58;
+    for (const sec of secoes) {
+      this.overlay.add(
+        this.add.text(20, y, sec.titulo, {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          fontStyle: "bold",
+          color: TEXT_ACCENT,
+        }),
+      );
+      y += 16;
+      for (const linha of sec.linhas) {
+        this.overlay.add(
+          this.add.text(28, y, linha, {
+            fontFamily: "monospace",
+            fontSize: "8px",
+            color: TEXT_DIM,
+            wordWrap: { width: OW - 56 },
+          }),
+        );
+        y += 13;
+      }
+      y += 8;
+    }
+
+    this.overlay.add(
+      this.add
+        .text(OW / 2, Math.min(y + 6, OH - 44), "Feito com raiva e carinho.", {
+          fontFamily: "monospace",
+          fontSize: "8px",
+          color: TEXT_DIM,
+        })
+        .setOrigin(0.5, 0),
+    );
   }
 
   private buildConquistasOverlay(OW: number, OH: number) {
