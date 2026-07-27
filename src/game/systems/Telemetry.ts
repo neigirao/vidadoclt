@@ -25,8 +25,33 @@ const hasLS = () => typeof localStorage !== "undefined";
 // ou a tabela não existir, o jogo não trava e a telemetria local segue intacta.
 // O import é DINÂMICO (só no browser) para o módulo continuar puro/testável em
 // bun:test. Sem PII — só id de sessão aleatório + eventos de game design.
+/**
+ * Sessão AUTOMATIZADA (Playwright)? Então NÃO sobe telemetria.
+ *
+ * Sem isto os próprios gates envenenam o dado: `bun smoke` boota as 22 cenas em
+ * sequência — inclusive `VitoriaScene`, que dispara `Telemetry.victory()` — e
+ * roda em cada job de CI e em cada execução local. Medido no banco antes do
+ * fix: de 550 sessões, **305 visitavam ≥8 cenas em menos de 60s** (assinatura
+ * inequívoca do smoke) e só 18 passavam de 1 minuto. As 486 "vitórias"
+ * registradas tinham ZERO `boss_defeat` — ninguém havia vencido o jogo; era o
+ * VitoriaScene sendo bootado direto pelo teste.
+ *
+ * Dado envenenado é pior que dado nenhum: leva a decisão de design errada com
+ * ar de evidência. `navigator.webdriver` é o sinal padrão de automação e cobre
+ * TODOS os gates de uma vez (smoke, visual, validate:levels, gallery, audit),
+ * porque todos rodam sob Playwright.
+ */
+function isAutomated(): boolean {
+  try {
+    return typeof navigator !== "undefined" && navigator.webdriver === true;
+  } catch {
+    return false;
+  }
+}
+
 async function sendRemote(ev: TelemetryEvent) {
   if (typeof window === "undefined") return;
+  if (isAutomated()) return;
   try {
     // Import dinâmico do client dedicado (só no browser → módulo puro/testável).
     const { telemetryClient } = await import("./telemetryClient");
