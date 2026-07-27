@@ -24,6 +24,7 @@
     "audit:anim": "node scripts/audit-anim.mjs",
     "close:loops": "node scripts/close-loops.mjs",
     "trim:filler": "node scripts/trim-filler.mjs",
+    "undo:inbetweens": "node scripts/undo-inbetweens.mjs",
     "deghost": "node scripts/deghost-frames.mjs",
     "sim:balance": "bun scripts/balance-sim.mjs",
     "juice:report": "bun scripts/juice-report.mjs",

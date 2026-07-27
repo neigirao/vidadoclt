@@ -27,9 +27,10 @@ export const WALK_FRAME_COUNTS: Record<string, number> = {
   coordenador: 4,
   senior: 16,
   rh: 4,
-  // Bosses recolor (asBoss) — mantidos (não flagados pelo audit)
-  "scrum-boss": 24,
-  "coord-boss": 16,
+  // Bosses recolor (asBoss). Enxugados pelo undo:inbetweens junto com o resto:
+  // os ímpares eram in-betweens de blend e o ciclo par fecha o loop.
+  "scrum-boss": 12,
+  "coord-boss": 9,
 };
 
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
@@ -42,8 +43,8 @@ export const IDLE_FRAME_COUNTS: Record<string, number> = {
   coordenador: 4,
   senior: 4,
   rh: 4,
-  "scrum-boss": 16,
-  "coord-boss": 16,
+  "scrum-boss": 8,
+  "coord-boss": 9,
 };
 
 // Ataque animado: whitelist dos frames de arte VALIDADA (48×64). Outliers 32×48 /

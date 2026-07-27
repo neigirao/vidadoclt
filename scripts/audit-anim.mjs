@@ -17,13 +17,22 @@
 // Estático (lê atlas.png/json, sem navegador), determinístico. Relatório por
 // padrão.
 //
-// `--gate` = GATE RATCHET (trava de não-regressão): compara a contagem por TIPO
-// (dead/jerk/loop-pop/padded) contra a baseline commitada (anim-baseline.json) e
-// sai !=0 se QUALQUER tipo PIORAR. Congela o estado atual como teto e só deixa os
-// números CAÍREM — teria bloqueado o lote de in-betweens que piorou loop-pop
-// 50→62. Não exige "zerar" os defeitos (o baseline clean só sai de arte autoral);
-// exige NÃO REGREDIR. Quando a suavidade melhorar de fato, `--update-baseline`
-// baixa o teto e trava o ganho. `--json`, `--top=N`.
+// `--gate` = GATE RATCHET (trava de não-regressão): compara a contagem por
+// AÇÃO×TIPO (ex.: `walk|loop-pop`) contra a baseline commitada
+// (anim-baseline.json) e sai !=0 se QUALQUER par PIORAR. Congela o estado atual
+// como teto e só deixa os números CAÍREM — teria bloqueado o lote de
+// in-betweens que piorou loop-pop 50→62. Não exige "zerar" os defeitos (o
+// baseline clean só sai de arte autoral); exige NÃO REGREDIR. Quando a
+// suavidade melhorar de fato, `--update-baseline` baixa o teto e trava o ganho.
+// `--json`, `--top=N`.
+//
+// POR AÇÃO, e não pelo total por tipo: somando o atlas inteiro, uma melhora numa
+// ação MASCARA uma piora em outra. Verificado — com `walk` ganhando 5 loop-pops
+// e `attack` perdendo 5, o total fica 62→62 e o gate global APROVA, escondendo a
+// regressão na animação que o jogador mais vê (o walk roda o tempo todo, em todo
+// inimigo; o attack e o hurt aparecem por instantes). As ações também não estão
+// no mesmo patamar: medido, walk 51/100 vs hurt 83/100 — um número só apaga
+// justamente a informação acionável.
 //
 // Uso: node scripts/audit-anim.mjs [--gate] [--update-baseline] [--json] [--top=N]
 // ─────────────────────────────────────────────────────────────────────────────
@@ -198,17 +207,41 @@ reports.sort(
 const warned = reports.filter(hasWarn);
 const infoOnly = reports.filter((r) => !hasWarn(r) && r.flags.length > 0);
 
-// Contagem por TIPO — headline acionável E entrada do gate ratchet.
+// Contagem por TIPO — headline acionável (visão geral do atlas).
 const byKind = {};
 for (const r of reports) for (const f of r.flags) byKind[f.kind] = (byKind[f.kind] ?? 0) + 1;
+
+// Contagem por AÇÃO×TIPO — entrada do gate ratchet.
+//
+// POR QUE NÃO O TOTAL GLOBAL: somando só por tipo, uma melhora numa ação
+// MASCARA uma piora em outra. Se o `walk` ganhasse 5 loop-pops e o `hurt`
+// perdesse 5, o total ficaria igual e o gate passaria — escondendo a regressão
+// justamente na animação que o jogador mais vê (o walk roda o tempo todo, em
+// todos os inimigos; o hurt aparece por instantes).
+//
+// As ações também não são equivalentes em qualidade: medido hoje, o walk está
+// em 51/100 e o hurt em 83/100. Tratá-las como um número só apaga essa
+// diferença, que é exatamente a informação acionável.
+const byStateKind = {};
+for (const r of reports) {
+  for (const f of r.flags) {
+    const k = `${r.state}|${f.kind}`;
+    byStateKind[k] = (byStateKind[k] ?? 0) + 1;
+  }
+}
 
 // Gate RATCHET: trava de não-regressão contra a baseline commitada. Reprova se
 // QUALQUER tipo piorar (count > baseline). `--update-baseline` regrava o teto
 // (quando a arte melhora de verdade). Retorna o código de saída do processo.
 function gateExitCode() {
   if (updateBaseline) {
-    writeFileSync(BASELINE_PATH, JSON.stringify(byKind, null, 2) + "\n");
-    console.error(`baseline de animação atualizada: ${JSON.stringify(byKind)}`);
+    const ordenado = Object.fromEntries(
+      Object.entries(byStateKind).sort(([a], [b]) => (a < b ? -1 : 1)),
+    );
+    writeFileSync(BASELINE_PATH, JSON.stringify(ordenado, null, 2) + "\n");
+    console.error(
+      `baseline de animação atualizada (${Object.keys(ordenado).length} pares ação×tipo)`,
+    );
     return 0;
   }
   if (!gate) return 0;
@@ -219,10 +252,21 @@ function gateExitCode() {
     console.error("✖ anim-baseline.json ausente/inválido — rode: bun audit:anim --update-baseline");
     return 1;
   }
-  const kinds = new Set([...Object.keys(byKind), ...Object.keys(baseline)]);
+  // A baseline antiga era chaveada só por TIPO ("jerk"); a nova é por
+  // AÇÃO|TIPO ("walk|jerk"). Detecta o formato velho e pede regravação em vez
+  // de comparar maçã com laranja e passar por engano.
+  if (Object.keys(baseline).length && !Object.keys(baseline).some((k) => k.includes("|"))) {
+    console.error(
+      "✖ anim-baseline.json está no formato ANTIGO (só por tipo). O gate agora é\n" +
+        "  por AÇÃO×TIPO, pra que melhora numa ação não mascare piora em outra.\n" +
+        "  Rode: bun audit:anim --update-baseline",
+    );
+    return 1;
+  }
+  const kinds = new Set([...Object.keys(byStateKind), ...Object.keys(baseline)]);
   const regress = [];
   for (const k of kinds) {
-    const cur = byKind[k] ?? 0;
+    const cur = byStateKind[k] ?? 0;
     const base = baseline[k] ?? 0;
     if (cur > base) regress.push(`${k}: ${base} → ${cur} (+${cur - base})`);
   }

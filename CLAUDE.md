@@ -320,11 +320,56 @@ não fecham (loop-pop generalizado) — os "16 frames" NÃO leem como mais suave
 baseline limpo só sai de arte autoral** — o blend é beco sem saída.
 
 **`--gate` = GATE RATCHET no CI (job check).** Não exige zerar os defeitos (impossível sem
-arte); trava a NÃO-REGRESSÃO: compara a contagem por tipo (dead/jerk/loop-pop/padded) contra
-`scripts/anim-baseline.json` e reprova se qualquer tipo piorar. Foi calibrado assim porque um
-teto absoluto exigiria primeiro reverter/redesenhar. **Teria bloqueado o lote que piorou
-loop-pop 50→62.** Melhorou de verdade (revert de blend, arte nova, trim)? `bun audit:anim
---update-baseline` regrava o teto e trava o ganho — o ratchet só anda pra baixo. `--json`/`--top=N`.
+arte); trava a NÃO-REGRESSÃO: compara a contagem por **AÇÃO×TIPO** (`walk|loop-pop`,
+`hurt|padded`, …) contra `scripts/anim-baseline.json` e reprova se **qualquer par** piorar.
+Foi calibrado assim porque um teto absoluto exigiria primeiro reverter/redesenhar. **Teria
+bloqueado o lote que piorou loop-pop 50→62.** Melhorou de verdade (revert de blend, arte
+nova, trim)? `bun audit:anim --update-baseline` regrava o teto e trava o ganho — o ratchet só
+anda pra baixo. `--json`/`--top=N`.
+
+**Por AÇÃO, e não pelo total por tipo:** somando o atlas inteiro, melhora numa ação MASCARA
+piora em outra. Verificado: com `walk` ganhando 5 loop-pops e `attack` perdendo 5, o total
+fica **62→62** e o gate global APROVA — escondendo a regressão na animação que o jogador mais
+vê (o walk roda o tempo todo, em todo inimigo; attack/hurt aparecem por instantes). As ações
+também não estão no mesmo patamar — medido: **walk 51/100, attack 54, idle 59, death 66,
+hurt 83** (score = 100 menos as penalidades por defeito, ajustado pela uniformidade do ciclo).
+Um número só apaga justamente a informação acionável. A baseline em formato ANTIGO (chaveada
+só por tipo) é **detectada** e reprova pedindo `--update-baseline`, em vez de comparar maçã
+com laranja e passar por engano.
+
+**DESFEITOS os in-betweens de blend (`bun undo:inbetweens`, `scripts/undo-inbetweens.mjs`).**
+O `gen-inbetweens` insere um frame interpolado ENTRE cada par de originais, então os
+**originais ficam nos índices PARES** — descartar os ímpares restaura o ciclo autoral EXATO
+(não é redesenho nem aproximação). Por que as outras ferramentas não resolviam: o
+`trim:filler` procura frames PARADOS (delta < 0.35), e frame de blend não está parado — é
+diferente e sem sentido (os `hurt` sinalizados têm delta mediano 0.5–2.2). E o `close:loops`
+(mais ponte por blend) PIORAVA. **Guarda contra estrago:** a decisão é POR FAMÍLIA e por
+MEDIDA — só corta quando o subconjunto par é melhor nos DOIS eixos (irregularidade dos deltas
+e fechamento do wrap), então arte autoral longa não é destruída.
+
+**Resultado (48 famílias, 460 frames removidos): total de defeitos 226 → 150 (−34%).**
+`walk|jerk` 26→2, `walk|loop-pop` 22→2, `idle|jerk` 20→4, `idle|loop-pop` 18→4, `run` zerado.
+O `walk` — a animação MAIS VISÍVEL do jogo — saiu de 48 defeitos para 4. **O `loop-pop` nunca
+foi problema de desenho: era artefato da duplicação.** Por isso o piso de ciclo do
+`check:frames` caiu de 16 → **8** (manter 16 exigiria reintroduzir exatamente o que causava o
+defeito). Contagens hardcoded que dependiam do inchaço foram alinhadas junto
+(`EnemyAnimConfig` dos bosses recolor, `SpriteLabScene` do gerente) — o RUNTIME já lia do
+atlas (`atlasFrames`), então o jogo nunca esteve em risco; o que estava obsoleto era a
+referência do LAB e do gate.
+
+**PRIORIDADE DE ARTE = EXPOSIÇÃO REAL, não score.** Medido na telemetria já limpa (sessões
+humanas, filtro em `docs/TELEMETRIA.md`): Fase 1 **62**, Fase 2 46, Fases 3–5 41, Copa 17,
+**CEO 3**. Só **5% dos jogadores chegam ao CEO**. Uma hora gasta no `walk` de um inimigo da
+Fase 1 vale mais que a mesma hora no clímax — inclusive o fundo do CEO, que é o pior asset do
+jogo mas é visto por 1 em 20.
+
+**Onde a arte dói mais (medido, 190 animações, score médio 62,5/100; só 11% sem defeito):** o
+`walk` é o PIOR (51) e é o mais visível; o `hurt` parece o melhor (83) mas tem 32 `padded` —
+"não tem defeito" porque quase não se mexe (17 frames de hold disfarçado). O `player` (81)
+está bem acima da média de inimigos (61), o que mostra que o gargalo não é capacidade, é
+cobertura. **Animações com ≥16 frames têm 3,6× mais defeitos** que as com menos (1,20 vs 0,33
+por animação) e 98% do atlas está em ≥16 — a meta de "16 frames em toda ação" preenchida por
+in-between comprou defeito, não suavidade.
 
 **Limite conhecido:** os gates cobrem _quantidade_, coerência de _contagem_, _tamanho_ de
 canvas (`check:frames`), _conteúdo_ vazio/chapado/faltando (`audit:sprites`), _paleta_

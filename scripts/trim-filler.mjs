@@ -73,8 +73,13 @@ const audit = spawnSync("node", ["scripts/audit-anim.mjs", "--json"], {
 });
 const report = JSON.parse(audit.stdout);
 // padded flag é `info` (não warn) — está em reports com kind=padded
+// `hurt` e `death` entram: são onde o filler se concentra (medido: 32 dos 67
+// `padded` estão em hurt, 11 em death). O hurt de 17 frames é um HOLD
+// disfarçado de animação — o padrão do gênero é um recuo curto e forte, não 17
+// frames em que quase nada se mexe. `attack` fica de fora: não é interpolado.
+const TRIMAVEIS = ["walk", "idle", "run", "hurt", "death"];
 const padded = report.reports.filter(
-  (r) => r.flags.some((f) => f.kind === "padded") && ["walk", "idle", "run"].includes(r.state), // attack não interpola; deixar
+  (r) => r.flags.some((f) => f.kind === "padded") && TRIMAVEIS.includes(r.state),
 );
 
 console.log(`Famílias padded (candidatas a trim): ${padded.length}`);
