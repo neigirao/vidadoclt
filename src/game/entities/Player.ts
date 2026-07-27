@@ -248,7 +248,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(10);
-    this.setDisplaySize(48, 64); // taller than wide — matches character sprite proportions and stands out from enemies
+    // Escala UNIFORME: os frames do atlas são 80×80 (quadrados). O antigo
+    // setDisplaySize(48, 64) vinha da arte legada 48×64 e, com os frames novos,
+    // ACHATAVA o personagem na horizontal (sx 0.6 × sy 0.8). 0.8 em ambos os
+    // eixos mantém a altura de antes (64px) sem distorcer.
+    this.setScale(0.8);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(22, 44);
     body.setOffset(29, 34); // 80×80 sprite: x=(80-22)/2, y=80-44-2
