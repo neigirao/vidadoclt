@@ -33,6 +33,11 @@ export class CopaScene extends Phaser.Scene {
   private coffeeReadyAt = 0;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private hintText!: Phaser.GameObjects.Text;
+  // Porta da sala opcional (só existe quando o pool tem sala não-limpa).
+  private salaDoor?: Phaser.GameObjects.Image;
+  private salaPrompt?: Phaser.GameObjects.Text;
+  private salaPromptSeenAt = 0;
+  private salaLabel?: string;
   private startTimeMs = 0;
   private lastHealAt = 0;
   private npcs: Array<{
@@ -407,41 +412,31 @@ export class CopaScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(1000);
 
-    // ── Salas opcionais (#3): a porta lateral oferece UMA sala-bônus aleatória
-    // ainda não limpa nesta run (roguelite). Reunião → horda; as demais →
-    // SalaBonusScene. Determinístico pela seed + nº de salas já limpas.
+    // ── Salas opcionais (#3): a porta do meio oferece UMA sala-bônus ainda não
+    // limpa nesta run (roguelite). Determinística pela seed + nº de salas já
+    // limpas — o desvio é escolha do jogador, não sorteio a cada entrada.
     //
-    // DESLIGADO para o ALPHA (decisão de simplificação — Opção B): o fluxo fica
-    // linear Fase→Copa→Fase, sem os desvios opcionais (que confundiam: "não tem
-    // pra onde ir"). As cenas e a lógica ficam no repo (reversível: virar `true`);
-    // continuam alcançáveis por TESTAR FASE / LAB. Religam quando ganharem
-    // fundos próprios (hoje são cor sólida).
-    const OPTIONAL_ROOMS_ENABLED = false;
-    // "arquivo"/"deposito" = salas LDtk (LdtkRoomScene) — desenhadas em ASCII
-    // (gen-ldtk-rooms.mjs) ou por export do editor; entram no sorteio quando o
-    // pool religar.
-    const ALL_ROOMS = [
-      "reuniao",
-      "banheiro",
-      "ti",
-      "rh",
-      "financeiro",
-      "arquivo",
-      "deposito",
-      "servidor",
-      "trofeus",
-    ] as const;
+    // HISTÓRICO: ficou DESLIGADO por um tempo por dois motivos — (a) as salas
+    // eram "cor sólida" e (b) a porta confundia ("não tem pra onde ir"). Religado
+    // atacando os DOIS, não virando o flag:
+    //  (a) o POOL agora é só as 4 salas LDtk (ROOM_POOL), que têm cenário de
+    //      verdade — tiles, luminárias, props — e são validadas pelo gate
+    //      LdtkRooms.test.ts (saída alcançável, todo inimigo alcançável, spawn
+    //      seguro). As 5 salas planas (reuniao/banheiro/ti/rh/financeiro) ficam
+    //      FORA do sorteio até ganharem cenário; as cenas seguem no repo e
+    //      alcançáveis por TESTAR FASE.
+    //  (b) a porta ganhou prompt `[E]` próprio e entrou na linha de dicas do
+    //      rodapé — antes era a única interação da Copa sem nenhum dos dois.
+    const OPTIONAL_ROOMS_ENABLED = true;
+    // Só salas LDtk (LdtkRoomScene), desenhadas em ASCII por gen-ldtk-rooms.mjs
+    // ou substituídas por um export real do editor LDtk.
+    const ALL_ROOMS = ["arquivo", "deposito", "servidor", "trofeus"] as const;
     const cleared = new Set(run.optionalRoomsCleared ?? []);
     const available = ALL_ROOMS.filter((r) => !cleared.has(r));
     if (OPTIONAL_ROOMS_ENABLED && available.length > 0) {
       const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 6) || "0", 10) : 0;
       const pick = available[(seedNum + cleared.size) % available.length];
       const LABELS: Record<string, string> = {
-        reuniao: "SALA DE\nREUNIÃO",
-        banheiro: "BANHEIRO",
-        ti: "TI\n(CHAMADO)",
-        rh: "RH\n(ROLETA)",
-        financeiro: "FINANCEIRO",
         arquivo: "ARQUIVO\nMORTO",
         deposito: "DEPÓSITO",
         servidor: "SERVIDOR\nLEGADO",
@@ -456,6 +451,17 @@ export class CopaScene extends Phaser.Scene {
           align: "center",
         })
         .setOrigin(0.5);
+      // Prompt de interação: a porta opcional era a ÚNICA interação da Copa sem
+      // um `[E]` visível, o que é boa parte do "não tem pra onde ir" que fez o
+      // pool ser desligado. Aparece só com o player por perto (como os demais).
+      const salaPrompt = this.add
+        .text(LEVEL_WIDTH / 2, FLOOR_Y - 92, "[E] entrar", {
+          fontFamily: "monospace",
+          fontSize: "9px",
+          color: "#ffdd99",
+        })
+        .setOrigin(0.5)
+        .setVisible(false);
       const salaZone = this.add.zone(LEVEL_WIDTH / 2, FLOOR_Y - 30, 44, 64);
       this.physics.add.existing(salaZone, true);
       this.physics.add.overlap(this.player, salaZone, () => {
@@ -465,18 +471,18 @@ export class CopaScene extends Phaser.Scene {
         ) {
           this.persist();
           getRun(this).cameFrom = "copa";
-          if (pick === "reuniao") this.scene.start("SalaReuniaoScene");
-          else if (
-            pick === "arquivo" ||
-            pick === "deposito" ||
-            pick === "servidor" ||
-            pick === "trofeus"
-          )
-            this.scene.start("LdtkRoomScene", { room: pick });
-          else this.scene.start("SalaBonusScene", { type: pick });
+          this.scene.start("LdtkRoomScene", { room: pick });
         }
         salaDoor.setTint(0xffdd99);
+        salaPrompt.setVisible(true);
+        this.salaPromptSeenAt = this.time.now;
       });
+      this.salaPrompt = salaPrompt;
+      this.salaDoor = salaDoor;
+      // Consumido pela linha contextual do rodapé no update() — a dica do rodapé
+      // é reescrita todo frame (Café/Ponto/volta), então a sala precisa entrar
+      // LÁ, não num setText de create() que o primeiro frame apagaria.
+      this.salaLabel = LABELS[pick].replace("\n", " ");
     }
 
     // Door back trigger — returns to the phase the player came from
@@ -762,6 +768,13 @@ export class CopaScene extends Phaser.Scene {
     this.player.update(time, delta);
     this.player.tickPassive(time);
 
+    // O overlap da porta opcional só dispara ENQUANTO há contato; sem isto o
+    // prompt/realce ficariam acesos para sempre depois da primeira aproximação.
+    if (this.salaPrompt && time - this.salaPromptSeenAt > 120) {
+      this.salaPrompt.setVisible(false);
+      this.salaDoor?.setTint(0xffaa55);
+    }
+
     // Faxineiro swings check
     this.faxineiros.getChildren().forEach((c) => {
       const f = c as Faxineiro;
@@ -886,6 +899,7 @@ export class CopaScene extends Phaser.Scene {
       tremorWarnMs: this.player.getTremorWarnMs(time),
     });
 
+    const nearSala = !!this.salaLabel && time - this.salaPromptSeenAt <= 120;
     this.hintText.setText(
       nearCoffee
         ? time < this.coffeeReadyAt
@@ -893,7 +907,11 @@ export class CopaScene extends Phaser.Scene {
           : "E: Cafe Triplo (2 VR  +25 Energia  -5 Sanidade)"
         : nearPonto
           ? "E: Ponto Eletrônico — bater o ponto e avançar para a próxima fase"
-          : "→ Ande até o Ponto Eletrônico (direita) para avançar  •  ← voltar pelo escritório",
+          : nearSala
+            ? `E: ${this.salaLabel} — desvio OPCIONAL (limpe a sala, ganhe VR e volte)`
+            : this.salaLabel
+              ? `→ Ponto Eletrônico (direita) para avançar  •  porta do meio: ${this.salaLabel} (opcional)  •  ← voltar`
+              : "→ Ande até o Ponto Eletrônico (direita) para avançar  •  ← voltar pelo escritório",
     );
   }
 }
