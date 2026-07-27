@@ -17,6 +17,7 @@ import { applyCinematicPostFx, applyBiomePalette } from "../systems/PostFx";
 import { Lighting, Light } from "../systems/Lighting";
 import { loadSettings, ASSIST_DAMAGE_TAKEN_MULT, ASSIST_MIN_LIVES } from "../systems/Settings";
 import { Player } from "../entities/Player";
+import { expediente, startRunClock } from "../systems/RunClock";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { menaceEnrageThreshold } from "../systems/Menace";
 import { WEAPONS, WEAPON_ICONS, WeaponId, WeaponDef } from "../systems/WeaponSystem";
@@ -426,6 +427,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     const run = getRun(this);
     this.platIdx = 0;
     this.startTimeMs = this.time.now;
+    startRunClock(this); // relógio do expediente (acumula na RUN, não na cena)
     this.bossDefeated = false;
     this.enemyGroups = [];
     this.rng = new Phaser.Math.RandomDataGenerator([run.seed ?? "CLT", this.scene.key]);
@@ -996,6 +998,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 7. HUD update
     const run = getRun(this);
+    // Expediente: um único read por frame (relógio + agravo da hora extra).
+    const exp = expediente(this);
+    this.player.overtimePressureMult = exp.pressureMult;
     this.hud.update({
       energy: Math.ceil(this.player.energy),
       maxEnergy: this.player.maxEnergy,
@@ -1005,6 +1010,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       reconhecimento: run.reconhecimento,
       time,
       startTime: this.startTimeMs,
+      clockMinutes: exp.gameMinutes,
+      clockBand: exp.band,
       playerX: this.player.x,
       interactHint: nearDoor
         ? `[ E ]  ${this.getDoorConfig().nearLabel}`

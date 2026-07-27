@@ -128,6 +128,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   dashCooldownBonus = 0; // ms subtraídos do cooldown do dash
   specialCooldownMult = 1.0; // multiplicador do cooldown do especial
   damageReductionMult = 1.0; // multiplicador de dano recebido (0.9^n)
+  /**
+   * (A) Agravo da HORA EXTRA: passando das 20h o escritório cobra mais caro.
+   * As cenas atualizam este campo a cada frame a partir do Expediente; o
+   * Player só o consome. Fica em 1.0 dentro do expediente normal.
+   */
+  overtimePressureMult = 1.0;
   parryEnergyRestore = 0; // energia restaurada num parry bem-sucedido
   parryVrDrop = 0; // VR ganho num parry bem-sucedido
   doubleJump = false;
@@ -388,7 +394,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     const burnoutMods = this.getBurnoutMods();
     const reducedAmount = Math.round(
-      amount * this.damageReductionMult * burnoutMods.damageTakenMult,
+      amount * this.damageReductionMult * burnoutMods.damageTakenMult * this.overtimePressureMult,
     );
     this.energy = Math.max(nonLethal ? 1 : 0, this.energy - reducedAmount);
     Telemetry.damageTaken(reducedAmount);

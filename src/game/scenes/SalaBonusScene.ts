@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
+import { expediente, startRunClock } from "../systems/RunClock";
 import { getRun } from "../systems/PlayerState";
 import { WEAPONS, WeaponId } from "../systems/WeaponSystem";
 import { applyClassAndWeapon } from "../systems/PlayerLoadout";
@@ -81,6 +82,7 @@ export class SalaBonusScene extends Phaser.Scene {
     this.used = false;
     this.traps = [];
     this.startTimeMs = this.time.now;
+    startRunClock(this); // relógio do expediente (acumula na RUN, não na cena)
     const meta = ROOMS[this.type];
     Music.start("copa");
 
@@ -532,6 +534,8 @@ export class SalaBonusScene extends Phaser.Scene {
       reconhecimento: run.reconhecimento,
       time,
       startTime: this.startTimeMs,
+      clockMinutes: expediente(this).gameMinutes,
+      clockBand: expediente(this).band,
       playerX: this.player.x,
       interactHint:
         this.exitDoor &&

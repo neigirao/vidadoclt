@@ -60,6 +60,12 @@ export type RunState = {
   heatBossHpMult?: number;
   heatSanityDrainMult?: number;
   heatNoConsumibles?: boolean;
+  // Relógio do expediente (systems/Expediente.ts). ACUMULADO da RUN inteira, em
+  // ms reais — cada fase soma o seu tempo ao sair. Antes o HUD usava um
+  // cronômetro POR CENA, então o expediente voltava pras 18:00 a cada porta.
+  clockMs?: number;
+  // Heat: acelera o relógio (aperta a janela até a hora extra). Ficou anos
+  // declarado e nunca lido; agora é o `rateMult` do Expediente.
   heatFastClock?: boolean;
   heatEnemySpeedMult?: number;
   heatBonus?: number;
@@ -132,6 +138,7 @@ export function getRun(scene: Phaser.Scene): RunState {
       cafeForte: false,
       shopWeapons: undefined,
       shopPerks: undefined,
+      clockMs: 0,
     };
     scene.registry.set("run", fresh);
     return fresh;
@@ -157,6 +164,8 @@ export function resetRun(scene: Phaser.Scene): RunState {
     cafeForte: false,
     shopWeapons: undefined,
     shopPerks: undefined,
+    // Nova run = expediente recomeça às 18:00.
+    clockMs: 0,
   };
   scene.registry.set("run", fresh);
   resetRunKills(); // zera o contador de kills da run (death recap)

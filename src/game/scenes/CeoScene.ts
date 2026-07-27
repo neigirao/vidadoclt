@@ -13,6 +13,7 @@ import { PLAT_DEFS } from "../systems/TextureFactory";
 import { Player } from "../entities/Player";
 import { EstagiarioDesesperado } from "../entities/Enemies";
 import { CeoBoss } from "../entities/CeoBoss";
+import { expediente, startRunClock } from "../systems/RunClock";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { CLASSES, WEAPONS, WeaponId, ClassId, WeaponDef } from "../systems/WeaponSystem";
 import { SanityFx } from "../systems/SanityFx";
@@ -55,6 +56,7 @@ export class CeoScene extends Phaser.Scene {
     const run = getRun(this);
     this.platIdx = 0;
     this.startTimeMs = this.time.now;
+    startRunClock(this); // relógio do expediente (acumula na RUN, não na cena)
 
     this.physics.world.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
     this.cameras.main.setBounds(0, 0, LEVEL_WIDTH, GAME_HEIGHT);
@@ -768,6 +770,8 @@ export class CeoScene extends Phaser.Scene {
     this.fx.update(time, this.player.sanity);
 
     const run = getRun(this);
+    const exp = expediente(this);
+    this.player.overtimePressureMult = exp.pressureMult;
     this.hud.update({
       energy: Math.ceil(this.player.energy),
       maxEnergy: this.player.maxEnergy,
@@ -777,6 +781,8 @@ export class CeoScene extends Phaser.Scene {
       reconhecimento: run.reconhecimento,
       time,
       startTime: this.startTimeMs,
+      clockMinutes: exp.gameMinutes,
+      clockBand: exp.band,
       playerX: this.player.x,
       dashCooldown: this.player.getDashCooldownRatio(time),
       specialCooldown: this.player.specialChargeRatio(time),

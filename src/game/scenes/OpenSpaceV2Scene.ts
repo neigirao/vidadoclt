@@ -23,6 +23,7 @@ import {
   fxGlow,
 } from "../entities/Enemies";
 import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
+import { startRunClock } from "../systems/RunClock";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { WEAPONS, WeaponId } from "../systems/WeaponSystem";
 import { ParticleFactory } from "../systems/ParticleFactory";
@@ -195,6 +196,10 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 8) || "0", 10) : 0;
     const seedVariant = seedNum % 4; // 0–3: 4 variantes de layout
     this.startTimeMs = this.time.now;
+    // A Fase 1 tem create() PRÓPRIO e não chama super.create() (ver CLAUDE.md),
+    // então precisa ligar o relógio do expediente por conta — senão a run
+    // inteira começava com 18:00 congelado.
+    startRunClock(this);
     this.bossDefeated = false;
     // A Fase 1 tem create() próprio (não chama super.create()) → precisa semear
     // o this.rng ela mesma. Sem isso, rollSanityDrop() (drop de café por kill)
