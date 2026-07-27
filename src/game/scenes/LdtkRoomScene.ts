@@ -356,10 +356,36 @@ export class LdtkRoomScene extends Phaser.Scene {
       dashCooldown: this.player.getDashCooldownRatio(time),
     });
 
+    // Fail-safe: inimigo que caiu do mundo (ou ficou preso fora da área jogável)
+    // travava a sala PRA SEMPRE — a saída só destranca com todos mortos e não
+    // havia como alcançá-lo. Some com ele e a sala segue limpável.
+    this.enemies.getChildren().forEach((c) => {
+      const e = c as Phaser.Physics.Arcade.Sprite;
+      if (e.active && (e.y > GAME_HEIGHT + 80 || e.x < -80 || e.x > this.level.widthPx + 80))
+        e.destroy();
+    });
+
     // Vitória da sala: começou com inimigos e todos morreram.
     if (!this.cleared && this.hadEnemies && this.enemies.countActive() === 0) this.onCleared();
     // Sala sem inimigos (ex.: export sem marcadores) → saída livre.
     if (!this.cleared && !this.hadEnemies) this.unlockExit();
+
+    // Leitura da saída: dizer POR QUE está trancada e o que fazer perto dela.
+    if (this.exitZone) {
+      const near =
+        Math.abs(this.player.x - this.exitZone.x) < 70 &&
+        Math.abs(this.player.y - this.exitZone.y) < 90;
+      const restantes = this.enemies.countActive();
+      if (!this.cleared) {
+        this.hud.setInteractHint(
+          near ? `🔒 Porta trancada — derrote os inimigos (${restantes} restante(s))` : null,
+        );
+      } else {
+        this.hud.setInteractHint(
+          near ? (this.fromCopa ? "[E] voltar para a Copa" : "[E] sair da sala") : null,
+        );
+      }
+    }
 
     if (
       this.cleared &&
