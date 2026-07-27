@@ -37,7 +37,14 @@ export const THRESHOLDS = {
   ttkTrivial: 0.3, // s — inimigo que evapora antes de ameaçar = sem propósito
   dpsSpreadRatio: 1.5, // DPS(melhor classe)/DPS(pior) acima disso = classe dominante
   timeToDownDanger: 3.5, // s — player cai mais rápido que isso a esse inimigo = swingy
+  // Quanto uma arma pode superar o TETO da raridade acima antes de virar
+  // problema. Alguma sobreposição é saudável (a arma tem utilidade além do
+  // DPS); o que quebra a promessa é a rara ser MELHOR que a épica.
+  rarityOverlapRatio: 1.1,
 };
+
+/** Ordem de raridade — a promessa de recompensa do roguelite. */
+export const RARITY_ORDER = ["comum", "raro", "epico", "lendario"] as const;
 
 /** ms entre golpes da arma (round(220 / attackSpeedMult)), igual ao PlayerLoadout. */
 export function attackIntervalMs(def: WeaponDef): number {
@@ -52,6 +59,15 @@ export function comboHitsFor(classId: ClassId, def: WeaponDef): number {
 }
 
 /** DPS efetivo do player para (classe, arma), modelo de acerto contínuo. */
+/**
+ * Dano do projétil que a arma híbrida solta a cada acerto melee. Espelha
+ * `def.rangedDamage || def.hitDamages[0]` do BasePhaseScene — o modelo TEM que
+ * seguir o jogo, senão vira fonte de decisão errada com cara de dado.
+ */
+export function autoRangedDamage(def: (typeof WEAPONS)[WeaponId]): number {
+  return def.rangedDamage || def.hitDamages[0];
+}
+
 export function playerDps(classId: ClassId, weaponId: WeaponId): number {
   const cls = CLASSES[classId];
   const def = WEAPONS[weaponId];
@@ -71,7 +87,12 @@ export function playerDps(classId: ClassId, weaponId: WeaponId): number {
   for (let step = 1; step <= hits; step++) cycleDamage += meleeBaseDamage(def, step);
   cycleDamage *= dmgMult;
   // Arma híbrida (grampeador_eletrico): dispara ranged a cada acerto melee.
-  if (def.hitAutoRanged) cycleDamage += hits * def.rangedDamage * dmgMult;
+  // O DANO segue o mesmo fallback do jogo (BasePhaseScene.onRangedAttack):
+  // `def.rangedDamage || def.hitDamages[0]`. Sem o fallback aqui, o modelo
+  // multiplicava por ZERO — a lendária tem rangedDamage: 0 — e aparecia com
+  // ~104 DPS, ABAIXO de armas raras. A "inversão da curva de raridade" que isso
+  // sugeria era artefato do MODELO, não do jogo: o projétil real causa 18.
+  if (def.hitAutoRanged) cycleDamage += hits * autoRangedDamage(def) * dmgMult;
   const cycleMs = hits * interval;
   return cycleDamage / (cycleMs / 1000);
 }
@@ -193,6 +214,26 @@ export function analyzeBalance(loop = 0): BalanceReport {
       msg: `DPS entre classes desbalanceado: ${best.id} ${best.dps.toFixed(0)} vs ${worst.id} ${worst.dps.toFixed(0)} (razão ${dpsSpread.toFixed(2)} > ${THRESHOLDS.dpsSpreadRatio})`,
     });
   }
+  // Curva de raridade: achar a lendária tem que ser o momento alto de uma run.
+  // Se uma arma de raridade BAIXA bate acima do teto da raridade acima, a cor
+  // deixa de significar e o jogador aprende a ignorá-la — perde-se um canal de
+  // recompensa inteiro que já existe e só está mal calibrado.
+  for (let i = 0; i < RARITY_ORDER.length - 1; i++) {
+    const abaixo = weaponDpsAnalista.filter((w) => w.rarity === RARITY_ORDER[i]);
+    const acima = weaponDpsAnalista.filter((w) => w.rarity === RARITY_ORDER[i + 1]);
+    if (!abaixo.length || !acima.length) continue;
+    const tetoAcima = Math.max(...acima.map((w) => w.dps));
+    for (const w of abaixo) {
+      if (w.dps > tetoAcima * THRESHOLDS.rarityOverlapRatio) {
+        flags.push({
+          severity: "warn",
+          kind: "rarity-inversion",
+          msg: `${w.id} (${w.rarity}) ${w.dps.toFixed(0)} DPS supera o teto de ${RARITY_ORDER[i + 1]} (${tetoAcima.toFixed(0)}) — a raridade deixa de significar`,
+        });
+      }
+    }
+  }
+
   for (const er of enemies) {
     const sponge = er.isMidboss ? THRESHOLDS.ttkSpongeMidboss : THRESHOLDS.ttkSpongeTrash;
     if (er.ttkAvg > sponge) {
