@@ -337,6 +337,32 @@ Um número só apaga justamente a informação acionável. A baseline em formato
 só por tipo) é **detectada** e reprova pedindo `--update-baseline`, em vez de comparar maçã
 com laranja e passar por engano.
 
+**DESFEITOS os in-betweens de blend (`bun undo:inbetweens`, `scripts/undo-inbetweens.mjs`).**
+O `gen-inbetweens` insere um frame interpolado ENTRE cada par de originais, então os
+**originais ficam nos índices PARES** — descartar os ímpares restaura o ciclo autoral EXATO
+(não é redesenho nem aproximação). Por que as outras ferramentas não resolviam: o
+`trim:filler` procura frames PARADOS (delta < 0.35), e frame de blend não está parado — é
+diferente e sem sentido (os `hurt` sinalizados têm delta mediano 0.5–2.2). E o `close:loops`
+(mais ponte por blend) PIORAVA. **Guarda contra estrago:** a decisão é POR FAMÍLIA e por
+MEDIDA — só corta quando o subconjunto par é melhor nos DOIS eixos (irregularidade dos deltas
+e fechamento do wrap), então arte autoral longa não é destruída.
+
+**Resultado (48 famílias, 460 frames removidos): total de defeitos 226 → 150 (−34%).**
+`walk|jerk` 26→2, `walk|loop-pop` 22→2, `idle|jerk` 20→4, `idle|loop-pop` 18→4, `run` zerado.
+O `walk` — a animação MAIS VISÍVEL do jogo — saiu de 48 defeitos para 4. **O `loop-pop` nunca
+foi problema de desenho: era artefato da duplicação.** Por isso o piso de ciclo do
+`check:frames` caiu de 16 → **8** (manter 16 exigiria reintroduzir exatamente o que causava o
+defeito). Contagens hardcoded que dependiam do inchaço foram alinhadas junto
+(`EnemyAnimConfig` dos bosses recolor, `SpriteLabScene` do gerente) — o RUNTIME já lia do
+atlas (`atlasFrames`), então o jogo nunca esteve em risco; o que estava obsoleto era a
+referência do LAB e do gate.
+
+**PRIORIDADE DE ARTE = EXPOSIÇÃO REAL, não score.** Medido na telemetria já limpa (sessões
+humanas, filtro em `docs/TELEMETRIA.md`): Fase 1 **62**, Fase 2 46, Fases 3–5 41, Copa 17,
+**CEO 3**. Só **5% dos jogadores chegam ao CEO**. Uma hora gasta no `walk` de um inimigo da
+Fase 1 vale mais que a mesma hora no clímax — inclusive o fundo do CEO, que é o pior asset do
+jogo mas é visto por 1 em 20.
+
 **Onde a arte dói mais (medido, 190 animações, score médio 62,5/100; só 11% sem defeito):** o
 `walk` é o PIOR (51) e é o mais visível; o `hurt` parece o melhor (83) mas tem 32 `padded` —
 "não tem defeito" porque quase não se mexe (17 frames de hold disfarçado). O `player` (81)

@@ -116,8 +116,8 @@ const SUBJECTS: Subject[] = [
     hurt: [0, 1],
   }),
   mkChar("Gerente (boss)", "Boss", "gerente", {
-    idle: [0, 4], // wiring: Boss cicla idle 4, walk 16
-    walk: [0, 16],
+    idle: [0, 4], // wiring: Boss cicla idle 4; walk enxugado p/ 9 (undo:inbetweens)
+    walk: [0, 9],
     run: [0, 4],
     hurt: [0, 3],
     death: [0, 3],

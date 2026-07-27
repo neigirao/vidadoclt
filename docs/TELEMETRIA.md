@@ -70,3 +70,24 @@ escreve. Mantê-lo não atrapalha.
    penalidade constante em vez de decisão.
 3. **Alguém usa dash / especial / parry?** (`avgVerbsPerRun`) Se der ~0, o
    combate colapsou em "andar e bater" e isso supera qualquer item de arte.
+
+## Exposição real por cena (primeira leitura com dado limpo)
+
+Sessões **humanas** que entram em cada cena (filtro da CTE acima):
+
+| cena                | sessões |
+| ------------------- | ------: |
+| Fase 1 (Open Space) |  **62** |
+| Fase 2              |      46 |
+| Fase 3              |      41 |
+| Fase 4              |      41 |
+| Fase 5              |      41 |
+| Copa                |      17 |
+| **CEO**             |   **3** |
+
+**Só 5% dos jogadores chegam ao CEO.** Isso ordena a fila de arte: uma hora gasta no `walk`
+de um inimigo da Fase 1 vale mais que a mesma hora no clímax. Vale inclusive para o fundo do
+CEO — que é o pior asset do jogo, mas é visto por 1 em cada 20 jogadores.
+
+Ressalva: a amostra ainda é pequena e os números tendem a subir com tráfego. A **forma** da
+curva (queda forte na Fase 2 e despencar no CEO) é o sinal; os valores absolutos, não.

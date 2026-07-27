@@ -60,13 +60,24 @@ function cat(s) {
 // ── Pisos mínimos por (categoria, ação) ───────────────────────────────────────
 // Ação ausente na tabela = SEM piso (não falha). Isto é intencional: ações
 // customizadas (ex.: `special`, `charge`, `sprint`) não têm requisito universal.
+// PISO DE 8 EM CICLO (idle/walk/run) — antes era 16.
+//
+// O 16 vinha da meta "16 frames em toda ação", cumprida rodando gen-inbetweens
+// (blend) em massa. A medição desmentiu a premissa: animações com ≥16 frames
+// tinham 3,6× MAIS defeitos que as com menos (1,20 vs 0,33 por animação). O
+// in-between comprou defeito, não suavidade — e o `walk`, a animação mais
+// visível do jogo, era a pior de todas (51/100).
+//
+// Desfazendo os in-betweens (undo:inbetweens, 48 famílias, 460 frames), o
+// `walk` foi de 48 defeitos para 4 e o `idle` de 38 para 8. Um piso de 16 aqui
+// EXIGIRIA reintroduzir exatamente o que causava o problema — por isso ele
+// desce para 8, que é o patamar onde o movimento já lê como suave (consenso da
+// comunidade de pixel art: ~8 fps é o piso do "suave").
 const FLOORS = {
-  // idle subido a 16 (uniforme entre categorias): idle é 100% interpolável por
-  // gen-inbetweens (respiração) e queremos a mesma suavidade em qualquer sujeito.
-  player: { idle: 16, walk: 16, run: 16, attack: 4, hurt: 2, jump: 3, fall: 2, dash: 1 },
-  boss: { idle: 16, walk: 8, attack: 4, hurt: 2, death: 3 },
-  enemy: { idle: 16, walk: 8, attack: 4, hurt: 2, death: 3 },
-  npc: { idle: 16, walk: 8 },
+  player: { idle: 8, walk: 8, run: 8, attack: 4, hurt: 2, jump: 3, fall: 2, dash: 1 },
+  boss: { idle: 8, walk: 8, attack: 4, hurt: 2, death: 3 },
+  enemy: { idle: 8, walk: 8, attack: 4, hurt: 2, death: 3 },
+  npc: { idle: 8, walk: 8 },
   item: {}, // itens não têm piso — loops curtos (3–4) são de propósito
 };
 

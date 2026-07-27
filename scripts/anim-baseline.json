@@ -8,12 +8,10 @@
   "hurt|jerk": 4,
   "hurt|padded": 32,
   "idle|dead": 3,
-  "idle|jerk": 20,
-  "idle|loop-pop": 18,
+  "idle|jerk": 4,
+  "idle|loop-pop": 4,
   "idle|padded": 5,
-  "run|jerk": 1,
-  "run|loop-pop": 1,
-  "walk|jerk": 26,
-  "walk|loop-pop": 22,
+  "walk|jerk": 2,
+  "walk|loop-pop": 2,
   "walk|padded": 3
 }
