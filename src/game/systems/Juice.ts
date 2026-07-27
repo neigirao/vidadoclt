@@ -81,6 +81,54 @@ export function squash(
   sprite.setScale(baseX, baseY);
   const originX = baseX;
   const originY = baseY;
+
+  // No Arcade o CORPO escala junto com o sprite. Sem compensar, o squash deixa
+  // de ser visual e vira FÍSICA: ao achatar (scaleY 0.8 → 0.68) a caixa encolhe
+  // ancorada no TOPO e o PÉ sobe ~4px, tirando o personagem do chão. Isso
+  // realimenta (sai do chão → cai → aterrissa → landSquash → sai de novo) e o
+  // corpo vai afundando no piso a cada ciclo até vazar pela faixa de 32px: o
+  // player atravessava o cenário e ia parar no limite inferior do mundo, sob o
+  // HUD, sem alcançar mais nenhum interativo — na Copa isso TRANCAVA a run
+  // (impossível bater o ponto). Medido andando 9s na Copa: 42–57 saídas do chão
+  // e queda em 4 de 4 corridas; travando o scaleY, 0 e 0.
+  //
+  // A compensação abaixo mantém a caixa do corpo com o MESMO tamanho e a MESMA
+  // linha do pé em coordenadas de mundo, em qualquer escala — o squash volta a
+  // ser 100% visual. Roda no onUpdate do tween (o único instante em que a escala
+  // muda), e não a cada frame: reescrever size/offset todo frame briga com a
+  // separação do Arcade e afunda o corpo de outro jeito.
+  const body = (sprite as Phaser.Physics.Arcade.Sprite).body as Phaser.Physics.Arcade.Body | null;
+  const pin = body
+    ? {
+        // Geometria autoral, em px de mundo, na escala base.
+        w: body.sourceWidth * Math.abs(originX),
+        h: body.sourceHeight * originY,
+        ox: body.offset.x,
+        oy: body.offset.y,
+        srcW: body.sourceWidth,
+        srcH: body.sourceHeight,
+        // Origem do sprite em px do frame (o Arcade multiplica isto pela escala).
+        origX: sprite.displayOriginX,
+        origY: sprite.displayOriginY,
+        // Pé (base do corpo) relativo ao y do sprite, na escala base.
+        foot: originY * (body.offset.y - sprite.displayOriginY + body.sourceHeight),
+      }
+    : null;
+  const repin = () => {
+    if (!pin || !body) return;
+    const sx = Math.abs(sprite.scaleX) || 1;
+    const sy = sprite.scaleY || 1;
+    const w = pin.w / sx;
+    const h = pin.h / sy;
+    body.setSize(w, h, false);
+    body.setOffset(pin.origX - w / 2, pin.origY + (pin.foot - pin.h) / sy);
+  };
+  const unpin = () => {
+    if (!pin || !body) return;
+    body.setSize(pin.srcW, pin.srcH, false);
+    body.setOffset(pin.ox, pin.oy);
+  };
+
   const tw = sprite.scene.tweens.add({
     targets: sprite,
     scaleX: originX * spec.sx,
@@ -88,7 +136,15 @@ export function squash(
     duration: spec.ms,
     yoyo: true,
     ease: spec.ease,
-    onComplete: () => sprite.setScale(originX, originY),
+    onUpdate: repin,
+    onStop: () => {
+      sprite.setScale(originX, originY);
+      unpin();
+    },
+    onComplete: () => {
+      sprite.setScale(originX, originY);
+      unpin();
+    },
   });
   sprite.setData("juice:squashTween", tw);
 }

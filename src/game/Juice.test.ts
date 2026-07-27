@@ -53,4 +53,71 @@ describe("JUICE — tabela de game feel", () => {
     expect(cfg.scaleY).toBeCloseTo(2 * JUICE.squash.land.sy, 5);
     expect(cfg.yoyo).toBe(true);
   });
+
+  test("squash() é VISUAL: a caixa do corpo e a linha do pé não mudam com a escala", () => {
+    // REGRESSÃO de um bug que TRANCAVA a run. No Arcade o corpo escala junto com
+    // o sprite: ao achatar, a caixa encolhia ancorada no TOPO e o pé subia ~4px,
+    // tirando o personagem do chão. Isso realimentava (sai do chão → cai →
+    // aterrissa → landSquash → sai de novo) e o corpo afundava no piso até vazar
+    // pela faixa de 32px — o player atravessava o cenário e ia parar no limite
+    // inferior do mundo, sem alcançar mais nenhum interativo (na Copa: sem bater
+    // o ponto, run travada). Aqui simulamos o tween escrevendo uma escala
+    // achatada e conferimos que a geometria do corpo, EM PX DE MUNDO, não mexeu.
+    const FRAME = 80;
+    const BASE_SX = 0.6;
+    const BASE_SY = 0.8;
+    let added: Record<string, unknown> | null = null;
+    const data: Record<string, unknown> = {};
+    // Fake de Arcade.Body: guarda size/offset em px de FONTE, como o Phaser.
+    const body = {
+      sourceWidth: 22,
+      sourceHeight: 44,
+      offset: { x: 29, y: 34 },
+      setSize(w: number, h: number, _center: boolean) {
+        this.sourceWidth = w;
+        this.sourceHeight = h;
+      },
+      setOffset(x: number, y: number) {
+        this.offset = { x, y };
+      },
+    };
+    const sprite = {
+      scaleX: BASE_SX,
+      scaleY: BASE_SY,
+      displayOriginX: FRAME / 2,
+      displayOriginY: FRAME / 2,
+      body,
+      scene: { tweens: { add: (cfg: Record<string, unknown>) => (added = cfg) } },
+      setScale: (_x: number, _y: number) => {},
+      getData: (k: string) => data[k],
+      setData: (k: string, v: unknown) => {
+        data[k] = v;
+      },
+    } as unknown as Parameters<typeof squash>[0];
+
+    // Geometria de mundo antes: altura efetiva e pé relativo ao y do sprite.
+    const worldH = () => body.sourceHeight * (sprite as unknown as { scaleY: number }).scaleY;
+    const worldW = () =>
+      body.sourceWidth * Math.abs((sprite as unknown as { scaleX: number }).scaleX);
+    const worldFoot = () => {
+      const sy = (sprite as unknown as { scaleY: number }).scaleY;
+      return sy * (body.offset.y - FRAME / 2 + body.sourceHeight);
+    };
+    const h0 = worldH();
+    const w0 = worldW();
+    const foot0 = worldFoot();
+
+    squash(sprite, JUICE.squash.land);
+    const cfg = added as unknown as { onUpdate: () => void };
+
+    // O tween escreve a escala achatada; o onUpdate do squash recompensa o corpo.
+    const s = sprite as unknown as { scaleX: number; scaleY: number };
+    s.scaleX = BASE_SX * JUICE.squash.land.sx;
+    s.scaleY = BASE_SY * JUICE.squash.land.sy;
+    cfg.onUpdate();
+
+    expect(worldH()).toBeCloseTo(h0, 4);
+    expect(worldW()).toBeCloseTo(w0, 4);
+    expect(worldFoot()).toBeCloseTo(foot0, 4); // o PÉ é o que tirava do chão
+  });
 });
