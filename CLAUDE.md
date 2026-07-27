@@ -157,6 +157,21 @@ tiro amarelo→azul; forma `!!`/`!` sempre ativa), remap de teclas (acima) e `ui
 (Normal/Grande/Enorme — escala as **dicas de tutorial** e os **toasts** de feedback; o HUD
 é pixel-tunado e fica fixo de propósito).
 
+**Sem controles de toque** (`systems/InputSupport.ts`): o jogo é 100% teclado. Num celular a
+página abre e os botões de MENU até respondem ao toque, mas a FASE não anda — o jogador
+conclui que quebrou. `needsKeyboardWarning()` detecta **toque como entrada principal**
+(`pointer: coarse` **e** `hover: none` **e** `maxTouchPoints > 0` — a combinação exclui
+notebook com tela sensível e tablet com teclado, que têm teclado) e o `MenuScene` mostra uma
+faixa no topo avisando. É honestidade, não conserto: controles virtuais de verdade (D-pad +
+7 verbos, com layout que não cubra a ação) são projeto à parte. Núcleo puro/testável
+(`InputSupport.test.ts`).
+
+**CRÉDITOS** (item de menu → `buildCreditosOverlay` no `MenuScene`) **não é cortesia**: as
+duas fontes empacotadas em `public/assets/fonts/` estão sob SIL Open Font License, que exige
+o aviso de copyright junto do software que as distribui; as libs MIT/BSD pedem o mesmo. Tem
+`firstRun: true` de propósito — o menu da 1ª run é enxuto, mas a atribuição não pode depender
+de o jogador ter morrido uma vez para ficar alcançável.
+
 ## Fluxo de cenas
 
 ```
