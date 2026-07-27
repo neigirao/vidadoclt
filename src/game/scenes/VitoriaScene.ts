@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { Telemetry } from "../systems/Telemetry";
 import { GAME_WIDTH, GAME_HEIGHT } from "../constants";
+import { expedienteStatus } from "../systems/Expediente";
 import { getRun, savePersisted, unlockNgPlus } from "../systems/PlayerState";
 import { Sfx } from "../systems/AudioSystem";
 
@@ -14,6 +15,14 @@ export class VitoriaScene extends Phaser.Scene {
     const reconhecimento = data.reconhecimento ?? run.reconhecimento;
     const loopCount = data.loopCount ?? run.loopCount ?? 1;
     Telemetry.victory(data.vr ?? run.vr, loopCount);
+
+    // (C) TEMPO COMO MOEDA: o VR da run vira Reconhecimento escalado por quanto
+    // do expediente sobrou até as 22h. Sair cedo paga (até 1.5x); enrolar não
+    // mata nem tira nada — só deixa de render o bônus (o multiplicador nunca
+    // desce de 1.0). É o que transforma tempo em ECONOMIA em vez de ameaça.
+    const exp = expedienteStatus(run.clockMs ?? 0, run.heatFastClock ? 1.5 : 1);
+    const vrFinal = data.vr ?? run.vr;
+    const bonusTempo = Math.round(vrFinal * (exp.timeBonusMult - 1));
 
     Sfx.victory();
     // Desbloqueia o New Game+ "Quinta-feira" (disponível no menu e no botão abaixo).
@@ -106,6 +115,23 @@ export class VitoriaScene extends Phaser.Scene {
       const r = getRun(this);
       r.reconhecimento += (loopCount - 1) * 50;
       savePersisted(r.reconhecimento, r.fgts, r.loopCount);
+    }
+
+    // Linha do bônus de tempo — o jogador precisa VER que sair cedo pagou.
+    if (bonusTempo > 0) {
+      const tb = this.add
+        .text(
+          GAME_WIDTH / 2,
+          462,
+          `Saiu às ${exp.clock} — bônus de expediente: +${bonusTempo} Reconhecimento`,
+          { fontFamily: "monospace", fontSize: "11px", color: "#f2c14e" },
+        )
+        .setOrigin(0.5)
+        .setAlpha(0);
+      this.tweens.add({ targets: tb, alpha: 1, duration: 700, delay: 3500 });
+      const r2 = getRun(this);
+      r2.reconhecimento += bonusTempo;
+      savePersisted(r2.reconhecimento, r2.fgts, r2.loopCount);
     }
 
     // Buttons

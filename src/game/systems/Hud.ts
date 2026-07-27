@@ -898,6 +898,15 @@ export class Hud {
     reconhecimento: number;
     time: number;
     startTime: number;
+    /**
+     * Minutos de expediente da RUN inteira (systems/Expediente). Quando vem, é
+     * o que manda no relógio. `time`/`startTime` seguem só como fallback do
+     * cronômetro por cena — que era o comportamento antigo e fazia o relógio
+     * voltar pras 18:00 a cada troca de fase.
+     */
+    clockMinutes?: number;
+    /** Faixa do expediente — pinta o relógio de laranja na hora extra. */
+    clockBand?: "normal" | "hora_extra";
     playerX: number;
     interactHint?: string;
     dashCooldown?: number;
@@ -975,10 +984,13 @@ export class Hud {
     this.prevEnergy = opts.energy;
 
     // Clock
-    const minutes = Math.floor((opts.time - opts.startTime) / 1000);
+    const minutes = opts.clockMinutes ?? Math.floor((opts.time - opts.startTime) / 1000);
     const hh = 18 + Math.floor(minutes / 60);
     const mm = minutes % 60;
     this.clockT.setText(`${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
+    // Hora extra: o relógio esquenta. É o único aviso permanente de que o
+    // escritório está cobrando mais caro.
+    this.clockT.setColor(opts.clockBand === "hora_extra" ? "#f2a24e" : "#eaeaea");
 
     // Minimap
     this.drawMinimap(opts.playerX);

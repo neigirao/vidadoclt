@@ -6,6 +6,7 @@ import { parseLdtk, type LdtkLevel } from "../systems/LdtkLoader";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { Player } from "../entities/Player";
 import { EstagiarioDesesperado } from "../entities/Enemies";
+import { expediente, startRunClock } from "../systems/RunClock";
 import { getRun } from "../systems/PlayerState";
 import { applyClassAndWeapon } from "../systems/PlayerLoadout";
 import { CombatFx } from "../systems/CombatFx";
@@ -86,6 +87,8 @@ export class LdtkRoomScene extends Phaser.Scene {
 
   create() {
     const run = getRun(this);
+    // A sala opcional CUSTA tempo de expediente — é o preço do desvio.
+    startRunClock(this);
     const room = ROOMS[this.roomId];
     this.fromCopa = run.cameFrom === "copa";
     this.cleared = false;
@@ -347,6 +350,8 @@ export class LdtkRoomScene extends Phaser.Scene {
       reconhecimento: getRun(this).reconhecimento,
       time,
       startTime: 0,
+      clockMinutes: expediente(this).gameMinutes,
+      clockBand: expediente(this).band,
       playerX: this.player.x,
       dashCooldown: this.player.getDashCooldownRatio(time),
     });

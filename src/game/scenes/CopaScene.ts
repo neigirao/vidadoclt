@@ -5,6 +5,8 @@ import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import { Faxineiro } from "../entities/Faxineiro";
+import { expediente, startRunClock } from "../systems/RunClock";
+import { copaHealsSanity } from "../systems/Expediente";
 import { getRun, savePersisted } from "../systems/PlayerState";
 import { WEAPONS, WeaponId } from "../systems/WeaponSystem";
 import { applyClassAndWeapon } from "../systems/PlayerLoadout";
@@ -56,6 +58,7 @@ export class CopaScene extends Phaser.Scene {
     Telemetry.phaseEnter(this.scene.key);
     const run = getRun(this);
     this.startTimeMs = this.time.now;
+    startRunClock(this); // relógio do expediente (acumula na RUN, não na cena)
     Music.start("copa");
 
     if (run.cameFrom === "openspace") {
@@ -765,6 +768,10 @@ export class CopaScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
+    // Expediente: um read por frame — alimenta o relógio do HUD, o agravo da
+    // hora extra e a cura do Faxineiro (que para depois das 20h).
+    const exp = expediente(this);
+    this.player.overtimePressureMult = exp.pressureMult;
     this.player.update(time, delta);
     this.player.tickPassive(time);
 
@@ -791,8 +798,11 @@ export class CopaScene extends Phaser.Scene {
       }
     });
 
-    // Faxineiro proximity healing (+5 Sanidade a cada 2s quando perto e em paz)
-    if (time - this.lastHealAt > 2000) {
+    // Faxineiro proximity healing (+5 Sanidade a cada 2s quando perto e em paz).
+    // (A) Na HORA EXTRA a Copa para de curar: passadas as 20h o café não
+    // resolve mais. É a virada de tom do prazo brando — o refúgio deixa de ser
+    // refúgio, sem que nada mate o jogador.
+    if (copaHealsSanity(exp.gameMinutes) && time - this.lastHealAt > 2000) {
       this.faxineiros.getChildren().forEach((c) => {
         const f = c as Faxineiro;
         if (!f.active || f.swingActive) return;
@@ -886,6 +896,8 @@ export class CopaScene extends Phaser.Scene {
       reconhecimento: run.reconhecimento,
       time,
       startTime: this.startTimeMs,
+      clockMinutes: exp.gameMinutes,
+      clockBand: exp.band,
       playerX: this.player.x,
       interactHint: nearCoffee
         ? time < this.coffeeReadyAt

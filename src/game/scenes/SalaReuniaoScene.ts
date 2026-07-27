@@ -3,6 +3,7 @@ import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
 import { HUD_BOT_Y } from "../systems/Hud";
 import { Player } from "../entities/Player";
 import { EstagiarioDesesperado, AnalistaJunior } from "../entities/Enemies";
+import { expediente, startRunClock } from "../systems/RunClock";
 import { getRun } from "../systems/PlayerState";
 import { applyClassAndWeapon } from "../systems/PlayerLoadout";
 import { SanityFx } from "../systems/SanityFx";
@@ -51,6 +52,7 @@ export class SalaReuniaoScene extends Phaser.Scene {
   create() {
     const run = getRun(this);
     this.startTimeMs = this.time.now;
+    startRunClock(this); // relógio do expediente (acumula na RUN, não na cena)
     this.waveIdx = 0;
     this.waveActive = false;
     this.cleared = false;
@@ -420,6 +422,8 @@ export class SalaReuniaoScene extends Phaser.Scene {
       reconhecimento: run.reconhecimento,
       time,
       startTime: this.startTimeMs,
+      clockMinutes: expediente(this).gameMinutes,
+      clockBand: expediente(this).band,
       playerX: this.player.x,
       burnoutMods: this.player.getBurnoutMods(),
       tremoring: this.player.isTremoring(time),

@@ -226,6 +226,11 @@ export class HoraExtraScene extends Phaser.Scene {
 
   private confirmHeat(run: import("../systems/PlayerState").RunState) {
     run.heatLevel = this.selectedHeat;
+    // Do nível 3 ("Hora Extra") pra cima o RELÓGIO acelera: a janela até as 20h
+    // encolhe e o bônus de sair cedo fica mais caro de conquistar. O campo
+    // `heatFastClock` existia no RunState desde sempre sem ninguém escrever nem
+    // ler — agora tem produtor (aqui) e consumidor (systems/RunClock).
+    run.heatFastClock = this.selectedHeat >= 3;
     savePersisted(run.reconhecimento, run.fgts, run.loopCount);
     this.cameras.main.fadeOut(250, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", () => {

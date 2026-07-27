@@ -78,6 +78,8 @@ src/
       SanityFx.ts            # Efeitos visuais por faixa de sanidade
       sanity.ts              # sanityBand() puro (faixas), testável
       ProductivityMeter.ts   # Medidor de Produtividade (streak → mult VR) — run-wide: F1 tem instância própria; Fases 2–5 herdam via BasePhaseScene (Momentum)
+      Expediente.ts          # Relógio das 18h como MECÂNICA (núcleo puro: hora extra + bônus de tempo)
+      RunClock.ts            # Fiação Phaser do relógio (acumula na RUN, commit no shutdown da cena)
       Apagao.ts              # Evento APAGÃO (lanterna radial) da Fase 1
       Lighting.ts            # Lightmap aditivo (escuro ambiente + poças de luz) — iluminação dinâmica; ligado no CEO (ver docs/LIGHTING_SPIKE.md)
       CombatFx.ts            # Juice de combate (hitStop, shake, flash, finisher)
@@ -460,6 +462,38 @@ majoritariamente conteúdo/arte, não código de sistema:
 - ✅ **Resolvidos nesta sessão**: Burnout→VAI NA RAÇA, curva de bosses (enrage com dentes + assinaturas de mid-boss + Cascata do Diretor), economia in-fase (extintor/APAGÃO), onboarding dos verbos (dash/especial), sinergias arma×perk, porta da Copa, FX de Burnout alinhado.
 - **BossCatalog dos 7 bosses** — OBSOLETO: a arte-fonte em `_sources/` foi removida; só entra com arte nova.
 
+### O relógio das 18h (Expediente) — `Expediente.ts` + `RunClock.ts`
+
+A premissa do jogo é **escapar do escritório às 18h**, e por muito tempo o relógio do
+HUD foi decoração: pior, era um **cronômetro POR CENA** (`startTimeMs` reiniciava em cada
+`create()`), então o expediente voltava pras 18:00 a cada porta. O campo `heatFastClock`
+estava no `RunState` desde sempre, declarado e **nunca lido** — o relógio sempre foi
+planejado como pressão e nunca havia sido construído.
+
+**Desenho escolhido (A + C).** O relógio **NUNCA mata** — ele encarece e reduz recompensa:
+
+- **(A) Prazo brando.** Passando das **20:00** entra a HORA EXTRA: o dano recebido sobe
+  **+15% por hora vencida** (teto 1.6×, via `Player.overtimePressureMult`, alimentado pelas
+  cenas) e a **Copa para de curar sanidade** (`copaHealsSanity`). O relógio do HUD fica
+  **laranja**. O refúgio deixa de ser refúgio sem que nada mate o jogador.
+- **(C) Tempo como moeda.** O prêmio de fim de run escala com quanto do expediente sobrou
+  até as **22:00** (`timeBonusMult`: 1.5× saindo 18h em ponto → 1.0× das 22h em diante).
+  **Nunca desce de 1.0**: enrolar custa o BÔNUS, não o que o jogador já ganhou.
+- **(B) descartado** — prazo duro que mata puniria exploração vertical, salas opcionais e
+  Bestiário, três sistemas feitos justamente pra o jogador DEMORAR.
+
+**Taxa:** `MS_PER_GAME_MIN = 3000` (1 min de jogo a cada 3s reais) → uma run enxuta termina
+antes das 20h; uma run que explora entra na hora extra. `heatFastClock` (Heat ≥ 3, os níveis
+que já se chamam "Hora Extra"/"Deadline Final") acelera o relógio em 1.5× — agora o campo tem
+produtor **e** consumidor.
+
+**Onde o commit acontece:** `startRunClock(scene)` no `create()` marca o instante de entrada
+e agenda o commit do intervalo no **`shutdown`** da cena. NÃO somar no `persist()` — ele é
+chamado várias vezes por cena (cada porta, cada morte) e o expediente correria mais rápido
+quanto mais o jogador interagisse. **A `OpenSpaceV2Scene` precisa chamar `startRunClock` por
+conta própria**, porque tem `create()` próprio e não chama `super.create()` — sem isso a run
+inteira ficava com 18:00 congelado (pego dirigindo o jogo, não pelos testes).
+
 ### Aprendizados de design (princípios que guiaram as últimas iterações)
 
 Regras de bolso extraídas do trabalho recente — aplicar antes de "só ajustar um número":
@@ -529,6 +563,7 @@ O HUD (`Hud.ts`) usa `setScrollFactor(0)` para fixar à câmera. Instanciar `new
 | Vale Refeição    | `player.vr`                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Reconhecimento   | `run.reconhecimento` (persistido)                                                                                                                                                                                                                                                                                                                                                                                                |
 | Rescisão         | tela de Game Over                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Expediente (18h) | `systems/Expediente.ts` (núcleo puro) + `systems/RunClock.ts` (fiação Phaser). Relógio da RUN, acumulado em `run.clockMs`                                                                                                                                                                                                                                                                                                        |
 | Ponto Eletrônico | checkpoint (Copa)                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Autonomia        | `run.autonomia` (perk pós-boss)                                                                                                                                                                                                                                                                                                                                                                                                  |
 | Burnout          | faixa "burnout" (`sanityBand`, sanidade ≤24) = **VAI NA RAÇA**: glass-cannon opt-in em `Player.getBurnoutMods()`. Presas (dano causado ×1.35, VR/kill ×1.5, +4 sanidade/kill = saída por agressão) contra fragilidade (dano recebido ×1.4, parry apertado −60ms **mas ativo**, velocidade ×0.9). Ensinado 1× (`TutorialPrompts` id `burnout` em `SanityFx`). Tremor (`isTremoring`) invertendo L/R segue como hazard telegrafado |
