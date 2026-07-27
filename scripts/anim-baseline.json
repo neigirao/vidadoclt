@@ -1,6 +1,19 @@
 {
-  "jerk": 93,
-  "loop-pop": 62,
-  "dead": 4,
-  "padded": 67
+  "attack|jerk": 17,
+  "attack|loop-pop": 21,
+  "attack|padded": 16,
+  "death|jerk": 25,
+  "death|padded": 11,
+  "hurt|dead": 1,
+  "hurt|jerk": 4,
+  "hurt|padded": 32,
+  "idle|dead": 3,
+  "idle|jerk": 20,
+  "idle|loop-pop": 18,
+  "idle|padded": 5,
+  "run|jerk": 1,
+  "run|loop-pop": 1,
+  "walk|jerk": 26,
+  "walk|loop-pop": 22,
+  "walk|padded": 3
 }

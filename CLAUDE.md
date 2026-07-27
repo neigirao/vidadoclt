@@ -320,11 +320,30 @@ não fecham (loop-pop generalizado) — os "16 frames" NÃO leem como mais suave
 baseline limpo só sai de arte autoral** — o blend é beco sem saída.
 
 **`--gate` = GATE RATCHET no CI (job check).** Não exige zerar os defeitos (impossível sem
-arte); trava a NÃO-REGRESSÃO: compara a contagem por tipo (dead/jerk/loop-pop/padded) contra
-`scripts/anim-baseline.json` e reprova se qualquer tipo piorar. Foi calibrado assim porque um
-teto absoluto exigiria primeiro reverter/redesenhar. **Teria bloqueado o lote que piorou
-loop-pop 50→62.** Melhorou de verdade (revert de blend, arte nova, trim)? `bun audit:anim
---update-baseline` regrava o teto e trava o ganho — o ratchet só anda pra baixo. `--json`/`--top=N`.
+arte); trava a NÃO-REGRESSÃO: compara a contagem por **AÇÃO×TIPO** (`walk|loop-pop`,
+`hurt|padded`, …) contra `scripts/anim-baseline.json` e reprova se **qualquer par** piorar.
+Foi calibrado assim porque um teto absoluto exigiria primeiro reverter/redesenhar. **Teria
+bloqueado o lote que piorou loop-pop 50→62.** Melhorou de verdade (revert de blend, arte
+nova, trim)? `bun audit:anim --update-baseline` regrava o teto e trava o ganho — o ratchet só
+anda pra baixo. `--json`/`--top=N`.
+
+**Por AÇÃO, e não pelo total por tipo:** somando o atlas inteiro, melhora numa ação MASCARA
+piora em outra. Verificado: com `walk` ganhando 5 loop-pops e `attack` perdendo 5, o total
+fica **62→62** e o gate global APROVA — escondendo a regressão na animação que o jogador mais
+vê (o walk roda o tempo todo, em todo inimigo; attack/hurt aparecem por instantes). As ações
+também não estão no mesmo patamar — medido: **walk 51/100, attack 54, idle 59, death 66,
+hurt 83** (score = 100 menos as penalidades por defeito, ajustado pela uniformidade do ciclo).
+Um número só apaga justamente a informação acionável. A baseline em formato ANTIGO (chaveada
+só por tipo) é **detectada** e reprova pedindo `--update-baseline`, em vez de comparar maçã
+com laranja e passar por engano.
+
+**Onde a arte dói mais (medido, 190 animações, score médio 62,5/100; só 11% sem defeito):** o
+`walk` é o PIOR (51) e é o mais visível; o `hurt` parece o melhor (83) mas tem 32 `padded` —
+"não tem defeito" porque quase não se mexe (17 frames de hold disfarçado). O `player` (81)
+está bem acima da média de inimigos (61), o que mostra que o gargalo não é capacidade, é
+cobertura. **Animações com ≥16 frames têm 3,6× mais defeitos** que as com menos (1,20 vs 0,33
+por animação) e 98% do atlas está em ≥16 — a meta de "16 frames em toda ação" preenchida por
+in-between comprou defeito, não suavidade.
 
 **Limite conhecido:** os gates cobrem _quantidade_, coerência de _contagem_, _tamanho_ de
 canvas (`check:frames`), _conteúdo_ vazio/chapado/faltando (`audit:sprites`), _paleta_
