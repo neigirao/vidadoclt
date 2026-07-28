@@ -315,7 +315,17 @@ estado (a âncora vive em `setEnemyTex`/`animPhase`, então vale para todo calle
    aprovado → o motor mostra o **idle do próprio inimigo** (não o `tex-<prefix>` cru: várias
    bases também são outro personagem). Não animar é muito melhor que virar outra pessoa.
    Achado **olhando os frames ampliados**, um a um — nenhum gate automático pega isto.
-4. **`attack` está FORA do `CYCLIC` do `audit:anim`.** Ele não repete, então o `loop-pop` (que
+4. **Vale para o PLAYER também.** O `attack` dele já era ancorado, mas a contagem estava
+   hardcoded em 16 com 21 no atlas, e o passo de 19ms ficava abaixo de um frame de tela. Hoje
+   conta do atlas, amostra pelo piso (6 poses de 50ms — que caem exatamente nos múltiplos de 4,
+   ou seja, **as poses autorais** antes do duplo doubling) e respeita `PLAYER_ATTACK_SAFE_FRAMES
+= 17`: do frame 17 em diante a arte deriva p/ o andar-com-pasta, e como o one-shot SEGURA o
+   último, sem o corte todo golpe terminava congelado empunhando uma pasta. O `hurt` era `% 16`
+   do relógio global → agora ancorado no `lastHurtAt` (campo novo: o `invulnUntil` não serve,
+   porque dash e parry também mexem nele e reiniciavam o flinch). O `idle` segue restrito a
+   idle1/idle2 **de propósito** (idle0 é busto, idle3+ são poses de passada) — conferido antes
+   de mexer, e não mexido.
+5. **`attack` está FORA do `CYCLIC` do `audit:anim`.** Ele não repete, então o `loop-pop` (que
    mede a costura último→primeiro) media algo que nunca chega à tela — eram 21 falso-positivos
    travados na baseline, protegendo ruído e escondendo regressão real.
 
