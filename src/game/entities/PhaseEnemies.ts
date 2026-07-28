@@ -2,7 +2,8 @@ import Phaser from "phaser";
 import { resolveSprite, applyTexture } from "../systems/SpriteLibrary";
 import { markKilled } from "../systems/BestiarySystem";
 import { fxGlow, showTelegraph, TELEGRAPH } from "./Enemies";
-import { atlasFramesWithOverride, frameAt } from "../systems/AtlasFrames";
+import { atlasFramesWithOverride, frameAt, frameAtOneShot } from "../systems/AtlasFrames";
+import { HURT_WINDOW_MS, HURT_MIN_FRAME_MS } from "../systems/EnemyAnimConfig";
 
 const HIT_INVULN_MS = 400;
 
@@ -31,7 +32,15 @@ function animPhase(
   if (t < hurtT) {
     const hurts = atlasFramesWithOverride(tex, prefix, "hurt");
     if (hurts.length > 0) {
-      applyTexture(e, `tex-${prefix}-hurt${frameAt(hurts, t + off, 70)}`);
+      // ONE-SHOT ancorado: `hurtT` é o FIM da janela, então o decorrido é a
+      // janela menos o que falta. Antes era módulo do relógio global (frame de
+      // hurt arbitrário a cada golpe) com passo fixo de 70ms, que não cabia na
+      // janela de 300ms quando o atlas tinha 17 frames.
+      const elapsed = HURT_WINDOW_MS - (hurtT - t);
+      applyTexture(
+        e,
+        `tex-${prefix}-hurt${frameAtOneShot(hurts, elapsed, HURT_WINDOW_MS, HURT_MIN_FRAME_MS)}`,
+      );
       return;
     }
   }

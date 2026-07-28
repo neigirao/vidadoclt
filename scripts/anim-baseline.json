@@ -1,8 +1,7 @@
 {
-  "attack|jerk": 17,
-  "attack|loop-pop": 21,
+  "attack|jerk": 6,
   "attack|padded": 16,
-  "death|jerk": 25,
+  "death|jerk": 12,
   "death|padded": 11,
   "hurt|dead": 1,
   "hurt|jerk": 4,

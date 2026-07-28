@@ -53,7 +53,14 @@ const JERK_FACTOR = 4.0; // delta acima de FACTOR×mediana (e absoluto relevante
 const JERK_MIN_ABS = 4.0; // piso absoluto p/ um "pulo" contar (evita ruído em anim calma)
 const LOOPPOP_FACTOR = 3.0; // wrap acima de FACTOR×mediana → estala ao repetir
 // Estados que são CICLOS (ganham checagem de LOOP-POP). death/hurt são transições.
-const CYCLIC = new Set(["walk", "run", "idle", "attack"]);
+//
+// `attack` SAIU daqui: verificado no código, ele não cicla. É gated por estado de
+// IA (`telegraph` → `swing`/`slam`) e desde o conserto do one-shot em
+// `AtlasFrames.frameAtOneShot` toca uma vez e SEGURA o último frame. A costura
+// último→primeiro que o loop-pop mede nunca chega à tela, então os 21 flags de
+// `attack|loop-pop` da baseline anterior eram falso-positivo — o gate protegia
+// ruído e escondia regressão de verdade.
+const CYCLIC = new Set(["walk", "run", "idle"]);
 
 const atlas = JSON.parse(readFileSync(new URL("../public/assets/atlas.json", import.meta.url)));
 const png = PNG.sync.read(readFileSync(new URL("../public/assets/atlas.png", import.meta.url)));

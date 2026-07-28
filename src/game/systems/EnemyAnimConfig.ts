@@ -59,16 +59,21 @@ export const IDLE_FRAME_COUNTS: Record<string, number> = {
 // partir do 0, nenhum frame-lixo/foreign (o "musculoso/chicote" antigo) entra no
 // ciclo — as 16 poses derivam das boas. ATTACK_MS ajustado p/ manter a duração do
 // golpe (mais frames × menos ms = mesma janela).
+// Contagens ALINHADAS ao atlas depois do `undo:inbetweens` em attack (os frames
+// de blend inseridos entre os originais foram removidos). NÃO dirigem o runtime —
+// `setEnemyTex` lê do atlas via `atlasFrames`; isto é referência do LAB e do gate
+// de coerência. Mantê-las em 16 fazia o gate reprovar arte SÃ dizendo "o jogo
+// cicla mais do que existe", quando o jogo nunca ciclou por esta tabela.
 export const ATTACK_FRAME_COUNTS: Record<string, number> = {
-  estagiario: 16,
-  analista: 16,
-  facilitador: 16,
-  scrum: 16,
-  coordenador: 16,
-  senior: 16,
-  rh: 16,
-  "scrum-boss": 16,
-  "coord-boss": 16,
+  estagiario: 17,
+  analista: 9,
+  facilitador: 17,
+  scrum: 13,
+  coordenador: 17,
+  senior: 25,
+  rh: 25,
+  "scrum-boss": 13,
+  "coord-boss": 13,
 };
 
 // Duração de frame (ms) por estado — afinada à "energia" de cada inimigo.
@@ -120,6 +125,31 @@ export const DEFAULT_ATTACK_FRAMES = 1;
 export const DEFAULT_WALK_MS = 90; // halvado (walk dobrado com in-betweens)
 export const DEFAULT_IDLE_MS = 300;
 export const DEFAULT_ATTACK_MS = 110;
+
+// ── JANELA das animações ONE-SHOT (attack/hurt) ──────────────────────────────
+// `ATTACK_MS` acima é ms POR FRAME calibrado para 16 frames (ver comentário). Mas
+// a contagem de frames passou a sair do ATLAS (17–25 hoje), então "ms por frame"
+// fixo fazia o ciclo ESTOURAR a janela real do golpe: o `rh` tinha 25×34=850ms de
+// animação numa janela de telegraph+swing de 530ms → 9 frames desenhados nunca
+// apareciam. O que é DESIGN aqui é a JANELA (quanto tempo o golpe dura), não o
+// passo. O passo vira `janela / n_frames_do_atlas` e o golpe cabe por construção,
+// não importa quantos frames a arte ganhe ou perca.
+const ATTACK_CALIBRATED_FRAMES = 16;
+export function attackWindowMs(prefix: string): number {
+  return (ATTACK_MS[prefix] ?? DEFAULT_ATTACK_MS) * ATTACK_CALIBRATED_FRAMES;
+}
+
+/** Janela do flash de dano. Casa com o `hurtT` de 300ms usado pelas Fases 2–5. */
+export const HURT_WINDOW_MS = 300;
+
+// Tempo MÍNIMO de tela por frame de animação one-shot. A 60fps um frame de tela
+// dura 16.7ms — abaixo disso a pose simplesmente não é vista, e QUAIS poses
+// aparecem passa a depender de onde o relógio cai (varia a cada golpe). Acima da
+// janela / este valor, `sampleForWindow` amostra o arco de forma determinística.
+//   attack: 3 frames de tela por pose (≈20fps) — cadência padrão de pixel-art.
+//   hurt:   é um FLASH de dano; poucas poses seguradas leem melhor que 17 borrões.
+export const ATTACK_MIN_FRAME_MS = 50;
+export const HURT_MIN_FRAME_MS = 90;
 
 export type AnimState = "walk" | "idle" | "attack";
 
