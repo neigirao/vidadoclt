@@ -139,6 +139,39 @@ export function attackWindowMs(prefix: string): number {
   return (ATTACK_MS[prefix] ?? DEFAULT_ATTACK_MS) * ATTACK_CALIBRATED_FRAMES;
 }
 
+// ── WHITELIST de attack: quantos frames o RUNTIME pode ciclar ────────────────
+// REGRESSÃO QUE ISTO CONSERTA: `ATTACK_FRAME_COUNTS` não era só uma contagem —
+// era uma WHITELIST de frames validados à mão ("senior 3, rh/facilitador/analista
+// 2"), porque o lote de attack gerado por IA vira OUTRO PERSONAGEM a partir de um
+// certo índice (ver docs/ART_GAPS.md, "arte de attack incoerente"). Quando a
+// contagem passou a sair do ATLAS (fonte única), a whitelist foi silenciosamente
+// perdida e o jogo voltou a ciclar a arte estrangeira: o Analista, o Facilitador e
+// o Coordenador TROCAM DE PESSOA ao atacar, e scrum/scrum-boss/coord-boss
+// degradam em caixa branca → borrão → um sujeito musculoso que não é o inimigo.
+// Confirmado olhando os frames do atlas ampliados, um por um.
+//
+// Contagem continua vindo do atlas; isto é só um TETO de segurança. 0 = nenhum
+// frame de attack aprovado → o motor cai na textura base (o inimigo não muda de
+// pose no golpe, mas o telegraph de "!!"/glow segue comunicando). Não animar é
+// muito melhor que virar outra pessoa.
+//
+// Para SUBIR um número aqui: olhar os frames no LAB SPRITES e confirmar que é o
+// mesmo personagem. Some quando houver arte de attack coerente (ART_GAPS.md P5).
+export const ATTACK_SAFE_FRAMES: Record<string, number> = {
+  analista: 0, // todos os frames são outro personagem (polo azul + caneca)
+  facilitador: 0, // todos são outro personagem (camisa roxa + pilha colorida)
+  coordenador: 0, // todos são outro personagem (jaqueta verde + barba)
+  scrum: 1, // attack0 ok; 1–4 com caixa branca, 5 borrão, 6+ musculoso
+  "scrum-boss": 1, // recolor do scrum — mesmo defeito
+  "coord-boss": 1, // recolor do scrum — mesmo defeito
+  // estagiario / senior / rh: arte coerente, sem teto (ciclam o atlas inteiro).
+};
+
+/** Teto de frames de attack aprovados para `prefix` (Infinity = sem teto). */
+export function attackSafeFrames(prefix: string): number {
+  return ATTACK_SAFE_FRAMES[prefix] ?? Infinity;
+}
+
 /** Janela do flash de dano. Casa com o `hurtT` de 300ms usado pelas Fases 2–5. */
 export const HURT_WINDOW_MS = 300;
 

@@ -307,7 +307,15 @@ estado (a âncora vive em `setEnemyTex`/`animPhase`, então vale para todo calle
    `sampleForWindow` amostra o arco de forma determinística respeitando `ATTACK_MIN_FRAME_MS`
    (50ms ≈ 20fps) e `HURT_MIN_FRAME_MS` (90ms). Mais frames que a janela comporta é arte
    invisível, não suavidade.
-3. **`attack` está FORA do `CYCLIC` do `audit:anim`.** Ele não repete, então o `loop-pop` (que
+3. **`ATTACK_SAFE_FRAMES` é WHITELIST, não contagem.** O lote de attack gerado por IA vira
+   OUTRO PERSONAGEM a partir de certo índice (o Analista ataca virando um sujeito de polo azul
+   com caneca; scrum/bosses degradam em caixa branca → borrão → um musculoso). Isso era contido
+   por `ATTACK_FRAME_COUNTS` funcionando como whitelist — e a whitelist se PERDEU quando a
+   contagem passou a sair do atlas. O teto voltou explícito e testado. `0` = nenhum frame
+   aprovado → o motor mostra o **idle do próprio inimigo** (não o `tex-<prefix>` cru: várias
+   bases também são outro personagem). Não animar é muito melhor que virar outra pessoa.
+   Achado **olhando os frames ampliados**, um a um — nenhum gate automático pega isto.
+4. **`attack` está FORA do `CYCLIC` do `audit:anim`.** Ele não repete, então o `loop-pop` (que
    mede a costura último→primeiro) media algo que nunca chega à tela — eram 21 falso-positivos
    travados na baseline, protegendo ruído e escondendo regressão real.
 
@@ -490,7 +498,7 @@ Nenhum band-aid ativo no momento.
 - ✅ **Porta da Copa** (`obj-door`, 36×60): refeita via `gen-sprites.mjs` (`copaDoor()`) — era retângulo tintado + `[BLOQUEADO]`. Agora porta de escritório com vidro aramado + luz quente. Estado: tint cinza (bloqueada) → clearTint + `playDoorUnlockGlow` (anéis quentes + faíscas + `Sfx.doorOpen`) ao derrotar o boss.
 - ✅ **CEO em corrida** (`boss-ceo-run1/2`): frames-lixo substituídos por vizinhos válidos.
 - ✅ Inimigos das Fases 2–4 auditados: bases limpas. Inconsistências de tamanho remanescentes são frames idle/walk **não usados** (esses inimigos renderizam base estática).
-- ✅ **Ataque animado (Fase 1)**: `setEnemyTex` cicla o estado `attack` via `ATTACK_FRAME_COUNTS` (whitelist de frames validados por inimigo — senior 3, rh/facilitador/analista 2). Frames-lixo 32×48 (facilitador/analista/scrum-attack2) ficam de fora; prefixo ausente → frame 0 estático (sem regressão). `walk`/`idle` já eram consistentes; `hurt` segue single-frame.
+- ✅ **Ataque animado (Fase 1)**: `setEnemyTex` cicla `attack` com a contagem vinda do ATLAS, limitada pela whitelist `ATTACK_SAFE_FRAMES` (`EnemyAnimConfig`). A whitelist voltou a existir depois de uma **regressão verificada visualmente**: quando a contagem passou a sair do atlas, o teto se perdeu e o jogo passou a ciclar arte que é OUTRO PERSONAGEM (analista/facilitador/coordenador trocam de pessoa ao atacar; scrum/scrum-boss/coord-boss degradam em caixa branca → borrão → musculoso). Hoje: analista/facilitador/coordenador `0` (mostram o próprio idle), scrum e os 2 bosses `1`, estagiario/senior/rh sem teto. `walk`/`idle` são consistentes; `hurt` é one-shot amostrado.
 
 ## Estado atual
 
