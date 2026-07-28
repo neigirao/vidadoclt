@@ -178,6 +178,17 @@ export function showTelegraph(
       `!! (vermelho) = investida: PARRY ou reposicione.  ! (${rangedName}) = tiro: saia da linha.`,
     );
   }
+  // TERCEIRO canal da mesma informação: o CONTORNO do inimigo pulsa na cor do
+  // aviso. O "!!" flutua acima da cabeça e pode ficar encoberto por cenário, por
+  // outro inimigo ou fora do enquadramento; o contorno está no próprio corpo, que
+  // é justamente onde o jogador já está olhando para desviar. Usa `drawColor`, a
+  // cor JÁ remapeada pelo modo daltônico, então os três canais (cor + glyph +
+  // contorno) nunca se contradizem. No-op se a cena não tiver rim-light ligado.
+  const comRim = scene as Phaser.Scene & {
+    rimLight?: { pulse(s: Phaser.GameObjects.Sprite, cor: number, ms?: number): void };
+  };
+  comRim.rimLight?.pulse(e, Phaser.Display.Color.HexStringToColor(drawColor).color, 420);
+
   // Codificação DUPLA (cor + FORMA) — daltônico-segura. A convenção do #52 usava
   // só cor (vermelho/amarelo), que ~8% dos homens não distingue. O glyph carrega
   // a mesma info independente de cor: "!!" = investida/AoE (pesado), "!" = projétil.
