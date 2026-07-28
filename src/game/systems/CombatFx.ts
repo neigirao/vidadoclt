@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { ParticleFactory } from "./ParticleFactory";
-import { JUICE, squash } from "./Juice";
+import { JUICE, squash, type SmearSpec } from "./Juice";
 
 /**
  * CombatFx — centralises all combat-feedback effects so every scene
@@ -164,6 +164,58 @@ export class CombatFx {
    * Squash-and-stretch on landing. Call when a character just touches the ground.
    * scaleX widens, scaleY shortens, then springs back.
    */
+  /**
+   * SMEAR do golpe — o ARCO da arma, não uma cópia do personagem.
+   *
+   * Primeira tentativa e por que foi DESCARTADA: o caminho óbvio é duplicar o
+   * sprite deslocado e esticado (é o que o rastro do dash faz). Testado em 4
+   * variantes e OLHADO: com um personagem detalhado e escuro, duplicar gera
+   * imagem DUPLA sobre fundo escuro — lê como sujeira, não como movimento. A
+   * variante que menos incomodava era a que quase não aparecia, ou seja, a que
+   * não fazia nada.
+   *
+   * Um smear de pixel art de verdade é uma forma DESENHADA e simplificada,
+   * normalmente o rastro da arma. É isso aqui: um arco fino que varre a direção
+   * do golpe e some rápido. Some porque a regra de ouro do smear é "poucos e
+   * RÁPIDOS" — arco que demora lê como enfeite, não como impacto.
+   *
+   * Graphics puro: nenhum corpo físico envolvido, então não há como interferir
+   * na colisão (o alcance vem da hitbox, isto é só leitura).
+   */
+  static swingArc(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    dir: 1 | -1,
+    radius: number,
+    spec: SmearSpec = JUICE.smear,
+    color = 0xfff2c4,
+  ): void {
+    if (!scene?.add) return;
+    // O Graphics é POSICIONADO no ponto do golpe e o arco é desenhado em
+    // coordenada LOCAL (0,0). Desenhar em coordenada de MUNDO e depois escalar
+    // multiplica a posição junto (x≈900 × 1.18) e joga o arco para fora da tela
+    // — foi exatamente o que aconteceu na 1ª tentativa.
+    const g = scene.add.graphics({ x, y }).setDepth(600);
+    // `tilt` inclina o centro do arco. Espelha com a direção, senão o golpe
+    // virado para a esquerda inclinaria para o lado errado.
+    const meio = (dir === 1 ? 0 : Math.PI) + Phaser.Math.DegToRad(spec.tilt) * dir;
+    const meia = Phaser.Math.DegToRad(spec.arcDeg / 2);
+    g.lineStyle(spec.arcWidth, color, spec.alpha);
+    g.beginPath();
+    g.arc(0, 0, radius, meio - meia, meio + meia);
+    g.strokePath();
+    // Cresce um tico enquanto some: vende a varrida sem precisar de frame novo.
+    scene.tweens.add({
+      targets: g,
+      alpha: 0,
+      scaleX: spec.arcGrow,
+      scaleY: spec.arcGrow,
+      duration: spec.ms,
+      onComplete: () => g.destroy(),
+    });
+  }
+
   static landSquash(sprite: Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite): void {
     squash(sprite, JUICE.squash.land);
   }

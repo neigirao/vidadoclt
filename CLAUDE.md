@@ -361,6 +361,27 @@ destruir conteúdo — asset SUAVE de propósito (brilho/sombra/fantasma) some a
 alpha, então frame que perderia >20% dos opacos é PULADO (pego quando o `tile-fase5-01` virou
 tile vazio).
 
+**SMEAR do golpe = ARCO desenhado, não cópia do sprite (`CombatFx.swingArc`).** Com 4–6 poses
+num golpe o olho lê "posições", não "movimento"; o smear é o truque clássico para vender
+velocidade sem frame novo. **O caminho óbvio NÃO funciona:** duplicar o sprite deslocado e
+esticado (o que o rastro do dash faz) foi testado em 4 variantes e OLHADO — com personagem
+detalhado e escuro sobre fundo escuro, duplicar dá imagem DUPLA, que lê como sujeira; a
+variante menos ruim era a que quase não aparecia. Smear de pixel art de verdade é forma
+DESENHADA e simplificada, normalmente o rastro da arma. Duas armadilhas travadas no código:
+(a) desenhe o arco em coordenada LOCAL e posicione o Graphics — desenhar em coordenada de
+MUNDO e escalar multiplica a posição junto (x≈900 × 1.18) e joga o arco para fora da tela;
+(b) proporção importa mais que existir — 110° com raio 42 lia como um CÍRCULO em volta do
+personagem; 60° com raio ≈ alcance da arma lê como varrida. Números em `JUICE.smear`.
+
+**VARIAÇÃO POR CONTEXTO (`JUICE.smearByStep` / `smearAir`).** Três golpes idênticos em
+sequência leem como "apertei o botão 3×"; alternando o SENTIDO do arco (1º desce, 2º sobe, 3º
+abre) a MESMA arte lê como um combo encadeado — complexidade percebida saindo de forma e
+timing, não de frames. No ar o arco vira cutilada (inclina 52° e é mais seco). Escolhidos o
+passo do combo e o estar-no-ar porque são os dois contextos presentes em TODO golpe; caso raro
+rende pouco. **A diferença precisa ser GRANDE para ler:** ±22° entre o 1º e o 2º existia na
+medida e quase não se via comparando lado a lado no jogo; ±32 (64° de diferença) lê. Travado em
+teste, junto com a faixa sã de cada forma.
+
 **Fila de arte = defeito × exposição (`bun art:queue`).** Ordenar por qualidade pura gasta a
 hora no lugar errado. `scripts/art-queue.mjs` multiplica o defeito do `audit:anim` pelo peso da
 ação (`walk` roda o tempo todo; `death` uma vez; `hurt` é um flash) e pela **exposição medida**
