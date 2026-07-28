@@ -2,7 +2,8 @@ import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { pickCorporatePhrase } from "../systems/CorporateAI";
 import { fxGlow } from "./Enemies";
-import { atlasFrames, type FrameState } from "../systems/AtlasFrames";
+import { atlasFrames, frameAtOneShot, type FrameState } from "../systems/AtlasFrames";
+import { HURT_WINDOW_MS, HURT_MIN_FRAME_MS, ATTACK_MIN_FRAME_MS } from "../systems/EnemyAnimConfig";
 
 // ─── Email projectile (Follow-Up attack) ────────────────────────────────────
 export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
@@ -34,6 +35,11 @@ export class EmailProjectil extends Phaser.Physics.Arcade.Sprite {
 type BossAttack = "follow_up" | "alinhamento" | "atualizacao" | "reuniao" | "freeze" | "deadline";
 
 const BOSS_HIT_INVULN_MS = 350;
+// Janelas das animações ONE-SHOT do boss. A da MORTE casa com o delayedCall de
+// 700ms que dispara o onDied — a animação tem que caber no tempo que o boss
+// realmente fica na tela, senão o jogador nunca vê o fim dela.
+const DEATH_WINDOW_MS = 700;
+const ATTACK_WINDOW_MS = 620;
 
 export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
   hp = 500;
@@ -382,17 +388,50 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
     return n > 0 ? n : 1;
   }
 
+  private _gerFrames(state: FrameState): number[] {
+    const l = atlasFrames(this.scene?.textures?.get("sprites"), "gerente", state);
+    return l.length ? l : [0];
+  }
+
+  // ÂNCORA das animações ONE-SHOT do boss (morte/dano/golpe). Mesmo conserto que
+  // `setEnemyTex` recebeu: indexar pelo relógio GLOBAL fazia a animação começar
+  // num frame arbitrário. Na MORTE isso é grave — ela dura 700ms mas o ciclo de 9
+  // frames a 120ms leva 1080ms, então o boss morria mostrando um pedaço aleatório
+  // do meio da animação, às vezes começando pelo frame final.
+  private _oneShotAt: Record<string, number> = {};
+  private _shotElapsed(kind: string, now: number, active: boolean): number {
+    if (!active) {
+      delete this._oneShotAt[kind];
+      return 0;
+    }
+    if (this._oneShotAt[kind] === undefined) this._oneShotAt[kind] = now;
+    return now - this._oneShotAt[kind];
+  }
+
   private updateTexture(now?: number) {
     if (now === undefined) now = this.scene.time.now;
     let key: string;
     if (this._dying) {
-      const f = Math.floor(now / 120) % this._gerCount("death"); // death (in-betweens)
+      // ONE-SHOT ancorado na janela REAL da morte (o delayedCall abaixo é 700ms):
+      // toca do frame 0 até o fim e SEGURA o último, em vez de entrar no meio.
+      const f = frameAtOneShot(
+        this._gerFrames("death"),
+        this._shotElapsed("death", now, true),
+        DEATH_WINDOW_MS,
+      );
       key = `tex-gerente-death${f}`;
       applyTexture(this, key);
       return;
     }
-    if (now < this._hurtUntil) {
-      const f = Math.floor(now / 40) % this._gerCount("hurt"); // hurt (in-betweens)
+    this._shotElapsed("death", now, false);
+    const hurting = now < this._hurtUntil;
+    if (hurting) {
+      const f = frameAtOneShot(
+        this._gerFrames("hurt"),
+        this._shotElapsed("hurt", now, true),
+        HURT_WINDOW_MS,
+        HURT_MIN_FRAME_MS,
+      );
       key = `tex-gerente-hurt${f}`;
     } else if (this.bossState === "attack" && this.currentAttack === "atualizacao") {
       // Dash charge — use run-charge frames for aggressive pose
@@ -407,7 +446,14 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
       // Explicit mapping for all 6 attack types
       const f4 = Math.floor(now / 100) % 4;
       const f2 = Math.floor(now / 200) % 2;
-      const f16 = Math.floor(now / 50) % this._gerCount("attack"); // attack genérico (in-betweens)
+      // attack genérico: ONE-SHOT ancorado na entrada do telegraph/golpe (antes
+      // era módulo do relógio global → a pose de impacto caía no windup).
+      const f16 = frameAtOneShot(
+        this._gerFrames("attack"),
+        this._shotElapsed("attack", now, true),
+        ATTACK_WINDOW_MS,
+        ATTACK_MIN_FRAME_MS,
+      );
       switch (this.currentAttack) {
         case "deadline":
           key = `tex-gerente-attack-deadline${f4}`;
@@ -431,12 +477,16 @@ export class GerenteMicrogestor extends Phaser.Physics.Arcade.Sprite {
           key = `tex-gerente-attack0`;
       }
     } else if (this.bossState === "enter" || this.bossState === "recover") {
+      // walk/idle CICLAM de propósito — o relógio global serve aqui.
+      this._shotElapsed("attack", now, false);
       const f = Math.floor(now / 35) % this._gerCount("walk"); // walk (in-betweens)
       key = `tex-gerente-walk${f}`;
     } else {
+      this._shotElapsed("attack", now, false);
       const f = Math.floor(now / 90) % this._gerCount("idle"); // idle (in-betweens)
       key = `tex-gerente-idle${f}`;
     }
+    if (!hurting) this._shotElapsed("hurt", now, false);
     applyTexture(this, key);
   }
 }
