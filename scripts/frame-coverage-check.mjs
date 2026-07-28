@@ -175,7 +175,13 @@ try {
     ).exec(cfg);
     const out = {};
     if (!block) return out;
-    for (const m of block[1].matchAll(/["']?([a-z0-9-]+)["']?\s*:\s*(\d+)/gi))
+    // TIRA OS COMENTÁRIOS antes de casar. Sem isto qualquer comentário dentro do
+    // record que contenha "palavra: número" vira uma família fantasma — e o gate
+    // reprova pedindo frames de um inimigo que não existe. Aconteceu de verdade:
+    // um comentário explicando "distância de silhueta: 32,32,32" criou a família
+    // `silhueta` com mínimo 32 e quebrou o CI.
+    const semComentarios = block[1].replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    for (const m of semComentarios.matchAll(/["']?([a-z0-9-]+)["']?\s*:\s*(\d+)/gi))
       out[m[1]] = Number(m[2]);
     return out;
   };
