@@ -1,7 +1,13 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { fxGlow } from "./Enemies";
-import { atlasFrames, type FrameState } from "../systems/AtlasFrames";
+import { atlasFrames, frameAtOneShot, type FrameState } from "../systems/AtlasFrames";
+import { HURT_MIN_FRAME_MS } from "../systems/EnemyAnimConfig";
+
+// Janelas ONE-SHOT do CEO. A da morte casa com o delayedCall de 800ms do `hit`;
+// a de dano com o _hurtUntil de 150ms.
+const CEO_DEATH_WINDOW_MS = 800;
+const CEO_HURT_WINDOW_MS = 150;
 
 const HIT_INVULN_MS = 400;
 
@@ -78,18 +84,50 @@ export class CeoBoss extends Phaser.Physics.Arcade.Sprite {
     return n > 0 ? n : 1;
   }
 
+  private _ceoFrames(state: FrameState): number[] {
+    const l = atlasFrames(this.scene?.textures?.get("sprites"), "boss-ceo", state);
+    return l.length ? l : [0];
+  }
+
+  // Âncora das animações one-shot (mesmo conserto de setEnemyTex/Boss.ts).
+  private _oneShotAt: Record<string, number> = {};
+  private _shotElapsed(kind: string, now: number, active: boolean): number {
+    if (!active) {
+      delete this._oneShotAt[kind];
+      return 0;
+    }
+    if (this._oneShotAt[kind] === undefined) this._oneShotAt[kind] = now;
+    return now - this._oneShotAt[kind];
+  }
+
   private _applyAnimFrame(t: number) {
-    // Death animation takes highest priority — conta do atlas (in-betweens = 16+).
+    // MORTE: ONE-SHOT ancorado na janela real (o delayedCall do `hit` é 800ms).
+    // Antes era módulo do relógio GLOBAL: o ciclo de 17 frames a 110ms leva
+    // 1870ms, então o CEO morria mostrando 43% da animação a partir de um frame
+    // ALEATÓRIO — às vezes já pelo fim. É o clímax do jogo; tem que ler.
     if (this._dying) {
-      const f = Math.floor(t / 110) % this._ceoCount("death");
+      const f = frameAtOneShot(
+        this._ceoFrames("death"),
+        this._shotElapsed("death", t, true),
+        CEO_DEATH_WINDOW_MS,
+      );
       applyTexture(this, `tex-boss-ceo-death${f}`);
       return;
     }
-    // Hurt takes priority — CICLA os frames de hurt (antes travava no hurt0).
+    this._shotElapsed("death", t, false);
+    // HURT: idem — one-shot ancorado, com piso de tempo de tela (17 frames numa
+    // janela de 150ms davam 8,8ms por frame, meio frame a 60fps).
     if (t < this._hurtUntil) {
-      applyTexture(this, `tex-boss-ceo-hurt${Math.floor(t / 40) % this._ceoCount("hurt")}`);
+      const f = frameAtOneShot(
+        this._ceoFrames("hurt"),
+        this._shotElapsed("hurt", t, true),
+        CEO_HURT_WINDOW_MS,
+        HURT_MIN_FRAME_MS,
+      );
+      applyTexture(this, `tex-boss-ceo-hurt${f}`);
       return;
     }
+    this._shotElapsed("hurt", t, false);
 
     let prefix: string;
     let count: number;
