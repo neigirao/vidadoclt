@@ -94,9 +94,18 @@ const EXCEPTIONS = {
   "enemy-impressora-c/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
   "enemy-impressora-d/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
   "enemy-seguranca/walk": { min: 6, why: "arte original limpa; in-between fantasmava a cauda" },
+  // ── Idles ESTÁTICOS assumidos (1 frame) ────────────────────────────────────
+  // Estes três tinham 16 frames BYTE-IDÊNTICOS (audit:anim: maxDelta = 0.000).
+  // Passavam no piso de 8 e entregavam ZERO suavidade — o piso existe pra
+  // garantir animação, e 16 cópias do mesmo pixel o burlavam. Cortados p/ 1
+  // frame: o jogo renderiza igualzinho (o motor cai na textura base quando o
+  // idle tem ≤1 frame), o atlas perde 45 duplicatas, e a lacuna de arte fica
+  // VISÍVEL aqui em vez de escondida atrás de uma contagem que passa.
+  // Para sair desta lista: desenhar um idle de verdade (respiração).
+  "enemy-impressora/idle": { min: 1, why: "estático assumido: 16 frames eram byte-idênticos" },
+  "enemy-seguranca/idle": { min: 1, why: "estático assumido: 16 frames eram byte-idênticos" },
+  "enemy-ti-suporte/idle": { min: 1, why: "estático assumido: 16 frames eram byte-idênticos" },
   // Idles revertidos à arte original limpa (o in-between por blend fantasmava).
-  // ti-suporte/seguranca idle NÃO revertidos (original tinha tamanho inconsistente
-  // 64×64/32×48 → encolhia; mantido o inflado normalizado, estático mas no tamanho certo).
   "enemy-bateria/idle": { min: 4, why: "arte original limpa; in-between fantasmava o idle" },
   "enemy-diretor/idle": { min: 4, why: "arte original limpa; in-between fantasmava o idle" },
   "enemy-evangelista-boss/idle": {

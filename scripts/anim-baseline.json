@@ -6,7 +6,6 @@
   "hurt|dead": 1,
   "hurt|jerk": 4,
   "hurt|padded": 32,
-  "idle|dead": 3,
   "idle|jerk": 4,
   "idle|loop-pop": 4,
   "idle|padded": 5,
