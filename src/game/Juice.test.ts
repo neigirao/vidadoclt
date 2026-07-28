@@ -121,3 +121,43 @@ describe("JUICE — tabela de game feel", () => {
     expect(worldFoot()).toBeCloseTo(foot0, 4); // o PÉ é o que tirava do chão
   });
 });
+
+describe("G1 — variação do arco por contexto (sem sprite novo)", () => {
+  test("há uma forma por passo do combo, e elas DIFEREM", () => {
+    const passos = JUICE.smearByStep;
+    expect(passos.length).toBe(3);
+    const tilts = passos.map((p) => p.tilt);
+    expect(new Set(tilts).size).toBe(passos.length);
+  });
+
+  test("1º desce e 2º sobe — o sentido invertido é o que faz ler como combo", () => {
+    expect(JUICE.smearByStep[0].tilt).toBeLessThan(0);
+    expect(JUICE.smearByStep[1].tilt).toBeGreaterThan(0);
+    // Diferença grande o bastante p/ LER: com ±22 quase não se notava.
+    expect(Math.abs(JUICE.smearByStep[1].tilt - JUICE.smearByStep[0].tilt)).toBeGreaterThanOrEqual(
+      60,
+    );
+  });
+
+  test("o finalizador é o mais aberto e o mais duradouro dos três", () => {
+    const [a, b, fim] = JUICE.smearByStep;
+    expect(fim.arcDeg).toBeGreaterThan(Math.max(a.arcDeg, b.arcDeg));
+    expect(fim.ms).toBeGreaterThan(Math.max(a.ms, b.ms));
+    expect(fim.arcWidth).toBeGreaterThan(Math.max(a.arcWidth, b.arcWidth));
+  });
+
+  test("no ar o arco inclina forte para baixo (cutilada) e é mais seco", () => {
+    expect(JUICE.smearAir.tilt).toBeGreaterThan(40);
+    expect(JUICE.smearAir.ms).toBeLessThan(JUICE.smearByStep[0].ms);
+  });
+
+  test("todas as formas ficam em faixas sãs (arco não vira círculo)", () => {
+    for (const s of [...JUICE.smearByStep, JUICE.smearAir, JUICE.smear]) {
+      expect(s.arcDeg).toBeGreaterThan(30);
+      expect(s.arcDeg).toBeLessThanOrEqual(90); // 110° lia como CÍRCULO, não golpe
+      expect(s.ms).toBeGreaterThan(40);
+      expect(s.ms).toBeLessThan(200); // smear é "poucos e RÁPIDOS"
+      expect(Math.abs(s.tilt)).toBeLessThanOrEqual(60);
+    }
+  });
+});

@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { ParticleFactory } from "./ParticleFactory";
-import { JUICE, squash } from "./Juice";
+import { JUICE, squash, type SmearSpec } from "./Juice";
 
 /**
  * CombatFx — centralises all combat-feedback effects so every scene
@@ -188,16 +188,18 @@ export class CombatFx {
     y: number,
     dir: 1 | -1,
     radius: number,
+    spec: SmearSpec = JUICE.smear,
     color = 0xfff2c4,
   ): void {
     if (!scene?.add) return;
-    const spec = JUICE.smear;
     // O Graphics é POSICIONADO no ponto do golpe e o arco é desenhado em
     // coordenada LOCAL (0,0). Desenhar em coordenada de MUNDO e depois escalar
     // multiplica a posição junto (x≈900 × 1.18) e joga o arco para fora da tela
     // — foi exatamente o que aconteceu na 1ª tentativa.
     const g = scene.add.graphics({ x, y }).setDepth(600);
-    const meio = dir === 1 ? 0 : Math.PI;
+    // `tilt` inclina o centro do arco. Espelha com a direção, senão o golpe
+    // virado para a esquerda inclinaria para o lado errado.
+    const meio = (dir === 1 ? 0 : Math.PI) + Phaser.Math.DegToRad(spec.tilt) * dir;
     const meia = Phaser.Math.DegToRad(spec.arcDeg / 2);
     g.lineStyle(spec.arcWidth, color, spec.alpha);
     g.beginPath();

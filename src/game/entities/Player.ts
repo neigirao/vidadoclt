@@ -4,6 +4,7 @@ import { atlasFrames, frameAtOneShot, type FrameState } from "../systems/AtlasFr
 import { HURT_MIN_FRAME_MS, ATTACK_MIN_FRAME_MS, HOLD_IMPACT } from "../systems/EnemyAnimConfig";
 import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
+import { JUICE, type SmearSpec } from "../systems/Juice";
 import { Sfx } from "../systems/AudioSystem";
 import { sanityBand } from "../systems/PlayerState";
 import { ParticleFactory } from "../systems/ParticleFactory";
@@ -181,6 +182,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private specialCooldownUntil = 0;
   private specialCooldownDuration = 0; // duração do último cooldown (p/ ratio da HUD)
   private prevSpecialDown = false;
+
+  /** Forma do arco conforme o contexto do golpe (passo do combo / no ar). */
+  private pickSmear(onGround: boolean): SmearSpec {
+    if (!onGround) return JUICE.smearAir;
+    const passos = JUICE.smearByStep;
+    // comboStep é 1-based e já foi incrementado quando isto roda.
+    return passos[Math.min(this.comboStep, passos.length) - 1] ?? JUICE.smear;
+  }
 
   /** Índices de frames de `player-<state>` no ATLAS (fonte única, gap-aware).
    *  As contagens estavam HARDCODED e divergiam: o código ciclava 16 de attack
@@ -837,7 +846,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         // movimento é mais rápido — a curva HOLD_IMPACT dá à 1ª pose a fatia
         // mais curta — e é quando o golpe precisa LER como golpe. O raio
         // acompanha o alcance da arma, então arma longa varre mais longe.
-        CombatFx.swingArc(this.scene, this.x, this.y - 6, this.facing, this.attackRange);
+        //
+        // VARIAÇÃO POR CONTEXTO: a forma do arco muda com o passo do combo e com
+        // estar no ar. Três golpes idênticos leem como "apertei o botão 3×";
+        // alternando o sentido (desce / sobe / abre), a MESMA arte lê como um
+        // combo encadeado. Zero sprite novo.
+        CombatFx.swingArc(
+          this.scene,
+          this.x,
+          this.y - 6,
+          this.facing,
+          this.attackRange,
+          this.pickSmear(onGround),
+        );
         this.onAttack?.(this.buildMeleeHitbox(), this.comboStep, this._swingId, true);
         if (this.hitAutoRanged) this.onRangedAttack?.(this.x, this.y, this.facing);
       }
