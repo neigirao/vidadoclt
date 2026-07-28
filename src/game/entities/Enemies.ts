@@ -10,16 +10,32 @@ import { loadSettings } from "../systems/Settings";
 import {
   WALK_MS,
   IDLE_MS,
-  ATTACK_MS,
   DEFAULT_WALK_MS,
   DEFAULT_IDLE_MS,
-  DEFAULT_ATTACK_MS,
+  attackWindowMs,
+  HURT_WINDOW_MS,
+  ATTACK_MIN_FRAME_MS,
+  HURT_MIN_FRAME_MS,
 } from "../systems/EnemyAnimConfig";
-import { atlasFramesWithOverride, frameAt } from "../systems/AtlasFrames";
+import { atlasFramesWithOverride, frameAt, frameAtOneShot } from "../systems/AtlasFrames";
 
 // ─── Animation helper ─────────────────────────────────────────────────────────
 // Per-enemy random offset so all sprites don't flip frames in sync (global flicker).
 const _animOffsets = new WeakMap<Phaser.Physics.Arcade.Sprite, number>();
+// ÂNCORA das animações one-shot: instante em que o sprite ENTROU no estado atual.
+// Sem isso, `attack`/`hurt` liam o relógio global e começavam num frame arbitrário
+// (a pose de impacto podia cair no windup). Fica aqui, e não em cada IA, para
+// valer automaticamente p/ todo caller de setEnemyTex (inimigos e bosses).
+const _stateAnchor = new WeakMap<Phaser.Physics.Arcade.Sprite, { state: string; t: number }>();
+
+function stateElapsed(e: Phaser.Physics.Arcade.Sprite, state: string, t: number): number {
+  const a = _stateAnchor.get(e);
+  if (!a || a.state !== state) {
+    _stateAnchor.set(e, { state, t });
+    return 0;
+  }
+  return t - a.t;
+}
 
 function setEnemyTex(
   e: Phaser.Physics.Arcade.Sprite,
@@ -37,15 +53,23 @@ function setEnemyTex(
     applyTexture(e, `tex-${prefix}`);
     return;
   }
-  const ms =
-    state === "walk"
-      ? (WALK_MS[prefix] ?? DEFAULT_WALK_MS)
-      : state === "idle"
-        ? (IDLE_MS[prefix] ?? DEFAULT_IDLE_MS)
-        : state === "attack"
-          ? (ATTACK_MS[prefix] ?? DEFAULT_ATTACK_MS)
-          : 70; // hurt: janela curta (flash de dano) → ms baixo fixo
-  const frame = frameAt(list, t + offset, ms);
+  // attack/hurt são ONE-SHOT: ancorados no início do estado e espalhados na
+  // janela (o último frame fica segurado). walk/idle CICLAM: relógio global +
+  // offset por inimigo, p/ os sprites não trocarem de frame em uníssono.
+  let frame: number;
+  if (state === "attack" || state === "hurt") {
+    const atk = state === "attack";
+    const windowMs = atk ? attackWindowMs(prefix) : HURT_WINDOW_MS;
+    const minMs = atk ? ATTACK_MIN_FRAME_MS : HURT_MIN_FRAME_MS;
+    frame = frameAtOneShot(list, stateElapsed(e, state, t), windowMs, minMs);
+  } else {
+    const ms =
+      state === "walk"
+        ? (WALK_MS[prefix] ?? DEFAULT_WALK_MS)
+        : (IDLE_MS[prefix] ?? DEFAULT_IDLE_MS);
+    stateElapsed(e, state, t); // mantém a âncora coerente ao voltar p/ one-shot
+    frame = frameAt(list, t + offset, ms);
+  }
   applyTexture(e, `tex-${prefix}-${state}${frame}`);
 }
 

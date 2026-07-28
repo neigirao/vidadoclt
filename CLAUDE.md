@@ -289,6 +289,34 @@ cicla os 6 existentes pulando o buraco, com warn 1×/prefixo/estado) — e cache
 contagens hardcoded de `EnemyAnimConfig` (`*_FRAME_COUNTS`) já não dirigem o runtime — só o
 SpriteLab/gate as usam para cruzar contra o atlas.
 
+**CICLO vs ONE-SHOT — `walk`/`idle`/`run` ciclam; `attack`/`hurt`/`death` NÃO.** Distinção do
+motor, não cosmética. `frameAt` é módulo do relógio GLOBAL: serve para ciclo (e o offset por
+inimigo evita que todos troquem de frame em uníssono), mas usado num golpe fazia a animação
+entrar num ponto ARBITRÁRIO — a pose de impacto podia aparecer no windup e a de windup no
+instante da hitbox. `frameAtOneShot(list, elapsed, windowMs, minFrameMs)` ancora no início do
+estado (a âncora vive em `setEnemyTex`/`animPhase`, então vale para todo caller) e SEGURA o
+último frame. Três regras que caem daí:
+
+1. **O design é a JANELA, não o ms por frame.** `ATTACK_MS` era ms/frame calibrado p/ 16
+   frames; com a contagem vindo do atlas (17–25) o ciclo estourava a janela real do golpe — o
+   `rh` tinha 850ms de animação numa janela de 530ms e **9 frames desenhados nunca apareciam**.
+   Use `attackWindowMs(prefix)` / `HURT_WINDOW_MS`; o passo é `janela / n_frames_do_atlas`, então
+   ganhar ou perder arte não desalinha o golpe.
+2. **Piso de tempo de tela.** A 60fps um frame dura 16,7ms. O `hurt` tinha 17 frames em 300ms
+   = 17,6ms/frame: as poses não eram vistas e QUAIS apareciam dependia de onde o relógio caía.
+   `sampleForWindow` amostra o arco de forma determinística respeitando `ATTACK_MIN_FRAME_MS`
+   (50ms ≈ 20fps) e `HURT_MIN_FRAME_MS` (90ms). Mais frames que a janela comporta é arte
+   invisível, não suavidade.
+3. **`attack` está FORA do `CYCLIC` do `audit:anim`.** Ele não repete, então o `loop-pop` (que
+   mede a costura último→primeiro) media algo que nunca chega à tela — eram 21 falso-positivos
+   travados na baseline, protegendo ruído e escondendo regressão real.
+
+**Fila de arte = defeito × exposição (`bun art:queue`).** Ordenar por qualidade pura gasta a
+hora no lugar errado. `scripts/art-queue.mjs` multiplica o defeito do `audit:anim` pelo peso da
+ação (`walk` roda o tempo todo; `death` uma vez; `hurt` é um flash) e pela **exposição medida**
+da fase (`docs/TELEMETRIA.md`: F1 62 sessões, CEO 3). Fase 1 acumula 19.546 de prioridade contra
+113 do CEO. Ver `docs/ART_GAPS.md`.
+
 **Audit visual no CI (`bun run audit:sprites`, `scripts/audit-sprites.mjs`).** Fecha a lacuna:
 o `check:frames` garante _quantidade_/coerência/_tamanho_, mas é cego ao CONTEÚDO do pixel.
 Este gate sobe o jogo headless (job `smoke`), chama `runFullAudit()` do LAB (canvas) e
@@ -627,6 +655,7 @@ bun validate:levels          # gate de NÍVEL: boota cada fase headless em vári
 bun visual                   # regressão visual: compara cenas de UI estáveis vs baselines (tests/visual/baseline)
 bun gallery                  # Beauty gallery: contact-sheet de TODAS as cenas/fases em seed fixo (tests/gallery/, git-ignored) — beauty pass/review visual
 bun audit:anim               # Animation auditor: mede suavidade frame-a-frame (delta de pixel) — flaga dead/jerk/loop-pop/padded (--gate/--json/--top=N)
+bun art:queue                # Fila de ARTE por prioridade = defeito × peso da ação × exposição medida da fase (--top=N/--json)
 bun visual:update            # (re)grava os baselines — rodar quando a mudança visual é INTENCIONAL (conferir o diff no PR)
 bun format                   # Prettier
 bun import:aseprite          # importa export do Aseprite/LibreSprite (sheet+json c/ tags) → sprites do repo + repack (docs/ASEPRITE_PIPELINE.md)

@@ -8,13 +8,46 @@
 > o que é interpolável (some daqui sozinho) do que precisa de arte; e o
 > `runFullAudit()` no LAB SPRITES para achar frames incoerentes/mismatched.
 
+## A ordem sai de `bun art:queue`, não de opinião
+
+`bun art:queue` (`scripts/art-queue.mjs`) ordena as animações defeituosas por
+**prioridade = defeito × peso da ação × exposição da fase**. A exposição é DADO
+(telemetria limpa, `docs/TELEMETRIA.md`): Fase 1 = 62 sessões humanas, CEO = 3.
+Ordenar por qualidade pura leva a gastar arte onde quase ninguém vê — o `walk` de
+um inimigo da Fase 1 roda o tempo todo, para todo jogador; o clímax é visto por 5%.
+
+Prioridade acumulada por fase (leitura atual):
+
+| fase | prioridade |
+| ---- | ---------: |
+| 1    | **19.546** |
+| 4    |      8.209 |
+| 2    |      6.700 |
+| 3    |      5.419 |
+| 5    |      1.603 |
+| CEO  |        113 |
+
+**Top 6 da fila** (todos `jerk`+`loop-pop`, já no piso de frames → só arte resolve):
+`facilitador|walk` (8f), `facilitador|idle`, `analista|idle`, `estagiario|idle`
+(12f cada), `ti-suporte|walk` (14f), `evangelista|idle` (11f). Cinco dos seis são
+Fase 1 — é onde a próxima hora de arte rende mais.
+
+**Já resolvido sem arte:** `impressora|idle`, `seguranca|idle` e `ti-suporte|idle`
+tinham **16 frames byte-idênticos** (`maxDelta = 0.000`) — passavam no piso de 8 e
+entregavam zero suavidade. Cortados para 1 frame, com `EXCEPTION` documentada no
+`check:frames`. O jogo renderiza igual; o atlas perdeu 45 duplicatas; e a lacuna
+("estes três precisam de um idle de respiração de verdade") agora está VISÍVEL em
+vez de escondida atrás de uma contagem que passava.
+
 ## Prioridade 1 — o clímax está fraco
 
 - **Fundo do CEO (cobertura)** — por confissão do próprio projeto, o pior fundo do
   jogo, no encontro mais importante. Skyline chapado onde devia ter peso. É o maior
-  retorno visual de um único asset.
+  retorno visual de um único asset. **Ressalva medida:** é visto por 1 em cada 20
+  jogadores (3 sessões contra 62 da Fase 1). Alto retorno POR ASSET, baixo retorno
+  por jogador alcançado — fazer quando a fila da Fase 1 estiver limpa, não antes.
 - **Buildup de entrada do CEO** — o CEO chega "frio". Falta uma tela/beat de entrada
-  (a parte de *código* dá pra fazer; o *visual* do beat pede arte).
+  (a parte de _código_ dá pra fazer; o _visual_ do beat pede arte).
 
 ## Prioridade 2 — bosses sem identidade visual
 
