@@ -46,6 +46,22 @@ export const JUICE = {
     death: { ms: 300, amp: 0.015 } as ShakeSpec,
     parry: { ms: 60, amp: 0.01 } as ShakeSpec,
   },
+  // SMEAR (borrão de movimento no golpe). O truque clássico de animação para
+  // vender velocidade sem desenhar frames novos: no instante mais rápido do
+  // movimento, cópias esticadas e translúcidas do próprio sprite ficam para trás.
+  // A regra que todo guia repete é "poucos e RÁPIDOS" — smear longo lê como
+  // borrão de renderização, não como movimento. Por isso `ms` é curtíssimo.
+  // ARCO do golpe (o "smear" possível sem arte nova — ver CombatFx.swingArc).
+  // Proporções escolhidas OLHANDO 3 variantes no jogo: 110° com raio 42 lia como
+  // um CÍRCULO em volta do personagem, não como um golpe. 60° com raio ≈ alcance
+  // da arma lê como varrida.
+  smear: {
+    arcDeg: 60, // abertura do arco varrido (graus)
+    arcWidth: 2.5, // espessura do traço
+    arcGrow: 1.15, // quanto o arco cresce enquanto some (vende a varrida)
+    alpha: 0.9, // opacidade inicial
+    ms: 90, // vida do arco — curto de propósito ("poucos e rápidos")
+  },
 } as const;
 
 /**

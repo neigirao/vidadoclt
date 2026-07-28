@@ -833,6 +833,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this._swingStep = this.comboStep;
         this._swingActive = true;
         this._swingEndAt = time + MELEE_ACTIVE_MS;
+        // SMEAR (arco da arma) no instante em que a hitbox abre. É onde o
+        // movimento é mais rápido — a curva HOLD_IMPACT dá à 1ª pose a fatia
+        // mais curta — e é quando o golpe precisa LER como golpe. O raio
+        // acompanha o alcance da arma, então arma longa varre mais longe.
+        CombatFx.swingArc(this.scene, this.x, this.y - 6, this.facing, this.attackRange);
         this.onAttack?.(this.buildMeleeHitbox(), this.comboStep, this._swingId, true);
         if (this.hitAutoRanged) this.onRangedAttack?.(this.x, this.y, this.facing);
       }
