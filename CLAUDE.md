@@ -382,6 +382,19 @@ rende pouco. **A diferença precisa ser GRANDE para ler:** ±22° entre o 1º e 
 medida e quase não se via comparando lado a lado no jogo; ±32 (64° de diferença) lê. Travado em
 teste, junto com a faixa sã de cada forma.
 
+**L2 — o contorno CONTA A MECÂNICA (`RimLight.pulse`).** O rim-light separava o personagem do
+fundo com cor fixa, ou seja, só informava "existe alguém aqui". Pulsando na cor do aviso durante
+o windup, a mesma luz vira um TERCEIRO canal do telegraph (cor + glyph `!!` + contorno) — e é o
+único que fica no CORPO do inimigo, onde o jogador já está olhando; o `!!` flutua acima da cabeça
+e pode estar encoberto ou fora do enquadramento. O chamador passa a cor JÁ remapeada pelo modo
+daltônico, então os canais nunca se contradizem. O dash do player pulsa frio (casa com o rastro
+azul). Dois aprendizados: (a) a restauração é por PRAZO no `update()`, não por
+`time.delayedCall` — o update já roda todo frame (é ele que faz o contorno seguir o sprite),
+então não há timer por pulso para criar, cancelar e limpar no shutdown; (b) o alpha foi escolhido
+SIMULANDO o blend offline (a mesma matemática do ADD), porque em BLEND_ADD alpha demais deixa de
+destacar a borda e passa a LAVAR o sprite inteiro — 0.55 não se distinguia da franja base e 0.85
+viraria bloco; 0.70 lê como contorno.
+
 **Fila de arte = defeito × exposição (`bun art:queue`).** Ordenar por qualidade pura gasta a
 hora no lugar errado. `scripts/art-queue.mjs` multiplica o defeito do `audit:anim` pelo peso da
 ação (`walk` roda o tempo todo; `death` uma vez; `hurt` é um flash) e pela **exposição medida**
@@ -599,6 +612,7 @@ majoritariamente conteúdo/arte, não código de sistema:
 
 - 🟨 **Fundos high-res das Fases 3/4/5 + CEO (cobertura)** — arte externa. Os 4 (`bg-comercial`/`bg-tecnologia`/`bg-diretoria`/`bg-cobertura`, ~32–42KB) são skylines chapados competentes, mas destoam dos 2 pintados ricos (`bg-openspace`/`bg-atendimento`, agora WebP). Bloqueado em geração de imagem; o botão de upload do LAB (FUNDOS) é o pipeline. **O clímax (CEO) tem o pior fundo — prioridade.** (Mitigado parcialmente: paleta por bioma dá cor-assinatura a cada andar mesmo com o skyline chapado.)
 - 🟨 **Sprites abaixo do piso de 4 frames/ação** (task): boss-ceo, brenda, diretor, evangelista-boss/mega, gerente, facilitador, impressora-b/c/d em idle/walk. Bloqueado no **teto de gasto do Gemini** (429) — quando liberado, o LAB (FRAMES FALTANTES) gera; após o fix, o lote reflete corretamente (recarregar após gerar).
+- ⛔ **Normal maps (Laigter/SpriteIlluminator) NÃO se aplicam nesta build**: `addImageLight` existe, mas é filtro de CÂMERA (espaço de tela), e `sprite.preFX/postFX` não existem — normal map por-sprite não teria onde conectar. Para funcionar seria preciso redesenhar todo sprite num render-texture de normais a cada frame. Ver `docs/LIGHTING_SPIKE.md`.
 - ✅ **Iluminação dinâmica — FEITO** (era ⬜): spike concluído (`docs/LIGHTING_SPIKE.md` — a build não tem `sprite.postFX` e a rota `addImageLight`/normal-map é grande demais). Escolhido o **lightmap aditivo** (`systems/Lighting.ts`): penumbra ambiente + poças de luz radiais em BLEND_ADD (tocha no player, aura no boss). Ligado no **CEO** e nas **Fases 2–5** (`BasePhaseScene`, penumbra tintada por bioma). No-op sob `reduceSanityFx`. Resta opcional: a rota normal-mapeada (`addImageLight`) se quiser luz volumétrica de verdade.
 - ✅ **Rotas divergentes de verdade — FEITO** (era stale nesta doc). As DUAS bifurcações já divergem em conteúdo, não só stat: Fase 2 (`run.route` comercial/atendimento) e Fase 3 (`run.route2` produto/tecnologia) variam **fundo, título, objetivo, layout de plataformas E composição de inimigos** (ver `Phase2Scene.isComercial()`/`Phase3Scene.isTecnologia()`). O **boss é compartilhado** por rota **de propósito** ("a rota diverge na jornada, não no chefe"). O que resta é opcional/scope-creep: bifurcar também Fases 4/5, ou boss distinto por rota.
 - ✅ **Fases 2–3 com personalidade própria — FEITO** (era stale): têm eventos de sala (`getPhaseEvents`) e verticalidade com propósito (`spawnPhaseVerticalReward` — cache no topo + healer/ranged relocado). Continuam com menos verticalidade que a Fase 1 (que tem 4 layouts + apagão + medidor), mas não são "lineares".

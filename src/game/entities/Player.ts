@@ -811,6 +811,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.dashId++; // nova janela de dash → nova dedup de hits ofensivos
       Telemetry.verb("dash");
       Sfx.dash();
+      // Contorno FRIO no dash: casa com o azul do rastro de ghost e diferencia à
+      // distância o "estou invencível" do "vou apanhar". Mesma ideia do pulso de
+      // ameaça nos inimigos — a luz contando a mecânica, não só separando do fundo.
+      (
+        this.scene as Phaser.Scene & {
+          rimLight?: { pulse(s: Phaser.GameObjects.Sprite, cor: number, ms?: number): void };
+        }
+      ).rimLight?.pulse(this, 0x88ccff, DASH_MS + 60);
       body.setVelocityY(0);
       this.setAlpha(0.6);
       this.scene.time.delayedCall(DASH_MS, () => this.setAlpha(1));
