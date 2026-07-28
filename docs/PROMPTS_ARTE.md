@@ -79,14 +79,14 @@ caminhada apressada de escritório.
 
 ---
 
-## 2. Facilitador — `idle` (prioridade 2.579, Fase 1) ⚠ ATENÇÃO
+## 2. Facilitador — `idle` (prioridade 2.579, Fase 1)
 
-**Canvas:** 48×64 px · **hoje tem 12 frames, mas só os 5 primeiros prestam**
+**Canvas:** 48×64 px · **hoje tem 4 frames (já cortados), com só 2 poses distintas**
 
-> Verificado ampliando frame a frame: **os frames 5–11 são OUTRA PESSOA** — maior,
-> sem óculos, roupa diferente, com artefatos de caixa branca. É o mesmo defeito
-> que o #124 consertou no `attack`, e o `idle` CICLA (aparece o tempo todo).
-> Se você gerar só 4–6 frames bons, eu corto os ruins e o problema some.
+> Já cortei os frames podres: eram 12, e do 4 em diante a arte degradava até virar
+> outra pessoa (um careca sorrindo). Sobrou o que era autoral — 2 poses reais,
+> repetidas. O jogo parou de mostrar arte quebrada, mas 2 poses não são uma
+> respiração. **Gere 6 frames e eu substituo o ciclo inteiro.**
 
 **Personagem e paleta:** iguais ao item 1.
 
@@ -104,6 +104,8 @@ O ciclo precisa fechar (frame 6 encadeia no frame 1).
 ## 3. Analista de Onboarding — `idle` (prioridade 2.579, Fase 1)
 
 **Canvas:** 48×64 px · **6 frames** · anexe `ref-analista.png`
+**Hoje:** 4 frames (já cortados de 12 — do 4 em diante a maleta e os óculos
+sumiam e o rosto derretia). Sobraram 2 poses autorais; gere 6 e eu troco o ciclo.
 
 **Personagem:** homem adulto, cabelo escuro cacheado, óculos redondos, camisa
 social branca, gravata escura, calça escura. Carrega uma PASTA/MALETA marrom na
@@ -125,6 +127,7 @@ chão. O ciclo precisa fechar.
 ## 4. Estagiário Desesperado — `idle` (prioridade 2.579, Fase 1)
 
 **Canvas:** 48×64 px · **6 frames** · anexe `ref-estagiario.png`
+**Hoje:** 4 frames (mesmo corte do Analista — perfil de degradação idêntico).
 
 **Personagem:** homem jovem, cabelo escuro cacheado, óculos, camisa branca de
 manga curta, gravata, calça escura. Maleta marrom na mão. Postura mais curvada e
@@ -167,8 +170,11 @@ corpo sobe e desce. O ciclo precisa fechar.
 
 ## 6. Evangelista Corporativo — `idle` (prioridade 1.706, Fase 3) ⚠ ATENÇÃO
 
-**Canvas:** 64×64 px · **hoje 11 frames, com frame 4 quebrado e frame 5 em
-miniatura** · anexe `ref-evangelista.png`
+**Canvas:** 64×64 px · **11 frames, NÃO cortados** · anexe `ref-evangelista.png`
+
+> Diferente dos outros: aqui não há trecho contíguo bom para salvar. Olhando com
+> fundo claro, o personagem ENCOLHE e CRESCE entre frames e vários têm dois dele
+> sobrepostos (artefato de blend). O ciclo inteiro precisa ser substituído.
 
 **Personagem:** homem de meia-idade, calvo no topo com cabelo dos lados, camisa
 clara, colete/jaqueta escura. Segura um MEGAFONE erguido, apontado para a frente.

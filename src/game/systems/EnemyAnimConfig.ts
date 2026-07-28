@@ -36,9 +36,18 @@ export const WALK_FRAME_COUNTS: Record<string, number> = {
 export const IDLE_FRAME_COUNTS: Record<string, number> = {
   // Revertido à arte original (idle3 de estagiario/analista/facilitador era frame
   // corrompido → 3). Mesma razão do walk.
-  estagiario: 3,
-  analista: 3,
-  facilitador: 3,
+  // CORTADOS de 12 → 4 frames. Verificado ampliando pose a pose no atlas: do
+  // frame 4 em diante a arte DEGRADA — o Analista e o Estagiário perdem a maleta
+  // e os óculos, o Facilitador perde os óculos e a folha, e a partir do 8 vira
+  // outra pessoa (um careca sorrindo, com halos brancos por toda a silhueta).
+  // É o mesmo defeito que o #124 pegou no `attack`, mas em `idle` — que CICLA,
+  // então isso estava na tela o tempo todo com o inimigo parado.
+  // As 12 entradas eram na verdade ~4 poses copiadas 3× cada (medido pela
+  // distância de silhueta: 32,32,32 / 68,68,68 / 55,55,55). Sobram 2 poses
+  // autorais limpas — pouco, mas honesto.
+  estagiario: 4,
+  analista: 4,
+  facilitador: 4,
   scrum: 4,
   coordenador: 4,
   senior: 4,
