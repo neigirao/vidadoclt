@@ -5,6 +5,7 @@ import {
   HURT_WINDOW_MS,
   HURT_MIN_FRAME_MS,
   ATTACK_MIN_FRAME_MS,
+  attackSafeFrames,
 } from "./systems/EnemyAnimConfig";
 
 describe("frameAtOneShot — attack/hurt não podem entrar em frame arbitrário", () => {
@@ -99,5 +100,34 @@ describe("sampleForWindow — nenhuma pose pode durar menos que um frame de tela
     const shown = sampleForWindow(l25, w, ATTACK_MIN_FRAME_MS);
     expect(w / shown.length).toBeGreaterThanOrEqual(ATTACK_MIN_FRAME_MS);
     expect(w / shown.length).toBeGreaterThanOrEqual(1000 / 60); // > 1 frame a 60fps
+  });
+});
+
+describe("whitelist de attack — arte estrangeira não pode entrar no ciclo", () => {
+  // REGRESSÃO REAL: `ATTACK_FRAME_COUNTS` não era só contagem, era uma whitelist
+  // de frames validados à mão. Quando a contagem passou a sair do atlas, a
+  // whitelist se perdeu e o jogo voltou a ciclar arte que é OUTRO PERSONAGEM —
+  // o Analista virava um sujeito de polo azul com caneca ao atacar. Confirmado
+  // olhando os frames ampliados do atlas, um a um.
+  test("os prefixos com arte incoerente têm teto declarado", () => {
+    expect(attackSafeFrames("analista")).toBe(0);
+    expect(attackSafeFrames("facilitador")).toBe(0);
+    expect(attackSafeFrames("coordenador")).toBe(0);
+    expect(attackSafeFrames("scrum")).toBe(1);
+    expect(attackSafeFrames("scrum-boss")).toBe(1);
+    expect(attackSafeFrames("coord-boss")).toBe(1);
+  });
+
+  test("quem tem arte coerente NÃO ganha teto (cicla o atlas inteiro)", () => {
+    for (const p of ["estagiario", "senior", "rh"]) {
+      expect(attackSafeFrames(p)).toBe(Infinity);
+    }
+  });
+
+  test("o teto realmente CORTA a lista do atlas", () => {
+    const doAtlas = Array.from({ length: 25 }, (_, i) => i);
+    expect(doAtlas.slice(0, attackSafeFrames("scrum"))).toEqual([0]);
+    expect(doAtlas.slice(0, attackSafeFrames("analista"))).toEqual([]);
+    expect(doAtlas.slice(0, attackSafeFrames("rh"))).toEqual(doAtlas);
   });
 });

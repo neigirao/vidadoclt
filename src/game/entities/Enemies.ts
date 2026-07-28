@@ -13,6 +13,7 @@ import {
   DEFAULT_WALK_MS,
   DEFAULT_IDLE_MS,
   attackWindowMs,
+  attackSafeFrames,
   HURT_WINDOW_MS,
   ATTACK_MIN_FRAME_MS,
   HURT_MIN_FRAME_MS,
@@ -47,10 +48,18 @@ function setEnemyTex(
   const offset = _animOffsets.get(e)!;
   // Contagem/índices SEMPRE do atlas (gap-aware + override do LAB). MS = design.
   const tex = e.scene?.textures?.get("sprites");
-  const list = atlasFramesWithOverride(tex, prefix, state);
+  let list = atlasFramesWithOverride(tex, prefix, state);
+  // Teto de arte APROVADA no attack (whitelist — ver ATTACK_SAFE_FRAMES). Sem
+  // isso o jogo cicla frames que são outro personagem.
+  if (state === "attack") list = list.slice(0, attackSafeFrames(prefix));
   if (list.length === 0) {
-    // Sem frames desse estado no atlas → cai no base (nunca renderiza slot ausente).
-    applyTexture(e, `tex-${prefix}`);
+    // Sem frame aprovado p/ este estado → mostra o IDLE do próprio inimigo.
+    // NÃO cair no `tex-<prefix>` cru: verificado no atlas, várias bases também
+    // são outro personagem (o `enemy-analista` base é um sujeito de megafone que
+    // não tem nada a ver com o idle/walk). Cair no base trocava uma arte errada
+    // por outra. O idle é, por construção, o mesmo personagem.
+    const idle = atlasFramesWithOverride(tex, prefix, "idle");
+    applyTexture(e, idle.length ? `tex-${prefix}-idle${idle[0]}` : `tex-${prefix}`);
     return;
   }
   // attack/hurt são ONE-SHOT: ancorados no início do estado e espalhados na
