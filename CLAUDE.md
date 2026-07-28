@@ -329,6 +329,24 @@ estado (a âncora vive em `setEnemyTex`/`animPhase`, então vale para todo calle
    mede a costura último→primeiro) media algo que nunca chega à tela — eram 21 falso-positivos
    travados na baseline, protegendo ruído e escondendo regressão real.
 
+**A assinatura de IA é MENSURÁVEL — e removível (`bun palette:fix`).** O que faz arte
+"parecer IA" não é subjetivo: geradores produzem uma ilustração grande e REDUZEM, o que dá
+quase uma cor por pixel e borda com halo semi-transparente — o oposto de pixel art (paleta
+curta, borda dura). A medida é `cores_únicas / pixels_opacos`. Varredura do atlas: 86% estava
+em ≤0.15 (pixel art de verdade, 19–29 cores) e **14% acima de 0.5** — incluindo o `player-attack`
+(974 cores em 1049 px) e o `enemy-senior-walk` (1308 em 1556), duas das animações mais vistas.
+`scripts/palette-fix.mjs` deriva UMA paleta por família (median-cut determinístico) e mapeia
+por distância com peso de luminância, mais um de-speckle (nenhum pixel órfão). **Resultado:
+402 → 12 frames com assinatura de IA (13,5% → 0,4%), atlas −23%.** Três aprendizados travados
+no código: (a) a paleta sai da PRÓPRIA família e não de um estado "limpo" de referência — forçar
+o golpe do player à paleta do walk embarrava as pernas, porque um golpe é iluminado diferente
+de um andar; (b) a amostra tem que incluir os frames LIMPOS mesmo sem reescrevê-los, senão a
+família diverge (quantizar idle/walk do CEO sem olhar o `run` fez o `run` virar "cor
+estrangeira": 47 frames no `audit:palette`, contra 1 depois do conserto); (c) guardas contra
+destruir conteúdo — asset SUAVE de propósito (brilho/sombra/fantasma) some ao endurecer o
+alpha, então frame que perderia >20% dos opacos é PULADO (pego quando o `tile-fase5-01` virou
+tile vazio).
+
 **Fila de arte = defeito × exposição (`bun art:queue`).** Ordenar por qualidade pura gasta a
 hora no lugar errado. `scripts/art-queue.mjs` multiplica o defeito do `audit:anim` pelo peso da
 ação (`walk` roda o tempo todo; `death` uma vez; `hurt` é um flash) e pela **exposição medida**
@@ -673,6 +691,7 @@ bun validate:levels          # gate de NÍVEL: boota cada fase headless em vári
 bun visual                   # regressão visual: compara cenas de UI estáveis vs baselines (tests/visual/baseline)
 bun gallery                  # Beauty gallery: contact-sheet de TODAS as cenas/fases em seed fixo (tests/gallery/, git-ignored) — beauty pass/review visual
 bun audit:anim               # Animation auditor: mede suavidade frame-a-frame (delta de pixel) — flaga dead/jerk/loop-pop/padded (--gate/--json/--top=N)
+bun palette:fix              # Mata a assinatura de IA: quantiza paleta por família + endurece alpha (--dry/--only=/--colors=N)
 bun art:queue                # Fila de ARTE por prioridade = defeito × peso da ação × exposição medida da fase (--top=N/--json)
 bun visual:update            # (re)grava os baselines — rodar quando a mudança visual é INTENCIONAL (conferir o diff no PR)
 bun format                   # Prettier
