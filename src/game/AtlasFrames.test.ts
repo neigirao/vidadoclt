@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { frameAt, frameAtOneShot, sampleForWindow } from "./systems/AtlasFrames";
+import { frameAt, frameAtOneShot, sampleForWindow, resampleShape } from "./systems/AtlasFrames";
 import {
   attackWindowMs,
   HURT_WINDOW_MS,
   HURT_MIN_FRAME_MS,
   ATTACK_MIN_FRAME_MS,
   attackSafeFrames,
+  HOLD_IMPACT,
+  HOLD_WINDUP,
 } from "./systems/EnemyAnimConfig";
 
 describe("frameAtOneShot — attack/hurt não podem entrar em frame arbitrário", () => {
@@ -129,5 +131,78 @@ describe("whitelist de attack — arte estrangeira não pode entrar no ciclo", (
     expect(doAtlas.slice(0, attackSafeFrames("scrum"))).toEqual([0]);
     expect(doAtlas.slice(0, attackSafeFrames("analista"))).toEqual([]);
     expect(doAtlas.slice(0, attackSafeFrames("rh"))).toEqual(doAtlas);
+  });
+});
+
+describe("holds desiguais — fluidez vem do TIMING, não da quantidade de frames", () => {
+  const attack = Array.from({ length: 17 }, (_, i) => i);
+
+  /** Duração de cada pose, medida varrendo a função ms a ms (como o jogo a usa). */
+  function duracoes(list: number[], win: number, min: number, hold?: readonly number[]) {
+    const out: { frame: number; ms: number }[] = [];
+    let cur: number | null = null;
+    let ini = 0;
+    for (let t = 0; t <= win; t++) {
+      const f = frameAtOneShot(list, t, win, min, hold);
+      if (f !== cur) {
+        if (cur !== null) out.push({ frame: cur, ms: t - ini });
+        cur = f;
+        ini = t;
+      }
+    }
+    out.push({ frame: cur as number, ms: win - ini });
+    return out;
+  }
+
+  test("sem curva, todas as poses duram o mesmo (comportamento antigo intacto)", () => {
+    const d = duracoes(attack, 300, 50);
+    for (const p of d) expect(p.ms).toBe(300 / d.length);
+  });
+
+  test("com curva, as durações passam a ser desiguais", () => {
+    const d = duracoes(attack, 300, 50, HOLD_IMPACT);
+    const ms = d.map((p) => p.ms);
+    expect(Math.max(...ms) / Math.min(...ms)).toBeGreaterThan(1.3);
+  });
+
+  test("NENHUMA pose fica abaixo do piso de tempo de tela", () => {
+    for (const [win, min, hold] of [
+      [300, 50, HOLD_IMPACT],
+      [544, 50, HOLD_WINDUP],
+    ] as const) {
+      for (const p of duracoes(attack, win, min, hold)) {
+        expect(p.ms).toBeGreaterThanOrEqual(min - 1); // -1: arredondamento da varredura
+      }
+    }
+  });
+
+  test("a soma das durações é exatamente a janela do golpe", () => {
+    const d = duracoes(attack, 544, 50, HOLD_WINDUP);
+    expect(d.reduce((a, p) => a + p.ms, 0)).toBe(544);
+  });
+
+  test("HOLD_WINDUP segura o começo (telegrafa) e acelera no meio", () => {
+    const ms = duracoes(attack, 544, 50, HOLD_WINDUP).map((p) => p.ms);
+    expect(ms[0]).toBeGreaterThan(Math.min(...ms) * 1.3);
+    expect(Math.min(...ms)).toBe(ms[Math.floor(ms.length / 2)]);
+  });
+
+  test("HOLD_IMPACT começa RÁPIDO — senão a pose de impacto sai depois da hitbox", () => {
+    const d = duracoes(attack, 300, 50, HOLD_IMPACT);
+    // a 1ª pose não pode ser a mais longa: o golpe do player precisa sair na hora
+    expect(d[0].ms).toBeLessThan(Math.max(...d.map((p) => p.ms)));
+  });
+
+  test("animação já curta (3 poses) não perde pose para ganhar hold", () => {
+    expect(duracoes(attack, 300, 90, HOLD_IMPACT).length).toBe(3);
+  });
+
+  test("resampleShape estica/encolhe a curva preservando as pontas", () => {
+    const s = [1, 5, 2] as const;
+    expect(resampleShape(s, 3)).toEqual([1, 5, 2]);
+    const r = resampleShape(s, 5);
+    expect(r[0]).toBe(1);
+    expect(r[r.length - 1]).toBe(2);
+    expect(r.length).toBe(5);
   });
 });

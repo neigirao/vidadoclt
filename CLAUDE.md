@@ -307,7 +307,21 @@ estado (a âncora vive em `setEnemyTex`/`animPhase`, então vale para todo calle
    `sampleForWindow` amostra o arco de forma determinística respeitando `ATTACK_MIN_FRAME_MS`
    (50ms ≈ 20fps) e `HURT_MIN_FRAME_MS` (90ms). Mais frames que a janela comporta é arte
    invisível, não suavidade.
-3. **`ATTACK_SAFE_FRAMES` é WHITELIST, não contagem.** O lote de attack gerado por IA vira
+3. **HOLDS DESIGUAIS: fluidez vem do TIMING, não da quantidade.** Toda pose durando o mesmo é
+   o que faz animação de poucos frames parecer robótica; o princípio clássico é segurar as poses
+   extremas e passar voando pelo meio. `frameAtOneShot` aceita uma `HoldShape` (pesos relativos,
+   reamostrados para a quantidade de poses). **Player e inimigo têm curvas OPOSTAS, e isso não é
+   estilo — é mecânica:** a antecipação é informação para quem APANHA, então o inimigo segura o
+   windup (`HOLD_WINDUP`, o telegraph já é metade da janela dele por design); o player faz o
+   contrário (`HOLD_IMPACT`), porque segurar o windup dele empurraria a pose de impacto para
+   depois da hitbox, que fica ativa só nos primeiros 120ms (`MELEE_ACTIVE_MS`) — viraria input
+   lag visual. Duas consequências travadas em teste: (a) hold só existe se sobrar FOLGA na
+   janela — com o número máximo de poses o piso de tempo de tela consome tudo e volta a ficar
+   uniforme, então a curva usa ~70% das poses (troca de quantidade por tempo); (b) animação já
+   curta (≤3 poses) NÃO perde pose para ganhar hold. **Não existe curva para `hurt`**: foi
+   implementada, medida (94/100/106ms contra 100/100/100) e descartada — imperceptível, e um
+   botão que não faz nada é pior que a ausência dele.
+4. **`ATTACK_SAFE_FRAMES` é WHITELIST, não contagem.** O lote de attack gerado por IA vira
    OUTRO PERSONAGEM a partir de certo índice (o Analista ataca virando um sujeito de polo azul
    com caneca; scrum/bosses degradam em caixa branca → borrão → um musculoso). Isso era contido
    por `ATTACK_FRAME_COUNTS` funcionando como whitelist — e a whitelist se PERDEU quando a
@@ -315,7 +329,7 @@ estado (a âncora vive em `setEnemyTex`/`animPhase`, então vale para todo calle
    aprovado → o motor mostra o **idle do próprio inimigo** (não o `tex-<prefix>` cru: várias
    bases também são outro personagem). Não animar é muito melhor que virar outra pessoa.
    Achado **olhando os frames ampliados**, um a um — nenhum gate automático pega isto.
-4. **Vale para o PLAYER também.** O `attack` dele já era ancorado, mas a contagem estava
+5. **Vale para o PLAYER também.** O `attack` dele já era ancorado, mas a contagem estava
    hardcoded em 16 com 21 no atlas, e o passo de 19ms ficava abaixo de um frame de tela. Hoje
    conta do atlas, amostra pelo piso (6 poses de 50ms — que caem exatamente nos múltiplos de 4,
    ou seja, **as poses autorais** antes do duplo doubling) e respeita `PLAYER_ATTACK_SAFE_FRAMES
@@ -325,7 +339,7 @@ estado (a âncora vive em `setEnemyTex`/`animPhase`, então vale para todo calle
    porque dash e parry também mexem nele e reiniciavam o flinch). O `idle` segue restrito a
    idle1/idle2 **de propósito** (idle0 é busto, idle3+ são poses de passada) — conferido antes
    de mexer, e não mexido.
-5. **`attack` está FORA do `CYCLIC` do `audit:anim`.** Ele não repete, então o `loop-pop` (que
+6. **`attack` está FORA do `CYCLIC` do `audit:anim`.** Ele não repete, então o `loop-pop` (que
    mede a costura último→primeiro) media algo que nunca chega à tela — eram 21 falso-positivos
    travados na baseline, protegendo ruído e escondendo regressão real.
 
