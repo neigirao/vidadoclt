@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
 import { atlasFrames, frameAtOneShot, type FrameState } from "../systems/AtlasFrames";
-import { HURT_MIN_FRAME_MS, ATTACK_MIN_FRAME_MS } from "../systems/EnemyAnimConfig";
+import { HURT_MIN_FRAME_MS, ATTACK_MIN_FRAME_MS, HOLD_IMPACT } from "../systems/EnemyAnimConfig";
 import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
@@ -932,6 +932,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         now - this.lastAttackAt,
         PLAYER_ATTACK_WINDOW_MS,
         ATTACK_MIN_FRAME_MS,
+        HOLD_IMPACT,
       );
       key = `tex-player-attack${f}`;
     } else if (!onGround) {

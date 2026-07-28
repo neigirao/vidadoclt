@@ -98,13 +98,72 @@ export function frameAtOneShot(
   elapsed: number,
   windowMs: number,
   minFrameMs = 0,
+  hold?: HoldShape,
 ): number {
   if (list.length === 0) return 0;
   if (windowMs <= 0) return list[list.length - 1];
-  const shown = sampleForWindow(list, windowMs, minFrameMs);
-  const step = windowMs / shown.length;
-  const i = Math.floor(Math.max(0, elapsed) / step);
-  return shown[Math.min(i, shown.length - 1)];
+
+  if (!hold || hold.length < 2) {
+    const shown = sampleForWindow(list, windowMs, minFrameMs);
+    const step = windowMs / shown.length;
+    const i = Math.floor(Math.max(0, elapsed) / step);
+    return shown[Math.min(i, shown.length - 1)];
+  }
+
+  // HOLDS DESIGUAIS. Todo frame durando o mesmo é o que faz animação de poucos
+  // frames parecer robótica. O princípio (Disney, e repetido em todo guia de
+  // pixel art) é o oposto: segure as poses EXTREMAS e passe voando pelo meio —
+  // "uneven hold times make four frames feel like twelve".
+  //
+  // Hold desigual só existe se sobrar FOLGA na janela. Com o número máximo de
+  // poses, o piso de tempo de tela consome a janela inteira e todas as fatias
+  // ficam iguais de novo — medido: 6 poses × 50ms = os 300ms do golpe do player,
+  // zero folga. Por isso a curva usa MENOS poses: é a troca clássica de
+  // quantidade por tempo ("pick the right frames and let them breathe"). Cada
+  // pose recebe o piso e o resto da janela é dividido pelos pesos, então nenhuma
+  // fatia fica abaixo do piso e a soma bate exatamente com a janela.
+  const max = sampleForWindow(list, windowMs, minFrameMs).length;
+  // Animação já curta NÃO perde pose: com 3 poses, cortar para 2 tira informação
+  // de um estado que já é mínimo (foi o que aconteceu com o hurt). A troca de
+  // quantidade por tempo só vale quando há quantidade sobrando.
+  const n = max <= 3 ? max : Math.max(3, Math.round(max * HOLD_POSE_RATIO));
+  const shown = sampleForWindow(list, windowMs, windowMs / n);
+  const pesos = resampleShape(hold, shown.length);
+  const soma = pesos.reduce((a, b) => a + b, 0) || 1;
+  const folga = Math.max(0, windowMs - shown.length * minFrameMs);
+  const piso = folga > 0 ? minFrameMs : windowMs / shown.length;
+
+  const e = Math.max(0, elapsed);
+  let acc = 0;
+  for (let i = 0; i < shown.length; i++) {
+    acc += piso + folga * (pesos[i] / soma);
+    if (e < acc) return shown[i];
+  }
+  return shown[shown.length - 1];
+}
+
+/** Quantas poses usar quando há curva de hold, como fração do máximo que caberia.
+ *  Menos poses = mais folga para o hold ser perceptível. 0.7 foi escolhido por
+ *  medida: mantém 4 das 6 poses do golpe do player e 7 das 10 do inimigo, com
+ *  folga suficiente para a pose mais lenta durar ~1.7× a mais rápida. */
+const HOLD_POSE_RATIO = 0.7;
+
+/** Curva de duração relativa por pose (o valor é PESO, não ms). Reamostrada para
+ *  a quantidade de poses que couber na janela, então a mesma curva serve para
+ *  uma animação de 3 poses e uma de 8. */
+export type HoldShape = readonly number[];
+
+/** Reamostra a curva para `n` pontos por interpolação linear. Preserva as pontas. */
+export function resampleShape(shape: HoldShape, n: number): number[] {
+  if (n <= 1) return [1];
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const u = (i * (shape.length - 1)) / (n - 1);
+    const lo = Math.floor(u);
+    const hi = Math.min(shape.length - 1, lo + 1);
+    out.push(shape[lo] + (shape[hi] - shape[lo]) * (u - lo));
+  }
+  return out;
 }
 
 /** Reduz `list` ao MÁXIMO de frames que ainda dá `minFrameMs` de tela a cada um,

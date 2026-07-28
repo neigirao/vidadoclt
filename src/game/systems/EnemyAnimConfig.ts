@@ -184,6 +184,29 @@ export const HURT_WINDOW_MS = 300;
 export const ATTACK_MIN_FRAME_MS = 50;
 export const HURT_MIN_FRAME_MS = 90;
 
+// ── HOLDS DESIGUAIS (curvas de duração por pose) ─────────────────────────────
+// Todo frame durando o mesmo é o que faz animação de poucos frames parecer
+// robótica. O princípio clássico é segurar as poses EXTREMAS e passar voando
+// pelo meio. Os números são PESOS relativos, não ms — a curva é reamostrada para
+// a quantidade de poses que couber na janela.
+//
+// POR QUE PLAYER E INIMIGO TÊM CURVAS OPOSTAS: a antecipação de um golpe é
+// informação para QUEM APANHA, não para quem bate. O inimigo TEM que telegrafar
+// (o windup é metade da janela dele por design — 350–650ms de telegraph antes do
+// swing), então segurar as primeiras poses reforça a leitura de ameaça. O player
+// é o contrário: segurar o windup dele adiaria a pose de impacto para DEPOIS da
+// hitbox, que fica ativa só nos primeiros 120ms (MELEE_ACTIVE_MS) — viraria
+// input lag visual. O golpe do player sai rápido e o peso fica onde a pose de
+// impacto está.
+/** Inimigo: segura o windup (telegrafa), acelera no golpe, alivia na saída. */
+export const HOLD_WINDUP: readonly number[] = [1.9, 1.6, 0.6, 0.5, 0.9, 1.3];
+/** Player: sai rápido (responsivo) e segura a pose de impacto. */
+export const HOLD_IMPACT: readonly number[] = [0.45, 0.8, 1.35, 1.5, 1.15, 0.85];
+// NÃO existe HOLD para `hurt`: a curva foi implementada, MEDIDA e descartada. Com
+// piso de 90ms numa janela de 300ms sobram 30ms para distribuir → 94/100/106ms
+// contra 100/100/100 uniformes. Imperceptível. Um botão que não faz nada é pior
+// que a ausência dele.
+
 export type AnimState = "walk" | "idle" | "attack";
 
 // ── Aumentos de contagem por overrides de RUNTIME (multi-frame do LAB) ───────

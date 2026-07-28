@@ -17,6 +17,7 @@ import {
   HURT_WINDOW_MS,
   ATTACK_MIN_FRAME_MS,
   HURT_MIN_FRAME_MS,
+  HOLD_WINDUP,
 } from "../systems/EnemyAnimConfig";
 import { atlasFramesWithOverride, frameAt, frameAtOneShot } from "../systems/AtlasFrames";
 
@@ -70,7 +71,17 @@ function setEnemyTex(
     const atk = state === "attack";
     const windowMs = atk ? attackWindowMs(prefix) : HURT_WINDOW_MS;
     const minMs = atk ? ATTACK_MIN_FRAME_MS : HURT_MIN_FRAME_MS;
-    frame = frameAtOneShot(list, stateElapsed(e, state, t), windowMs, minMs);
+    // Hold desigual só no ATTACK: o inimigo SEGURA o windup (telegrafa a ameaça)
+    // e acelera no golpe. No `hurt` a curva foi MEDIDA e descartada — com piso de
+    // 90ms numa janela de 300ms sobram 30ms para distribuir, o que dá 94/100/106ms
+    // contra 100/100/100. Imperceptível; não vale o caminho de código.
+    frame = frameAtOneShot(
+      list,
+      stateElapsed(e, state, t),
+      windowMs,
+      minMs,
+      atk ? HOLD_WINDUP : undefined,
+    );
   } else {
     const ms =
       state === "walk"
