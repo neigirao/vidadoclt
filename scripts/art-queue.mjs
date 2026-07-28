@@ -63,6 +63,39 @@ const PESO_ACAO = { walk: 1.0, idle: 0.8, attack: 0.7, run: 0.5, death: 0.35, hu
 
 const PESO_DEFEITO = { dead: 45, "loop-pop": 30, jerk: 22, dim: 25, padded: 10 };
 
+// ── O que o motor REALMENTE renderiza ────────────────────────────────────────
+// Prioridade de arte só faz sentido para animação que chega à TELA. Duas fatias
+// do atlas nunca chegam, e sem esta checagem a fila mandava trabalhar nelas:
+//
+//   • Fases 2–5 (`animPhase` em PhaseEnemies.ts) NÃO ciclam `attack` — esses
+//     inimigos renderizam a pose estática de propósito (decisão do dono).
+//   • Fase 1 (`setEnemyTex`) cicla `attack`, mas limitado por `ATTACK_SAFE_FRAMES`;
+//     analista/facilitador/coordenador estão em 0 porque a arte é OUTRO
+//     PERSONAGEM, então mostram o próprio idle.
+//
+// Medido antes do conserto: 19 das 96 animações da fila (23% da prioridade)
+// apontavam para arte invisível — incluindo 4 das 10 primeiras.
+const PREFIXOS_FASE1 = [
+  "estagiario",
+  "analista",
+  "facilitador",
+  "scrum",
+  "coordenador",
+  "senior",
+  "rh",
+  "scrum-boss",
+  "coord-boss",
+];
+/** Prefixos da Fase 1 com teto 0 em ATTACK_SAFE_FRAMES (mostram o idle). */
+const ATTACK_VETADO = ["analista", "facilitador", "coordenador"];
+
+function renderiza(prefix, state) {
+  if (state !== "attack") return true;
+  const p = prefix.replace(/^(enemy|boss|npc)-/, "");
+  if (!PREFIXOS_FASE1.includes(p)) return false; // Fases 2–5 não ciclam attack
+  return !ATTACK_VETADO.includes(p);
+}
+
 const audit = spawnSync("node", ["scripts/audit-anim.mjs", "--json"], {
   encoding: "utf8",
   maxBuffer: 64 * 1024 * 1024,
@@ -80,9 +113,14 @@ function fase(prefix) {
 }
 
 const linhas = [];
+const invisiveis = [];
 for (const r of reports) {
   const defeito = r.flags.reduce((a, f) => a + (PESO_DEFEITO[f.kind] ?? 5), 0);
   if (!defeito) continue;
+  if (!renderiza(r.prefix, r.state)) {
+    invisiveis.push(`${r.prefix}|${r.state}`);
+    continue;
+  }
   const f = fase(r.prefix);
   const exp = PESO_FASE[f] ?? 41;
   const prioridade = defeito * (PESO_ACAO[r.state] ?? 0.5) * exp;
@@ -119,4 +157,8 @@ if (process.argv.includes("--json")) {
   for (const [f, p] of Object.entries(porFase).sort((a, b) => b[1] - a[1]))
     console.log(`  fase ${String(f).padEnd(5)} ${Math.round(p)}`);
   console.log(`\n${linhas.length} animações com defeito na fila.`);
+  if (invisiveis.length)
+    console.log(
+      `(${invisiveis.length} fora da fila: o motor não renderiza esse attack — ver renderiza())`,
+    );
 }

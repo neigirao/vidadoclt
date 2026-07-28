@@ -20,17 +20,32 @@ Prioridade acumulada por fase (leitura atual):
 
 | fase | prioridade |
 | ---- | ---------: |
-| 1    | **19.546** |
-| 4    |      8.209 |
-| 2    |      6.700 |
-| 3    |      5.419 |
-| 5    |      1.603 |
-| CEO  |        113 |
+| 1    | **16.855** |
+| 4    |      4.052 |
+| 3    |      3.984 |
+| 2    |      2.598 |
+| 5    |        972 |
+| CEO  |         92 |
 
 **Top 6 da fila** (todos `jerk`+`loop-pop`, já no piso de frames → só arte resolve):
 `facilitador|walk` (8f), `facilitador|idle`, `analista|idle`, `estagiario|idle`
 (12f cada), `ti-suporte|walk` (14f), `evangelista|idle` (11f). Cinco dos seis são
-Fase 1 — é onde a próxima hora de arte rende mais.
+Fase 1 — é onde a próxima hora de arte rende mais. **77 animações na fila.**
+
+**A fila IGNORA arte que o motor não renderiza.** `bun art:queue` filtra por
+`renderiza()`: as Fases 2–5 (`animPhase`) NÃO ciclam `attack` (pose estática por
+decisão de design) e a Fase 1 veta `attack` de analista/facilitador/coordenador
+(`ATTACK_SAFE_FRAMES = 0`, porque a arte é outro personagem). Sem esse filtro a
+fila mandava trabalhar em arte invisível: **19 das 96 animações, 23% da prioridade
+total, e 4 das 10 primeiras**. Para essas entrarem na fila, primeiro é preciso
+arte de attack coerente (P5 abaixo) e subir a whitelist.
+
+**Aberto — `boss-ceo|hurt` carrega 17 frames para ~2 poses.** O `audit:anim` marca
+`dead` (delta 0.00 entre frames consecutivos no atlas) e só 2 conteúdos distintos
+existem entre os 17 PNGs-fonte. Mesmo padrão dos idles estáticos já trimados, mas
+não mexido: é o clímax visto por 3 de 62 sessões, e as duas medições divergem sobre
+quantas poses distintas há. Trimar exige `EXCEPTION` no `check:frames` e conferir
+frame a frame antes.
 
 **Já resolvido sem arte:** `impressora|idle`, `seguranca|idle` e `ti-suporte|idle`
 tinham **16 frames byte-idênticos** (`maxDelta = 0.000`) — passavam no piso de 8 e
