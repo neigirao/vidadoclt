@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import { applyTexture, resolveSprite } from "../systems/SpriteLibrary";
+import { atlasFrames, frameAtOneShot, type FrameState } from "../systems/AtlasFrames";
+import { HURT_MIN_FRAME_MS, ATTACK_MIN_FRAME_MS } from "../systems/EnemyAnimConfig";
 import { SpecialType } from "../systems/WeaponSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { Sfx } from "../systems/AudioSystem";
@@ -22,6 +24,17 @@ const PARRY_WINDOW_MS = 200; // janela ativa do parry
 const PARRY_COOLDOWN_MS = 1000; // cooldown após parry bem-sucedido
 const PARRY_SANITY_RESTORE = 12; // sanidade restaurada num parry bem-sucedido
 const PARRY_WHIFF_ENERGY_COST = 6; // energia perdida ao errar o parry
+// Janelas das animações ONE-SHOT do player. A do golpe é a mesma de sempre
+// (300ms); a do flinch casa com HIT_INVULN_MS.
+const PLAYER_ATTACK_WINDOW_MS = 300;
+// WHITELIST do golpe do player: o atlas tem 21 frames de attack, mas do 17 em
+// diante a arte DERIVA para outra pose (a pasta aparece no quadril e o corpo
+// vira o andar-com-pasta — resto de in-between/extração). Como o one-shot SEGURA
+// o último frame, sem este corte todo golpe terminaria congelado empunhando uma
+// pasta em vez do grampeador. 0..16 é o arco limpo do golpe. Conferido ampliando
+// os frames um a um.
+const PLAYER_ATTACK_SAFE_FRAMES = 17;
+const PLAYER_HURT_WINDOW_MS = HIT_INVULN_MS;
 
 // Modificadores por faixa de sanidade (VAI NA RAÇA). São CONSTANTES por faixa —
 // congelados no módulo e reusados, pois getBurnoutMods() é chamado várias vezes
@@ -169,6 +182,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private specialCooldownDuration = 0; // duração do último cooldown (p/ ratio da HUD)
   private prevSpecialDown = false;
 
+  /** Índices de frames de `player-<state>` no ATLAS (fonte única, gap-aware).
+   *  As contagens estavam HARDCODED e divergiam: o código ciclava 16 de attack
+   *  quando o atlas tem 21, e 16 de hurt quando tem 17 — arte desenhada que
+   *  nunca aparecia. É o mesmo "config diz N, atlas tem M" que o projeto já
+   *  tinha aprendido nos inimigos. (O `idle` segue restrito a idle1/idle2 de
+   *  propósito: idle0 é busto e idle3+ são poses de passada — ver updateTexture.) */
+  private _playerFrames(state: FrameState): number[] {
+    const l = atlasFrames(this.scene?.textures?.get("sprites"), "player", state);
+    return l.length ? l : [0];
+  }
+
   /** Carga do especial: 0 = pronto, 1 = acabou de usar (recarregando). Usado pela
    *  HUD p/ mostrar o preenchimento da carga do Especial. */
   specialChargeRatio(time: number): number {
@@ -186,6 +210,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private dashCooldownUntil = 0;
   private comboStep = 0;
   private lastAttackAt = -9999;
+  /** Instante do último dano — âncora do one-shot de `hurt` (o `invulnUntil` não
+   *  serve: o dash e o parry também mexem nele, e aí o flinch reiniciava). */
+  private lastHurtAt = -9999;
   private nextAttackReadyAt = 0;
   private invulnUntil = 0;
   private prevJumpDown = false;
@@ -405,6 +432,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (sanityHit)
       this.sanity = Math.max(nonLethal ? 1 : this.sanityFloor, this.sanity - sanityHit);
     this.invulnUntil = now + HIT_INVULN_MS;
+    this.lastHurtAt = now;
     Sfx.playerHit();
     CombatFx.flashSprite(this, 55);
     CombatFx.hitSquash(this); // recuo de squash — peso ao tomar dano
@@ -882,14 +910,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (now < this.parryActiveUntil) {
       key = "tex-player-attack0"; // pose de "mão estendida" durante parry
     } else if (now < this.invulnUntil && now >= this.dashUntil) {
-      // hurt a 16 frames (in-betweens) — cicla o flinch em vez de travar no 0.
-      key = `tex-player-hurt${Math.floor(now / 40) % 16}`;
+      // HURT: ONE-SHOT ancorado no instante do dano. Era `% 16` do relógio
+      // GLOBAL — entrava num frame arbitrário a cada hit (e ignorava o hurt16,
+      // que existe no atlas). Contagem do ATLAS + piso de tempo de tela.
+      const f = frameAtOneShot(
+        this._playerFrames("hurt"),
+        now - this.lastHurtAt,
+        PLAYER_HURT_WINDOW_MS,
+        HURT_MIN_FRAME_MS,
+      );
+      key = `tex-player-hurt${f}`;
     } else if (now < this.dashUntil) {
       key = "tex-player-dash0";
-    } else if (now - this.lastAttackAt < 300) {
-      // 16 frames (stapler strike, base re-cortada da s31 + in-betweens) na janela
-      // de 300ms → ~19ms/frame (mais suave, mesma duração de golpe).
-      const f = Math.min(15, Math.floor((now - this.lastAttackAt) / 19));
+    } else if (now - this.lastAttackAt < PLAYER_ATTACK_WINDOW_MS) {
+      // ATTACK: já era ancorado (`now - lastAttackAt`) e clampado — o que estava
+      // errado era a CONTAGEM hardcoded em 16 enquanto o atlas tem 21 (5 frames
+      // desenhados nunca apareciam), e o passo de 19ms, abaixo de um frame de
+      // tela a 60fps (16,7ms). Agora conta do atlas e amostra pelo piso.
+      const f = frameAtOneShot(
+        this._playerFrames("attack").slice(0, PLAYER_ATTACK_SAFE_FRAMES),
+        now - this.lastAttackAt,
+        PLAYER_ATTACK_WINDOW_MS,
+        ATTACK_MIN_FRAME_MS,
+      );
       key = `tex-player-attack${f}`;
     } else if (!onGround) {
       if (body.velocity.y < -60) {
