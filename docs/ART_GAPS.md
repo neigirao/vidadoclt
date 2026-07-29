@@ -12,20 +12,30 @@
 
 `bun art:queue` (`scripts/art-queue.mjs`) ordena as animações defeituosas por
 **prioridade = defeito × peso da ação × exposição da fase**. A exposição é DADO
-(telemetria limpa, `docs/TELEMETRIA.md`): Fase 1 = 62 sessões humanas, CEO = 3.
-Ordenar por qualidade pura leva a gastar arte onde quase ninguém vê — o `walk` de
-um inimigo da Fase 1 roda o tempo todo, para todo jogador; o clímax é visto por 5%.
+(view `playtest_humano`, `docs/TELEMETRIA.md`): Fase 1 = 23 sessões humanas,
+CEO = 2. Ordenar por qualidade pura leva a gastar arte onde quase ninguém vê — o
+`walk` de um inimigo da Fase 1 roda o tempo todo, para todo jogador; o clímax é
+visto por 9%.
 
 Prioridade acumulada por fase (leitura atual):
 
 | fase | prioridade |
 | ---- | ---------: |
-| 1    | **16.855** |
-| 4    |      4.052 |
-| 3    |      3.984 |
-| 2    |      2.598 |
-| 5    |        972 |
-| CEO  |         92 |
+| 1    |  **6.254** |
+| 2    |        338 |
+| 4    |        197 |
+| 3    |        194 |
+| Copa |         75 |
+| CEO  |         61 |
+| 5    |         47 |
+
+**Os números mudaram (e a conclusão ficou MAIS forte).** A tabela anterior
+(16.855 / 4.052 / …) vinha de contagens de exposição infladas por um filtro de
+bot que vazava — 97% dos `phase_enter` do banco eram os próprios gates de CI.
+Com o dado limpo a Fase 1 não é só a maior: ela vale **6,9× a soma de todo o
+resto** (6.254 contra 912), contra 1,4× na leitura velha. E a ordem entre as
+Fases 3/4/5 e o CEO é ruído
+de N=1–2, não ranking — por isso a cauda usa peso único no script.
 
 **Top 6 da fila** (todos `jerk`+`loop-pop`, já no piso de frames → só arte resolve):
 `facilitador|walk` (8f), `facilitador|idle`, `analista|idle`, `estagiario|idle`

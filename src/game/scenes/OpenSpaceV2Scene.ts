@@ -649,7 +649,19 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         if (!enemy.active || !enemy.hit) return;
         const dmg = (ink.getData("damage") as number) ?? 10;
         const piercing = (ink.getData("piercing") as boolean) ?? false;
+        // ELITES no caminho do PROJÉTIL (paridade com BasePhaseScene e com o
+        // MeleeCombat). A Fase 1 chama sprinkleElites(), então há elites aqui —
+        // mas esta rota ignorava os três efeitos: a barreira do Sindicalizado
+        // não absorvia tiro, o VR bônus não caía e o explode não acontecia.
+        // Matar o mesmo elite no soco e no tiro dava resultados diferentes.
+        const eShield = (enemy.getData?.("eliteShieldHits") as number) ?? 0;
+        if (eShield > 0) {
+          enemy.setData?.("eliteShieldHits", eShield - 1);
+          if (!piercing) ink.destroy();
+          return;
+        }
         if (enemy.hit(Math.round(dmg * this.player.damageMult), 0)) {
+          const eBonus = (enemy.getData?.("eliteVrBonus") as number) ?? 0;
           const prodMult = this.prod.registerKill(enemy.x, enemy.y);
           // Cap do empilhamento evento×produtividade (economia de VR): evita
           // combos de ~5x que zeravam a tensão de escolha na 1ª Copa.
@@ -657,8 +669,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
           this.dropVR(
             enemy.x,
             enemy.y,
-            Math.max(1, Math.round(vrDrop * this.player.vrDropMult * combo)),
+            Math.max(1, Math.round(vrDrop * this.player.vrDropMult * combo + eBonus)),
           );
+          this.handleEliteExplode(enemy as GameEnemy & Phaser.GameObjects.Sprite);
           if (this.player.healOnKill > 0)
             this.player.energy = Math.min(
               this.player.maxEnergy,

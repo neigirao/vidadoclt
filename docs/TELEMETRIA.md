@@ -34,31 +34,41 @@ padrão de automação, que cobre todos os gates de uma vez (todos rodam sob
 Playwright). Verificado observando a REDE, não o código: sob Playwright, 0 POSTs;
 com o flag mascarado, 1 POST (jogador real segue contando).
 
-## Como consultar o histórico
+## Como consultar o histórico: use a view `playtest_humano`
 
-Não apague as linhas antigas — filtre. Esta CTE separa sessão humana de robô:
+Não apague as linhas antigas — filtre. **Use a view, não uma CTE colada à mão:**
 
 ```sql
-with sessoes as (
-  select session_id,
-         extract(epoch from (max(created_at) - min(created_at))) as dur_s,
-         count(distinct scene) as cenas,
-         bool_or(type = 'boss_defeat') as venceu_boss
-  from playtest_events
-  group by session_id
-),
-humanas as (
-  -- Robô: muitas cenas em poucos segundos. Humano: joga por mais tempo.
-  select session_id from sessoes
-  where not (dur_s < 60 and cenas >= 8)
-)
-select e.*
-from playtest_events e
-join humanas h using (session_id);
+select * from playtest_humano;
 ```
 
-Para dados a partir de 27/07/2026 o filtro é desnecessário — a automação já não
-escreve. Mantê-lo não atrapalha.
+A definição vive versionada em
+`supabase/migrations/20260729_create_playtest_humano_view.sql`.
+
+### ⚠ O filtro ANTERIOR desta página vazava — e os números abaixo dele estavam errados
+
+A CTE que ficava aqui classificava como robô quem fizesse `dur_s < 60 AND cenas
+
+> = 8`. **Uma sessão do `bun smoke` boota 6 fases em 38s\*\*: menos de 8 cenas
+> distintas, então passava pelo filtro como se fosse humana.
+
+Medido: **343 das 552 sessões do banco são automação, e elas respondem por 97%
+de todos os `phase_enter`.** Como a tabela de exposição por fase (62/46/41/41/41)
+saía desse filtro — contando EVENTOS, não sessões — o `PESO_FASE` do
+`bun art:queue` vinha priorizando arte com números inflados por um fator de ~7.
+
+**A assinatura certa é CADÊNCIA, não contagem de cenas.** Um humano leva minutos
+por fase; a automação entra numa a cada ~930ms. A view usa
+`dur_s / phase_enters < 3`, que não depende de quantas cenas o script resolveu
+visitar — e é justamente isso que muda toda vez que alguém edita o smoke, que foi
+o que quebrou o filtro anterior. A view também exclui sessões de **TESTAR FASE**
+(`payload ? 'testPhase'`): pular direto para uma fase é playtest dirigido, não
+jogador atravessando o funil.
+
+Para dados a partir de 27/07/2026 o filtro é desnecessário — o guard de
+`navigator.webdriver` (#120) impede a escrita na origem, e **verificado no banco,
+nenhuma sessão de automação foi gravada depois disso**. A view é para o histórico
+anterior, que não dá para rotular retroativamente.
 
 ## Perguntas que valem a pena
 
@@ -71,23 +81,31 @@ escreve. Mantê-lo não atrapalha.
 3. **Alguém usa dash / especial / parry?** (`avgVerbsPerRun`) Se der ~0, o
    combate colapsou em "andar e bater" e isso supera qualquer item de arte.
 
-## Exposição real por cena (primeira leitura com dado limpo)
+## Exposição real por cena
 
-Sessões **humanas** que entram em cada cena (filtro da CTE acima):
+Sessões **distintas** que entram em cada cena — `select scene, count(distinct
+session_id) from playtest_humano where type = 'phase_enter' group by scene`:
 
-| cena                | sessões |
-| ------------------- | ------: |
-| Fase 1 (Open Space) |  **62** |
-| Fase 2              |      46 |
-| Fase 3              |      41 |
-| Fase 4              |      41 |
-| Fase 5              |      41 |
-| Copa                |      17 |
-| **CEO**             |   **3** |
+| cena                | sessões | (o que esta página dizia antes) |
+| ------------------- | ------: | ------------------------------: |
+| Fase 1 (Open Space) |  **23** |                              62 |
+| Copa                |      17 |                              17 |
+| Fase 2              |   **6** |                              46 |
+| Fase 4              |       2 |                              41 |
+| CEO                 |       2 |                               3 |
+| Fase 3              |       1 |                              41 |
+| Fase 5              |       1 |                              41 |
 
-**Só 5% dos jogadores chegam ao CEO.** Isso ordena a fila de arte: uma hora gasta no `walk`
-de um inimigo da Fase 1 vale mais que a mesma hora no clímax. Vale inclusive para o fundo do
-CEO — que é o pior asset do jogo, mas é visto por 1 em cada 20 jogadores.
+**O funil é MUITO mais estreito do que se acreditava.** 23 sessões chegam à Fase
+1 e 6 à Fase 2 — uma queda de 74% logo na primeira porta, não os 26% que os
+números velhos sugeriam. Fases 3–5 e CEO estão em 1–2 sessões.
 
-Ressalva: a amostra ainda é pequena e os números tendem a subir com tráfego. A **forma** da
-curva (queda forte na Fase 2 e despencar no CEO) é o sinal; os valores absolutos, não.
+**Como NÃO ler esta tabela.** Abaixo da Fase 2 o N é 1 ou 2: a ordem entre Fase
+3, 4, 5 e CEO é ruído, não sinal — repare que a Fase 4 aparece acima da Fase 3, o
+que é impossível num funil linear. Trate tudo dali para baixo como um bloco
+único ("a cauda"), nunca como um ranking. O que a tabela sustenta é uma
+afirmação só, e ela basta para priorizar arte: **quase todo mundo vê a Fase 1 e
+quase ninguém vê o resto.**
+
+Ressalva: a amostra é pequena e os números sobem com tráfego. A **forma** da
+curva é o sinal; os valores absolutos, não.
