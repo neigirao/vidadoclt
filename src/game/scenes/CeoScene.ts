@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { Telemetry } from "../systems/Telemetry";
 import { applyCinematicPostFx, applyBiomePalette } from "../systems/PostFx";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS } from "../constants";
+import { Cheats, installCheats } from "../systems/Cheats";
 import { HUD_BOT_Y, HUD_TOP_H } from "../systems/Hud";
 import {
   addCeoRooftopBackground,
@@ -130,6 +131,28 @@ export class CeoScene extends Phaser.Scene {
         sanity: Math.max(0, Math.round(this.player.sanity)),
       });
     };
+
+    // Cheats (IDDQD). O god mode em si JÁ funciona aqui sem isto — o estado é da
+    // sessão e o Player o consome em takeDamage/drainSanity. O que faltaria seria
+    // poder LIGAR/DESLIGAR no clímax, que é justamente onde alguém testando mais
+    // precisa, e o tint que confirma que está ativo.
+    installCheats(this, (ligado) => {
+      const t = this.add
+        .text(GAME_WIDTH / 2, 150, ligado ? "** IDDQD — MODO INVENCIVEL **" : "IDDQD desligado", {
+          fontFamily: "monospace",
+          fontSize: "13px",
+          color: "#ffd76a",
+          stroke: "#000000",
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(2000);
+      this.time.delayedCall(1600, () => t.destroy());
+      if (ligado) this.player.setTint(0xffd76a);
+      else this.player.clearTint();
+    });
+    if (Cheats.ativo("godMode")) this.player.setTint(0xffd76a);
 
     // Combate canônico com janela ativa + dedup por swingId (MeleeCombat).
     this.player.onAttack = (hb, step, swingId, firstFrame) =>

@@ -4,6 +4,7 @@ import { getRun, resetRun, savePersisted, getRecordVr, bumpRecordVr } from "../s
 import { runKills } from "../systems/BestiarySystem";
 import { TutorialPrompts } from "../systems/TutorialPrompts";
 import { submitScore, phaseLabel } from "../systems/Ranking";
+import { Cheats } from "../systems/Cheats";
 import { Sfx } from "../systems/AudioSystem";
 import { PERKS, SYNERGIES, PerkId, SynergyId } from "../systems/PerkSystem";
 import { CULTURAS, CulturaId } from "../systems/CulturaSystem";
@@ -198,13 +199,26 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     // ── Ranking submission ──────────────────────────────────────────────────
-    this.drawRankingInput(
-      run.reconhecimento,
-      run.loopCount,
-      run.seed,
-      reachedScene,
-      run.characterClass,
-    );
+    // Run com cheat NÃO entra no leaderboard. Um IDDQD no topo do ranking
+    // destruiria o único placar comparável do jogo, e a intenção do cheat é
+    // testar/passear — não competir. Dizemos isso em vez de falhar em silêncio:
+    // um formulário que não aparece sem explicação vira "o ranking quebrou".
+    if (Cheats.sessaoSuja) {
+      this.add
+        .text(GAME_WIDTH / 2, 390, "** IDDQD ativo — esta run nao entra no ranking **", {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          color: "#c98a3a",
+        })
+        .setOrigin(0.5);
+    } else
+      this.drawRankingInput(
+        run.reconhecimento,
+        run.loopCount,
+        run.seed,
+        reachedScene,
+        run.characterClass,
+      );
 
     // Seed display
     this.add

@@ -49,9 +49,34 @@ function isAutomated(): boolean {
   }
 }
 
+/**
+ * Sessão com CHEAT (IDDQD)? Então também NÃO sobe telemetria.
+ *
+ * Mesmo raciocínio do guard de automação, e pelo mesmo motivo: uma run imortal
+ * PARECE uma run excelente. Ela infla tempo de sessão, fases alcançadas, kills e
+ * VR — exatamente as métricas que esta sessão gastou consertando. E ao contrário
+ * do robô, o cheat NÃO TEM assinatura de cadência para filtrar depois: seria dado
+ * envenenado indistinguível de dado bom.
+ *
+ * Cortar na ORIGEM é a única defesa que não depende de alguém lembrar de filtrar.
+ * Suja a SESSÃO inteira, não só a run: desligar o IDDQD não devolve a sessão à
+ * condição de amostra honesta.
+ *
+ * Lido de `globalThis` em vez de importar `Cheats` para o módulo seguir PURO
+ * (sem Phaser) e testável em bun:test — mesma razão do import dinâmico abaixo.
+ */
+function cheatUsado(): boolean {
+  try {
+    return (globalThis as { __cheatSujo?: boolean }).__cheatSujo === true;
+  } catch {
+    return false;
+  }
+}
+
 async function sendRemote(ev: TelemetryEvent) {
   if (typeof window === "undefined") return;
   if (isAutomated()) return;
+  if (cheatUsado()) return;
   try {
     // Import dinâmico do client dedicado (só no browser → módulo puro/testável).
     const { telemetryClient } = await import("./telemetryClient");
