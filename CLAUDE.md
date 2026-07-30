@@ -712,7 +712,7 @@ Regras de bolso extraídas do trabalho recente — aplicar antes de "só ajustar
 1. **Sistema deve gerar DECISÃO, não só ajustar número.** Burnout era um relógio-de-derrota (só penalidade) → virou VAI NA RAÇA (glass-cannon opt-in com saída por agressão). Extintor era +3 VR (token) → virou JATO DE CO2 (isca a horda, AoE, VR escalado). APAGÃO só escurecia → virou stealth (inimigos longe dormem). Se o jogador não **escolhe** nada, o sistema é raso.
 2. **O visual tem que casar com a intenção mecânica.** O Burnout foi redesenhado pra empoderar, mas o FX continuava "agonia/cego" (túnel cinza) — contradizia a mecânica. Alinhado: vermelho-adrenalina, vinhete aberto (`SanityFx`). Sempre revisar se a arte diz o que o sistema faz.
 3. **Enrage/escalada deve adicionar MECÂNICA, não HP/velocidade.** Bosses "ficam mais gordos, não mais interessantes" é o anti-padrão. O enrage aos 35% agora intensifica a assinatura de cada boss (`bossEnraged` + `onBossEnrage()`): Coordenador 2→4 balões, Scrum 2→3 firewalls, Diretor ganha a Cascata. A 2ª metade da luta ramp-a com algo novo. E a **ameaça** (loop+Heat+NG+, `systems/Menace.ts` → `menaceEnrageThreshold`) ANTECIPA o enrage (35% → até 60% de HP) em vez de só inflar HP: em dificuldade alta as assinaturas rodam por MAIS TEMPO da luta, não só contra um boss mais gordo. Puro/testável.
-4. **Ensinar VERBO por CONTEXTO, não por tela de ajuda.** Dash/Especial/Parry são legendados no momento de uso (ameaça perto → dash; grupo → especial; contato parryável → parry), não num tutorial isolado. Red-flag "ninguém usa dash/especial" atacado assim.
+4. **Ensinar VERBO no instante em que ele FUNCIONA — e UMA dica por instante.** Dash/Especial/Parry são legendados no momento de uso, não num tutorial isolado. Duas armadilhas medidas: (a) o parry era ensinado por PROXIMIDADE de estagiário, cujo dano é contato contínuo — não havia janela para cronometrar, o jogador apertava F, nada acontecia, e aprendia que o verbo não serve (0 parry/run em 26 sessões). Hoje é ensinado no `showTelegraph`, na investida telegrafada. (b) NÃO enfileire duas dicas no mesmo instante de combate: o `TutorialPrompts` dispensa no PRIMEIRO keydown, e em combate o jogador está martelando teclas — as duas passam sem serem lidas. Uma mensagem que já traz a tecla vale mais que duas em sequência.
 5. **Docs de auditoria envelhecem — reconcilie contra o CÓDIGO, não contra a doc.** Metade dos "pendentes" já estava feita; a auditoria virou mentira parcial e parou de servir pra priorizar. Antes de agir num item "aberto", confirme no código.
 6. **Verificar mudança de gameplay dirigindo o jogo headless.** Padrão: subir `vite dev`, abrir via Playwright, acessar `window.__game.scene.getScene(...)` e chamar métodos da cena (privados de TS são chamáveis em runtime), medir desfechos numéricos + screenshots. Foi assim que o desalinhamento visual do Burnout apareceu e que as intensificações de enrage foram confirmadas (F2 2→4 balões, F4 2→3 firewalls). Cuidado com guardas de early-return ao chamar direto (ex.: `sprintReview` exige player perto do boss e `nextSprintAt` não-zero).
 
@@ -745,12 +745,14 @@ Regras de bolso extraídas do trabalho recente — aplicar antes de "só ajustar
 
 `TutorialPrompts.maybeShow(scene, id, text)` enfileira um banner de 1 linha (💡, topo-centro, `setScrollFactor(0)` depth 1200) que **some sozinho** em 4,5s ou ao 1º `keydown`. Cada `id` aparece **1× para sempre** (flag em `localStorage` `vidaclt:tut`); a fila é por-cena (2 dicas juntas → a 2ª espera). Zero impacto em gameplay — só legenda o SISTEMA no momento em que ele aparece. `reset()` limpa as flags (retestar), `seen(id)` checa antes.
 
-Gatilhos ligados (9): `goal` (objetivo da Fase 1), `vr` (1º VR pego — moeda), `dash` (ameaça a <240px → esquiva), `special` (grupo de ≥2 inimigos → AoE), `sanity` (1ª piora de faixa, em `SanityFx`), `burnout` (entrada no Burnout/VAI NA RAÇA, em `SanityFx`), `threat` (1º marcador de ameaça, em `ThreatMarkers`), `copa` (entrada na Copa), `death` (1ª Rescisão — explica o loop, em `GameOverScene`). **O parry é ensinado no
-`showTelegraph`** (`Enemies.ts`), na INVESTIDA telegrafada — o único instante em que
-um parry pode acertar. Antes era ensinado por proximidade de estagiário na zona 1,
-mas o dano dele é por CONTATO contínuo, sem janela para cronometrar: o jogador
-apertava F, nada acontecia, e aprendia que o verbo não serve (0 parry por run em 26
-sessões medidas).
+Gatilhos ligados (9): `goal` (objetivo da Fase 1), `vr` (1º VR pego — moeda), `dash` (ameaça a <240px → esquiva), `special` (grupo de ≥2 inimigos → AoE), `sanity` (1ª piora de faixa, em `SanityFx`), `burnout` (entrada no Burnout/VAI NA RAÇA, em `SanityFx`), `threat` (1º marcador de ameaça, em `ThreatMarkers`), `copa` (entrada na Copa), `death` (1ª Rescisão — explica o loop, em `GameOverScene`). **O parry é ensinado dentro do
+`telegraph_color`** (em `showTelegraph`, `Enemies.ts`), na INVESTIDA telegrafada — o
+único instante em que um parry pode acertar. Antes era ensinado por proximidade de
+estagiário na zona 1, mas o dano dele é por CONTATO contínuo, sem janela para
+cronometrar: o jogador apertava F, nada acontecia, e aprendia que o verbo não serve
+(0 parry por run em 26 sessões medidas). **É UMA dica só, que já nomeia a tecla** —
+um 2º banner enfileirado no mesmo instante seria dispensado pelo keydown do próprio
+combate antes de ser lido.
 
 ### Juice de combate (CombatFx.ts)
 

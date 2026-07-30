@@ -108,6 +108,18 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   private salaOpcionalPrompt?: Phaser.GameObjects.Text;
   private salaOpcionalPorta?: Phaser.GameObjects.Image;
   private salaOpcionalVistaEm = 0;
+  /**
+   * Saída já disparada nesta cena — trava contra DUPLO DISPARO.
+   *
+   * O `fadeOut` da transição dura 300ms e a cena SEGUE RODANDO nesse intervalo:
+   * o overlap da porta continua a ser avaliado, e `JustDown` volta a ser
+   * verdadeiro se o jogador tocar E outra vez (um duplo-toque leva ~150ms). Sem
+   * esta trava, `fecharExpediente()` rodava DUAS vezes — +50 de Sanidade em vez
+   * de +25, `savePersisted` em dobro, e o mesmo caminho aberto para qualquer
+   * efeito futuro que a saída venha a ter. É a MESMA falha do farm de VR (zerar
+   * no lugar errado), só que na dimensão do tempo em vez do estado.
+   */
+  protected saindoDaFase = false;
   protected elites?: EliteSystem;
   protected contactShadows?: ContactShadows;
   protected rimLight?: RimLight;
@@ -438,6 +450,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.startTimeMs = this.time.now;
     startRunClock(this); // relógio do expediente (acumula na RUN, não na cena)
     this.bossDefeated = false;
+    this.saindoDaFase = false;
     this.enemyGroups = [];
     this.rng = new Phaser.Math.RandomDataGenerator([run.seed ?? "CLT", this.scene.key]);
     Music.start("office");
@@ -777,11 +790,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     const doorZone = this.add.zone(this.doorEl.x, this.doorEl.y, 40, 60);
     this.physics.add.existing(doorZone, true);
     this.physics.add.overlap(this.player, doorZone, () => {
-      if (!this.bossDefeated) return;
+      if (!this.bossDefeated || this.saindoDaFase) return;
       if (
         Phaser.Input.Keyboard.JustDown(this.interactKey) ||
         this.player.gamepadInteractJustPressed
       ) {
+        this.saindoDaFase = true;
         this.persist();
         Sfx.doorOpen();
         const r = getRun(this);
@@ -964,11 +978,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.physics.add.existing(zona, true);
     this.physics.add.overlap(this.player, zona, () => {
       // Só depois do boss: desviar no meio do combate não é escolha, é fuga.
-      if (!this.bossDefeated) return;
+      if (!this.bossDefeated || this.saindoDaFase) return;
       if (
         Phaser.Input.Keyboard.JustDown(this.interactKey) ||
         this.player.gamepadInteractJustPressed
       ) {
+        this.saindoDaFase = true;
         this.persist();
         const r = getRun(this);
         this.fecharExpediente(r); // a fase FOI concluída — mesma economia da saída
