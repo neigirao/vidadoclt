@@ -42,6 +42,10 @@ export type RunState = {
   route2?: "produto" | "tecnologia";
   // Salas opcionais (#3): ids de salas-bônus já limpas nesta run (não repetir).
   optionalRoomsCleared?: string[];
+  /** Para onde a sala opcional DESEMBOCA ao ser limpa. Com a Copa fora do fluxo,
+   *  a sala é um desvio no caminho de saída da fase: entra, limpa e segue para a
+   *  fase seguinte (voltar para a fase de origem a respawnaria inteira). */
+  salaSaidaPara?: string;
   // New Game+ "Quinta-feira": run mais difícil (inimigos +40% HP). Persistência
   // do desbloqueio fica no localStorage (ngPlusUnlocked), não na run.
   ngPlus?: boolean;

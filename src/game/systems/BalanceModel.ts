@@ -32,6 +32,10 @@ export const MIDBOSS_IDS: EnemyId[] = ["brenda_rh", "diretor_resultados"];
 
 // Limiares de flag (documentados e tunáveis — a régua do "está desbalanceado?").
 export const THRESHOLDS = {
+  // Abaixo disto o especial é DECORAÇÃO: o jogador não sente diferença ao apertar
+  // K, então não aprende o verbo e não perde nada por não aprender. 8% é ~1 golpe
+  // a cada 12 — perceptível se acontecer, ignorável se não.
+  specialMinShare: 0.08,
   ttkSpongeTrash: 10, // s — trash levando mais que isso p/ morrer = esponja/slog
   ttkSpongeMidboss: 45, // s — mid-boss acima disso = luta arrastada
   ttkTrivial: 0.3, // s — inimigo que evapora antes de ameaçar = sem propósito
@@ -97,6 +101,101 @@ export function playerDps(classId: ClassId, weaponId: WeaponId): number {
   return cycleDamage / (cycleMs / 1000);
 }
 
+// ── ESPECIAL (K) ─────────────────────────────────────────────────────────────
+// POR QUE ENTROU NO MODELO: a telemetria dizia "especial = 0,0 por run" e a
+// tentação era tratar isso como fato de comportamento. Era instrumento quebrado
+// (a Fase 1 não contava), mas sobrou a pergunta que o dado não responde sozinho:
+// **vale a pena apertar K?** Se o especial contribui 3% do dano, ninguém vai
+// notar nem sentir falta; se contribui 25%, não usá-lo é perder metade do kit.
+//
+// O que torna isto modelável: o especial **não tem trava de ataque** (conferido
+// em `Player.update` — o cooldown é a única restrição, e ele não interrompe o
+// combo). Então usá-lo é dano de GRAÇA no cooldown, e a contribuição sustentada
+// é `dano_do_especial / cooldown`. Não há tradeoff de recurso a modelar.
+//
+// LIMITE HONESTO, na mesma régua do resto deste arquivo: é 1ª ordem. Ignora
+// deslocamento, stun/slow (o `emp_pulse` e o `clock_slow` valem MUITO mais que o
+// dano deles — congelar a sala é utilidade, não DPS), geometria de leque e
+// acerto parcial. Serve para responder "é irrelevante ou é significativo?", não
+// para fechar um número.
+
+/** Qual especial o (classe, arma) realmente dispara. A classe SOBREPÕE a arma —
+ *  as 3 classes têm `classSpecial`, então o especial da arma quase nunca roda. */
+export function specialTypeFor(classId: ClassId, weaponId: WeaponId): string {
+  return CLASSES[classId].classSpecial ?? WEAPONS[weaponId].specialType;
+}
+
+/** ms de cooldown do especial para (classe, arma), como o PlayerLoadout monta. */
+export function specialCooldownMs(classId: ClassId, weaponId: WeaponId): number {
+  void classId; // upgSpecialCooldownMult é meta-progressão; o modelo usa a base
+  return WEAPONS[weaponId].specialCooldown;
+}
+
+/**
+ * Dano do especial por USO, em N alvos. Espelha `BasePhaseScene.handleSpecial`.
+ * `golpes` = quantas instâncias de dano caem em UM alvo; `alcanca` = quantos
+ * alvos a forma cobre. Especiais de puro controle têm dano 0 de propósito.
+ */
+export function specialDamagePerUse(
+  classId: ClassId,
+  weaponId: WeaponId,
+  alvos = 1,
+): { dano: number; nota?: string } {
+  const def = WEAPONS[weaponId];
+  const type = specialTypeFor(classId, weaponId);
+  const mult = CLASSES[classId].damageMult;
+  const step3 = meleeBaseDamage(def, 3); // especiais de AoE usam o passo 3 do combo
+  const ranged = def.rangedDamage || def.hitDamages[0];
+  const um = (d: number) => d * mult;
+  switch (type) {
+    // ── Especiais de CLASSE (os que realmente rodam no jogo) ──
+    case "ranged_barrage": {
+      // Leque de 5 projéteis PERFURANTES. Contra um alvo só, a abertura do leque
+      // faz apenas os centrais acertarem — 2 é a leitura conservadora; com a
+      // horda alinhada, os 5 atravessam.
+      const perProj = Math.max(ranged, 12);
+      const acertos = alvos <= 1 ? 2 : 5;
+      return { dano: um(perProj * acertos), nota: `${acertos} projéteis perfurantes` };
+    }
+    case "planilha_slam":
+      return { dano: um(step3 * alvos), nota: "AoE frontal 110×60" };
+    case "melee_sweep":
+      return { dano: um(step3 * alvos), nota: "redemoinho 360°" };
+    // ── Especiais de ARMA (só rodariam sem classSpecial) ──
+    case "burst_ranged":
+      return { dano: um(ranged * 2), nota: "2 projéteis" };
+    case "paper_spread":
+      return { dano: um(ranged * (alvos <= 1 ? 1 : 3)), nota: "leque de 3" };
+    case "throw_weapon":
+      return { dano: um(def.hitDamages[1] * 2), nota: "arremesso" };
+    case "caneca_arc":
+      return { dano: um(def.hitDamages[2]), nota: "parábola" };
+    case "chain_lightning":
+      return { dano: um(def.hitDamages[2] * alvos), nota: "cadeia" };
+    case "wide_sweep":
+    case "aerial_spike":
+    case "dash_strike":
+    case "spray_knockback":
+    case "wide_beam":
+      return { dano: um(step3 * alvos), nota: "AoE" };
+    case "emp_pulse":
+      return { dano: 0, nota: "CONTROLE: congela 900ms (utilidade, não dano)" };
+    case "clock_slow":
+      return { dano: 0, nota: "CONTROLE: lentidão (utilidade, não dano)" };
+    case "heal_pulse":
+      return { dano: 0, nota: "SUPORTE: cura (utilidade, não dano)" };
+    default:
+      return { dano: 0, nota: "não modelado" };
+  }
+}
+
+/** DPS sustentado que o especial adiciona, se apertado a cada cooldown. */
+export function specialDps(classId: ClassId, weaponId: WeaponId, alvos = 1): number {
+  const { dano } = specialDamagePerUse(classId, weaponId, alvos);
+  const cd = specialCooldownMs(classId, weaponId);
+  return cd > 0 ? dano / (cd / 1000) : 0;
+}
+
 /** Redução de dano da classe (Terceirizado tem BLINDAGEM −15%; ver buildPlayer). */
 export function damageReductionMult(classId: ClassId): number {
   return classId === "terceirizado" ? 0.85 : 1.0;
@@ -151,9 +250,26 @@ export type BalanceFlag = {
   msg: string;
 };
 
+/** O especial (K) de uma classe: quanto ele soma ao dano, e se vale o botão. */
+export type SpecialReport = {
+  classId: ClassId;
+  weaponId: WeaponId;
+  type: string;
+  nome: string;
+  cooldownMs: number;
+  danoPorUso1: number; // num alvo só
+  danoPorUso3: number; // em 3 alvos (horda)
+  dps1: number;
+  dps3: number;
+  fracaoDoDps1: number; // dps1 / (dps básico + dps1) — quanto do dano total ele é
+  fracaoDoDps3: number;
+  nota?: string;
+};
+
 export type BalanceReport = {
   loop: number;
   classes: { id: ClassId; startWeapon: WeaponId; dps: number; effHp: number }[];
+  specials: SpecialReport[];
   dpsSpread: number;
   weaponDpsAnalista: { id: WeaponId; dps: number; rarity: string }[];
   enemies: EnemyReport[];
@@ -173,6 +289,30 @@ export function analyzeBalance(loop = 0): BalanceReport {
   }));
   const dpsValues = classes.map((c) => c.dps);
   const dpsSpread = Math.max(...dpsValues) / Math.min(...dpsValues);
+
+  // ESPECIAL (K) por classe, com a arma inicial dela. Responde "vale o botão?".
+  const specials: SpecialReport[] = CLASS_IDS.map((cid) => {
+    const wid = CLASSES[cid].startWeapon;
+    const basico = playerDps(cid, wid);
+    const u1 = specialDamagePerUse(cid, wid, 1);
+    const u3 = specialDamagePerUse(cid, wid, 3);
+    const d1 = specialDps(cid, wid, 1);
+    const d3 = specialDps(cid, wid, 3);
+    return {
+      classId: cid,
+      weaponId: wid,
+      type: specialTypeFor(cid, wid),
+      nome: CLASSES[cid].classSpecialName ?? WEAPONS[wid].specialName,
+      cooldownMs: specialCooldownMs(cid, wid),
+      danoPorUso1: u1.dano,
+      danoPorUso3: u3.dano,
+      dps1: d1,
+      dps3: d3,
+      fracaoDoDps1: basico + d1 > 0 ? d1 / (basico + d1) : 0,
+      fracaoDoDps3: basico + d3 > 0 ? d3 / (basico + d3) : 0,
+      nota: u1.nota,
+    };
+  });
 
   // DPS de TODAS as armas com o Analista (classe neutra) — checa progressão.
   const weaponDpsAnalista = (Object.keys(WEAPONS) as WeaponId[])
@@ -234,6 +374,20 @@ export function analyzeBalance(loop = 0): BalanceReport {
     }
   }
 
+  // ESPECIAL DECORATIVO: se apertar K muda pouco o dano, o verbo não se paga.
+  // Não vale para especiais de CONTROLE (freeze/slow/cura) — o valor deles não é
+  // DPS e o modelo não os mede; flagá-los seria o modelo mentindo com confiança.
+  for (const sp of specials) {
+    if (sp.danoPorUso1 === 0) continue; // utilidade, fora da régua de dano
+    if (sp.fracaoDoDps3 < THRESHOLDS.specialMinShare) {
+      flags.push({
+        severity: "warn",
+        kind: "special-decorativo",
+        msg: `especial de ${sp.classId} ("${sp.nome}") soma só ${(sp.fracaoDoDps3 * 100).toFixed(1)}% do dano mesmo em 3 alvos (< ${(THRESHOLDS.specialMinShare * 100).toFixed(0)}%) — apertar K quase não muda nada, então o verbo não se paga`,
+      });
+    }
+  }
+
   for (const er of enemies) {
     const sponge = er.isMidboss ? THRESHOLDS.ttkSpongeMidboss : THRESHOLDS.ttkSpongeTrash;
     if (er.ttkAvg > sponge) {
@@ -259,7 +413,7 @@ export function analyzeBalance(loop = 0): BalanceReport {
     }
   }
 
-  return { loop, classes, dpsSpread, weaponDpsAnalista, enemies, flags };
+  return { loop, classes, specials, dpsSpread, weaponDpsAnalista, enemies, flags };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

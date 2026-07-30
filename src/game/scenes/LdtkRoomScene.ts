@@ -399,8 +399,21 @@ export class LdtkRoomScene extends Phaser.Scene {
       this.persist();
       this.cameras.main.fadeOut(250, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
-        if (this.fromCopa) {
-          getRun(this).cameFrom = this.roomId; // não altera sourcePhase (fora do phaseBackMap)
+        const r = getRun(this);
+        // DESVIO NO CAMINHO DE SAÍDA. Com a Copa fora do fluxo, a sala opcional
+        // passou a ser oferecida pela PRÓPRIA FASE, na porta de saída — e o
+        // retorno NÃO pode ser para a fase de origem: `create()` respawnaria a
+        // fase inteira (inimigos, boss, drops), o que além de confuso seria
+        // exploit de farm. Então a sala DESEMBOCA na fase seguinte: o jogador
+        // escolhe "seguir direto" ou "desviar e seguir", e o preço do desvio é o
+        // relógio do expediente (startRunClock roda aqui também).
+        if (r.salaSaidaPara) {
+          const dest = r.salaSaidaPara;
+          r.salaSaidaPara = undefined;
+          r.cameFrom = "sala";
+          this.scene.start(dest);
+        } else if (this.fromCopa) {
+          r.cameFrom = this.roomId; // não altera sourcePhase (fora do phaseBackMap)
           this.scene.start("CopaScene");
         } else {
           this.scene.start("MenuScene");

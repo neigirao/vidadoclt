@@ -120,7 +120,6 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
   };
   private tutorialShown = false;
   private arenaGate?: Phaser.GameObjects.Rectangle;
-  private parryTaught = false;
 
   // Disparo de post-it compartilhado por Onboarding e Facilitador (ranged).
   private rangedShoot = (fx: number, fy: number, tx: number, ty: number): void => {
@@ -793,6 +792,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.hud.setPhaseTitle("FASE 1 — OPEN SPACE");
     this.hud.setObjective("Sobreviva ao expediente e acesse a Copa");
     this.spawnStations(); // máquina de venda + totem de perk (tecla E)
+    // Sala opcional (desvio na saída) — herdado de Base. A Fase 1 tem create()
+    // próprio, então precisa chamar por conta (ver PhaseParity.test.ts).
+    this.spawnSalaOpcional(run, "Phase2Scene");
     this.hud.setSynergies(this.synergyLabels); // badge das sinergias perk×perk
     // PARIDADE COM AS FASES 2–5: o HUD nasce com os rótulos-placeholder
     // "GRAMPEADOR"/"CAFÉ TURBO" hardcoded (Hud.ts). A Base os sobrescreve no
@@ -2600,24 +2602,11 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         );
     }
 
-    // Teaching de parry por demonstração: quando o 1º estagiário chega perto
-    // (o contato dele é parryável), um prompt ensina "aperte F para RECLAMAR".
-    // A zona 1 tem 3 estagiários, então há chances repetidas de tentar.
-    if (!this.parryTaught && getRun(this).loopCount === 0) {
-      let nearEnemy = false;
-      this.estagiarios.getChildren().forEach((c) => {
-        const e = c as Phaser.Physics.Arcade.Sprite;
-        if (e.active && Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y) < 130)
-          nearEnemy = true;
-      });
-      if (nearEnemy) {
-        this.parryTaught = true;
-        // Roteado pela MESMA fila serializada do TutorialPrompts — antes era um
-        // banner próprio no topo (y≈110) que SOBREPUNHA a dica de dash (y=96).
-        // A fila garante 1 banner por vez, sem "box por cima de outra".
-        TutorialPrompts.maybeShow(this, "parry", "⚠ Aperte [ F ] para RECLAMAR (parry)!");
-      }
-    }
+    // A lição do PARRY saiu daqui (era "estagiário chegou a 130px") e foi para o
+    // `showTelegraph` em Enemies.ts, que dispara na INVESTIDA telegrafada — o
+    // único instante em que um parry pode acertar. O contato do estagiário é dano
+    // contínuo, sem janela para cronometrar: ensinar ali fazia o jogador apertar F
+    // e nada acontecer, aprendendo que o verbo não serve.
 
     // Item 8 — Boss room dramatic entry: trigger when player crosses x=1580
     // Fase 1 sem boss: ao ALCANÇAR A SAÍDA (depois da onda final da zona 5, cujo

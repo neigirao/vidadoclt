@@ -65,6 +65,22 @@ console.log(
   `  → spread de DPS: ${report.dpsSpread.toFixed(2)} (limite ${THRESHOLDS.dpsSpreadRatio})\n`,
 );
 
+// ESPECIAL (K) — responde "vale a pena apertar?". A fração é a parte do dano
+// total que o especial adiciona; abaixo de THRESHOLDS.specialMinShare o verbo
+// não se paga (o jogador não sente diferença e não perde nada por ignorá-lo).
+console.log("ESPECIAL (K) por classe — contribuição no dano total:");
+console.log(
+  `  ${pad("classe", 14)}${pad("especial", 22)}${padL("CD", 7)}${padL("dano 1", 8)}${padL("dano 3", 8)}${padL("% dps 1", 9)}${padL("% dps 3", 9)}`,
+);
+for (const sp of report.specials) {
+  console.log(
+    `  ${pad(sp.classId, 14)}${pad(sp.nome, 22)}${padL((sp.cooldownMs / 1000).toFixed(1) + "s", 7)}${padL(sp.danoPorUso1.toFixed(0), 8)}${padL(sp.danoPorUso3.toFixed(0), 8)}${padL((sp.fracaoDoDps1 * 100).toFixed(1) + "%", 9)}${padL((sp.fracaoDoDps3 * 100).toFixed(1) + "%", 9)}`,
+  );
+}
+console.log(
+  `  → piso p/ o verbo se pagar: ${(THRESHOLDS.specialMinShare * 100).toFixed(0)}% do dano em 3 alvos\n`,
+);
+
 // Progressão de armas (Analista neutro).
 console.log("ARMAS (DPS, classe Analista, ordenado):");
 console.log(`  ${pad("arma", 22)}${pad("raridade", 12)}${padL("DPS", 8)}`);

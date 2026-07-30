@@ -105,6 +105,9 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   protected boss?: BossEntity;
   protected bossPresence?: BossPresence;
   protected threatMarkers?: ThreatMarkers;
+  private salaOpcionalPrompt?: Phaser.GameObjects.Text;
+  private salaOpcionalPorta?: Phaser.GameObjects.Image;
+  private salaOpcionalVistaEm = 0;
   protected elites?: EliteSystem;
   protected contactShadows?: ContactShadows;
   protected rimLight?: RimLight;
@@ -813,6 +816,10 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // 18b. Estações no mapa (loja/perks) — recursos DENTRO da fase.
     this.spawnStations();
 
+    // 18c. Sala opcional (desvio na saída) — dá entrada às 4 salas LDtk, que
+    // ficaram órfãs quando a Copa saiu do fluxo. Depois da porta existir.
+    this.spawnSalaOpcional(run, doorCfg.destScene);
+
     // 19. HUD phase title + objective
     this.hud.setPhaseTitle(this.getPhaseTitle());
     this.hud.setObjective(this.getInitialObjective());
@@ -867,8 +874,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
    * 3. **FGTS.** +10 na primeira ida à Copa; agora na primeira fase concluída.
    */
   protected fecharExpediente(r: RunState): void {
-    r.reconhecimento += Math.floor(this.player.vr * 0.5);
-    this.player.vr = 0;
+    // O VR tem que zerar na RUN, não só no player. `persist()` roda ANTES desta
+    // função e copia `player.vr → run.vr`; zerar apenas o player deixava
+    // `run.vr` intacto, e o `buildPlayer` da fase seguinte devolvia o mesmo VR —
+    // que era convertido DE NOVO. Farm infinito de Reconhecimento, sem erro
+    // nenhum aparecendo. Pego dirigindo a cadeia de fases, não pelos gates.
+    r.reconhecimento += Math.floor(r.vr * 0.5);
+    r.vr = 0;
+    this.player.vr = 0; // e no player, para o HUD refletir na hora
     if (!r.primeiraFaseFechada) {
       r.primeiraFaseFechada = true;
       r.fgts += 10;
@@ -886,6 +899,94 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     } else {
       this.showPickupToast("HORA EXTRA — sem descanso entre alas");
     }
+  }
+
+  /**
+   * SALA OPCIONAL — porta de desvio ao lado da saída da fase.
+   *
+   * As 4 salas LDtk (Arquivo Morto, Depósito, Servidor Legado, Sala de Troféus)
+   * só eram alcançáveis pela porta do meio da COPA. Com a Copa fora do fluxo,
+   * elas ficaram ÓRFÃS: cenário próprio, gate de teste (`LdtkRooms.test.ts`) e
+   * nenhuma entrada no jogo. Isto lhes dá uma.
+   *
+   * DESENHO — o desvio é NA SAÍDA, não no meio da fase, e a sala DESEMBOCA na
+   * fase seguinte em vez de voltar. Duas razões, nesta ordem:
+   *  1. voltar para a fase de origem chamaria `create()` de novo e respawnaria
+   *     tudo (inimigos, boss, drops) — confuso e exploit de farm;
+   *  2. na saída, a escolha fica legível no momento em que ela existe: "seguir
+   *     direto" ou "desviar e seguir". O preço do desvio é o relógio do
+   *     expediente, que a sala também consome.
+   *
+   * Determinística por seed, e não repete sala já limpa na run
+   * (`optionalRoomsCleared`) — mesma regra que a Copa usava.
+   */
+  protected spawnSalaOpcional(run: RunState, destinoAposSala: string | undefined): void {
+    if (!destinoAposSala) return;
+    // Sem desvio antes do CLÍMAX: a Fase 5 desemboca no CEO, e oferecer um
+    // depósito no caminho da diretoria mata a tensão que a cena inteira monta.
+    if (destinoAposSala === "CeoScene") return;
+    const TODAS = ["arquivo", "deposito", "servidor", "trofeus"] as const;
+    const limpas = new Set(run.optionalRoomsCleared ?? []);
+    const livres = TODAS.filter((r) => !limpas.has(r));
+    if (livres.length === 0) return;
+    const seedNum = run.seed ? parseInt(run.seed.replace(/\D/g, "").slice(0, 6) || "0", 10) : 0;
+    const pick = livres[(seedNum + limpas.size) % livres.length];
+    const ROTULOS: Record<string, string> = {
+      arquivo: "ARQUIVO\nMORTO",
+      deposito: "DEPÓSITO",
+      servidor: "SERVIDOR\nLEGADO",
+      trofeus: "SALA DE\nTROFÉUS",
+    };
+    const x = this.doorEl.x - 190; // antes da saída, no caminho dela
+    const porta = this.add
+      .image(x, FLOOR_Y - 30, "tex-door")
+      .setDepth(DOOR_DEPTH)
+      .setTint(0xffaa55);
+    this.add
+      .text(x, FLOOR_Y - 72, ROTULOS[pick], {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#ffbb66",
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setDepth(DOOR_DEPTH);
+    const prompt = this.add
+      .text(x, FLOOR_Y - 94, "[E] desvio opcional", {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#ffdd99",
+      })
+      .setOrigin(0.5)
+      .setDepth(DOOR_DEPTH)
+      .setVisible(false);
+    const zona = this.add.zone(x, FLOOR_Y - 30, 44, 64);
+    this.physics.add.existing(zona, true);
+    this.physics.add.overlap(this.player, zona, () => {
+      // Só depois do boss: desviar no meio do combate não é escolha, é fuga.
+      if (!this.bossDefeated) return;
+      if (
+        Phaser.Input.Keyboard.JustDown(this.interactKey) ||
+        this.player.gamepadInteractJustPressed
+      ) {
+        this.persist();
+        const r = getRun(this);
+        this.fecharExpediente(r); // a fase FOI concluída — mesma economia da saída
+        this.escolherVarianteDeRota(r, destinoAposSala);
+        r.salaSaidaPara = destinoAposSala; // a sala desemboca lá
+        r.cameFrom = "fase";
+        Sfx.doorOpen();
+        this.cameras.main.fadeOut(300, 0, 0, 0, (_c: Phaser.Cameras.Scene2D.Camera, t: number) => {
+          if (t === 1) this.scene.start("LdtkRoomScene", { room: pick });
+        });
+        return;
+      }
+      porta.setTint(0xffdd99);
+      prompt.setVisible(true);
+      this.salaOpcionalVistaEm = this.time.now;
+    });
+    this.salaOpcionalPrompt = prompt;
+    this.salaOpcionalPorta = porta;
   }
 
   /**
@@ -1049,6 +1150,12 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 6. Marcadores de ameaça + parry hint + weapon pickups + near-door check
     this.threatMarkers?.update();
+    // O overlap só dispara ENQUANTO há contato; sem isto o prompt/realce da
+    // sala opcional ficariam acesos para sempre após a 1ª aproximação.
+    if (this.salaOpcionalPrompt && time - this.salaOpcionalVistaEm > 120) {
+      this.salaOpcionalPrompt.setVisible(false);
+      this.salaOpcionalPorta?.setTint(0xffaa55);
+    }
     this.elites?.update();
     this.contactShadows?.update();
     this.rimLight?.update();
