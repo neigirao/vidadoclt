@@ -9,6 +9,7 @@ import {
   addPhaseDecor,
   addPhaseParticles,
   addThemedFloorDecor,
+  drawDoorway,
 } from "../systems/Background";
 import { resolveSprite } from "../systems/SpriteLibrary";
 import { PLAT_DEFS } from "../systems/TextureFactory";
@@ -479,10 +480,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.setupWorldAndCamera();
     addPhaseBackground(this, this.getBgKey(), HUD_TOP_H, FLOOR_Y);
     const pn = this.getPhaseNumber();
+    // As portas são ARQUITETURA: reservam o X delas antes do decor entrar, senão
+    // um prop nasce em cima e a porta parece colada na frente do cenário.
+    const doorCfg = this.getDoorConfig();
+    const reservedXs = [doorCfg.x, doorCfg.x - 190];
     if (pn !== null) {
       addParallaxLayers(this, pn, HUD_TOP_H, FLOOR_Y); // planos de profundidade
-      addPhaseDecor(this, pn, FLOOR_Y);
-      addThemedFloorDecor(this, pn, FLOOR_Y); // prop de chão próprio da fase
+      addPhaseDecor(this, pn, FLOOR_Y, reservedXs);
+      addThemedFloorDecor(this, pn, FLOOR_Y, reservedXs); // prop de chão próprio da fase
       // Storytelling ambiental: post-its de piada corporativa BR (revelam por
       // proximidade). O player é criado adiante; o poll só lê X depois.
       seedAmbientLore(this, pn, FLOOR_Y, LEVEL_WIDTH, run.seed ?? "CLT", () => this.player?.x ?? 0);
@@ -520,19 +525,19 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       this.buildPlatform(x, y, tiles);
     }
 
-    // 3. Door
-    const doorCfg = this.getDoorConfig();
+    // 3. Door — com nicho de parede atrás (a porta deixa de flutuar no cenário)
+    this.buildDoorway(doorCfg.x, 0xffe0a0);
     this.doorEl = this.add.image(doorCfg.x, FLOOR_Y - 30, "tex-door").setDepth(DOOR_DEPTH);
     this.doorEl.setTint(doorCfg.tint);
     this.doorLabel = this.add
-      .text(doorCfg.x, FLOOR_Y - 72, doorCfg.label, {
+      .text(doorCfg.x, FLOOR_Y - 102, doorCfg.label, {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#8a8a8a",
         align: "center",
       })
       .setOrigin(0.5)
-      .setDepth(DOOR_DEPTH);
+      .setDepth(DOOR_DEPTH + 1);
 
     // 4. Player setup (bloco idêntico compartilhado com a Fase 1 — ver buildPlayer)
     const spawnX = run.cameFrom === "copa" ? 120 : 80;
@@ -944,6 +949,20 @@ export abstract class BasePhaseScene extends Phaser.Scene {
   }
 
   /**
+   * NICHO DE PORTA — a arquitetura em volta da porta.
+   *
+   * A porta era só o sprite de 36×60 solto no chão, com depth acima do decor:
+   * lida como adesivo colado NA FRENTE do cenário, em "lugar perdido". Aqui
+   * desenhamos o vão em que ela está encaixada — recuo escuro na parede, batentes
+   * laterais, viga em cima, capacho e uma poça de luz no piso. Tudo puramente
+   * visual, logo ABAIXO do sprite da porta, então a porta passa a pertencer à
+   * parede em vez de pairar sobre os móveis.
+   */
+  protected buildDoorway(x: number, glow = 0xffe0a0): void {
+    drawDoorway(this, x, FLOOR_Y, DOOR_DEPTH - 0.5, glow);
+  }
+
+  /**
    * SALA OPCIONAL — porta de desvio ao lado da saída da fase.
    *
    * As 4 salas LDtk (Arquivo Morto, Depósito, Servidor Legado, Sala de Troféus)
@@ -980,27 +999,28 @@ export abstract class BasePhaseScene extends Phaser.Scene {
       trofeus: "SALA DE\nTROFÉUS",
     };
     const x = this.doorEl.x - 190; // antes da saída, no caminho dela
+    this.buildDoorway(x, 0xffaa55);
     const porta = this.add
       .image(x, FLOOR_Y - 30, "tex-door")
       .setDepth(DOOR_DEPTH)
       .setTint(0xffaa55);
     this.add
-      .text(x, FLOOR_Y - 72, ROTULOS[pick], {
+      .text(x, FLOOR_Y - 102, ROTULOS[pick], {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#ffbb66",
         align: "center",
       })
       .setOrigin(0.5)
-      .setDepth(DOOR_DEPTH);
+      .setDepth(DOOR_DEPTH + 1);
     const prompt = this.add
-      .text(x, FLOOR_Y - 94, "[E] desvio opcional", {
+      .text(x, FLOOR_Y - 112, "[E] desvio opcional", {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#ffdd99",
       })
       .setOrigin(0.5)
-      .setDepth(DOOR_DEPTH)
+      .setDepth(DOOR_DEPTH + 1)
       .setVisible(false);
     const zona = this.add.zone(x, FLOOR_Y - 30, 44, 64);
     this.physics.add.existing(zona, true);

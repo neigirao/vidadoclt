@@ -338,20 +338,20 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         .setScrollFactor(0.2, 0),
     );
 
-    // Copa door — locked until boss defeated. Depth acima do decor (DOOR_DEPTH):
-    // antes um prop de cenário a ocultava e o tint escuro a fazia sumir no fundo
-    // frio da Fase 1 → a porta ficava invisível sob o rótulo flutuante.
+    // Copa door — locked until boss defeated. Vem com NICHO DE PAREDE (buildDoorway):
+    // sem o vão em volta, o sprite lia como adesivo colado na frente dos móveis.
+    this.buildDoorway(LEVEL_WIDTH - 60, 0xffe0a0);
     this.doorEl = addImage(this, LEVEL_WIDTH - 60, FLOOR_Y - 30, "tex-door").setDepth(DOOR_DEPTH);
     this.doorEl.setTint(0x8a8a8a);
     this.doorLabel = this.add
-      .text(LEVEL_WIDTH - 60, FLOOR_Y - 72, "COPA\n[BLOQUEADO]", {
+      .text(LEVEL_WIDTH - 60, FLOOR_Y - 102, "COPA\n[BLOQUEADO]", {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#8a8a8a",
         align: "center",
       })
       .setOrigin(0.5)
-      .setDepth(DOOR_DEPTH);
+      .setDepth(DOOR_DEPTH + 1);
 
     // Setup do player compartilhado (stats/arma/upgrades/perks/culturas/onDeath/
     // onAttack/onRangedAttack) via BasePhaseScene. Callbacks abaixo são da Fase 1.

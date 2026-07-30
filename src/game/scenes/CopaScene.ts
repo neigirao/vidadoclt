@@ -16,6 +16,7 @@ import { Hud } from "../systems/Hud";
 import { Music } from "../systems/MusicSystem";
 import { CombatFx } from "../systems/CombatFx";
 import { resolveSprite } from "../systems/SpriteLibrary";
+import { drawDoorway } from "../systems/Background";
 import { Sfx } from "../systems/AudioSystem";
 
 const LEVEL_WIDTH = 1280;
@@ -180,16 +181,17 @@ export class CopaScene extends Phaser.Scene {
     //
     // A loja segue existindo no Ponto e o item de avançar continua lá; ele deixa
     // de ser o único caminho. Comprar volta a ser opcional em vez de pedágio.
-    const doorFwd = this.add.image(LEVEL_WIDTH - 46, FLOOR_Y - 30, "tex-door");
+    drawDoorway(this, LEVEL_WIDTH - 46, FLOOR_Y, 5.5, 0x8fdc9a);
+    const doorFwd = this.add.image(LEVEL_WIDTH - 46, FLOOR_Y - 30, "tex-door").setDepth(6);
     this.add
-      .text(LEVEL_WIDTH - 46, FLOOR_Y - 70, "AVANÇAR", {
+      .text(LEVEL_WIDTH - 46, FLOOR_Y - 90, "AVANÇAR", {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#8fdc9a",
       })
       .setOrigin(0.5);
     const fwdPrompt = this.add
-      .text(LEVEL_WIDTH - 46, FLOOR_Y - 90, "[E] avançar", {
+      .text(LEVEL_WIDTH - 46, FLOOR_Y - 108, "[E] avançar", {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#bff5c6",
@@ -197,9 +199,10 @@ export class CopaScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setVisible(false);
     // Door back to OpenSpace
-    const doorBack = this.add.image(40, FLOOR_Y - 30, "tex-door");
+    drawDoorway(this, 40, FLOOR_Y, 5.5, 0xc9a36a);
+    const doorBack = this.add.image(40, FLOOR_Y - 30, "tex-door").setDepth(6);
     this.add
-      .text(40, FLOOR_Y - 70, "VOLTAR", {
+      .text(40, FLOOR_Y - 90, "VOLTAR", {
         fontFamily: "monospace",
         fontSize: "9px",
         color: "#c9a36a",
@@ -465,9 +468,13 @@ export class CopaScene extends Phaser.Scene {
         servidor: "SERVIDOR\nLEGADO",
         trofeus: "SALA DE\nTROFÉUS",
       };
-      const salaDoor = this.add.image(LEVEL_WIDTH / 2, FLOOR_Y - 30, "tex-door").setTint(0xffaa55);
+      drawDoorway(this, LEVEL_WIDTH / 2, FLOOR_Y, 5.5, 0xffaa55);
+      const salaDoor = this.add
+        .image(LEVEL_WIDTH / 2, FLOOR_Y - 30, "tex-door")
+        .setDepth(6)
+        .setTint(0xffaa55);
       this.add
-        .text(LEVEL_WIDTH / 2, FLOOR_Y - 72, LABELS[pick], {
+        .text(LEVEL_WIDTH / 2, FLOOR_Y - 102, LABELS[pick], {
           fontFamily: "monospace",
           fontSize: "9px",
           color: "#ffbb66",
