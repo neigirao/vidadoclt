@@ -20,6 +20,7 @@ import { Player } from "../entities/Player";
 import { expediente, startRunClock } from "../systems/RunClock";
 import { copaHealsSanity } from "../systems/Expediente";
 import { getRun, savePersisted } from "../systems/PlayerState";
+import { Cheats, installCheats } from "../systems/Cheats";
 import type { RunState } from "../systems/PlayerState";
 import { menaceEnrageThreshold } from "../systems/Menace";
 import { WEAPONS, WEAPON_ICONS, WeaponId, WeaponDef } from "../systems/WeaponSystem";
@@ -409,6 +410,25 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     };
   }
 
+  /** Detector de cheats + feedback. Compartilhado com a Fase 1 (create próprio). */
+  protected installCheatKeys(): void {
+    installCheats(this, (ligado) => {
+      this.showPickupToast(
+        ligado ? "** IDDQD — MODO INVENCIVEL (sem ranking) **" : "IDDQD desligado — mortal de novo",
+      );
+      Sfx.buy();
+      this.aplicarGodModeVisual(ligado);
+    });
+    this.aplicarGodModeVisual(Cheats.ativo("godMode")); // sobrevive à troca de cena
+  }
+
+  /** Tint dourado no player enquanto o god mode está ligado. */
+  protected aplicarGodModeVisual(ligado: boolean): void {
+    if (!this.player) return;
+    if (ligado) this.player.setTint(0xffd76a);
+    else this.player.clearTint();
+  }
+
   protected setupPauseKey(): void {
     this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
       // Loja/totem no mapa aberto → ESC é DELES (fecha a loja no phaseShop.update()).
@@ -784,6 +804,14 @@ export abstract class BasePhaseScene extends Phaser.Scene {
 
     // 17. ESC → PauseScene
     this.setupPauseKey();
+
+    // 17b. Cheats (IDDQD → god mode). O aviso usa ASCII (`**`) e não um glifo
+    // como ☠: conferido no jogo, o símbolo vira TOFU na mono do sistema — a
+    // mesma armadilha já documentada no telegraph (`!!` em vez de ‼).
+    // Feedback obrigatório: sem confirmação na
+    // tela o jogador digita, não vê nada mudar e conclui que o código não existe
+    // — e um god mode SILENCIOSO é indistinguível de um god mode quebrado.
+    this.installCheatKeys();
 
     // 18. Interact key + door zone
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);

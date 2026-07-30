@@ -750,6 +750,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
 
     // Pause on ESC
     this.setupPauseKey();
+    // Cheats (IDDQD): a Fase 1 tem create() próprio, então chama por conta —
+    // é a fase que 23 das 26 sessões jogam, e seria a pior para ficar de fora.
+    this.installCheatKeys();
 
     // Copa door interaction zone
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);

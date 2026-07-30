@@ -10,6 +10,7 @@ import { sanityBand } from "../systems/PlayerState";
 import { ParticleFactory } from "../systems/ParticleFactory";
 import { Telemetry } from "../systems/Telemetry";
 import { loadSettings } from "../systems/Settings";
+import { Cheats } from "../systems/Cheats";
 
 const WALK_SPEED = 200;
 const JUMP_VEL = -520;
@@ -415,6 +416,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    *  sessões morrendo por energia na Copa). */
   takeDamage(amount: number, sanityHit = 0, fromX?: number, nonLethal = false): boolean {
     const now = this.scene.time.now;
+    // GOD MODE (IDDQD): absorve TUDO, antes de qualquer outra coisa. Fica antes
+    // do parry de propósito — em god mode não faz sentido gastar a janela nem o
+    // cooldown do parry num hit que não ia doer.
+    if (Cheats.ativo("godMode")) return false;
     if (this.isInvulnerable(now)) return false;
 
     // Parry "Reclamar": absorve o hit se a janela estiver ativa
@@ -479,6 +484,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    *  flutuante "−N Sanidade · <motivo>" — só nos drenos DISCRETOS (evento/projétil),
    *  nunca no dreno passivo do expediente (que spam-aria a cada tick). */
   drainSanity(amount: number, reason?: string) {
+    // GOD MODE: sanidade também é vida (zerar dispara onDeath("burnout")), então
+    // ignorar só a Energia deixaria o god mode morrendo de Burnout — que é
+    // exatamente o tipo de meia-implementação que faz o jogador achar que o
+    // cheat está quebrado.
+    if (Cheats.ativo("godMode")) return;
     const before = this.sanity;
     this.sanity = Math.max(this.sanityFloor, this.sanity - amount);
     const lost = Math.round(before - this.sanity);

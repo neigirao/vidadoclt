@@ -75,6 +75,7 @@ src/
       CulturaSystem.ts       # 12 Culturas Corporativas (modificadores de run)
       ReconhecimentoSystem.ts# Upgrades permanentes comprados com Reconhecimento
       Shop.ts                # Loja da Copa
+      Cheats.ts              # Cheats por sequência de tecla (IDDQD = god mode). Run com cheat NÃO alimenta telemetria nem ranking
       SanityFx.ts            # Efeitos visuais por faixa de sanidade
       sanity.ts              # sanityBand() puro (faixas), testável
       ProductivityMeter.ts   # Medidor de Produtividade (streak → mult VR) — run-wide: F1 tem instância própria; Fases 2–5 herdam via BasePhaseScene (Momentum)
@@ -146,6 +147,15 @@ HIT_INVULN_MS = 600; // i-frames após tomar dano
 | Atacar                  | J           |
 | Ataque especial         | K           |
 | Interagir (portas/loja) | E           |
+
+**Cheat (`systems/Cheats.ts`):** digitar **`IDDQD`** em qualquer fase (ou no CEO) liga/desliga
+o **god mode** — imune a dano e a perda de Sanidade, com aviso na tela e tint dourado no player.
+Casa o SUFIXO da sequência (lixo antes não invalida) e ignora teclas não-alfanuméricas, para
+poder andar enquanto digita. **Run com cheat NÃO alimenta dado:** o `Telemetry` corta o envio na
+origem (flag `__cheatSujo`, mesmo mecanismo do guard de `navigator.webdriver`) e o
+`GameOverScene` troca o formulário de ranking por um aviso. A sessão fica suja **para sempre** —
+desligar o cheat não devolve a sessão à condição de amostra honesta. Motivo: uma run imortal
+PARECE uma run excelente e, ao contrário do robô, não tem assinatura para filtrar depois.
 
 Os 7 verbos de combate (Pular/Dash/Atacar/Especial/Parry/Consumível/Trocar arma) são
 **rebindáveis** em CONFIGURAÇÕES → `⌨ CONTROLES` (acessibilidade). Os binds vivem em
