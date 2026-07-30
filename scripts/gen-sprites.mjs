@@ -754,8 +754,92 @@ function copaDoor() {
   return c.save("obj-door.png");
 }
 
+
+// ── Ponto Eletrônico (Copa) — 28×40 ──────────────────────────────────────────
+// Era um retângulo branco chapado com dígitos verdes soltos (lia como "erro de
+// extração", não como objeto). Vira um relógio de ponto de parede: carcaça
+// bege-industrial com chanfro, visor LCD escuro com 18:00 em verde, LED de
+// status, fenda do cartão, leitor de crachá e parafusos.
+function pontoEletronico() {
+  const W = 28,
+    H = 40,
+    c = canvas(W, H);
+  const CASE = [176, 172, 160],
+    CASE_L = [214, 210, 198],
+    CASE_D = [116, 112, 104],
+    CASE_DD = [78, 75, 70];
+  const BEZEL = [46, 48, 52],
+    LCD = [16, 34, 26],
+    LED = [96, 230, 120],
+    LED_D = [40, 140, 66];
+  const RED = [232, 72, 56],
+    SLOT = [30, 30, 34],
+    SCREW = [140, 136, 128];
+
+  // carcaça (com chanfro nos cantos → não parece bloco)
+  c.rect(3, 1, 22, 37, CASE);
+  c.rect(3, 1, 22, 2, CASE_L); // topo iluminado
+  c.rect(3, 1, 2, 37, CASE_L); // lateral esq
+  c.rect(23, 1, 2, 37, CASE_D); // lateral dir
+  c.rect(3, 36, 22, 2, CASE_DD); // base em sombra
+  c.px(3, 1, [0, 0, 0, 0]);
+  c.px(24, 1, [0, 0, 0, 0]);
+  c.px(3, 37, [0, 0, 0, 0]);
+  c.px(24, 37, [0, 0, 0, 0]);
+
+  // visor: moldura + LCD
+  c.rect(4, 5, 20, 11, BEZEL);
+  c.rect(5, 6, 18, 9, LCD);
+  // "18:00" em segmentos de 3px (dois dígitos, dois pontos, dois dígitos)
+  const digit = (x, seg) => {
+    // seg: [topo, cima-esq, cima-dir, meio, baixo-esq, baixo-dir, base]
+    if (seg[0]) c.hline(x, 7, 3, LED);
+    if (seg[3]) c.hline(x, 10, 3, LED);
+    if (seg[6]) c.hline(x, 13, 3, LED);
+    if (seg[1]) c.rect(x, 8, 1, 2, LED);
+    if (seg[2]) c.rect(x + 2, 8, 1, 2, LED);
+    if (seg[4]) c.rect(x, 11, 1, 2, LED);
+    if (seg[5]) c.rect(x + 2, 11, 1, 2, LED);
+  };
+  const ONE = [0, 0, 1, 0, 0, 1, 0],
+    EIGHT = [1, 1, 1, 1, 1, 1, 1],
+    ZERO = [1, 1, 1, 0, 1, 1, 1];
+  digit(6, ONE);
+  digit(10, EIGHT);
+  c.px(14, 9, LED_D);
+  c.px(14, 12, LED_D);
+  digit(16, ZERO);
+  digit(20, ZERO);
+  // reflexo diagonal no vidro
+  c.px(6, 14, [255, 255, 255, 40]);
+  c.px(7, 13, [255, 255, 255, 30]);
+
+  // LED de status + rótulo gravado
+  c.rect(6, 18, 2, 2, RED);
+  c.px(6, 18, [255, 160, 150]);
+  c.rect(10, 18, 12, 1, CASE_D); // linha "PONTO" gravada
+  c.rect(10, 20, 8, 1, CASE_D);
+
+  // fenda do cartão (com relevo)
+  c.rect(6, 24, 16, 3, SLOT);
+  c.hline(6, 23, 16, CASE_DD);
+  c.hline(6, 27, 16, CASE_L);
+
+  // leitor de crachá (área fosca) + parafusos
+  c.rect(8, 30, 12, 5, CASE_D);
+  c.rect(9, 31, 10, 3, [150, 146, 138]);
+  c.px(5, 32, SCREW);
+  c.px(22, 32, SCREW);
+  c.px(5, 4, SCREW);
+  c.px(22, 4, SCREW);
+
+  addOutline(c, OBJ_OUT);
+  return c.save("obj-ponto.png");
+}
+
 const SPRITES = [
   ["door", copaDoor],
+  ["ponto", pontoEletronico],
   ["brenda", () => recolorFrames("rh", "brenda", BRENDA_FRAMES, remapRedToMagenta)],
   // Diretor (F5): fonte evangelista-boss → aço/navy (executivo frio)
   [

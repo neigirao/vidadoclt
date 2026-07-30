@@ -377,19 +377,39 @@ const PHASE_PROP_KEYS: Record<number, string[]> = {
   4: ["tile-fase4-04", "tile-fase1-04", "tile-fase5-03"], // caneca, arquivo, vaso
   5: ["tile-fase5-03", "tile-fase2-05", "tile-fase1-04"], // vaso, torre, arquivo
 };
+/**
+ * Empurra um X de decor para longe de posições reservadas (portas, interativos).
+ * Prop de cenário nascendo em cima da porta fazia a porta parecer "colada na
+ * frente das coisas" — a arquitetura tem que ter espaço próprio.
+ */
+function keepAwayFrom(x: number, avoidXs: number[], margin = 84): number {
+  let out = x;
+  for (const ax of avoidXs) {
+    if (Math.abs(out - ax) < margin) {
+      out = ax + (out >= ax ? margin : -margin);
+    }
+  }
+  return Phaser.Math.Clamp(out, 60, LEVEL_WIDTH - 60);
+}
+
 
 /**
  * Places decorative props from the phase tileset along the floor level.
  * Purely visual (depth=1, no physics body). Call after addPhaseBackground.
  */
-export function addPhaseDecor(scene: Phaser.Scene, phase: 1 | 2 | 3 | 4 | 5, floorY: number): void {
+export function addPhaseDecor(
+  scene: Phaser.Scene,
+  phase: 1 | 2 | 3 | 4 | 5,
+  floorY: number,
+  avoidXs: number[] = [],
+): void {
   const keys = PHASE_PROP_KEYS[phase] ?? [];
   if (!keys.length) return;
 
   const reduce = loadSettings().reduceSanityFx;
   const spacing = Math.floor(LEVEL_WIDTH / (keys.length * 2 + 1));
   keys.forEach((key, i) => {
-    const x = spacing + i * spacing * 2;
+    const x = keepAwayFrom(spacing + i * spacing * 2, avoidXs);
     const [tex, frame] = resolveSprite(`tex-${key}`);
     const prop = scene.add.image(x, floorY, tex, frame).setOrigin(0.5, 1).setDepth(1).setAlpha(0.7);
     // Vida ambiente: um balanço/respiração idle sutil (ancorado nos pés, então a
@@ -520,10 +540,12 @@ export function addThemedFloorDecor(
   scene: Phaser.Scene,
   phase: 1 | 2 | 3 | 4 | 5,
   floorY: number,
+  avoidXs: number[] = [],
 ): void {
   const def = PHASE_THEMED_DECOR[phase];
   if (!def || !scene.textures.exists(def.key)) return;
-  def.xs.forEach((x) => {
+  def.xs.forEach((x0) => {
+    const x = keepAwayFrom(x0, avoidXs);
     scene.add.image(x, floorY, def.key).setOrigin(0.5, 1).setDepth(1).setAlpha(0.85);
   });
 }
@@ -699,4 +721,39 @@ export function addCeoRooftopBackground(scene: Phaser.Scene, topY: number, botto
       pulse.fillCircle(sunX, sunY, 70 + p.v * 30);
     },
   });
+}
+
+/**
+ * NICHO DE PORTA — desenha o vão de alvenaria em que a porta está encaixada.
+ *
+ * O sprite de porta solto no chão, com depth acima do decor, lia como adesivo
+ * colado NA FRENTE do cenário ("porta em lugar perdido"). Aqui vem a arquitetura:
+ * parede rebaixada, recuo interno escuro, batentes, viga, capacho e poça de luz
+ * no piso. Puramente visual, logo abaixo do sprite da porta.
+ */
+export function drawDoorway(
+  scene: Phaser.Scene,
+  x: number,
+  floorY: number,
+  depth: number,
+  glow = 0xffe0a0,
+): void {
+  const top = floorY - 78;
+  const g = scene.add.graphics().setDepth(depth);
+  g.fillStyle(0x1b1a20, 0.92);
+  g.fillRect(x - 27, top, 54, floorY - top);
+  g.fillStyle(0x0d0c11, 0.95);
+  g.fillRect(x - 21, top + 8, 42, floorY - top - 8);
+  g.fillStyle(0x4a4038, 1);
+  g.fillRect(x - 25, top + 6, 5, floorY - top - 6);
+  g.fillRect(x + 20, top + 6, 5, floorY - top - 6);
+  g.fillRect(x - 27, top, 54, 7);
+  g.fillStyle(0x6b5c4c, 1);
+  g.fillRect(x - 27, top, 54, 2);
+  g.fillStyle(0x2a2620, 1);
+  g.fillRect(x - 22, floorY - 3, 44, 4);
+  scene.add
+    .ellipse(x, floorY + 1, 74, 16, glow, 0.1)
+    .setDepth(depth)
+    .setBlendMode(Phaser.BlendModes.ADD);
 }
