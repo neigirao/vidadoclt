@@ -47,10 +47,9 @@ A definição vive versionada em
 
 ### ⚠ O filtro ANTERIOR desta página vazava — e os números abaixo dele estavam errados
 
-A CTE que ficava aqui classificava como robô quem fizesse `dur_s < 60 AND cenas
-
-> = 8`. **Uma sessão do `bun smoke` boota 6 fases em 38s\*\*: menos de 8 cenas
-> distintas, então passava pelo filtro como se fosse humana.
+A CTE que ficava aqui classificava como robô quem fizesse
+`dur_s < 60 AND cenas >= 8`. **Uma sessão do `bun smoke` boota 6 fases em 38s**:
+menos de 8 cenas distintas, então passava pelo filtro como se fosse humana.
 
 Medido: **343 das 552 sessões do banco são automação, e elas respondem por 97%
 de todos os `phase_enter`.** Como a tabela de exposição por fase (62/46/41/41/41)
@@ -64,6 +63,26 @@ visitar — e é justamente isso que muda toda vez que alguém edita o smoke, qu
 o que quebrou o filtro anterior. A view também exclui sessões de **TESTAR FASE**
 (`payload ? 'testPhase'`): pular direto para uma fase é playtest dirigido, não
 jogador atravessando o funil.
+
+### O mesmo engano, duas vezes: a regra tem que ser POSITIVA
+
+A primeira versão da view filtrava **só por cadência** — e cadência não existe
+quando não há `phase_enter` nenhum. O `bun smoke` boota `VitoriaScene` e
+`GameOverScene` DIRETO, sem passar por fase: cada boot vira uma sessão de ~1s com
+exatamente 1 `victory` + 1 `death` e zero verbos. Eram **181 sessões** entrando
+como humanas, e a view respondia **"181 vitórias"** quando o número real é
+**zero** — ninguém terminou o jogo ainda.
+
+É literalmente o engano que esta página documenta desde o #120, reintroduzido por
+um filtro novo. A lição: **descreva o que caracteriza um JOGADOR**, não uma lista
+de assinaturas de robô a tapar uma por uma. A regra que sobrou é positiva —
+jogador de verdade entra numa fase antes de vencer ou morrer:
+
+```sql
+where phase_enters > 0                                   -- entrou numa fase
+  and not (phase_enters > 3 and dur_s / phase_enters < 3) -- cadência humana
+  and not testar_fase
+```
 
 Para dados a partir de 27/07/2026 o filtro é desnecessário — o guard de
 `navigator.webdriver` (#120) impede a escrita na origem, e **verificado no banco,
@@ -80,6 +99,8 @@ anterior, que não dá para rotular retroativamente.
    penalidade constante em vez de decisão.
 3. **Alguém usa dash / especial / parry?** (`avgVerbsPerRun`) Se der ~0, o
    combate colapsou em "andar e bater" e isso supera qualquer item de arte.
+   **Mas confira o instrumento primeiro** — os zeros de especial e parry eram
+   medição faltando, não comportamento (ver a seção de verbos no fim).
 
 ## Exposição real por cena
 
@@ -109,3 +130,59 @@ quase ninguém vê o resto.**
 
 Ressalva: a amostra é pequena e os números sobem com tráfego. A **forma** da
 curva é o sinal; os valores absolutos, não.
+
+## Desfecho e verbos (26 sessões humanas) — o dado mais desconfortável do projeto
+
+| sinal                        |    valor |
+| ---------------------------- | -------: |
+| **vitórias**                 |    **0** |
+| bosses derrotados            |       18 |
+| mortes                       |       18 |
+| **quits**                    |   **20** |
+| duração mediana da sessão    |  **77s** |
+| duração máxima já registrada | 6min 12s |
+| dash por run                 |      0,7 |
+| especial (K) por run         |    0,0 ⚠ |
+| parry por run                |    0,0 ⚠ |
+
+⚠ Os dois zeros de verbo eram **instrumento quebrado** — ver a seção abaixo.
+
+Três leituras, em ordem de importância:
+
+1. **13 dos 20 quits acontecem na COPA.** Dos 17 que chegam à sala segura, 13
+   fecham a aba ali — não numa luta, no descanso. É o maior sinal isolado do
+   banco: a run não morre de dificuldade, morre de perda de embalo.
+2. **Quits (20) superam mortes (18).** As pessoas abandonam mais do que perdem.
+   Antes de qualquer ajuste de balanceamento, o problema é de retenção.
+3. **Dash em 0,7 por run.** Este número é sólido: o dash é contado no próprio
+   dash, em `Player.ts`, que toda fase compartilha.
+
+### ⚠ "Especial = 0" e "parry = 0" eram INSTRUMENTO QUEBRADO, não comportamento
+
+Antes de mexer no combate por causa desses zeros — e a tentação era grande —
+valeu conferir se eles estavam sendo medidos. Não estavam:
+
+- **`special`** era contado dentro de `BasePhaseScene.handleSpecial()`. A Fase 1
+  tem handler próprio (`onSpecialAttack` inline) e **não chamava**
+  `Telemetry.verb("special")`. Como **23 das 26 sessões jogam a Fase 1**, o
+  especial praticamente não tinha como ser contado. Corrigido, e travado por
+  teste em `PhaseParity.test.ts`.
+- **`parry`** só era contado no parry **BEM-SUCEDIDO** (em `takeDamage`). Então
+  "parry = 0" misturava duas coisas opostas, que pedem consertos opostos:
+  ninguém aperta F (descoberta) ou aperta e erra a janela
+  (dificuldade/feedback). Agora existe `parryTry` (tentativa) ao lado de `parry`
+  (acerto), e a razão entre os dois responde a pergunta.
+
+**A regra que isso reforça:** antes de tratar um zero como fato de design,
+verifique se o caminho de medição existe na fase onde os jogadores realmente
+estão. É o terceiro instrumento quebrado deste projeto (as 486 vitórias falsas,
+o filtro de bot que vazava, e agora os verbos) e os três tinham a mesma cara:
+um número plausível, preciso, e sobre a coisa errada.
+
+A pergunta 3 desta página segue **em aberto** — precisa de uma leitura nova, com
+tráfego, depois destas correções.
+
+E ninguém nunca chegou ao fim: o jogo **não tem problema de duração medido**,
+porque nenhuma sessão passou de 6 minutos. "Encurtar o jogo" resolveria uma
+queixa que os dados ainda não mostram; a queixa que eles mostram é o primeiro
+minuto e a Copa.

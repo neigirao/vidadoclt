@@ -108,13 +108,16 @@ let _runActive = false;
 // eventos de marco: boss_defeat/death/victory). Evita floodar o ring buffer com
 // um evento por dash/hit e ainda responde às perguntas de design abertas
 // (verbos subutilizados? qual fase machuca mais? burnout é usado?).
-const _verb = { dash: 0, special: 0, parry: 0 };
+// `parryTry` é TENTATIVA e `parry` é ACERTO. Contar só o acerto (como antes)
+// fazia "parry = 0" significar duas coisas opostas — nunca apertou F, ou
+// apertou e errou a janela — que pedem consertos diferentes.
+const _verb = { dash: 0, special: 0, parry: 0, parryTry: 0 };
 let _burnouts = 0; // quantas vezes entrou no Burnout/VAI NA RAÇA nesta run
 let _phaseStartT = 0; // início da fase atual (p/ tempo de conclusão)
 let _phaseDmg = 0; // dano tomado NA fase atual (dificuldade p/ quem sobrevive)
 
 function resetRunStats() {
-  _verb.dash = _verb.special = _verb.parry = 0;
+  _verb.dash = _verb.special = _verb.parry = _verb.parryTry = 0;
   _burnouts = 0;
   _phaseDmg = 0;
   _phaseStartT = Date.now();
@@ -169,7 +172,7 @@ export const Telemetry = {
   },
 
   /** Uso de verbo (dash/especial/parry) — acumulado, anexado aos marcos. */
-  verb(kind: "dash" | "special" | "parry") {
+  verb(kind: "dash" | "special" | "parry" | "parryTry") {
     if (kind in _verb) _verb[kind]++;
   },
 
@@ -210,6 +213,7 @@ export const Telemetry = {
       dash: _verb.dash,
       special: _verb.special,
       parry: _verb.parry,
+      parryTry: _verb.parryTry,
       burnouts: _burnouts,
     };
   },

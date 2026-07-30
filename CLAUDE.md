@@ -49,7 +49,7 @@ src/
       Phase3Scene.ts
       Phase4Scene.ts
       Phase5Scene.ts
-      CopaScene.ts           # Área segura entre fases: cura sanidade + loja (Faxineiro)
+      CopaScene.ts           # FORA DO FLUXO PRINCIPAL (só TESTAR FASE) — ver abaixo
       CeoScene.ts            # Chefe final (CEO)
       VitoriaScene.ts        # Tela de vitória
       GameOverScene.ts       # "Rescisão da tentativa"
@@ -184,7 +184,7 @@ PreloadScene → BootScene → MenuScene ─┬─ JOGAR ──→ ClassSelectSc
                                       ├─ HORA EXTRA ──→ HoraExtraScene (heat system)                          │
                                       └─ LAB SPRITES ──→ SpriteLabScene                                       │
                                                                                                               ↓
-   CopaScene ↔ Phase2 → Phase3 → Phase4 → Phase5 → CeoScene → VitoriaScene
+   Phase2 → Phase3 → Phase4 → Phase5 → CeoScene → VitoriaScene
                                                              ↓
                                                       GameOverScene
 ```
@@ -192,10 +192,52 @@ PreloadScene → BootScene → MenuScene ─┬─ JOGAR ──→ ClassSelectSc
 - **PreloadScene** mostra splash AMI BIOS enquanto o atlas carrega; encadeia BootScene → MenuScene.
 - **MenuScene** roteia para todas as sub-telas listadas acima.
 - **ClassSelectScene → CulturaSelectScene** aplicam upgrades/modificadores no `run` e iniciam `OpenSpaceV2Scene`. A `CulturaSelectScene` tem **dois modos**: cheia (`scene.start` com `nextScene` — antes da Fase 1) e overlay (`scene.launch` com `caller` — oferecida de novo após cada boss, pausa/retoma a fase).
-- Após derrotar o boss da fase, a porta da **Copa** desbloqueia (tecla E).
+- Após derrotar o boss da fase, a porta da **fase seguinte** desbloqueia (tecla E). **A Copa saiu do fluxo** — ver a seção da Copa abaixo.
 - **PauseScene** entra via `scene.launch` (overlay) — não substitui a cena ativa.
 - Morte do jogador → `scene.start("GameOverScene", { vr, cause })`.
 - **A V1 (`OpenSpaceScene`) foi aposentada**: não está no array `scene` do `config.ts`. Só existe a V2.
+
+## A COPA SAIU DO FLUXO PRINCIPAL (decisão do dono, por telemetria)
+
+O fluxo era `Fase N → Copa → Fase N+1` entre TODAS as fases. Hoje as portas ligam
+direto na fase seguinte. `CopaScene` segue no repo e no array de cenas, alcançável
+por **TESTAR FASE** — não foi deletada.
+
+**Por quê (medido, `docs/TELEMETRIA.md`):** **13 dos 20 abandonos de sessão
+aconteciam na Copa** — dos 17 jogadores que chegavam à sala segura, 13 fechavam a
+aba ali. Não numa luta: no descanso. Duas coisas se somavam:
+
+1. A Copa **não tinha porta para frente**. A única saída era o ÚLTIMO item de um
+   menu de loja, atrás de um Ponto Eletrônico a 1.150px do spawn — enquanto as
+   cinco fases ensinam "porta + `[E]` para seguir". A única porta visível ia para
+   TRÁS. (Uma porta AVANÇAR foi adicionada antes do corte, e continua lá.)
+2. **A loja já existe DENTRO das fases** (`spawnStations` — máquina de venda +
+   totem de perk), e os jogadores usam: 5 compras de café na Fase 1 contra 4 na
+   Copa. O argumento "a Copa é o único sumidouro de VR" era falso.
+
+**Duração NÃO era o motivo.** Quem acha a saída fica 16s (mediana) — a Copa é a
+cena mais rápida do jogo. Cortá-la economiza 16s de uma run cuja mediana é 77s.
+O ganho é remover o gargalo, não encurtar.
+
+### O que a Copa fazia e ONDE FOI PARAR (`BasePhaseScene.fecharExpediente`)
+
+Cortar a sala sem trazer isto junto quebraria a run. Chamado pela porta de cada
+fase, inclusive pela da Fase 1 (que tem porta própria):
+
+| o que era                                                 | onde está agora                                                                                                                                                                                                                            |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `reconhecimento += floor(vr * 0.5)` no `avancar()`        | `fecharExpediente()` — era o **único** caminho de VR→meta numa run bem-sucedida (a morte converte a ×0.25). Sem isso, jogar bem não levaria nada para a run seguinte                                                                       |
+| Cura do Faxineiro (+5/2s por proximidade, +40 no diálogo) | `FIM_DE_FASE_SANIDADE = 25` de uma vez, mantendo o gate `copaHealsSanity` (hora extra cancela)                                                                                                                                             |
+| `fgts += 10` na 1ª ida à Copa                             | 1ª fase fechada (`run.primeiraFaseFechada`)                                                                                                                                                                                                |
+| `route`/`route2` fixados por seed no `avancar()`          | `escolherVarianteDeRota()` — **a peça mais silenciosa**: sem ela as Fases 2 e 3 cairiam sempre no mesmo lado da bifurcação e metade do conteúdo autorado (fundo/título/objetivo/layout/inimigos) sairia do jogo sem erro nenhum aparecendo |
+
+### ⚠ Órfão do corte: as 4 salas opcionais LDtk
+
+`LdtkRoomScene` (Arquivo Morto, Depósito, Servidor Legado, Sala de Troféus) só era
+alcançável pela **porta do meio da Copa**. Elas têm cenário de verdade e um gate
+próprio (`LdtkRooms.test.ts`), e agora **não têm entrada no jogo normal** — seguem
+alcançáveis por TESTAR FASE. Dar-lhes uma porta dentro das fases é trabalho em
+aberto, sinalizado de propósito em vez de escondido.
 
 ## OpenSpaceV2Scene (rendering limpo)
 
@@ -398,8 +440,8 @@ viraria bloco; 0.70 lê como contorno.
 **Fila de arte = defeito × exposição (`bun art:queue`).** Ordenar por qualidade pura gasta a
 hora no lugar errado. `scripts/art-queue.mjs` multiplica o defeito do `audit:anim` pelo peso da
 ação (`walk` roda o tempo todo; `death` uma vez; `hurt` é um flash) e pela **exposição medida**
-da fase (`docs/TELEMETRIA.md`: F1 62 sessões, CEO 3). Fase 1 acumula 19.546 de prioridade contra
-113 do CEO. Ver `docs/ART_GAPS.md`.
+da fase (view `playtest_humano`: F1 23 sessões, CEO 2). Fase 1 acumula 6.254 de prioridade
+contra 61 do CEO — 6,9× a soma de TODO o resto. Ver `docs/ART_GAPS.md`.
 
 **Audit visual no CI (`bun run audit:sprites`, `scripts/audit-sprites.mjs`).** Fecha a lacuna:
 o `check:frames` garante _quantidade_/coerência/_tamanho_, mas é cego ao CONTEÚDO do pixel.
@@ -470,10 +512,11 @@ atlas (`atlasFrames`), então o jogo nunca esteve em risco; o que estava obsolet
 referência do LAB e do gate.
 
 **PRIORIDADE DE ARTE = EXPOSIÇÃO REAL, não score.** Medido na telemetria já limpa (sessões
-humanas, filtro em `docs/TELEMETRIA.md`): Fase 1 **62**, Fase 2 46, Fases 3–5 41, Copa 17,
-**CEO 3**. Só **5% dos jogadores chegam ao CEO**. Uma hora gasta no `walk` de um inimigo da
+humanas, view `playtest_humano`): Fase 1 **23**, Copa 17, Fase 2 **6**, Fases 3–5 e CEO **1–2**.
+O funil cai **74% na primeira porta**. Abaixo da Fase 2 o N é 1–2, então a ordem entre as fases
+finais é RUÍDO, não ranking — trate como bloco único. Uma hora gasta no `walk` de um inimigo da
 Fase 1 vale mais que a mesma hora no clímax — inclusive o fundo do CEO, que é o pior asset do
-jogo mas é visto por 1 em 20.
+jogo mas é visto por quase ninguém.
 
 **Onde a arte dói mais (medido, 190 animações, score médio 62,5/100; só 11% sem defeito):** o
 `walk` é o PIOR (51) e é o mais visível; o `hurt` parece o melhor (83) mas tem 32 `padded` —
@@ -586,7 +629,7 @@ Nenhum band-aid ativo no momento.
 - **12 Culturas Corporativas** (CulturaSystem) — modificadores de run selecionados antes da Fase 1 e re-oferecidos pós-boss. **9 são TRADEOFFS** (presa + custo → decisão de COMO jogar, não só qual stat inflar; ex.: Overtime = +30% dano causado / +20% dano recebido; PDI = +35% cadência / −20% dano/golpe; Meta Batida = +60% VR / −20% Energia máx; **Happy Hour = +35 Energia / −10 Sanidade e Gestão de Burnout = +40 Sanidade / −10 Energia — espelhos, antes eram buffs planos**) e 3 são picks "seguros" (buffs planos: Refeição Executiva +20/+20, Autonomia Total, vida extra). A tela de seleção mostra o custo e tem **[R] Recusar** (manter o build limpo = custo de oportunidade real). Distingue-se do meta-shop, que é buff permanente puro. **Nota:** a Cultura de vida extra chama-se **"Estabilidade no Emprego"** (id `banco_horas`) — nome distinto do **perk** "Banco de Horas" (`banco_de_horas`, +1 Energia/kill), que antes colidiam na UI com efeitos diferentes.
 - Inimigos da Fase 1 (Enemies.ts) e Fases 2–5 (PhaseEnemies.ts); catálogo de metadados em `EnemyCatalog.ts` (29 IDs)
 - Bosses REAIS (verificado por `new` no código): Coordenador (F2), Brenda (F3), Scrum (F4), Diretor (F5) — todos vêm de `Enemies.ts`/`PhaseEnemies.ts` com `isBoss` — e o **CEO** (`CeoBoss.ts`). O **`GerenteMicrogestor` (`Boss.ts`) NÃO é instanciado em lugar nenhum**: a Fase 1 é onboarding e não tem boss por design (comentado em `OpenSpaceV2Scene`). Consequência: `Boss.ts` inteiro é código morto hoje, e o bloco de hitbox de `this.gerente` no `OpenSpaceV2Scene` (o campo é declarado e nunca atribuído) roda todo frame sem efeito. Manter ou remover é decisão de design — está sinalizado, não removido.
-- Fases: Open Space (V2), Fases 2–5 via `BasePhaseScene`, CEO, Copa, Vitória
+- Fases: Open Space (V2), Fases 2–5 via `BasePhaseScene`, CEO, Vitória (Copa fora do fluxo — ver acima)
 - Sprites reais via atlas; Sanidade com efeitos visuais por faixa (SanityFx)
 - **Áudio 100% procedural** (Web Audio): SFX em `AudioSystem.ts`, trilha ambiente em `MusicSystem.ts` (temas office/boss/burnout)
 - **Meta-progressão**: Reconhecimento persistente, loja de upgrades permanentes (`ReconhecimentoScene` + `ReconhecimentoSystem`)
@@ -596,7 +639,7 @@ Nenhum band-aid ativo no momento.
 - **Bestiário persistente**: `BestiarySystem` grava kills + contagens em `localStorage`; `BestiaryScene` mostra silhueta `???` para não-vistos
 - **RNG determinística** por seed temática (`RNG.ts` — prefixos CLT/FGTS/META/...)
 - Persistência de Reconhecimento/FGTS/Loops em `localStorage` (PlayerState)
-- Copa: cura de sanidade + loja (Faxineiro), checkpoint. A **porta do meio** oferece uma **sala opcional** por run (`OPTIONAL_ROOMS_ENABLED` em `CopaScene`): pool determinístico por seed entre as 4 salas LDtk (`LdtkRoomScene` — Arquivo Morto, Depósito, Servidor Legado, Sala de Troféus), que têm cenário próprio e são validadas pelo `LdtkRooms.test.ts`. As 5 salas planas (`SalaReuniaoScene`/`SalaBonusScene`) ficam **fora do sorteio** até ganharem cenário — as cenas seguem no repo e alcançáveis por TESTAR FASE
+- Copa **fora do fluxo principal** (ver a seção própria acima): a economia dela vive em `BasePhaseScene.fecharExpediente`. As 4 salas LDtk e as 5 salas planas seguem no repo, alcançáveis por TESTAR FASE — as LDtk ficaram **sem entrada no jogo normal** com o corte (órfão sinalizado)
 - HUD com boss bar e minimapa; Game Over (VR → Reconhecimento ×0.25)
 - **Encontros por seed**: Fase 1 varia o TIPO de inimigo por zona (`spawnEnemyOfType`); Fases 2–5 variam POSIÇÃO/densidade (`pickPositions` em `BasePhaseScene`) — contagem fixa p/ o validador
 - **Qualidade**: `tsc` strict + ESLint 0 erros; **testes unitários** (bun:test) de EnemyCatalog, WeaponSystem, ReconhecimentoSystem, **CulturaSystem, PerkSystem (incl. sinergias arma×perk), sanityBand** (49 testes); **CI** (GitHub Actions: tsc + lint + test) em `.github/workflows/ci.yml`
@@ -632,7 +675,8 @@ planejado como pressão e nunca havia sido construído.
 
 - **(A) Prazo brando.** Passando das **20:00** entra a HORA EXTRA: o dano recebido sobe
   **+15% por hora vencida** (teto 1.6×, via `Player.overtimePressureMult`, alimentado pelas
-  cenas) e a **Copa para de curar sanidade** (`copaHealsSanity`). O relógio do HUD fica
+  cenas) e o **respiro de fim de fase para de curar sanidade** (`copaHealsSanity` — o
+  nome é histórico, hoje o gate vale para `fecharExpediente`). O relógio do HUD fica
   **laranja**. O refúgio deixa de ser refúgio sem que nada mate o jogador.
 - **(C) Tempo como moeda.** O prêmio de fim de run escala com quanto do expediente sobrou
   até as **22:00** (`timeBonusMult`: 1.5× saindo 18h em ponto → 1.0× das 22h em diante).

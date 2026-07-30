@@ -32,6 +32,9 @@ export type RunState = {
   shopWeapons?: WeaponId[];
   shopPerks?: PerkId[];
   openSpaceCleared?: boolean;
+  /** Primeira fase já fechada nesta run — porta o +10 de FGTS que antes era dado
+   *  na primeira entrada na Copa (ver BasePhaseScene.fecharExpediente). */
+  primeiraFaseFechada?: boolean;
   lastDeathCause?: "burnout" | "energy";
   // Ramificação de rotas (#1): escolha pós-Fase 1. Persiste na run e aplica um
   // modificador leve no buildPlayer (fundação — as fases divergem no futuro).

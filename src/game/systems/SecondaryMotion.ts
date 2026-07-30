@@ -26,8 +26,18 @@ export class SecondaryMotion {
   private angle = 0; // rad, 0 = pendurado reto pra baixo
   private angVel = 0;
   private prevVx = 0;
-  private readonly len = 13; // comprimento do cordão (px)
-  private readonly pivotDy = -12; // altura do peito relativa ao centro do sprite
+  // GEOMETRIA — conferida AMPLIANDO o player a 12×, não estimada.
+  //
+  // Estava `pivotDy = -12` e `len = 13`. Num sprite de 64px com origem no CENTRO,
+  // -12 não é o peito: é a altura do ROSTO (20/64 a partir do topo). O cordão era
+  // então desenhado por cima da cara, de cima a baixo, e o cartão caía na cintura
+  // — a leitura resultante não era "crachá pendurado", era **um walkie-talkie com
+  // antena**: caixa clara no quadril + risco vertical subindo pelo rosto.
+  //
+  // Peito de verdade fica logo abaixo do centro; e o cordão precisa ser CURTO,
+  // senão o cartão desce para fora do torso.
+  private readonly len = 6; // comprimento do cordão (px)
+  private readonly pivotDy = 1; // altura do peito relativa ao centro do sprite
 
   constructor(
     private scene: Phaser.Scene,
@@ -68,11 +78,15 @@ export class SecondaryMotion {
     g.clear();
     // Cordão (lanyard)
     g.lineStyle(1, 0x24406b, 1).lineBetween(px, py, ex, ey);
-    // Cartão do crachá (retângulo pequeno) + faixa de foto
-    const card = new Phaser.Geom.Rectangle(ex - 3, ey - 1, 6, 8);
-    g.fillStyle(0xf2f2ea, 1).fillRectShape(card);
-    g.fillStyle(0x3a6ea5, 1).fillRect(ex - 2, ey, 4, 2); // "foto"
-    g.lineStyle(1, 0x9aa0aa, 1).strokeRectShape(card);
+    // Cartão do crachá. Era 6×8 em BRANCO PURO (#f2f2ea) — medido, virava o pixel
+    // MAIS CLARO de todo o personagem (lum 241 contra 229 do sprite inteiro) e
+    // quase o dobro do brilho do torso (152 contra 82). Um acessório de movimento
+    // secundário roubando o ponto focal do rosto é o oposto do objetivo: 4×5 num
+    // cinza-papel, para ler como crachá e não como farol.
+    const card = new Phaser.Geom.Rectangle(ex - 2, ey - 1, 4, 5);
+    g.fillStyle(0xbcc0c6, 1).fillRectShape(card);
+    g.fillStyle(0x2f5d8a, 1).fillRect(ex - 1, ey + 1, 2, 1); // "foto"
+    g.lineStyle(1, 0x6a7078, 1).strokeRectShape(card);
   }
 
   destroy(): void {

@@ -179,11 +179,11 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     return {
       x: LEVEL_WIDTH - 60,
       tint: 0x555555,
-      label: "COPA\n[BLOQUEADO]",
+      label: "FASE 2\n[BLOQUEADO]",
       cameFrom: "openspace",
-      destScene: "CopaScene",
-      nextScene: "Phase2Scene",
-      nearLabel: "Entrar na Copa",
+      destScene: "Phase2Scene",
+      nextScene: undefined,
+      nearLabel: "Avançar para a FASE 2",
     };
   }
   protected getBossName(): string {
@@ -363,6 +363,13 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.player.vrDropMult *= heatLvl.vrMult;
 
     this.player.onSpecialAttack = (type, fx, fy, facing) => {
+      // A Base conta o especial dentro de handleSpecial(); a Fase 1 tem handler
+      // PRÓPRIO (ver DIVERGENCIA_INTENCIONAL em PhaseParity.test.ts) e não
+      // contava. Como 23 das 26 sessões humanas jogam a Fase 1, o banco dizia
+      // "especial = 0,0 por run" — o que eu li como "ninguém usa o verbo" quando
+      // parte disso era simplesmente NÃO MEDIDO. Exatamente a deriva que o teste
+      // de paridade existe para pegar, aqui num campo que só a telemetria vê.
+      Telemetry.verb("special");
       const def = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
       switch (type) {
         case "burst_ranged":
@@ -756,9 +763,12 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       ) {
         this.persist();
         const r = getRun(this);
+        this.fecharExpediente(r); // economia que morava na Copa (VR→Reco, FGTS, respiro)
         r.cameFrom = "openspace";
-        r.nextScene = "Phase2Scene";
-        this.scene.start("CopaScene");
+        r.nextScene = undefined;
+        Sfx.doorOpen();
+        this.escolherVarianteDeRota(r, "Phase2Scene");
+        this.scene.start("Phase2Scene");
       }
     });
 

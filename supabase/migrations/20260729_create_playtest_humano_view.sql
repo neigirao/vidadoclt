@@ -20,6 +20,18 @@
 --
 -- Também exclui sessões de TESTAR FASE (`payload ? 'testPhase'`): pular direto
 -- para uma fase é playtest dirigido, não jogador atravessando o funil.
+--
+-- E EXIGE ≥1 `phase_enter`. Isto não é detalhe: a primeira versão desta view
+-- filtrava só por CADÊNCIA, e cadência não existe quando não há `phase_enter`
+-- nenhum. O `bun smoke` boota `VitoriaScene` e `GameOverScene` DIRETO, sem
+-- passar por fase — cada boot gerava uma sessão de ~1s com exatamente 1
+-- `victory` + 1 `death` e zero verbos. Eram **181 sessões** entrando como
+-- humanas, e quem consultasse desfecho pela view leria "181 vitórias" quando o
+-- número real é ZERO: ninguém terminou o jogo ainda. É o MESMO engano que a
+-- página docs/TELEMETRIA.md documenta desde o #120, reintroduzido por um
+-- filtro novo — sinal de que a regra tem que ser positiva ("o que caracteriza
+-- um jogador") e não uma lista de assinaturas de robô a tapar uma por uma.
+-- Jogador de verdade sempre entra numa fase antes de vencer ou morrer.
 
 -- `security_invoker = on` é OBRIGATÓRIO aqui: `playtest_events` tem RLS ligado e
 -- NÃO tem policy de SELECT para anon (leitura só do dashboard/service role, por
@@ -39,8 +51,9 @@ with sessoes as (
 humanas as (
   select session_id
   from sessoes
-  where not (phase_enters > 3 and dur_s / nullif(phase_enters, 0) < 3)
-    and not testar_fase
+  where phase_enters > 0                                            -- entrou numa fase
+    and not (phase_enters > 3 and dur_s / phase_enters < 3)          -- cadência humana
+    and not testar_fase                                             -- não é TESTAR FASE
 )
 select e.*
 from public.playtest_events e

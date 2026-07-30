@@ -237,6 +237,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   // Parry "Reclamar"
   private parryActiveUntil = 0;
+  /** Já acertou um parry nesta run? Antes disso, errar não custa Energia —
+   *  ver o comentário na expiração da janela, em update(). */
+  jaAcertouParry = false;
   private parryCooldownUntil = 0;
   onParrySuccess?: (fromX: number) => void;
   private lastSanityDrainAt = 0;
@@ -425,6 +428,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (this.parryVrDrop > 0) this.vr += this.parryVrDrop;
       Sfx.parrySuccess();
       Telemetry.verb("parry");
+      this.jaAcertouParry = true; // daqui pra frente, errar volta a custar Energia
       this.setTint(0xffdd00);
       this.scene.time.delayedCall(180, () => this.clearTint());
       this.scene.cameras?.main?.shake(60, 0.01);
@@ -790,12 +794,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
           PARRY_WINDOW_MS + this.parryWindowBonus + burnout.parryWindowDelta,
         );
         this.parryActiveUntil = time + windowMs;
+        // TENTATIVA, não acerto. `Telemetry.verb("parry")` só dispara no parry
+        // BEM-SUCEDIDO (em takeDamage), então "parry = 0" no banco não
+        // distinguia duas coisas completamente diferentes: ninguém aperta F
+        // (problema de descoberta) ou aperta e erra a janela (problema de
+        // dificuldade/feedback). Sem separar isso, qualquer ajuste no combate
+        // seria chute. Medido: 0,0 parry por run em 26 sessões humanas.
+        Telemetry.verb("parryTry");
         this.setTint(0x00ffdd);
         const windowEnd = this.parryActiveUntil;
         this.scene.time.delayedCall(windowMs + 10, () => {
           if (!this.scene?.time) return;
           if (this.parryActiveUntil >= windowEnd) {
-            this.energy = Math.max(0, this.energy - PARRY_WHIFF_ENERGY_COST);
+            // APRENDIZADO SAI DE GRAÇA: errar o parry custava 6 de Energia desde
+            // a primeira tentativa. Com janela de 200ms, isso PUNIA quem estava
+            // descobrindo o verbo — o jogo reforçava negativamente a
+            // experimentação, e a telemetria mostra 0 parry por run em 26
+            // sessões. O custo passa a valer só DEPOIS do primeiro parry
+            // certeiro da run: até aprender, errar custa tempo (o cooldown), não
+            // recurso. Depois de aprender, o risco volta — o tradeoff é a graça
+            // do verbo, não o pedágio de entrada.
+            if (this.jaAcertouParry) {
+              this.energy = Math.max(0, this.energy - PARRY_WHIFF_ENERGY_COST);
+            }
             this.clearTint();
             Sfx.parryWhiff();
           }
