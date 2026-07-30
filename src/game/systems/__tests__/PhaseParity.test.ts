@@ -137,6 +137,24 @@ describe("paridade Fase 1 ↔ BasePhaseScene", () => {
     expect(semComentarios(handler)).toContain('Telemetry.verb("special")');
   });
 
+  test("fecharExpediente zera o VR na RUN, não só no player (farm de Reconhecimento)", () => {
+    // `persist()` roda ANTES de `fecharExpediente()` e copia `player.vr → run.vr`.
+    // Zerando apenas o player, `run.vr` sobrevive e o `buildPlayer` da fase
+    // seguinte devolve o mesmo VR — que é convertido DE NOVO. Farm infinito de
+    // Reconhecimento, sem erro nenhum aparecendo. Pego dirigindo a cadeia de
+    // fases: 20 VR viravam 10, 20, 30, 40 de Reconhecimento em 4 portas.
+    const corpo = semComentarios(corpoDoMetodo(base, "protected fecharExpediente("));
+    expect(corpo).toContain("r.vr = 0");
+    expect(corpo).toContain("Math.floor(r.vr * 0.5)");
+  });
+
+  test("a Fase 1 dá entrada às salas opcionais (elas ficaram órfãs sem a Copa)", () => {
+    // As 4 salas LDtk só eram alcançáveis pela porta do meio da Copa. A Fase 1
+    // tem create() próprio, então precisa chamar por conta — senão a fase mais
+    // jogada do jogo é justamente a que não oferece o desvio.
+    expect(semComentarios(fase1)).toContain("spawnSalaOpcional");
+  });
+
   test("os quatro bugs de paridade já corrigidos não voltam", () => {
     const f1 = semComentarios(fase1);
     // Relógio do expediente (senão a run inteira fica 18:00 congelado).

@@ -177,6 +177,20 @@ export function showTelegraph(
       "telegraph_color",
       `!! (vermelho) = investida: PARRY ou reposicione.  ! (${rangedName}) = tiro: saia da linha.`,
     );
+    // A LIÇÃO DO PARRY VIVE AQUI, e não em "inimigo chegou perto".
+    //
+    // A `OpenSpaceV2Scene` ensinava parry quando um estagiário se aproximava a
+    // 130px. Mas o dano dele é por CONTATO contínuo, não um golpe com janela: a
+    // janela de parry tem 200ms e não há nada para cronometrar contra. O jogador
+    // apertava F, não acontecia nada (ou pior, antes deste PR ainda perdia 6 de
+    // Energia) e aprendia que o verbo não funciona. Medido: 0 parry por run em 26
+    // sessões humanas.
+    //
+    // A investida TELEGRAFADA é o único instante em que um parry pode acertar — e
+    // este é o ponto único por onde toda investida do jogo passa. Ensinar aqui é
+    // ensinar no frame em que a ação tem efeito. A fila do TutorialPrompts
+    // serializa este banner após o `telegraph_color`.
+    TutorialPrompts.maybeShow(scene, "parry", "⚠ AGORA: [ F ] RECLAMAR absorve a investida!");
   }
   // TERCEIRO canal da mesma informação: o CONTORNO do inimigo pulsa na cor do
   // aviso. O "!!" flutua acima da cabeça e pode ficar encoberto por cenário, por

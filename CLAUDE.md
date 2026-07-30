@@ -231,13 +231,22 @@ fase, inclusive pela da Fase 1 (que tem porta própria):
 | `fgts += 10` na 1ª ida à Copa                             | 1ª fase fechada (`run.primeiraFaseFechada`)                                                                                                                                                                                                |
 | `route`/`route2` fixados por seed no `avancar()`          | `escolherVarianteDeRota()` — **a peça mais silenciosa**: sem ela as Fases 2 e 3 cairiam sempre no mesmo lado da bifurcação e metade do conteúdo autorado (fundo/título/objetivo/layout/inimigos) sairia do jogo sem erro nenhum aparecendo |
 
-### ⚠ Órfão do corte: as 4 salas opcionais LDtk
+### As 4 salas opcionais LDtk foram RE-ALCANÇÁVEIS pelas fases
 
 `LdtkRoomScene` (Arquivo Morto, Depósito, Servidor Legado, Sala de Troféus) só era
-alcançável pela **porta do meio da Copa**. Elas têm cenário de verdade e um gate
-próprio (`LdtkRooms.test.ts`), e agora **não têm entrada no jogo normal** — seguem
-alcançáveis por TESTAR FASE. Dar-lhes uma porta dentro das fases é trabalho em
-aberto, sinalizado de propósito em vez de escondido.
+alcançável pela porta do meio da Copa, e ficou órfã com o corte. Hoje cada fase
+oferece o desvio: `BasePhaseScene.spawnSalaOpcional` põe uma **2ª porta 190px antes
+da saída**, liberada junto com ela (depois do boss — desviar no meio do combate não
+é escolha, é fuga).
+
+**A sala DESEMBOCA na fase seguinte, não volta.** Voltar para a fase de origem
+chamaria `create()` outra vez e respawnaria tudo (inimigos, boss, drops) — confuso
+e farm. Então o desvio acontece NO CAMINHO DE SAÍDA: `fecharExpediente()` roda ao
+entrar na sala (a fase FOI concluída) e `run.salaSaidaPara` diz à sala onde
+desembocar. O preço do desvio é o relógio do expediente, que a sala consome.
+
+A **Fase 5 não tem desvio** de propósito: ela desemboca no CEO, e um depósito no
+caminho da diretoria mata a tensão que a cena monta.
 
 ## OpenSpaceV2Scene (rendering limpo)
 
@@ -736,7 +745,12 @@ Regras de bolso extraídas do trabalho recente — aplicar antes de "só ajustar
 
 `TutorialPrompts.maybeShow(scene, id, text)` enfileira um banner de 1 linha (💡, topo-centro, `setScrollFactor(0)` depth 1200) que **some sozinho** em 4,5s ou ao 1º `keydown`. Cada `id` aparece **1× para sempre** (flag em `localStorage` `vidaclt:tut`); a fila é por-cena (2 dicas juntas → a 2ª espera). Zero impacto em gameplay — só legenda o SISTEMA no momento em que ele aparece. `reset()` limpa as flags (retestar), `seen(id)` checa antes.
 
-Gatilhos ligados (9): `goal` (objetivo da Fase 1), `vr` (1º VR pego — moeda), `dash` (ameaça a <240px → esquiva), `special` (grupo de ≥2 inimigos → AoE), `sanity` (1ª piora de faixa, em `SanityFx`), `burnout` (entrada no Burnout/VAI NA RAÇA, em `SanityFx`), `threat` (1º marcador de ameaça, em `ThreatMarkers`), `copa` (entrada na Copa), `death` (1ª Rescisão — explica o loop, em `GameOverScene`). Parry é ensinado à parte, por demonstração na zona 1 (`parryTaught`).
+Gatilhos ligados (9): `goal` (objetivo da Fase 1), `vr` (1º VR pego — moeda), `dash` (ameaça a <240px → esquiva), `special` (grupo de ≥2 inimigos → AoE), `sanity` (1ª piora de faixa, em `SanityFx`), `burnout` (entrada no Burnout/VAI NA RAÇA, em `SanityFx`), `threat` (1º marcador de ameaça, em `ThreatMarkers`), `copa` (entrada na Copa), `death` (1ª Rescisão — explica o loop, em `GameOverScene`). **O parry é ensinado no
+`showTelegraph`** (`Enemies.ts`), na INVESTIDA telegrafada — o único instante em que
+um parry pode acertar. Antes era ensinado por proximidade de estagiário na zona 1,
+mas o dano dele é por CONTATO contínuo, sem janela para cronometrar: o jogador
+apertava F, nada acontecia, e aprendia que o verbo não serve (0 parry por run em 26
+sessões medidas).
 
 ### Juice de combate (CombatFx.ts)
 
@@ -777,7 +791,7 @@ bun dev                      # servidor de desenvolvimento
 bun run build                # build de produção (vite build + poda do deploy, ver Decisões)
 bun lint                     # ESLint
 bun test src/game            # testes unitários (bun:test) — mesma checagem do CI
-bun sim:balance              # Balance Simulator: DPS por classe/arma, TTK por inimigo, pressão + flags de outlier (--loop=N / --json / --gate)
+bun sim:balance              # Balance Simulator: DPS por classe/arma, TTK por inimigo, pressão, ESPECIAL (K) por classe + flags de outlier (--loop=N / --json / --gate)
 bun juice:report             # Juice report: orçamento de feel (squash & stretch, hit-stop, shake) da fonte única systems/Juice.ts (--json)
 bun smoke                    # smoke de cenas: boota CADA cena headless; falha se houver erro de console (rode ANTES de subir mudança visual/de cena)
 bun validate:levels          # gate de NÍVEL: boota cada fase headless em várias seeds/rotas e reprova se o LevelValidator marcar a fase injogável (plataforma inalcançável, spawn inseguro, saída ausente). Roda no CI (job smoke). Complementa o smoke: "boota" vs "é jogável/justa"

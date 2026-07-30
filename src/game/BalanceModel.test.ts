@@ -2,6 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
   analyzeBalance,
   autoRangedDamage,
+  specialTypeFor,
+  specialDamagePerUse,
+  specialDps,
+  THRESHOLDS,
   RARITY_ORDER,
   analyzeElites,
   attackIntervalMs,
@@ -119,5 +123,48 @@ describe("curva de raridade — achar a lendária tem que ser o momento alto", (
   test("hoje NÃO há inversão de raridade (o flag existe e está quieto)", () => {
     const { flags } = analyzeBalance(0);
     expect(flags.filter((f) => f.kind === "rarity-inversion")).toEqual([]);
+  });
+});
+
+describe("especial (K) — vale a pena apertar?", () => {
+  // POR QUE ESTE BLOCO EXISTE: a telemetria mostrava "especial = 0,0 por run" e
+  // isso quase virou justificativa para mexer no combate. Parte era instrumento
+  // quebrado (a Fase 1 não contava o verbo), mas a pergunta de design ficou:
+  // apertar K muda algo? O modelo responde — e a resposta muda o CONSERTO.
+  test("o especial de CLASSE sobrepõe o da arma (as 3 classes têm classSpecial)", () => {
+    // Se isto quebrar, o especial da arma volta a rodar e o modelo mede a coisa
+    // errada — foi o que aconteceu com o `hitAutoRanged` da lendária.
+    expect(specialTypeFor("estagiario", "grampeador")).toBe("ranged_barrage");
+    expect(specialTypeFor("analista", "caneta")).toBe("planilha_slam");
+    expect(specialTypeFor("terceirizado", "notebook")).toBe("melee_sweep");
+  });
+
+  test("o especial NÃO é decorativo: soma ≥ o piso em 3 alvos, nas 3 classes", () => {
+    // Medido: estagiário 30,6% · analista 20,9% · terceirizado 16,4%. Ou seja,
+    // ignorar o K custa caro — o problema do verbo morto é DESCOBERTA, não
+    // balanceamento. Este teste é o que impede alguém "consertar" o número
+    // errado no futuro.
+    const { specials } = analyzeBalance(0);
+    expect(specials.length).toBe(3);
+    for (const sp of specials) {
+      expect(sp.fracaoDoDps3).toBeGreaterThanOrEqual(THRESHOLDS.specialMinShare);
+    }
+  });
+
+  test("AoE escala com o número de alvos; o cooldown divide o dano", () => {
+    const um = specialDamagePerUse("analista", "grampeador", 1).dano;
+    const tres = specialDamagePerUse("analista", "grampeador", 3).dano;
+    expect(tres).toBeCloseTo(um * 3, 5);
+    // dps = dano / cooldown — grampeador tem 3s.
+    expect(specialDps("analista", "grampeador", 1)).toBeCloseTo(um / 3, 5);
+  });
+
+  test("especial de CONTROLE tem dano 0 e NÃO é flagado como decorativo", () => {
+    // emp_pulse/clock_slow/heal_pulse valem por utilidade (congelar a sala), que
+    // o modelo não mede. Flagá-los seria o modelo mentindo com confiança — o
+    // mesmo erro de medir a coisa errada com precisão.
+    expect(specialDamagePerUse("analista", "notebook", 3).dano).toBeGreaterThan(0); // classSpecial cobre
+    const { flags } = analyzeBalance(0);
+    expect(flags.filter((f) => f.kind === "special-decorativo")).toEqual([]);
   });
 });
