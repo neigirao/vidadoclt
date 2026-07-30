@@ -65,6 +65,26 @@ o que quebrou o filtro anterior. A view também exclui sessões de **TESTAR FASE
 (`payload ? 'testPhase'`): pular direto para uma fase é playtest dirigido, não
 jogador atravessando o funil.
 
+### O mesmo engano, duas vezes: a regra tem que ser POSITIVA
+
+A primeira versão da view filtrava **só por cadência** — e cadência não existe
+quando não há `phase_enter` nenhum. O `bun smoke` boota `VitoriaScene` e
+`GameOverScene` DIRETO, sem passar por fase: cada boot vira uma sessão de ~1s com
+exatamente 1 `victory` + 1 `death` e zero verbos. Eram **181 sessões** entrando
+como humanas, e a view respondia **"181 vitórias"** quando o número real é
+**zero** — ninguém terminou o jogo ainda.
+
+É literalmente o engano que esta página documenta desde o #120, reintroduzido por
+um filtro novo. A lição: **descreva o que caracteriza um JOGADOR**, não uma lista
+de assinaturas de robô a tapar uma por uma. A regra que sobrou é positiva —
+jogador de verdade entra numa fase antes de vencer ou morrer:
+
+```sql
+where phase_enters > 0                                   -- entrou numa fase
+  and not (phase_enters > 3 and dur_s / phase_enters < 3) -- cadência humana
+  and not testar_fase
+```
+
 Para dados a partir de 27/07/2026 o filtro é desnecessário — o guard de
 `navigator.webdriver` (#120) impede a escrita na origem, e **verificado no banco,
 nenhuma sessão de automação foi gravada depois disso**. A view é para o histórico
@@ -109,3 +129,34 @@ quase ninguém vê o resto.**
 
 Ressalva: a amostra é pequena e os números sobem com tráfego. A **forma** da
 curva é o sinal; os valores absolutos, não.
+
+## Desfecho e verbos (26 sessões humanas) — o dado mais desconfortável do projeto
+
+| sinal                        |    valor |
+| ---------------------------- | -------: |
+| **vitórias**                 |    **0** |
+| bosses derrotados            |       18 |
+| mortes                       |       18 |
+| **quits**                    |   **20** |
+| duração mediana da sessão    |  **77s** |
+| duração máxima já registrada | 6min 12s |
+| dash por run                 |      0,7 |
+| **especial (K) por run**     |  **0,0** |
+| **parry por run**            |  **0,0** |
+
+Três leituras, em ordem de importância:
+
+1. **13 dos 20 quits acontecem na COPA.** Dos 17 que chegam à sala segura, 13
+   fecham a aba ali — não numa luta, no descanso. É o maior sinal isolado do
+   banco: a run não morre de dificuldade, morre de perda de embalo.
+2. **Quits (20) superam mortes (18).** As pessoas abandonam mais do que perdem.
+   Antes de qualquer ajuste de balanceamento, o problema é de retenção.
+3. **Especial e parry NUNCA foram usados. Nem uma vez.** Dois dos sete verbos de
+   combate estão mortos, e o dash está em 0,7/run. É exatamente a pergunta 3
+   desta página — "se der ~0, o combate colapsou em andar e bater" — respondida
+   com zero. Isso supera qualquer item de arte na fila.
+
+E ninguém nunca chegou ao fim: o jogo **não tem problema de duração medido**,
+porque nenhuma sessão passou de 6 minutos. "Encurtar o jogo" resolveria uma
+queixa que os dados ainda não mostram; a queixa que eles mostram é o primeiro
+minuto e a Copa.
