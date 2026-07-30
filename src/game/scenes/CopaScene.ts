@@ -39,6 +39,9 @@ export class CopaScene extends Phaser.Scene {
   private salaDoor?: Phaser.GameObjects.Image;
   private salaPrompt?: Phaser.GameObjects.Text;
   private salaPromptSeenAt = 0;
+  private fwdPrompt?: Phaser.GameObjects.Text;
+  private fwdPromptSeenAt = 0;
+  private doorFwd?: Phaser.GameObjects.Image;
   private salaLabel?: string;
   private startTimeMs = 0;
   private lastHealAt = 0;
@@ -160,6 +163,36 @@ export class CopaScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    // ── PORTA DA FRENTE ──────────────────────────────────────────────────────
+    // MEDIDO NA TELEMETRIA: 13 dos 20 abandonos de sessão acontecem na COPA —
+    // dos 17 jogadores que chegam à sala segura, 13 fecham a aba AQUI. Não numa
+    // luta: no descanso.
+    //
+    // A causa provável, achada lendo a cena: a Copa não tinha porta para frente.
+    // A única saída era o ÚLTIMO item de um menu de loja, atrás de um Ponto
+    // Eletrônico a 1.060px do spawn. Todas as cinco fases ensinam a mesma
+    // gramática — "porta + [E] para seguir" — e a Copa era a única sala que a
+    // quebrava: a ÚNICA porta visível nela ia para TRÁS. Quem não atravessasse
+    // a sala inteira e rolasse o menu até o fim não tinha como continuar a run.
+    //
+    // A loja segue existindo no Ponto e o item de avançar continua lá; ele deixa
+    // de ser o único caminho. Comprar volta a ser opcional em vez de pedágio.
+    const doorFwd = this.add.image(LEVEL_WIDTH - 46, FLOOR_Y - 30, "tex-door");
+    this.add
+      .text(LEVEL_WIDTH - 46, FLOOR_Y - 70, "AVANÇAR", {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#8fdc9a",
+      })
+      .setOrigin(0.5);
+    const fwdPrompt = this.add
+      .text(LEVEL_WIDTH - 46, FLOOR_Y - 90, "[E] avançar", {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#bff5c6",
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
     // Door back to OpenSpace
     const doorBack = this.add.image(40, FLOOR_Y - 30, "tex-door");
     this.add
@@ -275,7 +308,7 @@ export class CopaScene extends Phaser.Scene {
         "Copa: descanse, compre no Ponto (1–7) e bata o ponto (E) pra avançar.",
       ),
     );
-    this.hud.setObjective("Descanse, compre no Ponto e volte ao escritorio");
+    this.hud.setObjective("Recupere-se · Ponto = loja (opcional) · porta da DIREITA para avançar");
 
     // Item 7 — emergency low-sanity heal: if player arrives with < 25 sanity,
     // offer a free sanity restore (sanidade como decisão de gameplay)
@@ -372,26 +405,10 @@ export class CopaScene extends Phaser.Scene {
       const r = getRun(this);
       r.weaponId = id;
     };
-    this.shop.onAdvance = () => {
-      this.persist();
-      const r = getRun(this);
-      r.reconhecimento += Math.floor(r.vr * 0.5);
-      r.vr = 0;
-      const dest = r.nextScene ?? "OpenSpaceV2Scene";
-      r.cameFrom = "copa"; // preserve energy/sanity on the next phase
-      r.nextScene = undefined;
-      // FLUXO LINEAR (decisão do dono): sem TELA de escolha de rota. O jogo segue
-      // fixo 1→2→3→4→5→CEO. Mas as Fases 2/3 têm DUAS variantes autoradas cada
-      // (fundo/título/objetivo/layout/inimigos + modificador de stat). Em vez de
-      // fixar uma e jogar a outra fora, escolhemos a variante por SEED (por run):
-      // recicla todo o conteúdo autorado e revive os modificadores de rota, sem
-      // reintroduzir a bifurcação. `??=` fixa por run (persiste na visita seguinte).
-      const seedNum = r.seed ? parseInt(r.seed.replace(/\D/g, "").slice(0, 6) || "0", 10) : 0;
-      if (dest === "Phase2Scene") r.route ??= seedNum % 2 === 0 ? "comercial" : "atendimento";
-      if (dest === "Phase3Scene")
-        r.route2 ??= Math.floor(seedNum / 2) % 2 === 0 ? "produto" : "tecnologia";
-      this.scene.start(dest);
-    };
+    // O AVANÇO é o mesmo, venha do menu do Ponto ou da porta da direita (ver
+    // buildDoorFwd). Uma implementação só — duplicar isto é como a Fase 1 acabou
+    // com meia dúzia de blocos divergentes da Base (ver PhaseParity.test.ts).
+    this.shop.onAdvance = () => this.avancar();
 
     this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC).on("down", () => {
       // Se a loja está aberta, ESC fecha a loja (não abre o pause por cima).
@@ -408,7 +425,7 @@ export class CopaScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         GAME_HEIGHT - 18,
-        "E para interagir  •  Cafe restaura Energia  •  Ponto abre a loja",
+        "E para interagir  •  Cafe restaura Energia  •  Ponto abre a loja  •  porta da direita avança",
         { fontFamily: "monospace", fontSize: "11px", color: "#aaaaaa" },
       )
       .setOrigin(0.5)
@@ -489,6 +506,27 @@ export class CopaScene extends Phaser.Scene {
     }
 
     // Door back trigger — returns to the phase the player came from
+    // A fiação da PORTA DA FRENTE mora aqui, e não junto do visual dela lá
+    // atrás: `physics.add.overlap` precisa do `this.player`, que só nasce
+    // depois. Registrando antes, o overlap recebia `undefined` e o Phaser
+    // estourava "reading 'isParent'" TODO FRAME (54 erros no `bun smoke`).
+    const fwdZone = this.add.zone(LEVEL_WIDTH - 46, FLOOR_Y - 30, 44, 64);
+    this.physics.add.existing(fwdZone, true);
+    this.physics.add.overlap(this.player, fwdZone, () => {
+      if (
+        Phaser.Input.Keyboard.JustDown(this.interactKey) ||
+        this.player.gamepadInteractJustPressed
+      ) {
+        this.avancar();
+        return;
+      }
+      doorFwd.setTint(0xbff5c6);
+      fwdPrompt.setVisible(true);
+      this.fwdPromptSeenAt = this.time.now;
+    });
+    this.fwdPrompt = fwdPrompt;
+    this.doorFwd = doorFwd;
+
     const doorBackZone = this.add.zone(40, FLOOR_Y - 30, 40, 60);
     this.physics.add.existing(doorBackZone, true);
     this.physics.add.overlap(this.player, doorBackZone, () => {
@@ -752,6 +790,30 @@ export class CopaScene extends Phaser.Scene {
     });
   }
 
+  /** Sai da Copa para a próxima fase. Chamado pelo item do Ponto E pela porta da
+   *  direita — uma implementação só, nunca duas. */
+  private avancar() {
+    this.persist();
+    const r = getRun(this);
+    r.reconhecimento += Math.floor(r.vr * 0.5);
+    r.vr = 0;
+    const dest = r.nextScene ?? "OpenSpaceV2Scene";
+    r.cameFrom = "copa"; // preserve energy/sanity on the next phase
+    r.nextScene = undefined;
+    // FLUXO LINEAR (decisão do dono): sem TELA de escolha de rota. O jogo segue
+    // fixo 1→2→3→4→5→CEO. Mas as Fases 2/3 têm DUAS variantes autoradas cada
+    // (fundo/título/objetivo/layout/inimigos + modificador de stat). Em vez de
+    // fixar uma e jogar a outra fora, escolhemos a variante por SEED (por run):
+    // recicla todo o conteúdo autorado e revive os modificadores de rota, sem
+    // reintroduzir a bifurcação. `??=` fixa por run (persiste na visita seguinte).
+    const seedNum = r.seed ? parseInt(r.seed.replace(/\D/g, "").slice(0, 6) || "0", 10) : 0;
+    if (dest === "Phase2Scene") r.route ??= seedNum % 2 === 0 ? "comercial" : "atendimento";
+    if (dest === "Phase3Scene")
+      r.route2 ??= Math.floor(seedNum / 2) % 2 === 0 ? "produto" : "tecnologia";
+    Sfx.doorOpen();
+    this.scene.start(dest);
+  }
+
   private dropVR(x: number, y: number, count = 1) {
     for (let i = 0; i < count; i++) {
       const d = this.drops.create(
@@ -780,6 +842,10 @@ export class CopaScene extends Phaser.Scene {
     if (this.salaPrompt && time - this.salaPromptSeenAt > 120) {
       this.salaPrompt.setVisible(false);
       this.salaDoor?.setTint(0xffaa55);
+    }
+    if (this.fwdPrompt && time - this.fwdPromptSeenAt > 120) {
+      this.fwdPrompt.setVisible(false);
+      this.doorFwd?.clearTint();
     }
 
     // Faxineiro swings check
@@ -904,8 +970,8 @@ export class CopaScene extends Phaser.Scene {
           ? "Cafeteira recarregando..."
           : "[ E ]  Cafe Triplo (2 VR)"
         : nearPonto
-          ? "[ E ]  Ponto Eletrônico — bater o ponto e avançar →"
-          : "→ Ande até o Ponto Eletrônico para avançar",
+          ? "[ E ]  Ponto Eletrônico — loja"
+          : "→ Porta da DIREITA para avançar  ·  Ponto = loja (opcional)",
       burnoutMods: this.player.getBurnoutMods(),
       tremoring: this.player.isTremoring(time),
       tremorWarnMs: this.player.getTremorWarnMs(time),
@@ -918,12 +984,12 @@ export class CopaScene extends Phaser.Scene {
           ? "Cafeteira recarregando..."
           : "E: Cafe Triplo (2 VR  +25 Energia  -5 Sanidade)"
         : nearPonto
-          ? "E: Ponto Eletrônico — bater o ponto e avançar para a próxima fase"
+          ? "E: Ponto Eletrônico — loja (armas, perks e o ponto). Sair é pela porta da direita"
           : nearSala
             ? `E: ${this.salaLabel} — desvio OPCIONAL (limpe a sala, ganhe VR e volte)`
             : this.salaLabel
-              ? `→ Ponto Eletrônico (direita) para avançar  •  porta do meio: ${this.salaLabel} (opcional)  •  ← voltar`
-              : "→ Ande até o Ponto Eletrônico (direita) para avançar  •  ← voltar pelo escritório",
+              ? `→ PORTA DA DIREITA para avançar  •  Ponto: loja  •  porta do meio: ${this.salaLabel} (opcional)  •  ← voltar`
+              : "→ PORTA DA DIREITA para avançar  •  Ponto Eletrônico: loja  •  ← voltar pelo escritório",
     );
   }
 }

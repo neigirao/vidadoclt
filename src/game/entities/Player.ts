@@ -790,6 +790,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
           PARRY_WINDOW_MS + this.parryWindowBonus + burnout.parryWindowDelta,
         );
         this.parryActiveUntil = time + windowMs;
+        // TENTATIVA, não acerto. `Telemetry.verb("parry")` só dispara no parry
+        // BEM-SUCEDIDO (em takeDamage), então "parry = 0" no banco não
+        // distinguia duas coisas completamente diferentes: ninguém aperta F
+        // (problema de descoberta) ou aperta e erra a janela (problema de
+        // dificuldade/feedback). Sem separar isso, qualquer ajuste no combate
+        // seria chute. Medido: 0,0 parry por run em 26 sessões humanas.
+        Telemetry.verb("parryTry");
         this.setTint(0x00ffdd);
         const windowEnd = this.parryActiveUntil;
         this.scene.time.delayedCall(windowMs + 10, () => {

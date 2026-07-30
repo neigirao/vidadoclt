@@ -47,10 +47,9 @@ A definição vive versionada em
 
 ### ⚠ O filtro ANTERIOR desta página vazava — e os números abaixo dele estavam errados
 
-A CTE que ficava aqui classificava como robô quem fizesse `dur_s < 60 AND cenas
-
-> = 8`. **Uma sessão do `bun smoke` boota 6 fases em 38s\*\*: menos de 8 cenas
-> distintas, então passava pelo filtro como se fosse humana.
+A CTE que ficava aqui classificava como robô quem fizesse
+`dur_s < 60 AND cenas >= 8`. **Uma sessão do `bun smoke` boota 6 fases em 38s**:
+menos de 8 cenas distintas, então passava pelo filtro como se fosse humana.
 
 Medido: **343 das 552 sessões do banco são automação, e elas respondem por 97%
 de todos os `phase_enter`.** Como a tabela de exposição por fase (62/46/41/41/41)
@@ -100,6 +99,8 @@ anterior, que não dá para rotular retroativamente.
    penalidade constante em vez de decisão.
 3. **Alguém usa dash / especial / parry?** (`avgVerbsPerRun`) Se der ~0, o
    combate colapsou em "andar e bater" e isso supera qualquer item de arte.
+   **Mas confira o instrumento primeiro** — os zeros de especial e parry eram
+   medição faltando, não comportamento (ver a seção de verbos no fim).
 
 ## Exposição real por cena
 
@@ -141,8 +142,10 @@ curva é o sinal; os valores absolutos, não.
 | duração mediana da sessão    |  **77s** |
 | duração máxima já registrada | 6min 12s |
 | dash por run                 |      0,7 |
-| **especial (K) por run**     |  **0,0** |
-| **parry por run**            |  **0,0** |
+| especial (K) por run         |    0,0 ⚠ |
+| parry por run                |    0,0 ⚠ |
+
+⚠ Os dois zeros de verbo eram **instrumento quebrado** — ver a seção abaixo.
 
 Três leituras, em ordem de importância:
 
@@ -151,10 +154,33 @@ Três leituras, em ordem de importância:
    banco: a run não morre de dificuldade, morre de perda de embalo.
 2. **Quits (20) superam mortes (18).** As pessoas abandonam mais do que perdem.
    Antes de qualquer ajuste de balanceamento, o problema é de retenção.
-3. **Especial e parry NUNCA foram usados. Nem uma vez.** Dois dos sete verbos de
-   combate estão mortos, e o dash está em 0,7/run. É exatamente a pergunta 3
-   desta página — "se der ~0, o combate colapsou em andar e bater" — respondida
-   com zero. Isso supera qualquer item de arte na fila.
+3. **Dash em 0,7 por run.** Este número é sólido: o dash é contado no próprio
+   dash, em `Player.ts`, que toda fase compartilha.
+
+### ⚠ "Especial = 0" e "parry = 0" eram INSTRUMENTO QUEBRADO, não comportamento
+
+Antes de mexer no combate por causa desses zeros — e a tentação era grande —
+valeu conferir se eles estavam sendo medidos. Não estavam:
+
+- **`special`** era contado dentro de `BasePhaseScene.handleSpecial()`. A Fase 1
+  tem handler próprio (`onSpecialAttack` inline) e **não chamava**
+  `Telemetry.verb("special")`. Como **23 das 26 sessões jogam a Fase 1**, o
+  especial praticamente não tinha como ser contado. Corrigido, e travado por
+  teste em `PhaseParity.test.ts`.
+- **`parry`** só era contado no parry **BEM-SUCEDIDO** (em `takeDamage`). Então
+  "parry = 0" misturava duas coisas opostas, que pedem consertos opostos:
+  ninguém aperta F (descoberta) ou aperta e erra a janela
+  (dificuldade/feedback). Agora existe `parryTry` (tentativa) ao lado de `parry`
+  (acerto), e a razão entre os dois responde a pergunta.
+
+**A regra que isso reforça:** antes de tratar um zero como fato de design,
+verifique se o caminho de medição existe na fase onde os jogadores realmente
+estão. É o terceiro instrumento quebrado deste projeto (as 486 vitórias falsas,
+o filtro de bot que vazava, e agora os verbos) e os três tinham a mesma cara:
+um número plausível, preciso, e sobre a coisa errada.
+
+A pergunta 3 desta página segue **em aberto** — precisa de uma leitura nova, com
+tráfego, depois destas correções.
 
 E ninguém nunca chegou ao fim: o jogo **não tem problema de duração medido**,
 porque nenhuma sessão passou de 6 minutos. "Encurtar o jogo" resolveria uma

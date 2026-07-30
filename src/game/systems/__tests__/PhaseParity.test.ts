@@ -126,6 +126,17 @@ describe("paridade Fase 1 ↔ BasePhaseScene", () => {
     expect(orfas).toEqual([]);
   });
 
+  test("a Fase 1 conta o especial na telemetria (a Base conta dentro de handleSpecial)", () => {
+    // Divergência que NÃO aparece no jogo, só no banco — e por isso é a mais
+    // perigosa: a Fase 1 tem handler de especial próprio e não chamava
+    // `Telemetry.verb("special")`. Como 23 das 26 sessões humanas jogam a Fase 1,
+    // a telemetria dizia "especial = 0,0 por run" e isso foi lido como "o verbo
+    // está morto". Instrumento quebrado leva a decisão de design errada com ar
+    // de evidência — o mesmo erro das 486 vitórias falsas (#120).
+    const handler = corpoDoMetodo(fase1, "this.player.onSpecialAttack =");
+    expect(semComentarios(handler)).toContain('Telemetry.verb("special")');
+  });
+
   test("os quatro bugs de paridade já corrigidos não voltam", () => {
     const f1 = semComentarios(fase1);
     // Relógio do expediente (senão a run inteira fica 18:00 congelado).
