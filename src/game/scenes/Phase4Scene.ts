@@ -65,11 +65,11 @@ export class Phase4Scene extends BasePhaseScene {
     return {
       x: LEVEL_WIDTH - 60,
       tint: 0x8a8a8a,
-      label: "COPA\n[BLOQUEADO]",
+      label: "FASE 5\n[BLOQUEADO]",
       cameFrom: "phase4",
-      destScene: "CopaScene",
-      nextScene: "Phase5Scene",
-      nearLabel: "Entrar na Copa",
+      destScene: "Phase5Scene",
+      nextScene: undefined,
+      nearLabel: "Avançar para a FASE 5",
     };
   }
 

@@ -179,11 +179,11 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     return {
       x: LEVEL_WIDTH - 60,
       tint: 0x555555,
-      label: "COPA\n[BLOQUEADO]",
+      label: "FASE 2\n[BLOQUEADO]",
       cameFrom: "openspace",
-      destScene: "CopaScene",
-      nextScene: "Phase2Scene",
-      nearLabel: "Entrar na Copa",
+      destScene: "Phase2Scene",
+      nextScene: undefined,
+      nearLabel: "Avançar para a FASE 2",
     };
   }
   protected getBossName(): string {
@@ -763,9 +763,12 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
       ) {
         this.persist();
         const r = getRun(this);
+        this.fecharExpediente(r); // economia que morava na Copa (VR→Reco, FGTS, respiro)
         r.cameFrom = "openspace";
-        r.nextScene = "Phase2Scene";
-        this.scene.start("CopaScene");
+        r.nextScene = undefined;
+        Sfx.doorOpen();
+        this.escolherVarianteDeRota(r, "Phase2Scene");
+        this.scene.start("Phase2Scene");
       }
     });
 

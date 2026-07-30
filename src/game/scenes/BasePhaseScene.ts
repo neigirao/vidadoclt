@@ -18,7 +18,9 @@ import { Lighting, Light } from "../systems/Lighting";
 import { loadSettings, ASSIST_DAMAGE_TAKEN_MULT, ASSIST_MIN_LIVES } from "../systems/Settings";
 import { Player } from "../entities/Player";
 import { expediente, startRunClock } from "../systems/RunClock";
+import { copaHealsSanity } from "../systems/Expediente";
 import { getRun, savePersisted } from "../systems/PlayerState";
+import type { RunState } from "../systems/PlayerState";
 import { menaceEnrageThreshold } from "../systems/Menace";
 import { WEAPONS, WEAPON_ICONS, WeaponId, WeaponDef } from "../systems/WeaponSystem";
 import { applyClassAndWeapon } from "../systems/PlayerLoadout";
@@ -55,6 +57,10 @@ export const FLOOR_Y = HUD_BOT_Y - 32;
 // abaixo do player (depth 10) — o CLT passa NA FRENTE da porta. Antes a porta
 // ficava em depth 0 e um prop de decor (depth 2) a ocultava na Fase 1.
 export const DOOR_DEPTH = 6;
+
+/** Sanidade devolvida ao fechar uma fase (herda o papel da Copa: o Faxineiro
+ *  curava +5/2s por proximidade e +40 no diálogo). Um respiro só, sem sala. */
+export const FIM_DE_FASE_SANIDADE = 25;
 
 export interface EnemyGroupDef {
   group: Phaser.Physics.Arcade.Group;
@@ -776,6 +782,8 @@ export abstract class BasePhaseScene extends Phaser.Scene {
         this.persist();
         Sfx.doorOpen();
         const r = getRun(this);
+        this.fecharExpediente(r);
+        this.escolherVarianteDeRota(r, doorCfg.destScene);
         r.cameFrom = doorCfg.cameFrom;
         if (doorCfg.nextScene) {
           r.nextScene = doorCfg.nextScene;
@@ -837,6 +845,65 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     // bioma + tocha quente no player + aura no boss. Nas Fases 2–5 o fundo é
     // skyline chapado — a luz dá atmosfera e disfarça isso. No-op sob reduceSanityFx.
     this.setupPhaseLighting();
+  }
+
+  /**
+   * Fecha a fase concluída: a ECONOMIA que morava na Copa.
+   *
+   * A Copa saiu do fluxo principal (as fases agora ligam direto na seguinte —
+   * medido: 13 dos 17 jogadores que entravam nela abandonavam a sessão ali). Mas
+   * ela não era só uma sala de descanso: era onde três coisas aconteciam, e
+   * cortá-la sem trazê-las junto quebraria a run inteira.
+   *
+   * 1. **VR → Reconhecimento.** O `avancar()` da Copa fazia
+   *    `reconhecimento += floor(vr * 0.5)`. Era o ÚNICO caminho de VR para a
+   *    meta-progressão numa run bem-sucedida (a morte converte a ×0.25, no
+   *    GameOverScene). Sem isto, quem JOGA BEM não levaria nada para a próxima
+   *    run — o oposto do que um roguelite precisa fazer.
+   * 2. **Cura de Sanidade.** O Faxineiro curava +5/2s por proximidade, e o
+   *    diálogo dele dava +40. Some tudo num respiro de fim de fase, mantendo o
+   *    gate `copaHealsSanity`: passadas as 20h a HORA EXTRA cancela a cura. A
+   *    virada de tom do prazo brando continua existindo.
+   * 3. **FGTS.** +10 na primeira ida à Copa; agora na primeira fase concluída.
+   */
+  protected fecharExpediente(r: RunState): void {
+    r.reconhecimento += Math.floor(this.player.vr * 0.5);
+    this.player.vr = 0;
+    if (!r.primeiraFaseFechada) {
+      r.primeiraFaseFechada = true;
+      r.fgts += 10;
+    }
+    savePersisted(r.reconhecimento, r.fgts, r.loopCount);
+    // O respiro só cura no expediente normal — na hora extra, o café não resolve.
+    if (copaHealsSanity(expediente(this).gameMinutes)) {
+      const antes = this.player.sanity;
+      this.player.sanity = Math.min(
+        this.player.maxSanity,
+        this.player.sanity + FIM_DE_FASE_SANIDADE,
+      );
+      const ganho = Math.round(this.player.sanity - antes);
+      if (ganho > 0) this.showPickupToast(`+${ganho} SANIDADE — fim do expediente nesta ala`);
+    } else {
+      this.showPickupToast("HORA EXTRA — sem descanso entre alas");
+    }
+  }
+
+  /**
+   * Fixa a VARIANTE autorada da fase de destino, por seed. Também morava no
+   * `avancar()` da Copa, e é a peça que mais silenciosamente quebraria ao cortá-la:
+   * sem isto, `run.route`/`route2` ficariam `undefined` e as Fases 2 e 3 cairiam
+   * sempre no mesmo lado da bifurcação — metade do conteúdo autorado (fundo,
+   * título, objetivo, layout, composição de inimigos) deixaria de existir no
+   * jogo, sem erro nenhum aparecendo.
+   *
+   * FLUXO LINEAR (decisão do dono): não há TELA de escolha de rota. A variante
+   * sai da seed, e `??=` a fixa por run.
+   */
+  protected escolherVarianteDeRota(r: RunState, dest: string): void {
+    const seedNum = r.seed ? parseInt(r.seed.replace(/\D/g, "").slice(0, 6) || "0", 10) : 0;
+    if (dest === "Phase2Scene") r.route ??= seedNum % 2 === 0 ? "comercial" : "atendimento";
+    if (dest === "Phase3Scene")
+      r.route2 ??= Math.floor(seedNum / 2) % 2 === 0 ? "produto" : "tecnologia";
   }
 
   /** Penumbra por bioma + luzes do player/boss. Ambiente sutil (fase normal, não
@@ -2418,7 +2485,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.nearestPickup = undefined;
   }
 
-  private showPickupToast(text: string) {
+  protected showPickupToast(text: string) {
     const sc = loadSettings().uiTextScale; // escala de texto (acessibilidade)
     const t = this.add
       .text(GAME_WIDTH / 2, 150, text, {
