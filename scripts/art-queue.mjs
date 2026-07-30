@@ -3,20 +3,43 @@
 //
 // POR QUE EXISTE: o `audit:anim` ordena por qualidade, e ordenar por qualidade
 // pura leva a gastar arte no lugar errado. Medido na telemetria já limpa
-// (docs/TELEMETRIA.md): a Fase 1 é vista por 62 sessões humanas e o CEO por 3.
-// Uma animação horrível que 5% dos jogadores veem vale menos que uma medíocre
+// (docs/TELEMETRIA.md): a Fase 1 é vista por 23 sessões humanas e o CEO por 2.
+// Uma animação horrível que 9% dos jogadores veem vale menos que uma medíocre
 // que todos veem. Esta fila multiplica o defeito pela exposição, então a ordem
 // que sai daqui é "onde a próxima hora de arte rende mais", não "o que está pior".
 //
 // A EXPOSIÇÃO é dado, não palpite — vem da tabela em docs/TELEMETRIA.md. Quando
-// houver mais tráfego, reler o banco e atualizar PESO_FASE.
+// houver mais tráfego, reler o banco (view `playtest_humano`) e atualizar.
 //
 // Uso: node scripts/art-queue.mjs [--top=N] [--json]
 // ─────────────────────────────────────────────────────────────────────────────
 import { spawnSync } from "node:child_process";
 
-// Sessões humanas que entram em cada fase (docs/TELEMETRIA.md).
-const PESO_FASE = { 1: 62, 2: 46, 3: 41, 4: 41, 5: 41, ceo: 3, copa: 17 };
+// Sessões DISTINTAS que entram em cada fase (view `playtest_humano`).
+//
+// Os valores antigos (62/46/41/41/41/3/17) vinham de um filtro de bot que
+// VAZAVA: ele classificava robô por "≥8 cenas em <60s", e uma sessão do
+// `bun smoke` boota 6 fases em 38s — passava como humana. 97% dos `phase_enter`
+// do banco eram automação, e contavam-se EVENTOS em vez de sessões. A fila de
+// arte estava priorizando com números inflados por ~7×.
+//
+// CAUDA = BLOCO ÚNICO, NÃO RANKING. Abaixo da Fase 2 o N medido é 1–2 (a Fase 4
+// chegou a aparecer ACIMA da Fase 3, o que é impossível num funil linear): a
+// ordem ali é ruído. Usar os valores crus faria a fila oscilar entre fases por
+// causa de uma sessão a mais, com ar de evidência. Por isso a cauda recebe um
+// PESO ÚNICO (2 = a média medida dela), e não o valor individual de cada fase.
+// A única afirmação que a amostra sustenta — e a única que a fila precisa — é
+// "quase todo mundo vê a Fase 1, quase ninguém vê o resto".
+const PESO_CAUDA = 2;
+const PESO_FASE = {
+  1: 23,
+  2: 6,
+  3: PESO_CAUDA,
+  4: PESO_CAUDA,
+  5: PESO_CAUDA,
+  ceo: PESO_CAUDA,
+  copa: 17,
+};
 
 // Prefixo do atlas → fase onde o inimigo aparece.
 const FASE = {
@@ -109,7 +132,11 @@ function fase(prefix) {
   const k = Object.keys(FASE)
     .filter((x) => p.startsWith(x))
     .sort((a, b) => b.length - a.length)[0];
-  return k ? FASE[k] : 3; // desconhecido: peso do meio, não some da fila
+  // Desconhecido: entra na cauda (peso baixo), não some da fila. Antes voltava
+  // `3` como "peso do meio" — o que era verdade quando a Fase 3 valia 41, mas
+  // hoje a cauda é o piso, então um prefixo novo não sequestra a fila por
+  // engano nem é descartado.
+  return k ? FASE[k] : 3;
 }
 
 const linhas = [];
@@ -122,7 +149,7 @@ for (const r of reports) {
     continue;
   }
   const f = fase(r.prefix);
-  const exp = PESO_FASE[f] ?? 41;
+  const exp = PESO_FASE[f] ?? PESO_CAUDA;
   const prioridade = defeito * (PESO_ACAO[r.state] ?? 0.5) * exp;
   linhas.push({
     prefix: r.prefix,

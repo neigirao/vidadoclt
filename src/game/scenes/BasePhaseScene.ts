@@ -2079,7 +2079,7 @@ export abstract class BasePhaseScene extends Phaser.Scene {
     this.hud?.setSpecial(this.player.classSpecialName ?? w.specialName);
   }
 
-  private updateSecondaryHud() {
+  protected updateSecondaryHud() {
     const sec = this.player.secondaryWeaponId as WeaponId | null;
     this.hud?.setSecondaryWeapon(sec ? `[Q] ${WEAPON_ICONS[sec]} ${WEAPONS[sec].name}` : null);
   }

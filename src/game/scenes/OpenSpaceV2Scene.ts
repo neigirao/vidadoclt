@@ -25,7 +25,7 @@ import {
 import { GerenteMicrogestor, EmailProjectil } from "../entities/Boss";
 import { startRunClock } from "../systems/RunClock";
 import { getRun, savePersisted } from "../systems/PlayerState";
-import { WEAPONS, WeaponId } from "../systems/WeaponSystem";
+import { WEAPONS, WEAPON_ICONS, WeaponId } from "../systems/WeaponSystem";
 import { ParticleFactory } from "../systems/ParticleFactory";
 import { playEnemyDeath } from "../systems/DeathAnim";
 import { SanityFx } from "../systems/SanityFx";
@@ -50,6 +50,7 @@ import { ProductivityMeter } from "../systems/ProductivityMeter";
 import { ContactShadows } from "../systems/ContactShadows";
 import { RimLight } from "../systems/RimLight";
 import { SecondaryMotion } from "../systems/SecondaryMotion";
+import { ThreatMarkers, ThreatType } from "../systems/ThreatMarkers";
 import { buildGrid, nextDirX, type PathGrid, type Rect as PathRect } from "../systems/Pathing";
 import { Apagao } from "../systems/Apagao";
 import { BasePhaseScene, DOOR_DEPTH } from "./BasePhaseScene";
@@ -648,7 +649,19 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         if (!enemy.active || !enemy.hit) return;
         const dmg = (ink.getData("damage") as number) ?? 10;
         const piercing = (ink.getData("piercing") as boolean) ?? false;
+        // ELITES no caminho do PROJÉTIL (paridade com BasePhaseScene e com o
+        // MeleeCombat). A Fase 1 chama sprinkleElites(), então há elites aqui —
+        // mas esta rota ignorava os três efeitos: a barreira do Sindicalizado
+        // não absorvia tiro, o VR bônus não caía e o explode não acontecia.
+        // Matar o mesmo elite no soco e no tiro dava resultados diferentes.
+        const eShield = (enemy.getData?.("eliteShieldHits") as number) ?? 0;
+        if (eShield > 0) {
+          enemy.setData?.("eliteShieldHits", eShield - 1);
+          if (!piercing) ink.destroy();
+          return;
+        }
         if (enemy.hit(Math.round(dmg * this.player.damageMult), 0)) {
+          const eBonus = (enemy.getData?.("eliteVrBonus") as number) ?? 0;
           const prodMult = this.prod.registerKill(enemy.x, enemy.y);
           // Cap do empilhamento evento×produtividade (economia de VR): evita
           // combos de ~5x que zeravam a tensão de escolha na 1ª Copa.
@@ -656,8 +669,9 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
           this.dropVR(
             enemy.x,
             enemy.y,
-            Math.max(1, Math.round(vrDrop * this.player.vrDropMult * combo)),
+            Math.max(1, Math.round(vrDrop * this.player.vrDropMult * combo + eBonus)),
           );
+          this.handleEliteExplode(enemy as GameEnemy & Phaser.GameObjects.Sprite);
           if (this.player.healOnKill > 0)
             this.player.energy = Math.min(
               this.player.maxEnergy,
@@ -770,6 +784,17 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.hud.setObjective("Sobreviva ao expediente e acesse a Copa");
     this.spawnStations(); // máquina de venda + totem de perk (tecla E)
     this.hud.setSynergies(this.synergyLabels); // badge das sinergias perk×perk
+    // PARIDADE COM AS FASES 2–5: o HUD nasce com os rótulos-placeholder
+    // "GRAMPEADOR"/"CAFÉ TURBO" hardcoded (Hud.ts). A Base os sobrescreve no
+    // create(); a Fase 1 nunca o fazia → quem escolhia Analista/Terceirizado
+    // jogava a fase inteira vendo a arma ERRADA no HUD, e o rótulo "se
+    // consertava sozinho" ao entrar na Fase 2. Mesmo bloco da Base.
+    {
+      const wdef = WEAPONS[this.player.weaponId as WeaponId] ?? WEAPONS.grampeador;
+      this.hud.setWeapon(`${WEAPON_ICONS[wdef.id]} ${wdef.name}`);
+      this.hud.setSpecial(this.player.classSpecialName ?? wdef.specialName);
+      this.updateSecondaryHud();
+    }
     // Dica 1 (só 1ª sessão): o objetivo/loop do jogo.
     this.time.delayedCall(2600, () =>
       TutorialPrompts.maybeShow(
@@ -826,10 +851,18 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     this.rimLight = new RimLight(this);
     this.rimLight.add(this.player);
     this.badgeMotion = new SecondaryMotion(this, this.player);
+    // PARIDADE: os marcadores de ameaça (!/♦/+) só existiam das Fases 2–5 pra
+    // frente. Justo a FASE DE ONBOARDING não os tinha — e a dica de tutorial
+    // que os explica dispara de dentro do ThreatMarkers, então ela também só
+    // aparecia na Fase 2. O jogador aprendia a ler os inimigos sem marcador e
+    // encontrava ícones novos ao trocar de sala.
+    this.threatMarkers = new ThreatMarkers(this);
     for (const { group } of this.enemyGroups) {
       group.getChildren().forEach((obj) => {
         this.contactShadows!.add(obj as Parameters<ContactShadows["add"]>[0]);
         this.rimLight!.add(obj as Parameters<RimLight["add"]>[0]);
+        const e = obj as Phaser.GameObjects.Sprite & { threatType?: ThreatType };
+        if (e.threatType) this.threatMarkers!.add(e, e.threatType);
       });
     }
 
@@ -1509,7 +1542,14 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
         killVrMult: (x, y) =>
           Math.min(this.prod.registerKill(x, y) * this.eventVrMult, VR_COMBO_CAP),
         onSwingStart: (hb) => this.checkExtintorSecret(hb),
-        onEnemyKilled: (e) => this.rollSanityDrop(e.x, e.y),
+        onEnemyKilled: (e) => {
+          this.rollSanityDrop(e.x, e.y);
+          // PARIDADE: o drop de arma por kill existia só nas Fases 2–5 (o host
+          // padrão da Base o chama). O jogador terminava a Fase 1 sem nunca ter
+          // visto uma arma cair nem a troca [Q], e isso aparecia do nada na
+          // Fase 2 — sem nada no jogo tendo ensinado o verbo.
+          this.rollWeaponDrop(e.x, e.y);
+        },
       };
     }
     this._meleeHost.player = this.player;
