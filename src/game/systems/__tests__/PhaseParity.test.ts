@@ -148,6 +148,26 @@ describe("paridade Fase 1 ↔ BasePhaseScene", () => {
     expect(corpo).toContain("Math.floor(r.vr * 0.5)");
   });
 
+  test("as portas de saída travam o DUPLO DISPARO (fadeOut de 300ms)", () => {
+    // A cena SEGUE RODANDO durante o fadeOut de 300ms da transição: o overlap da
+    // porta continua a ser avaliado e `JustDown` volta a ser verdadeiro se o
+    // jogador tocar E outra vez (duplo-toque leva ~150ms). Medido sem a trava:
+    // +50 de Sanidade em vez de +25. Mesma falha do farm de VR, na dimensão do
+    // TEMPO em vez do estado — e a Fase 1 tem porta própria, então precisa das
+    // duas metades (a guarda e o reset no create).
+    for (const [nome, src] of [
+      ["BasePhaseScene", base],
+      ["OpenSpaceV2Scene", fase1],
+    ] as const) {
+      const limpo = semComentarios(src);
+      // O nome do arquivo entra na string comparada para a falha apontar QUAL
+      // dos dois quebrou (bun:test não aceita mensagem no expect).
+      expect(`${nome}: ${limpo.includes("this.saindoDaFase) return")}`).toBe(`${nome}: true`);
+      expect(`${nome}: ${limpo.includes("this.saindoDaFase = true")}`).toBe(`${nome}: true`);
+      expect(`${nome}: ${limpo.includes("this.saindoDaFase = false")}`).toBe(`${nome}: true`);
+    }
+  });
+
   test("a Fase 1 dá entrada às salas opcionais (elas ficaram órfãs sem a Copa)", () => {
     // As 4 salas LDtk só eram alcançáveis pela porta do meio da Copa. A Fase 1
     // tem create() próprio, então precisa chamar por conta — senão a fase mais

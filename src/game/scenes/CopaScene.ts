@@ -42,6 +42,9 @@ export class CopaScene extends Phaser.Scene {
   private fwdPrompt?: Phaser.GameObjects.Text;
   private fwdPromptSeenAt = 0;
   private doorFwd?: Phaser.GameObjects.Image;
+  /** Avanço já disparado — trava contra duplo disparo (ver BasePhaseScene). Aqui
+   *  o risco é menor (não há fadeOut), mas o footgun é o mesmo e custa 2 linhas. */
+  private avancando = false;
   private salaLabel?: string;
   private startTimeMs = 0;
   private lastHealAt = 0;
@@ -793,6 +796,8 @@ export class CopaScene extends Phaser.Scene {
   /** Sai da Copa para a próxima fase. Chamado pelo item do Ponto E pela porta da
    *  direita — uma implementação só, nunca duas. */
   private avancar() {
+    if (this.avancando) return;
+    this.avancando = true;
     this.persist();
     const r = getRun(this);
     r.reconhecimento += Math.floor(r.vr * 0.5);

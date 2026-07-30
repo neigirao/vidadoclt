@@ -201,6 +201,7 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     // inteira começava com 18:00 congelado.
     startRunClock(this);
     this.bossDefeated = false;
+    this.saindoDaFase = false;
     // A Fase 1 tem create() próprio (não chama super.create()) → precisa semear
     // o this.rng ela mesma. Sem isso, rollSanityDrop() (drop de café por kill)
     // quebrava com "this.rng is undefined" a CADA inimigo morto.
@@ -755,11 +756,15 @@ export class OpenSpaceV2Scene extends BasePhaseScene {
     const doorZone = this.add.zone(this.doorEl.x, this.doorEl.y, 40, 60);
     this.physics.add.existing(doorZone, true);
     this.physics.add.overlap(this.player, doorZone, () => {
-      if (!this.bossDefeated) return;
+      // `saindoDaFase` trava o DUPLO DISPARO: a cena segue rodando durante a
+      // transição, então tocar E outra vez rodaria fecharExpediente() de novo
+      // (+50 de Sanidade em vez de +25). Ver o campo em BasePhaseScene.
+      if (!this.bossDefeated || this.saindoDaFase) return;
       if (
         Phaser.Input.Keyboard.JustDown(this.interactKey) ||
         this.player.gamepadInteractJustPressed
       ) {
+        this.saindoDaFase = true;
         this.persist();
         const r = getRun(this);
         this.fecharExpediente(r); // economia que morava na Copa (VR→Reco, FGTS, respiro)
