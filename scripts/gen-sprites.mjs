@@ -588,32 +588,225 @@ function bebedouro() {
     H = 48,
     c = canvas(W, H);
   const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
-  // ── garrafão de água (invertido) ──
-  for (let r = 0; r < 18; r++) {
-    const round = r < 2 ? 2 - r : 0; // arredonda o topo
-    R(9 + round, 6 + r, 14 - round * 2, 1, WATER);
+  // ── garrafão de água (invertido), com ombro e volume ──
+  for (let r = 0; r < 20; r++) {
+    // silhueta: pescoço estreito embaixo, corpo largo, topo arredondado
+    const round = r < 2 ? 2 - r : r > 16 ? r - 16 : 0;
+    R(8 + round, 4 + r, 16 - round * 2, 1, WATER);
   }
-  R(9, 6, 14, 3, WATER_L); // topo (linha do ar/água)
-  R(9, 6, 1, 18, WATER_D);
-  R(22, 6, 1, 18, WATER_D); // laterais escuras
-  R(11, 8, 2, 13, WATER_L); // brilho vertical
-  R(13, 23, 6, 3, BOTTLE_CAP); // gargalo entrando no gabinete
-  // ── gabinete (base branca) ──
-  R(8, 26, 16, 20, CABINET);
-  R(8, 26, 2, 20, CAB_D);
-  R(22, 26, 2, 20, CAB_D); // laterais
-  R(8, 44, 16, 2, CAB_SH); // sombra da base
-  R(15, 30, 1, 14, CAB_D); // fresta da portinha
-  // ── torneiras (fria/quente) + bicos ──
-  R(11, 33, 4, 2, TAP_COLD);
-  R(17, 33, 4, 2, TAP_HOT);
-  R(12, 35, 1, 2, [80, 80, 90]);
-  R(19, 35, 1, 2, [80, 80, 90]);
-  R(11, 39, 10, 2, TRAY); // bandeja de pingo
+  R(8, 4, 16, 2, WATER_L); // linha do ar (topo claro)
+  R(8, 4, 1, 20, WATER_D);
+  R(23, 4, 1, 20, WATER_D); // laterais em sombra
+  R(10, 7, 2, 14, WATER_L); // realce vertical (vidro)
+  R(20, 9, 1, 10, [200, 230, 250, 120]); // segundo realce fino
+  // bolhas subindo (dá vida ao objeto parado)
+  R(14, 12, 1, 1, WATER_L);
+  R(17, 16, 1, 1, WATER_L);
+  R(13, 19, 1, 1, WATER_L);
+  R(12, 24, 8, 2, BOTTLE_CAP); // gargalo/colarinho
+  R(12, 24, 8, 1, [110, 130, 152]);
+  // ── gabinete ──
+  R(6, 26, 20, 20, CABINET);
+  R(6, 26, 20, 1, [244, 246, 248]); // tampo iluminado
+  R(6, 26, 2, 20, CAB_D);
+  R(24, 26, 2, 20, CAB_D); // laterais
+  R(6, 44, 20, 2, CAB_SH); // rodapé em sombra
+  R(7, 46, 3, 2, CAB_SH);
+  R(22, 46, 3, 2, CAB_SH); // pezinhos
+  // nicho de serviço (recuo escuro onde ficam as torneiras)
+  R(9, 31, 14, 10, [196, 200, 206]);
+  R(9, 31, 14, 1, CAB_SH);
+  R(9, 31, 1, 10, CAB_SH);
+  // ── torneiras (fria/quente), com bico e pingo ──
+  R(11, 33, 4, 3, TAP_COLD);
+  R(11, 33, 4, 1, [140, 180, 240]);
+  R(17, 33, 4, 3, TAP_HOT);
+  R(17, 33, 4, 1, [240, 140, 130]);
+  R(12, 36, 2, 3, [80, 84, 92]);
+  R(18, 36, 2, 3, [80, 84, 92]); // bicos
+  R(12, 39, 1, 1, WATER_L); // pingo
+  // grelha da bandeja de pingo
+  R(10, 41, 12, 2, TRAY);
+  for (let i = 0; i < 5; i++) R(11 + i * 2, 41, 1, 2, [110, 116, 124]);
+  // suporte de copinhos na lateral
+  R(25, 30, 3, 9, CAB_D);
+  R(26, 31, 1, 7, CUP);
   addOutline(c, OBJ_OUT);
   c.save("obj-bebedouro.png");
   return c.save("obj-bebedouro-idle.png");
 }
+
+// ── Baia / divisória de open space (64×40) ───────────────────────────────────
+// O sprite anterior era dois retângulos cinzas hachurados + uma barra bege: lia
+// como "placeholder", sem profundidade nem leitura de escritório. Redesenhado
+// como divisória de tecido com trama, montante metálico, tampo de mesa saindo
+// à frente e um monitorzinho + papéis espiando por cima.
+const FAB = [104, 116, 132],
+  FAB_D = [76, 86, 100],
+  FAB_L = [128, 142, 160],
+  RAIL = [176, 182, 192],
+  RAIL_D = [120, 126, 136],
+  DESK = [178, 142, 92],
+  DESK_D = [132, 100, 60],
+  SCRN_OFF = [40, 48, 58];
+function baia() {
+  const W = 64,
+    H = 40,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  // painel de tecido com trama (dither 2px) — dá textura sem virar hachura chapada
+  R(2, 8, 60, 24, FAB);
+  for (let y = 8; y < 32; y++)
+    for (let x = 2; x < 62; x++) if ((x + y) % 4 === 0) c.px(x, y, FAB_D);
+  R(2, 8, 60, 1, FAB_L); // topo do tecido pega a luz
+  R(2, 30, 60, 2, FAB_D); // base em sombra
+  // trilho de alumínio do topo
+  R(1, 5, 62, 3, RAIL);
+  R(1, 5, 62, 1, [206, 212, 220]);
+  R(1, 7, 62, 1, RAIL_D);
+  // montantes verticais (divide em dois postos de trabalho)
+  R(31, 5, 2, 27, RAIL_D);
+  R(1, 8, 1, 24, RAIL_D);
+  R(62, 8, 1, 24, RAIL_D);
+  // monitor espiando por cima do painel esquerdo
+  R(9, 0, 14, 6, SCRN_OFF);
+  R(10, 1, 12, 4, [58, 70, 84]);
+  R(15, 6, 2, 2, RAIL_D);
+  // papéis pregados no painel direito
+  R(40, 13, 7, 8, [238, 236, 226]);
+  for (let i = 0; i < 3; i++) R(41, 15 + i * 2, 5, 1, [176, 174, 166]);
+  R(50, 16, 5, 6, [246, 216, 96]); // post-it
+  // tampo da mesa saindo à frente + sombra no chão
+  R(0, 32, 64, 4, DESK);
+  R(0, 32, 64, 1, [206, 172, 120]);
+  R(0, 35, 64, 1, DESK_D);
+  R(4, 36, 56, 2, [0, 0, 0, 60]);
+  addOutline(c, OBJ_OUT);
+  return c.save("obj-baia.png");
+}
+
+// ── Máquina de café (40×48) ──────────────────────────────────────────────────
+// O frame do atlas estava quase vazio (borrão semitransparente = lixo de
+// extração). Redesenhada como máquina de bebidas de escritório legível.
+function cafeMachine() {
+  const W = 40,
+    H = 48,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  const BODY = [92, 96, 108],
+    BODY_L = [132, 138, 150],
+    BODY_D = [58, 62, 72],
+    PANEL = [34, 40, 46];
+  R(6, 2, 28, 44, BODY); // corpo
+  R(6, 2, 28, 2, BODY_L);
+  R(6, 2, 2, 44, BODY_L);
+  R(32, 2, 2, 44, BODY_D);
+  R(6, 44, 28, 2, BODY_D);
+  R(7, 46, 4, 2, BODY_D);
+  R(29, 46, 4, 2, BODY_D); // pés
+  // painel superior com display e botões de bebida
+  R(9, 6, 22, 9, PANEL);
+  R(11, 8, 10, 5, [34, 70, 56]); // display
+  R(12, 10, 6, 1, [120, 240, 150]);
+  R(24, 8, 2, 2, [230, 190, 90]);
+  R(27, 8, 2, 2, [200, 90, 80]);
+  R(24, 11, 2, 2, [120, 190, 230]);
+  R(27, 11, 2, 2, [180, 180, 190]);
+  // seleção de canecas (adesivo)
+  R(9, 17, 22, 8, [216, 214, 206]);
+  for (let i = 0; i < 3; i++) {
+    R(11 + i * 7, 19, 4, 4, CUP);
+    R(11 + i * 7, 19, 4, 1, LID);
+  }
+  // nicho de dispensa (fundo escuro dá profundidade)
+  R(9, 27, 22, 14, [26, 28, 34]);
+  R(9, 27, 22, 1, BODY_D);
+  R(16, 28, 8, 3, BODY_D); // bico
+  R(19, 31, 2, 2, BREW); // café caindo
+  R(15, 34, 10, 6, CUP); // copo na bandeja
+  R(15, 34, 10, 1, CUP_L);
+  R(16, 36, 8, 3, BREW);
+  R(10, 40, 20, 2, [150, 156, 164]); // grelha
+  for (let i = 0; i < 9; i++) R(11 + i * 2, 40, 1, 2, [96, 100, 108]);
+  addOutline(c, OBJ_OUT);
+  c.save("obj-cafe-machine.png");
+  return c.save("obj-cafe-machine-idle.png");
+}
+
+// ── Monitor de mesa (48×40) ──────────────────────────────────────────────────
+// O `obj-monitor-idle` era uma cena de mesa inteira em 97×70 desenhada em outra
+// escala; o jogo a espremia p/ 34×26 e virava borrão. Redesenhado no tamanho da
+// própria família (48×40) como monitor limpo com planilha na tela.
+function monitorMesa() {
+  const W = 48,
+    H = 40,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  const CASE = [58, 62, 72],
+    CASE_L = [92, 98, 110],
+    CASE_D = [34, 36, 44],
+    SCR = [96, 148, 180],
+    SCR_D = [58, 104, 138];
+  R(4, 2, 40, 28, CASE); // carcaça
+  R(4, 2, 40, 1, CASE_L);
+  R(4, 2, 1, 28, CASE_L);
+  R(43, 2, 1, 28, CASE_D);
+  R(4, 29, 40, 1, CASE_D);
+  R(7, 5, 34, 20, SCR); // tela
+  R(7, 5, 34, 1, [150, 200, 226]);
+  // planilha: cabeçalho + linhas + coluna destacada
+  R(8, 6, 32, 3, [222, 230, 238]);
+  for (let i = 0; i < 4; i++) R(9, 11 + i * 3, 30, 1, SCR_D);
+  for (let i = 0; i < 5; i++) R(11 + i * 6, 6, 1, 19, [70, 120, 152]);
+  R(30, 17, 8, 6, [96, 200, 140, 160]); // célula "meta batida"
+  R(8, 22, 6, 2, [230, 120, 100, 180]); // célula vermelha
+  R(9, 6, 3, 2, [255, 255, 255, 60]); // reflexo
+  R(20, 30, 8, 4, CASE_D); // pescoço
+  R(14, 34, 20, 3, CASE); // base
+  R(14, 34, 20, 1, CASE_L);
+  R(12, 37, 24, 1, [0, 0, 0, 70]); // sombra de contato
+  addOutline(c, OBJ_OUT);
+  return c.save("obj-monitor-idle.png");
+}
+
+// ── Quadro motivacional (48×56) ──────────────────────────────────────────────
+// O frame era 132×81 com texto falso ilegível, espremido pelo jogo p/ 48×56.
+// Redesenhado no tamanho REAL de exibição, com pictograma (gráfico subindo)
+// em vez de texto fake — lê à distância e não vira borrão.
+function quadroMotivacional() {
+  const W = 48,
+    H = 56,
+    c = canvas(W, H);
+  const R = (x, y, w, h, col) => c.rect(x, y, w, h, col);
+  const FR = [96, 70, 40],
+    FR_L = [138, 102, 58],
+    FR_D = [62, 44, 24],
+    MAT = [238, 234, 222],
+    SKY = [58, 92, 128],
+    SKY_L = [96, 138, 176],
+    BAR = [232, 190, 84],
+    ARROW = [236, 96, 72];
+  R(1, 2, 46, 50, FR); // moldura
+  R(1, 2, 46, 2, FR_L);
+  R(1, 2, 2, 50, FR_L);
+  R(45, 2, 2, 50, FR_D);
+  R(1, 50, 46, 2, FR_D);
+  R(4, 5, 40, 44, MAT); // passe-partout
+  R(6, 7, 36, 30, SKY); // "arte": céu
+  R(6, 7, 36, 8, SKY_L);
+  // barras crescentes + seta (pictograma de meta)
+  for (let i = 0; i < 5; i++) R(9 + i * 6, 33 - i * 4, 4, 4 + i * 4, BAR);
+  for (let i = 0; i < 10; i++) c.px(9 + i * 3, 31 - i * 2, ARROW);
+  R(34, 10, 4, 4, ARROW); // ponta da seta
+  R(36, 10, 2, 6, ARROW);
+  // "legenda" abstrata (blocos, não texto fake ilegível)
+  R(10, 40, 28, 2, [150, 146, 138]);
+  R(15, 44, 18, 2, [186, 182, 174]);
+  R(3, 52, 42, 1, [0, 0, 0, 60]); // sombra sob a moldura
+  addOutline(c, OBJ_OUT);
+  return c.save("obj-quadro-motivacional-idle.png");
+}
+
 
 // ── Brenda do RH (boss da Fase 3) — DERIVADA do enemy-rh ──────────────────────
 // Máxima fidelidade: em vez de redesenhar em código (fica chapado), derivamos a
