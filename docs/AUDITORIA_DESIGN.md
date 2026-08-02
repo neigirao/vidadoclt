@@ -7,35 +7,44 @@
 > máximo de **6min12s**. É pouco. A FORMA dos achados abaixo é o sinal; os
 > valores absolutos, não.
 
-## Achado 1 — a dificuldade não é uma curva, é um DEGRAU (e ele está no lugar exato do abandono)
+## ⚠ CORREÇÃO — o "degrau de 11,2×" NÃO EXISTIA no jogo
 
-Mediana de HP e TTK do trash, por fase (`bun sim:balance`):
+A primeira versão desta auditoria abria dizendo que a dificuldade dava um salto
+de **11,2×** entre a Fase 1 e a Fase 2, e recomendava achatá-lo como prioridade 1.
+**Estava errado.** O `bun sim:balance` lê o `EnemyCatalog`, e o catálogo tinha
+divergido do HP que o jogo realmente instancia — em **24 dos 28 inimigos**, por
+fatores de 1,2× a 5,3×:
 
-| fase |      HP |      TTK | salto vs. anterior |
-| ---- | ------: | -------: | ------------------ |
-| 1    |      25 |     0,5s | —                  |
-| 2    | **280** | **5,2s** | **11,2×**          |
-| 3    |     312 |     5,8s | 1,1×               |
-| 4    |     290 |     5,4s | 0,9×               |
-| 5    |     460 |     8,6s | 1,6×               |
+| inimigo                    | catálogo (lido pelo sim) | classe (usado pelo jogo) |
+| -------------------------- | -----------------------: | -----------------------: |
+| telemarketer_zumbi (F2)    |                      160 |                   **42** |
+| nuvem_board_sentinela (F2) |                      250 |                   **48** |
+| reuniao_corporativa (F2)   |                      320 |                   **60** |
+| impressora_assombrada (F2) |                      400 |                   **95** |
+| arquivo_ambulante (F5)     |                      500 |                  **130** |
 
-Duas coisas nessa tabela, e a segunda é pior que a primeira:
+Curva REAL, com o catálogo já sincronizado:
 
-1. **O salto da Fase 1 para a Fase 2 é de 11,2×.** Mesmo comparando os extremos
-   favoráveis (o trash mais duro da F1 tem 80 HP; o mais fraco da F2 tem 160), o
-   salto é de 2×. O jogador passa uma fase inteira aprendendo que inimigo morre em
-   meio segundo, e a primeira sala seguinte pede 3 a 7 segundos por inimigo.
-2. **Depois do degrau, é PLATÔ.** F2 → F3 → F4 variam 1,1× e 0,9× — dentro do
-   ruído. Três fases seguidas na mesma dificuldade, com arte e inimigos diferentes
-   mas a mesma sensação mecânica.
+| fase | HP (mediana) |  TTK | salto |
+| ---- | -----------: | ---: | ----- |
+| 1    |           20 | 0,4s | —     |
+| 2    |           60 | 1,1s | 3,00× |
+| 3    |           75 | 1,4s | 1,25× |
+| 4    |           90 | 1,7s | 1,20× |
+| 5    |          130 | 2,4s | 1,44× |
 
-**E o funil cai 74% exatamente nessa porta** (23 sessões na Fase 1 → 6 na Fase 2).
-Não afirmo causalidade com N=26. Mas a hipótese "o jogador não fica mais fraco, o
-jogo fica mais LENTO, e ele lê isso como tédio e não como desafio" é consistente
-com o número e com o mecanismo.
+**O degrau é 3,0×, não 11,2×** — e o piso da Fase 2 (42 HP) é mais BAIXO que o
+teto da Fase 1 (80 HP), ou seja os primeiros inimigos da Fase 2 são mais fracos
+que os últimos da Fase 1. A curva real é uma rampa razoável, não um degrau, e as
+fases 2–5 não são um platô (1,25× · 1,20× · 1,44×).
 
-O que NÃO é: falta de conteúdo, duração da run, ou dificuldade excessiva das fases
-finais. É a transição.
+Ter agido sobre o número errado teria mexido no balanceamento do jogo para
+consertar um problema que só existia na planilha. O gate
+`EnemyCatalogSync.test.ts` agora impede a divergência de voltar.
+
+**A queda de 74% no funil da primeira porta continua real** — o que caiu é a
+explicação. Não sabemos por que as pessoas param ali; a hipótese "ficou lento
+demais" perdeu o suporte que eu achava que tinha.
 
 ## Achado 2 — o Expediente, que é a PREMISSA do jogo, nunca foi exercitado
 
@@ -117,10 +126,11 @@ profundidade autorada — é que a profundidade mora depois do degrau.
 
 ## Ordem que eu recomendaria (e o motivo de cada posição)
 
-1. **Achatar o degrau F1→F2.** É o único achado que o dado liga ao abandono, e é o
-   gargalo dos Achados 2, 5 e 6 — os três destravam quando a run passa da porta.
-   Não é "diminuir o HP da F2": é fazer a Fase 1 terminar preparando o jogador
-   (inimigos mais duros no fim dela) e a Fase 2 começar continuando (não saltando).
+1. ~~Achatar o degrau F1→F2~~ — **RETIRADO**: o degrau era artefato do catálogo
+   dessincronizado (ver a correção no topo). A curva real não pede isso.
+   O que sobra é a pergunta em aberto: **por que 74% param na primeira porta?**
+   O dado diz ONDE, e eu já errei uma vez ao afirmar o PORQUÊ. Precisa de
+   playtest, não de mais uma leitura da mesma planilha.
 2. **Calibrar o primeiro inimigo.** Trivial-e-letal é a pior combinação possível
    num tutorial, e é um número, não um redesenho.
 3. **Decidir o que fazer com o Expediente.** É a premissa do jogo e está
