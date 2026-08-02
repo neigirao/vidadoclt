@@ -392,7 +392,6 @@ function keepAwayFrom(x: number, avoidXs: number[], margin = 84): number {
   return Phaser.Math.Clamp(out, 60, LEVEL_WIDTH - 60);
 }
 
-
 /**
  * Places decorative props from the phase tileset along the floor level.
  * Purely visual (depth=1, no physics body). Call after addPhaseBackground.
