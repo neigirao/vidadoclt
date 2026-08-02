@@ -47,31 +47,43 @@ const TEXT_ACCENT = "#f2a800";
 const BG_PANEL = 0x12151a;
 const BG_MENU = 0x1a1d23;
 
-type MenuItem = { label: string; icon: string; firstRun?: boolean; dev?: boolean };
+type MenuItem = { label: string; icon: string; dev?: boolean };
 
-// `firstRun: true` = visível na primeira run (antes de qualquer morte/vitória).
-// Itens sem a flag só aparecem a partir do 2º loop — reduz paralysis analysis
-// no primeiro contato com o jogo.
+// O MENU MOSTRA TUDO, SEMPRE (decisão do dono).
+//
+// Havia um filtro `firstRun` que escondia 6 itens (HORA EXTRA, EVOLUÇÃO,
+// RANKING, BESTIÁRIO, ARSENAL, CONQUISTAS) até o jogador morrer uma vez, com a
+// justificativa de evitar "paralysis by analysis" no 1º contato. Removido: o
+// custo é maior que o benefício.
+//
+// O menu que esconde não reduz confusão, ele produz outra — o jogador não sabe
+// que aquilo existe, então não sente falta e não descobre. E o efeito colateral
+// é pior no que o jogo mais precisa hoje: a meta-progressão (EVOLUÇÃO) é
+// justamente o que dá sentido a morrer, e ficava invisível exatamente na run em
+// que o jogador ainda não entendeu por que morrer não é perder tudo. Medido em
+// docs/AUDITORIA_DESIGN.md: o gancho do roguelite já é imperceptível na prática;
+// escondê-lo do menu na primeira run acumula com isso.
+//
+// O que segue condicionado NÃO é estado de run, é DESBLOQUEIO de verdade
+// (QUINTA-FEIRA / NG+ exige ter vencido) ou build (`dev`).
+//
 // `dev: true` = ferramenta de DESENVOLVIMENTO. Filtrada do build PUBLICADO
 // (`import.meta.env.DEV === false`) — some do jogo final, permanece no `bun dev`
 // (e no smoke/audit, que rodam contra o dev server). Ver ALL_MENU_ITEMS filter.
 const ALL_MENU_ITEMS: MenuItem[] = [
-  { label: "JOGAR", icon: "▶", firstRun: true },
-  { label: "TESTAR FASE", icon: "🧪", firstRun: true, dev: true },
+  { label: "JOGAR", icon: "▶" },
+  { label: "TESTAR FASE", icon: "🧪", dev: true },
   { label: "HORA EXTRA", icon: "🔥" },
   { label: "EVOLUÇÃO", icon: "⭐" },
   { label: "RANKING", icon: "🏆" },
   { label: "BESTIARIO", icon: "👾" },
-  { label: "LAB SPRITES", icon: "🔬", firstRun: true, dev: true },
-  { label: "LAB VFX", icon: "✨", firstRun: true, dev: true },
-  { label: "TELEMETRIA", icon: "📊", firstRun: true, dev: true },
+  { label: "LAB SPRITES", icon: "🔬", dev: true },
+  { label: "LAB VFX", icon: "✨", dev: true },
+  { label: "TELEMETRIA", icon: "📊", dev: true },
   { label: "ARSENAL", icon: "🎒" },
   { label: "CONQUISTAS", icon: "★" },
-  { label: "CONFIGURAÇÕES", icon: "⚙", firstRun: true },
-  // `firstRun: true` de propósito: o menu da 1ª run é enxuto, mas a atribuição
-  // das fontes OFL é obrigação de licença — não pode depender de o jogador ter
-  // morrido uma vez para ficar alcançável.
-  { label: "CRÉDITOS", icon: "📜", firstRun: true },
+  { label: "CONFIGURAÇÕES", icon: "⚙" },
+  { label: "CRÉDITOS", icon: "📜" },
   // Ferramentas DEV (TESTAR FASE / LAB SPRITES / TELEMETRIA) só entram no menu no
   // `bun dev`; no build publicado somem via o filtro `dev` abaixo.
 ].filter((it) => import.meta.env.DEV || !it.dev);
@@ -100,13 +112,11 @@ export class MenuScene extends Phaser.Scene {
 
   create() {
     Music.start("office");
-    // Primeira run (nunca morreu/venceu): menu enxuto para eliminar
-    // paralysis by analysis. Sub-telas destravam a partir do 2º loop.
-    const run = getRun(this);
-    this.MENU_ITEMS =
-      run.loopCount === 0 ? ALL_MENU_ITEMS.filter((it) => it.firstRun) : [...ALL_MENU_ITEMS];
-    // New Game+ "Quinta-feira": só aparece depois da 1ª vitória.
-    if (isNgPlusUnlocked() && run.loopCount > 0) {
+    this.MENU_ITEMS = [...ALL_MENU_ITEMS];
+    // New Game+ "Quinta-feira": segue condicionado, mas ao DESBLOQUEIO (venceu o
+    // jogo pelo menos uma vez), não ao número do loop atual. Um item que não faz
+    // sentido sem a vitória é conteúdo travado; os outros seis eram só escondidos.
+    if (isNgPlusUnlocked()) {
       this.MENU_ITEMS.splice(1, 0, { label: "QUINTA-FEIRA", icon: "🌩" });
     }
     // Full-screen reference art background (loaded from assets)
@@ -184,14 +194,27 @@ export class MenuScene extends Phaser.Scene {
 
   private drawMenuItems() {
     const startY = 148;
-    // Altura adaptativa: todos os itens (2 na 1ª run, até 10 com NG+) precisam
-    // caber ACIMA do painel de stats (y=430) — senão CONFIGURAÇÕES saía da tela.
+    // Altura adaptativa: TODOS os itens precisam caber ACIMA do painel de stats
+    // (y=430) — senão as últimas linhas saem por baixo dele.
+    //
+    // O piso era 28px e QUEBROU quando o menu passou a mostrar tudo sempre: com
+    // 13 itens em DEV, 13×28 = 364px a partir de 148 termina em 512, ou seja 88px
+    // POR BAIXO do painel — CONQUISTAS, CONFIGURAÇÕES e CRÉDITOS ficavam
+    // sobrepostos à ficha do CLT. Pego olhando o screenshot; o cálculo "adaptativo"
+    // parecia correto e o clamp inferior é que o tornava mentira.
+    //
+    // O piso agora é 20px (legível com a fonte reduzida abaixo) e o número de
+    // itens em DEV (13) é o pior caso real: (424-148)/13 = 21px.
     const bottomLimit = 424;
     const itemH = Math.max(
-      28,
+      20,
       Math.min(44, Math.floor((bottomLimit - startY) / this.MENU_ITEMS.length)),
     );
     this.itemH = itemH;
+    // A fonte acompanha a linha: com 44px de linha o rótulo tem 15px; comprimido
+    // a 20px, 15px de fonte transbordava a própria linha e as letras se tocavam.
+    const fontePx = itemH >= 34 ? 15 : itemH >= 26 ? 13 : 11;
+    const iconePx = itemH >= 34 ? 14 : itemH >= 26 ? 12 : 11;
 
     this.menuButtons = [];
 
@@ -200,16 +223,16 @@ export class MenuScene extends Phaser.Scene {
       const container = this.add.container(14, y);
 
       const bg = this.add.graphics();
-      const ty = Math.round((itemH - 4) / 2) - 9; // centraliza o texto na linha
+      const ty = Math.round((itemH - fontePx) / 2) - 2; // centraliza o texto na linha
       const label = this.add.text(42, ty, item.label, {
         fontFamily: "monospace",
-        fontSize: "15px",
+        fontSize: `${fontePx}px`,
         fontStyle: "bold",
         color: TEXT_LIGHT,
       });
       const icon = this.add.text(14, ty, item.icon, {
         fontFamily: "monospace",
-        fontSize: "14px",
+        fontSize: `${iconePx}px`,
         color: TEXT_ACCENT,
       });
 

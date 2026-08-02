@@ -180,9 +180,17 @@ faixa no topo avisando. É honestidade, não conserto: controles virtuais de ver
 
 **CRÉDITOS** (item de menu → `buildCreditosOverlay` no `MenuScene`) **não é cortesia**: as
 duas fontes empacotadas em `public/assets/fonts/` estão sob SIL Open Font License, que exige
-o aviso de copyright junto do software que as distribui; as libs MIT/BSD pedem o mesmo. Tem
-`firstRun: true` de propósito — o menu da 1ª run é enxuto, mas a atribuição não pode depender
-de o jogador ter morrido uma vez para ficar alcançável.
+o aviso de copyright junto do software que as distribui; as libs MIT/BSD pedem o mesmo.
+
+**O MENU MOSTRA TUDO, SEMPRE** (decisão do dono). Havia um filtro `firstRun` escondendo 6
+itens (HORA EXTRA, EVOLUÇÃO, RANKING, BESTIÁRIO, ARSENAL, CONQUISTAS) até a 1ª morte, para
+evitar "paralysis by analysis". Removido: menu que esconde não reduz confusão, produz outra —
+o jogador não sabe que aquilo existe. E o pior caso era a **EVOLUÇÃO** (meta-progressão), que
+é justamente o que dá sentido a morrer, invisível na run em que o jogador ainda não entendeu
+isso. Segue condicionado só o que é DESBLOQUEIO de verdade (QUINTA-FEIRA/NG+ exige ter
+vencido) ou build (`dev`). **Caveat de layout:** com tudo visível são 13 itens em DEV, e o
+piso de 28px por linha estourava o painel — o piso caiu para 20px e a fonte acompanha a
+altura da linha (`fontePx`/`iconePx` em `drawMenuItems`).
 
 ## Fluxo de cenas
 
