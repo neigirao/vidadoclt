@@ -10,7 +10,13 @@ const KEY = "vidaclt:settings";
 // estável) para não precisar importar Phaser aqui (o módulo tem que rodar no
 // bun:test sem browser). Interact (E) é de cena, fora do remap por ora.
 export type BindAction =
-  "jump" | "dash" | "attack" | "special" | "parry" | "consumivel" | "secondary";
+  | "jump"
+  | "dash"
+  | "attack"
+  | "special"
+  | "parry"
+  | "consumivel"
+  | "secondary";
 
 export const DEFAULT_KEYBINDS: Record<BindAction, number> = {
   jump: 32, // SPACE
