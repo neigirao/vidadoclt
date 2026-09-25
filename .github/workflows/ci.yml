@@ -98,11 +98,8 @@ jobs:
   # contra os baselines commitados (tests/visual/baseline). Pega arte que "sumiu"
   # /desalinhou sem gerar erro de console (o smoke não vê isso).
   #
-  # NÃO-BLOQUEANTE por ora (continue-on-error): os baselines foram gravados no
-  # chromium do sandbox e a CI usa outro build — a renderização de fonte/AA pode
-  # divergir. Rodamos p/ OBSERVAR estabilidade cross-ambiente; os diffs sobem como
-  # artefato. Quando confirmar que passa consistentemente na CI, remover o
-  # continue-on-error p/ virar portão de verdade.
+  # Portão bloqueante: diffs visuais falham o job. Antes de atualizar baselines,
+  # inspecione as imagens e confirme que a mudança foi intencional.
   visual:
     runs-on: ubuntu-latest
     steps:
@@ -125,7 +122,6 @@ jobs:
           bunx playwright install --with-deps chromium
 
       - name: Regressão visual
-        continue-on-error: true
         run: bun visual
 
       - name: Subir diffs visuais (se houver)
