@@ -666,7 +666,7 @@ export function addCeoRooftopBackground(scene: Phaser.Scene, topY: number, botto
   // 3) Skyline distante (parallax lento, silhueta baixa, poucas janelas fracas).
   const far = scene.add.graphics().setScrollFactor(0.3, 0).setDepth(1);
   far.fillStyle(0x1a0f14, 1);
-  for (let x = 0; x < W;) {
+  for (let x = 0; x < W; ) {
     const bw = 40 + Math.floor(rnd() * 60);
     const bh = 24 + Math.floor(rnd() * 60);
     far.fillRect(x, horizon - bh, bw, bh + (bottomY - horizon));
@@ -682,7 +682,7 @@ export function addCeoRooftopBackground(scene: Phaser.Scene, topY: number, botto
 
   // 4) Skyline próximo (parallax mais rápido, prédios altos, janelas em BRASA).
   const near = scene.add.graphics().setScrollFactor(0.5, 0).setDepth(2);
-  for (let x = -20; x < W;) {
+  for (let x = -20; x < W; ) {
     const bw = 60 + Math.floor(rnd() * 80);
     const bh = 60 + Math.floor(rnd() * 110);
     near.fillStyle(0x0c0709, 1);
