@@ -32,14 +32,7 @@ export type EnemyId =
   | "brenda_rh";
 
 export type EnemyArchetype =
-  | "rusher"
-  | "ranged"
-  | "charger"
-  | "tank"
-  | "healer"
-  | "aerial"
-  | "splitter"
-  | "support";
+  "rusher" | "ranged" | "charger" | "tank" | "healer" | "aerial" | "splitter" | "support";
 
 export type EnemyAttackDef = {
   name: string;
