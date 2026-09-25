@@ -166,8 +166,7 @@ function addTexture(scene: Phaser.Scene, key: string, dataUrl: string): Promise<
       // disparar ADD com source de dimensão zero → null 'resolution' no render.
       if (ok) {
         const src = scene.textures.get(key)?.source?.[0] as
-          | { width?: number; height?: number }
-          | undefined;
+          { width?: number; height?: number } | undefined;
         ok = !!src && (src.width ?? 0) > 0 && (src.height ?? 0) > 0;
       }
       if (!ok && scene.textures.exists(key)) scene.textures.remove(key);
