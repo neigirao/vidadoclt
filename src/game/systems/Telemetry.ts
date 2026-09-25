@@ -1,7 +1,7 @@
 // Telemetria local-first do jogo. Registra os eventos de game design que
 // importam (progressão, mortes, economia, desfecho) num buffer em memória +
-// localStorage. NÃO envia nada pela rede e não guarda PII — é privacy-safe e
-// serve para o dev/designer inspecionar (window.__telemetry em DEV) ou exportar
+// localStorage. O cliente remoto está desligado por padrão e nenhum evento
+// é enviado a outra aplicação. Serve para o dev/designer inspecionar (window.__telemetry em DEV) ou exportar
 // os dados e, no futuro, plugar num backend (Supabase/PostHog) com consentimento.
 //
 // Módulo puro (sem Phaser) → testável em bun:test.
