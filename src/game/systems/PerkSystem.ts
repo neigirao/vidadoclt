@@ -286,7 +286,10 @@ export function checkAndApplySynergies(player: Player, run: RunState): SynergyId
 // firstStrikeStun, vrDropMult) — sem wiring morto. Avaliadas no buildPlayer,
 // junto das perk×perk (player recriado a cada cena → 1× sobre stats limpos).
 export type WeaponSynergyId =
-  "cafeina_pura" | "queda_produtividade" | "choque_termico" | "planilha_infinita";
+  | "cafeina_pura"
+  | "queda_produtividade"
+  | "choque_termico"
+  | "planilha_infinita";
 
 type WeaponSynergyDef = {
   weapon: WeaponId;
