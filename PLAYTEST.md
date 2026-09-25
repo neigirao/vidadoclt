@@ -21,13 +21,12 @@ pessoa sente/faz) com a **telemetria** já embutida (`window.__telemetry`).
 
 ### Coleta de dados (telemetria)
 
-**Automática (banco):** cada evento (início de run, entrada de fase, morte, boss,
-compra, quit) é gravado no Supabase (tabela `public.playtest_events`) em tempo
-real, sem PII (só um id de sessão aleatório). Não precisa exportar nada — o
-testador só joga. Falha silenciosa: se o banco cair, o jogo não trava e a
-telemetria local segue intacta.
+**Local (padrão atual):** os eventos de jogo ficam em memória e no navegador
+(`localStorage`). Não são enviados ao Supabase do Lendas do Flu nem a outro
+backend. Para reunir dados de playtest, peça o JSON exportado ao testador com
+seu consentimento; não inclua nomes nem outros dados pessoais nas notas.
 
-**Manual (fallback offline):** ainda dá pra exportar por tester no console (dev):
+**Exportação manual:** no console de desenvolvimento do navegador:
 
 ```js
 window.__telemetry.summary(); // resumo agregado
@@ -37,9 +36,8 @@ window.__telemetry.clear(); // limpe antes do próximo tester
 
 Guarde um JSON por pessoa → depois some tudo para ver os padrões.
 
-> Análise agregada do banco (SQL): mortes por fase, funil de progressão etc.
-> ficam em `public.playtest_events`. Ex.: `select scene, count(*) from
-playtest_events where type='death' group by scene order by 2 desc;`
+> Os SQLs históricos em `docs/TELEMETRIA.md` não refletem sessões novas enquanto
+> a coleta remota estiver desligada.
 
 ---
 

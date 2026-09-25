@@ -1,8 +1,11 @@
 # Telemetria de playtest — como ler sem se enganar
 
-O jogo grava eventos de game design (progressão, mortes, economia, desfecho) num
-buffer local e envia para um Supabase dedicado (`playtest_events`). Sem PII: só
-um id de sessão aleatório.
+**Estado atual:** a telemetria fica no buffer local do navegador. O cliente
+remoto foi desligado porque apontava para o Supabase de outra aplicação.
+Nenhuma sessão nova vai para `playtest_events`. Os números e SQLs abaixo são
+históricos e não medem jogadores novos. Para um playtest novo, exporte o JSON
+local com consentimento do testador; um backend próprio e uma revisão dos dados
+coletados seriam necessários antes de religar envios automáticos.
 
 ## ⚠ O histórico anterior a 27/07/2026 está CONTAMINADO
 
