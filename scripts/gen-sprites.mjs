@@ -807,7 +807,6 @@ function quadroMotivacional() {
   return c.save("obj-quadro-motivacional-idle.png");
 }
 
-
 // ── Brenda do RH (boss da Fase 3) — DERIVADA do enemy-rh ──────────────────────
 // Máxima fidelidade: em vez de redesenhar em código (fica chapado), derivamos a
 // Brenda da ARTE pintada à mão do inimigo `enemy-rh` e só RECOLORIMOS o blazer
@@ -946,7 +945,6 @@ function copaDoor() {
   addOutline(c, OBJ_OUT);
   return c.save("obj-door.png");
 }
-
 
 // ── Ponto Eletrônico (Copa) — 28×40 ──────────────────────────────────────────
 // Era um retângulo branco chapado com dígitos verdes soltos (lia como "erro de
