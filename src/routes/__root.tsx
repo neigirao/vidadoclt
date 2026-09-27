@@ -81,33 +81,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop.",
+          "A Vida do CLT é um jogo roguelite de ação: sobreviva ao expediente, enfrente a burocracia e tente chegar em casa às 18h.",
       },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
+      { name: "author", content: "A Vida do CLT" },
+      { property: "og:title", content: "A Vida do CLT — Roguelite Corporativo" },
       {
         property: "og:description",
         content:
-          "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop.",
+          "A Vida do CLT é um jogo roguelite de ação: sobreviva ao expediente, enfrente a burocracia e tente chegar em casa às 18h.",
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
+      { name: "twitter:card", content: "summary_large_image" },
+      
+      { name: "twitter:title", content: "A Vida do CLT — Roguelite Corporativo" },
       {
         name: "twitter:description",
         content:
-          "Corporate Escape is a 2D rogue-lite where players battle bureaucratic nightmares in a time loop.",
+          "A Vida do CLT é um jogo roguelite de ação: sobreviva ao expediente, enfrente a burocracia e tente chegar em casa às 18h.",
       },
       {
         property: "og:image",
         content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90b1856e-3469-4458-ba07-921ea87f9cdb/id-preview-c7a0393d--afdf85e2-8b77-42c0-978c-3ae6c7151bae.lovable.app-1781099012958.png",
+          "https://vidadoclt.lovable.app/assets/bg-menu.webp",
       },
       {
         name: "twitter:image",
         content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90b1856e-3469-4458-ba07-921ea87f9cdb/id-preview-c7a0393d--afdf85e2-8b77-42c0-978c-3ae6c7151bae.lovable.app-1781099012958.png",
+          "https://vidadoclt.lovable.app/assets/bg-menu.webp",
       },
     ],
     links: [
@@ -128,7 +128,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
