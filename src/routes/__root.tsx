@@ -92,8 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      
-      { name: "twitter:title", content: "A Vida do CLT — Roguelite Corporativo" },
+            { name: "twitter:title", content: "A Vida do CLT — Roguelite Corporativo" },
       {
         name: "twitter:description",
         content:
@@ -101,13 +100,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         property: "og:image",
-        content:
-          "https://vidadoclt.lovable.app/assets/bg-menu.webp",
+        content: "https://vidadoclt.lovable.app/assets/bg-menu.webp",
       },
       {
         name: "twitter:image",
-        content:
-          "https://vidadoclt.lovable.app/assets/bg-menu.webp",
+        content: "https://vidadoclt.lovable.app/assets/bg-menu.webp",
       },
     ],
     links: [
