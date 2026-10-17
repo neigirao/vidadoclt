@@ -52,8 +52,12 @@ describe("BalanceModel", () => {
     expect(loopHpScale(1, 0)).toBe(1);
     expect(loopHpScale(1, 2)).toBeCloseTo(1.4, 5);
     expect(loopHpScale(3, 2)).toBeCloseTo(1.3, 5);
-    const e = ENEMIES.estagiario_desesperado; // F1, hp 12
-    expect(scaledHp(e, 1)).toBeCloseTo(12 * 1.2, 5);
+    // O HP vem do CATÁLOGO, nunca hardcoded aqui. Este teste travava `12` e
+    // quebrou quando o catálogo foi sincronizado com a classe real (10) — o
+    // mesmo defeito que ele deveria ajudar a evitar: uma segunda cópia do
+    // número, que envelhece calada.
+    const e = ENEMIES.estagiario_desesperado;
+    expect(scaledHp(e, 1)).toBeCloseTo(e.hp * 1.2, 5);
   });
 
   test("pressão do inimigo usa o maior golpe / janela de i-frames; 0 se inofensivo", () => {

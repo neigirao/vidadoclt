@@ -92,7 +92,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   estagiario_sobrecarregado: {
     id: "estagiario_sobrecarregado",
     label: "Estagiário Sobrecarregado",
-    hp: 22,
+    hp: 16,
     speed: 180,
     contactDamage: 8,
     vrReward: 2,
@@ -107,7 +107,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   analista_onboarding: {
     id: "analista_onboarding",
     label: "Analista em Onboarding",
-    hp: 18,
+    hp: 14,
     speed: 90,
     contactDamage: 0,
     vrReward: 2,
@@ -122,7 +122,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   estagiario_desesperado: {
     id: "estagiario_desesperado",
     label: "Estagiário Desesperado",
-    hp: 12,
+    hp: 10,
     speed: 200,
     contactDamage: 6,
     vrReward: 1,
@@ -216,7 +216,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   analista_junior: {
     id: "analista_junior",
     label: "Analista Júnior",
-    hp: 30,
+    hp: 16,
     speed: 80,
     contactDamage: 0,
     vrReward: 3,
@@ -232,7 +232,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   telemarketer_zumbi: {
     id: "telemarketer_zumbi",
     label: "Telemarketer Zumbi",
-    hp: 160,
+    hp: 42,
     speed: 70,
     contactDamage: 12,
     vrReward: 2,
@@ -295,7 +295,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   reuniao_corporativa: {
     id: "reuniao_corporativa",
     label: "Reunião Corporativa",
-    hp: 320,
+    hp: 60,
     speed: 45,
     contactDamage: 0,
     vrReward: 5,
@@ -341,7 +341,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   impressora_assombrada: {
     id: "impressora_assombrada",
     label: "Impressora Assombrada",
-    hp: 400,
+    hp: 95,
     speed: 0,
     contactDamage: 8,
     vrReward: 8,
@@ -357,7 +357,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   guardiao_cafe: {
     id: "guardiao_cafe",
     label: "Guardião do Café",
-    hp: 280,
+    hp: 75,
     speed: 90,
     contactDamage: 20,
     vrReward: 4,
@@ -373,7 +373,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   nuvem_board_sentinela: {
     id: "nuvem_board_sentinela",
     label: "Nuvem Board Sentinela",
-    hp: 250,
+    hp: 48,
     speed: 40,
     contactDamage: 0,
     vrReward: 3,
@@ -389,7 +389,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   evangelista_corporativo: {
     id: "evangelista_corporativo",
     label: "Evangelista Corporativo",
-    hp: 224,
+    hp: 60,
     speed: 60,
     contactDamage: 8,
     vrReward: 3,
@@ -404,7 +404,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   coletor_dados: {
     id: "coletor_dados",
     label: "Coletor de Dados",
-    hp: 150,
+    hp: 50,
     speed: 130,
     contactDamage: 0,
     vrReward: 1,
@@ -420,7 +420,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   planilha_viva: {
     id: "planilha_viva",
     label: "Planilha Viva",
-    hp: 400,
+    hp: 90,
     speed: 40,
     contactDamage: 10,
     vrReward: 6,
@@ -436,7 +436,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   cabo_rede: {
     id: "cabo_rede",
     label: "Cabo de Rede",
-    hp: 176,
+    hp: 70,
     speed: 80,
     contactDamage: 10,
     vrReward: 2,
@@ -451,7 +451,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   ti_suporte: {
     id: "ti_suporte",
     label: "TI Suporte",
-    hp: 300,
+    hp: 85,
     speed: 90,
     contactDamage: 12,
     vrReward: 3,
@@ -469,7 +469,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   drone_vigilancia: {
     id: "drone_vigilancia",
     label: "Drone de Vigilância",
-    hp: 144,
+    hp: 60,
     speed: 80,
     contactDamage: 0,
     vrReward: 3,
@@ -485,7 +485,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   seguranca_corporativa: {
     id: "seguranca_corporativa",
     label: "Segurança Corporativa",
-    hp: 280,
+    hp: 95,
     speed: 120,
     contactDamage: 10,
     vrReward: 4,
@@ -501,7 +501,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   carimbador_automatico: {
     id: "carimbador_automatico",
     label: "Carimbador Automático",
-    hp: 256,
+    hp: 90,
     speed: 50,
     contactDamage: 8,
     vrReward: 4,
@@ -517,7 +517,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   arquivo_ambulante: {
     id: "arquivo_ambulante",
     label: "Arquivo Ambulante",
-    hp: 500,
+    hp: 130,
     speed: 30,
     contactDamage: 14,
     vrReward: 15,
@@ -533,7 +533,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   bateria_social: {
     id: "bateria_social",
     label: "Bateria Social",
-    hp: 200,
+    hp: 75,
     speed: 60,
     contactDamage: 8,
     vrReward: 4,
